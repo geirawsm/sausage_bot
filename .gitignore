@@ -1,0 +1,8 @@
+__pycache__
+.env
+*.code-*
+.vscode/
+
+logs/
+json/
+lists/
