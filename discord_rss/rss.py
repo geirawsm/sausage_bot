@@ -3,7 +3,6 @@
 import requests
 import sys
 from lxml import etree
-import bs4
 from discord_rss import file_io, _vars, datetime_funcs, log
 
 '''

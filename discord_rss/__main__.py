@@ -61,8 +61,8 @@ async def polse(ctx):
 @_config.bot.command(name='rss')
 #@commands.has_permissions(administrator=True)
 async def _rss(ctx, action, *args):
-    '''TODO Gjør om denne til en  egen cog
-Bruker actions `add` og `remove` for å legge til og fjerne RSS-feeder.
+    '''TODO Gjør om denne til en  egen cog'''
+'''Bruker actions `add` og `remove` for å legge til og fjerne RSS-feeder.
 Du kan også få en liste over aktiverte RSS-feeds ved å bruke `list`.
 
 Eksempler:
