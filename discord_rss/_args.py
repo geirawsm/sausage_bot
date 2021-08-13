@@ -25,6 +25,13 @@ logging_args.add_argument('--no-rss',
                           action='store_true',
                           default=False,
                           dest='no_rss')
+
+maintenance_args = parser.add_argument_group('Maintenance')
+maintenance_args.add_argument('--maintenance-mode',
+                              help='Start the bot in maintenance mode',
+                              action='store_true',
+                              default=False,
+                              dest='maintenance_mode')
 args = parser.parse_args()
 
 

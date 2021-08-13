@@ -10,6 +10,7 @@ lxml = "*"
 requests = "*"
 pendulum = "*"
 colorama = "*"
+cogs = "*"
 
 [dev-packages]
 

@@ -7,12 +7,18 @@ ROOT_DIR = Path(__file__).resolve().parent
 JSON_DIR = ROOT_DIR / 'json'
 LIST_DIR = ROOT_DIR / 'lists'
 LOG_DIR = ROOT_DIR / 'logs'
+COGS_DIR = ROOT_DIR / 'cogs'
+IMG_DIR = ROOT_DIR / 'img'
+
+# Relative paths
+COGS_REL_DIR = 'discord_rss.cogs'
 
 # Files
 env_file = ROOT_DIR / '.env'
-admins_file = LIST_DIR / 'admins.list'
 feed_file = JSON_DIR / 'feeds.json'
 feed_log_file = JSON_DIR / 'feeds-log.json'
+quote_file = LIST_DIR / 'quotes.list'
+test_list_file = LIST_DIR / 'test.list'
 
 # Botlines
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
@@ -23,18 +29,4 @@ RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal du ønske
 RSS_TOO_MANY_ARGUMENTS = 'Du har gitt for mange argumenter til kommandoen'
 RSS_REMOVED = 'RSS-feeden {} ble fjernet'
 RSS_COULD_NOT_REMOVE = 'Klarte ikke å fjerne RSS-feeden {}'
-RSS_HELP_TEXT = '''pølsebot kan følgende kommandoer:
-
-`{prefix}sitat`: Henter et tilfeldig sitat fra telegram-chaten (2019 - 2021)
-
-`{prefix}pølse`: Poster det famøse "Pølse-gate"-klippet fra Tangerudbakken
-
-`{prefix}admin`: List opp admins som har tilgang til funksjoner som krever høyere tilgang
-
-`{prefix}rss`: bruker `add` og `remove` for å legge til og fjerne RSS-feeder
-Eksempler:
-`{prefix}rss add [navn på rss] [rss url] [kanal som rss skal publiseres til]`
-`{prefix}rss remove [navn på rss]`
-
-Tips til nye funksjoner kan sendes til geirawsm (geirawsm@pm.me)
-'''
+RSS_LIST_ARG_WRONG = 'Kjenner ikke til kommandoen {}'

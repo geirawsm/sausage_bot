@@ -5,7 +5,17 @@ import os
 import stat
 import json
 from pathlib import Path
-from discord_rss import log
+from discord_rss import log, _vars
+
+
+def import_file_as_list(file_in):
+    '''
+    Open `file_in` and import it as a list.
+    '''
+    readtext = io.open(file_in, mode="r", encoding="utf-8")
+    list_out = eval(readtext.read())
+    readtext.close()
+    return list_out
 
 
 def read_list(list_in):
@@ -18,9 +28,12 @@ def read_list(list_in):
     return list_out
 
 
-def add_to_list(list_in, itemadd):
-    #TODO Denne må på plass så man kan legge til nye admins
-    pass
+def add_to_list(list_file_in, item_add):
+    ensure_file(list_file_in, '[]')
+    opened_list = import_file_as_list(list_file_in)
+    opened_list.append(item_add)
+    with open(list_file_in, 'w') as fout:
+        fout.write(str(opened_list))
 
 
 def read_json(json_file):
@@ -65,7 +78,7 @@ def ensure_file(file_path, file_template=False):
 
     # Make the folders if necessary
     try:
-        Path(list(file_path.parents)[0]).mkdir(parents=True, exist_ok=False)
+        os.makedirs(file_path.parent)
     except(FileExistsError):
         pass
     # Ooooh, this is a scary one. Don't overwrite the file unless it's empty
@@ -74,7 +87,13 @@ def ensure_file(file_path, file_template=False):
     if not file_size(file_path):
         log.log_more('File not found, creating: {}'.format(file_path))
         with open(file_path, 'w+') as fout:
-            fout.write('')
+            if file_template:
+                fout.write(file_template)
+            else:
+                fout.write('')
         return True
     else:
         return False
+
+if __name__ == "__main__":
+    add_to_list(_vars.LIST_DIR / 'test.list', 'twestitem2')

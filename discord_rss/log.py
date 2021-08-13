@@ -4,12 +4,14 @@ import os
 import sys
 from colorama import init, Fore, Style
 from pathlib import Path
-from discord_rss import _vars
+from discord.ext import commands
+from discord_rss import _vars, discord_commands, _config
 from discord_rss._args import args
 from discord_rss.datetime_funcs import get_dt as get_dt
 
 # colorama specific reset routine
 init(autoreset=True)
+
 
 def log_function(log_in):
     log_out = '[{}] '.format(get_dt(format='datetimefull'))
@@ -26,8 +28,9 @@ def log_function(log_in):
         print(log_out)
     else:
         log_out += '\n'
+        
         _logfilename = _vars.LOG_DIR / '{}.log'.format(get_dt('revdate', sep='-'))
-        write_log = open(_logfilename, 'a', encoding="utf-8")
+        write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
         write_log.close()
 
@@ -52,3 +55,10 @@ def log_func_name():
     func_file = frame_file.f_back.f_code.co_filename
     func_file = Path(func_file).stem
     return '{}.{}'.format(func_file, func_name)
+
+
+async def log_to_bot_channel(text_in):
+    'Messages you want to send directly to a specific channel'
+    await _config.bot.get_channel(
+        discord_commands.get_channel_list()[_config.BOT_CHANNEL]
+    ).send(text_in)
