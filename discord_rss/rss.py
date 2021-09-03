@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import requests
 import sys
+from bs4 import BeautifulSoup
 from lxml import etree
 from discord_rss import file_io, _vars, datetime_funcs, log
 
@@ -65,14 +66,21 @@ def remove_feed_from_file(name):
     
 
 def get_feed_links(url):
+    'Get the links from a feed url'
+    # Get the url and make it parseable
+    req = requests.get(url)
+    #req.encoding = req.apparent_encoding
+    soup = BeautifulSoup(req.content, 'lxml')
     links = []
-    feed_in = get_feed(str(url))
-    if feed_in is None:
-        return None
+    # Try normal RSS
+    if '<rss version="' in str(soup).lower():
+        feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
     for item in feed_in.xpath('/rss/channel/item')[0:2]:
         links.append(item.xpath("./link/text()")[0].strip())
+    elif '<feed xml' in str(soup):
+        for entry in soup.findAll('entry')[0:2]:
+            links.append(entry.find('link')['href'])
     return links
-
 
 def get_feed_list(long=False):
     def get_feed_item_lengths(feed_file):

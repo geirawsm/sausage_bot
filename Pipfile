@@ -11,6 +11,7 @@ requests = "*"
 pendulum = "*"
 colorama = "*"
 cogs = "*"
+bs4 = "*"
 
 [dev-packages]
 
