@@ -31,6 +31,12 @@ class Quotes(commands.Cog):
         await ctx.send('La til følgende sitat:\n{}'.format(quote_in))
         return
 
+    @sitat.group(name='count')
+    async def add(self, ctx):
+        quote_count = len(file_io.import_file_as_list(_vars.quote_file))
+        await ctx.send('Jeg har {} sitater på lager'.format(quote_count))
+        return
+
 
 def setup(bot):
     bot.add_cog(Quotes(bot))
