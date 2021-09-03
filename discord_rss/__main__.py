@@ -31,7 +31,7 @@ async def on_ready():
         if guild.name == _config.GUILD:
             break
     log.log('{} has connected to `{}`'.format(_config.bot.user, guild.name))
-    if args.maintenance_mode:
+    if args.maintenance:
         await _config.bot.change_presence(
             status=discord.Status.dnd)
     else:
@@ -61,16 +61,15 @@ async def polse(ctx):
 @_config.bot.command(name='rss')
 #@commands.has_permissions(administrator=True)
 async def _rss(ctx, action, *args):
-    '''TODO Gjør om denne til en  egen cog'''
-'''Bruker actions `add` og `remove` for å legge til og fjerne RSS-feeder.
+    '''Bruker actions `add` og `remove` for å legge til og fjerne RSS-feeder.
 Du kan også få en liste over aktiverte RSS-feeds ved å bruke `list`.
 
 Eksempler:
 `!rss add [navn på rss] [rss url] [kanal som rss skal publiseres til]`
 `!rss remove [navn på rss]`
 `!rss list`
-`!rss list long`
-    '''
+`!rss list long`'''
+    #TODO Gjør om denne til en  egen cog
     AUTHOR = ctx.message.author.name
     # Add RSS-feeds
     if action == 'add':
@@ -95,7 +94,7 @@ Eksempler:
                 log_text = '{} la til feeden {} ({}) til kanalen {}'.format(
                     AUTHOR, NAME, URL, CHANNEL
                 )
-                log.log_to_bot_channel(log_text)
+                await log.log_to_bot_channel(log_text)
                 return
             elif not URL_OK:
                 await ctx.send(_vars.RSS_URL_NOT_OK)
