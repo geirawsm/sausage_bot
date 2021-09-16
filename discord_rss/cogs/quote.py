@@ -36,6 +36,7 @@ class Quotes(commands.Cog):
 
 
     @sitat.group(name='add')
+    @commands.has_permissions(administrator=True)
     async def add(self, ctx, quote_in):
         '''Legger til et sitat som kan hentes opp seinere.'''
         quotes = file_io.import_file_as_dict(_vars.quote_file)
