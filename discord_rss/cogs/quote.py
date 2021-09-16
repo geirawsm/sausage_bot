@@ -40,19 +40,20 @@ class Quotes(commands.Cog):
     async def add(self, ctx, quote_in):
         '''Legger til et sitat som kan hentes opp seinere.'''
         quotes = file_io.import_file_as_dict(_vars.quote_file)
-        new_quote_number = str(list(quotes.keys())[-1])
+        new_quote_number = int(list(quotes.keys())[-1])+1
         log.log_more('Prøver å legge til quote nummer {}'.format(new_quote_number))
         quote_in += '\n({}, {})'.format(get_dt('date'), get_dt('timefull', sep=':'))
-        quotes[new_quote_number] = quote_in
-        log.log_more(quotes[new_quote_number])
+        quotes[str(new_quote_number)] = quote_in
+        log.log_more('#{}\n{}'.format(new_quote_number, quotes[str(new_quote_number)]))
         file_io.write_json(_vars.quote_file, quotes)
-        await ctx.send('La til følgende sitat:\n{}'.format(quote_in))
+        await ctx.send('La til følgende sitat:#{}\n{}'.format(new_quote_number, quote_in))
+        new_quote_number += 1
         return
     
     @sitat.group(name='count')
     async def count(self, ctx):
         '''Teller opp antall sitater som er tilgjengelig for øyeblikket'''
-        quote_count = len(file_io.import_file_as_list(_vars.quote_file))
+        quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
         await ctx.send('Jeg har {} sitater på lager'.format(quote_count))
         return
 
