@@ -17,7 +17,7 @@ COGS_REL_DIR = 'discord_rss.cogs'
 env_file = ROOT_DIR / '.env'
 feed_file = JSON_DIR / 'feeds.json'
 feed_log_file = JSON_DIR / 'feeds-log.json'
-quote_file = LIST_DIR / 'quotes.list'
+quote_file = JSON_DIR / 'quotes.json'
 test_list_file = LIST_DIR / 'test.list'
 
 # Botlines

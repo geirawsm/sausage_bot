@@ -18,6 +18,22 @@ def import_file_as_list(file_in):
     return list_out
 
 
+def import_file_as_dict(file_in):
+    '''
+    Open `file_in` as a JSON and convert to as a dict
+    Returns file_in as a dict or an empty dict
+    '''
+    readtext = open(file_in, 'r', encoding='utf-8')
+    try:
+        _json = dict(json.loads(readtext.read()))
+    except Exception as e:
+        print('Error when reading JSON, writing empty file')
+        print('Error: {}'.format(e))
+        return {}
+    readtext.close()
+    return _json
+
+
 def read_list(list_in):
     '''
     Open `list_in` and convert to a list.
