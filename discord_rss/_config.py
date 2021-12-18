@@ -9,5 +9,6 @@ TOKEN = config['discord_token']
 GUILD = config['discord_guild']
 PREFIX = config['bot_prefix']
 BOT_CHANNEL = config['bot_dump_channel']
+BOT_OWNER = config['bot_owner']
 
 bot = commands.Bot(command_prefix=PREFIX)
