@@ -75,8 +75,8 @@ def get_feed_links(url):
     # Try normal RSS
     if '<rss version="' in str(soup).lower():
         feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
-    for item in feed_in.xpath('/rss/channel/item')[0:2]:
-        links.append(item.xpath("./link/text()")[0].strip())
+        for item in feed_in.xpath('/rss/channel/item')[0:2]:
+            links.append(item.xpath("./link/text()")[0].strip())
     elif '<feed xml' in str(soup):
         for entry in soup.findAll('entry')[0:2]:
             links.append(entry.find('link')['href'])
