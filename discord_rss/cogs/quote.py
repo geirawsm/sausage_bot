@@ -39,7 +39,13 @@ class Quotes(commands.Cog):
         if ctx.invoked_subcommand is None:
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             if number is None:
-                _rand = randrange(0, len(quotes))
+                recent_quotes = file_io.import_file_as_list(_vars.quote_log_file)
+                if len(recent_quotes) == len(quotes):
+                    recent_quotes = []
+                    file_io.write_file(_vars.quote_log_file, recent_quotes)
+                _rand = random.choice([i for i in range(0, len(quotes)) if str(i) not in recent_quotes])
+                if str(_rand) not in recent_quotes:
+                    file_io.add_to_list(_vars.quote_log_file, str(_rand))
                 _quote = pretty_quote(quotes[str(_rand)], _rand)
                 await ctx.send(_quote)
                 return

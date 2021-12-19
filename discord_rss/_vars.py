@@ -18,6 +18,8 @@ env_file = ROOT_DIR / '.env'
 feed_file = JSON_DIR / 'feeds.json'
 feed_log_file = JSON_DIR / 'feeds-log.json'
 quote_file = JSON_DIR / 'quotes.json'
+quote_log_file = LIST_DIR / 'quotes-log.list'
+
 test_list_file = LIST_DIR / 'test.list'
 
 # Botlines
