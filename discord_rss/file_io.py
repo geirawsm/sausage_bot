@@ -8,6 +8,11 @@ from pathlib import Path
 from discord_rss import log, _vars
 
 
+def write_file(file_out, contents):
+    with open(file_out, 'w') as fout:
+        fout.write(str(contents))
+
+
 def import_file_as_list(file_in):
     '''
     Open `file_in` and import it as a list.
@@ -48,8 +53,7 @@ def add_to_list(list_file_in, item_add):
     ensure_file(list_file_in, '[]')
     opened_list = import_file_as_list(list_file_in)
     opened_list.append(item_add)
-    with open(list_file_in, 'w') as fout:
-        fout.write(str(opened_list))
+    write_file(list_file_in, str(opened_list))
 
 
 def read_json(json_file):
