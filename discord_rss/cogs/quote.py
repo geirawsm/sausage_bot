@@ -2,8 +2,8 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-from random import randrange
 import typing
+import random
 from discord_rss import file_io, _vars, log, _config
 from discord_rss.datetime_funcs import get_dt
 
@@ -29,25 +29,39 @@ class Quotes(commands.Cog):
 
     @commands.group(name='sitat')
     async def sitat(self, ctx, number: typing.Optional[int] = None):
-        '''Henter et tilfeldig sitat fra telegram-chaten (2019 - 
-2021) og nyere sitater hentet fra Discord.'''
+        '''Henter et tilfeldig sitat fra telegram-chaten (2019 - 2021) og nyere sitater hentet fra Discord.'''
 
         def pretty_quote(quote, number):
             quote_out = '```#{}\n{}```'.format(number, quotes[str(number)])
             return quote_out
         
+        # If no `number` is given, get a random quote
         if ctx.invoked_subcommand is None:
+            # Check if the message is a DM or guild-call
+            if not ctx.guild:
+                log_ctx = 'dm@{}'.format(ctx.message.author)
+            else:
+                log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
+            recent_quotes_log = file_io.import_file_as_dict(_vars.quote_log_file)
+            if log_ctx not in recent_quotes_log:
+                recent_quotes_log[log_ctx] = []
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             if number is None:
-                _rand = randrange(0, len(quotes))
+                if len(recent_quotes_log[log_ctx]) == len(quotes):
+                    recent_quotes_log[log_ctx] = {}
+                    file_io.write_json(_vars.quote_log_file, recent_quotes_log)
+                _rand = random.choice([i for i in range(0, len(quotes)) if str(i) not in recent_quotes_log[log_ctx]])
+                if str(_rand) not in recent_quotes_log[log_ctx]:
+                    recent_quotes_log[log_ctx].append(str(_rand))
+                    file_io.write_json(_vars.quote_log_file, recent_quotes_log)
                 _quote = pretty_quote(quotes[str(_rand)], _rand)
                 await ctx.send(_quote)
                 return
-            elif number:
-                _quote = pretty_quote(quotes[str(number)], number)
-                await ctx.send(_quote)
-                return
-
+        # If `number` is given, get that specific quote
+        elif number:
+            _quote = pretty_quote(quotes[str(number)], number)
+            await ctx.send(_quote)
+            return
 
     @sitat.group(name='add')
     async def add(self, ctx, quote_in):
