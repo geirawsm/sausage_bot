@@ -5,7 +5,7 @@ from discord.ext import commands, tasks
 import re
 import os
 from random import randrange
-from discord_rss import rss, _vars, file_io, log, _config, discord_commands
+from discord_rss import rss_core, _vars, file_io, log, _config, discord_commands
 from discord_rss._args import args
 import sys
 
@@ -58,80 +58,6 @@ async def polse(ctx):
     await ctx.send('https://www.youtube.com/watch?v=geJZ3kJUqoY')
 
 
-@_config.bot.command(name='rss')
-#@commands.has_permissions(administrator=True)
-async def _rss(ctx, action, *args):
-    '''Bruker actions `add` og `remove` for å legge til og fjerne RSS-feeder.
-Du kan også få en liste over aktiverte RSS-feeds ved å bruke `list`.
-
-Eksempler:
-`!rss add [navn på rss] [rss url] [kanal som rss skal publiseres til]`
-`!rss remove [navn på rss]`
-`!rss list`
-`!rss list long`'''
-    #TODO Gjør om denne til en egen cog
-    AUTHOR = ctx.message.author.name
-    # Add RSS-feeds
-    if action == 'add':
-        log.log_more('Run `rss add`')
-        URL_OK = False
-        CHANNEL_OK = False
-        log.log_more('Received {} arguments'.format(len(args)))
-        if len(args) == 3:
-            NAME = args[0]
-            URL = args[1]
-            CHANNEL = args[2]
-            if re.match(r'(www|http:|https:)+[^\s]+[\w]', URL):
-                # Check rss validity
-                if rss.check_feed_validity(URL):
-                    URL_OK = True
-                else:
-                    URL_OK = False
-            if CHANNEL in discord_commands.get_channel_list():
-                CHANNEL_OK = True
-            if URL_OK and CHANNEL_OK:
-                rss.add_feed_to_file(NAME, URL, CHANNEL, AUTHOR)
-                log_text = '{} la til feeden {} ({}) til kanalen {}'.format(
-                    AUTHOR, NAME, URL, CHANNEL
-                )
-                await log.log_to_bot_channel(log_text)
-                return
-            elif not URL_OK:
-                await ctx.send(_vars.RSS_URL_NOT_OK)
-                return
-            elif not CHANNEL_OK:
-                await ctx.send(_vars.RSS_CHANNEL_NOT_OK)
-                return
-        else:
-            await ctx.send(_vars.RSS_URL_AND_CHANNEL_NOT_OK)
-    elif action == 'remove':
-        if len(args) == 1:
-            NAME = args[0]
-            removal = rss.remove_feed_from_file(NAME)
-            if removal:
-                await ctx.send(_vars.RSS_REMOVED.format(NAME))
-            elif removal is False:
-                # Couldn't remove the feed
-                await ctx.send(_vars.RSS_COULD_NOT_REMOVE.format(NAME))
-                # Also log and send error to either a bot-channel or admin
-            return
-        else:
-            await ctx.send(_vars.RSS_TOO_MANY_ARGUMENTS)
-    elif action == 'list':
-        print(len(args))
-        if len(args) == 1:
-            arg = args[0]
-            if arg == 'long':
-                list = rss.get_feed_list(long=True)
-            else:
-                await ctx.send(_vars.RSS_LIST_ARG_WRONG.format(arg))
-                return
-        else:
-            list = rss.get_feed_list()
-        await ctx.send(list)
-        return
-
-
 #Tasks
 @tasks.loop(minutes = 1)
 async def rss_parse():
@@ -147,7 +73,7 @@ async def rss_parse():
                 URL = feeds[feed]['url']
                 CHANNEL = feeds[feed]['channel']
                 log.log('Checking {} ({})'.format(feed, CHANNEL))
-                feed_links = rss.get_feed_links(URL)
+                feed_links = rss_core.get_feed_links(URL)
                 if feed_links is None:
                     log.log('Klarte ikke å behandle feed: {}'.format(URL))
                     continue

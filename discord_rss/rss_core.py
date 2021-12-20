@@ -21,18 +21,17 @@ Things this script should be able to do:
 
 
 def get_feed(url):
+    # TODO This should push an error if there is a problem with the link
     req = requests.get(url)
-    req.encoding = req.apparent_encoding
-    try:
-        feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
-    except(etree.XMLSyntaxError):
+    if req.status_code != 200:
+        log.log('Got a {} when fetching {}'.format(req.status_code, url))
         return None
-    return feed_in
+    else:
+        return req
 
 
 def check_feed_validity(url):
-    req = requests.get(url)
-    req.encoding = req.apparent_encoding
+    req = get_feed(url)
     try:
         feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         return True
@@ -42,7 +41,7 @@ def check_feed_validity(url):
 
 def add_feed_to_file(name, feed_link, channel, user_add):
     '''Add a new feed to the feed-json'''
-    date_now = datetime_funcs.get_dt(format='datetimefull')
+    date_now = datetime_funcs.get_dt(format='datetime')
     feed_file = file_io.read_json(_vars.feed_file)
     feed_file[name] = {'url': feed_link,
                        'channel': channel,
@@ -68,9 +67,16 @@ def remove_feed_from_file(name):
 def get_feed_links(url):
     'Get the links from a feed url'
     # Get the url and make it parseable
-    # TODO This should push an error if there is a problem with the link
-    req = requests.get(url)
-    soup = BeautifulSoup(req.content, 'lxml')
+    req = get_feed(url)
+#    req.encoding = req.apparent_encoding
+#    try:
+#        feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
+#    except(etree.XMLSyntaxError):
+#        return None
+    try:
+        soup = BeautifulSoup(req.content, 'lxml')
+    except(AttributeError):
+        log.log('Error when reading soup from {}'.format(url))
     links = []
     # Try normal RSS
     if '<rss version="' in str(soup).lower():
