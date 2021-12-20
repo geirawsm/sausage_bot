@@ -6,6 +6,7 @@ import stat
 import json
 from pathlib import Path
 from discord_rss import log, _vars
+import pathlib
 
 
 def import_file_as_list(file_in):
@@ -93,10 +94,12 @@ def ensure_file(file_path, file_template=False):
             return False
 
     # Make the folders if necessary
-    try:
-        os.makedirs(file_path.parent)
-    except(FileExistsError):
-        pass
+    if not os.path.exists(file_path):
+        _dirs = str(file_path).split(os.sep)[0:-1]
+        _path = ''
+        for _dir in _dirs:
+            _path += '{}/'.format(_dir)
+        pathlib.Path(_path).mkdir(parents=True, exist_ok=True)
     # Ooooh, this is a scary one. Don't overwrite the file unless it's empty
     log.log_more('{} size: {}'.format(file_path, file_size(file_path)))
     # Create the file if it doesn't exist
