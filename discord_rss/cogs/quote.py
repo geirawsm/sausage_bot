@@ -4,22 +4,8 @@ import discord
 from discord.ext import commands
 import typing
 import random
-from discord_rss import file_io, _vars, log, _config
+from discord_rss import file_io, _vars, log, _config, discord_commands
 from discord_rss.datetime_funcs import get_dt
-
-
-def is_admin(ctx):
-    try:
-        return ctx.message.author.guild_permissions.administrator
-    except(AttributeError):
-        return False
-
-
-def is_bot_owner(ctx):
-    if str(ctx.message.author) == _config.BOT_OWNER:
-        return True
-    else:
-        return False
 
 
 class Quotes(commands.Cog):
@@ -67,7 +53,7 @@ class Quotes(commands.Cog):
     async def add(self, ctx, quote_in):
         '''Legger til et sitat som kan hentes opp seinere.'''
         # Sjekk om admin eller bot-eier
-        if is_bot_owner(ctx) or is_admin(ctx):
+        if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             new_quote_number = int(list(quotes.keys())[-1])+1
             log.log_more('Prøver å legge til quote nummer {}'.format(new_quote_number))
