@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-import discord
 from discord.ext import commands
 import typing
 import random
-from discord_rss import file_io, _vars, log, _config, discord_commands
+from discord_rss import file_io, _vars, log, discord_commands
 from discord_rss.datetime_funcs import get_dt
 
 
@@ -43,11 +42,11 @@ class Quotes(commands.Cog):
                 _quote = pretty_quote(quotes[str(_rand)], _rand)
                 await ctx.send(_quote)
                 return
-        # If `number` is given, get that specific quote
-        elif number:
-            _quote = pretty_quote(quotes[str(number)], number)
-            await ctx.send(_quote)
-            return
+            # If `number` is given, get that specific quote
+            elif number:
+                _quote = pretty_quote(quotes[str(number)], number)
+                await ctx.send(_quote)
+                return
 
     @sitat.group(name='add')
     async def add(self, ctx, quote_in):
