@@ -69,7 +69,7 @@ Eksempler:
 `!rss remove [navn på rss]`
 `!rss list`
 `!rss list long`'''
-    #TODO Gjør om denne til en  egen cog
+    #TODO Gjør om denne til en egen cog
     AUTHOR = ctx.message.author.name
     # Add RSS-feeds
     if action == 'add':

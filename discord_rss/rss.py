@@ -68,8 +68,8 @@ def remove_feed_from_file(name):
 def get_feed_links(url):
     'Get the links from a feed url'
     # Get the url and make it parseable
+    # TODO This should push an error if there is a problem with the link
     req = requests.get(url)
-    #req.encoding = req.apparent_encoding
     soup = BeautifulSoup(req.content, 'lxml')
     links = []
     # Try normal RSS
