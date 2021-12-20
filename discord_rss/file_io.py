@@ -18,8 +18,9 @@ def import_file_as_list(file_in):
     '''
     Open `file_in` and import it as a list.
     '''
-    readtext = io.open(file_in, mode="r", encoding="utf-8")
-    list_out = eval(readtext.read())
+    ensure_file(file_in, '[]')
+    readtext = open(file_in, 'r', encoding='utf-8')
+    list_out = eval(str(readtext.read()))
     readtext.close()
     return list_out
 
@@ -29,6 +30,7 @@ def import_file_as_dict(file_in):
     Open `file_in` as a JSON and convert to as a dict
     Returns file_in as a dict or an empty dict
     '''
+    ensure_file(file_in, '{}')
     readtext = open(file_in, 'r', encoding='utf-8')
     try:
         _json = dict(json.loads(readtext.read()))
