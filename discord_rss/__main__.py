@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import re
 import os
 from random import randrange
@@ -56,48 +56,5 @@ for filename in os.listdir(_vars.COGS_DIR):
 async def polse(ctx):
     'Poster det famøse "Pølse-gate"-klippet fra Tangerudbakken'
     await ctx.send('https://www.youtube.com/watch?v=geJZ3kJUqoY')
-
-
-#Tasks
-@tasks.loop(minutes = 1)
-async def rss_parse():
-    channel_dict = {}
-    for guild in _config.bot.guilds:
-        if guild.name == _config.GUILD:
-            # Get all channels and their IDs
-            for channel in guild.text_channels:
-                channel_dict[channel.name] = channel.id
-            # Update the feeds
-            feeds = file_io.read_json(_vars.feed_file)
-            for feed in feeds:
-                URL = feeds[feed]['url']
-                CHANNEL = feeds[feed]['channel']
-                log.log('Checking {} ({})'.format(feed, CHANNEL))
-                feed_links = rss_core.get_feed_links(URL)
-                if feed_links is None:
-                    log.log('Klarte ikke å behandle feed: {}'.format(URL))
-                    continue
-                feed_log = file_io.read_json(_vars.feed_log_file)
-                for link in feed_links:
-                    try:
-                        feed_log[feed]
-                    except(KeyError):
-                        feed_log[feed] = []
-                    if link not in feed_log[feed]:
-                        log.log('Got fresh link from {}. Posting...'.format(feed))
-                        # Post link to channel
-                        if CHANNEL in channel_dict:
-                            channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
-                            await channel_out.send(link)
-                            # Legg til link i logg
-                            feed_log[feed].append(link)
-                            file_io.write_json(_vars.feed_log_file, feed_log)
-                    else:
-                        log.log_more('Link {} already logged. Skipping.'.format(link))
-    return
-
-
-if not args.no_rss:
-    rss_parse.start()
 
 _config.bot.run(_config.TOKEN)
