@@ -16,8 +16,8 @@ class Quotes(commands.Cog):
     async def sitat(self, ctx, number: typing.Optional[int] = None):
         '''Henter et tilfeldig sitat fra telegram-chaten (2019 - 2021) og nyere sitater hentet fra Discord.'''
 
-        def pretty_quote(quote, number):
-            quote_out = '```#{}\n{}```'.format(number, quotes[str(number)])
+        def pretty_quote(quote_in, number):
+            quote_out = '```#{}\n{}```'.format(number, quote_in)
             return quote_out
         
         # If no `number` is given, get a random quote
@@ -55,10 +55,10 @@ class Quotes(commands.Cog):
         if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             new_quote_number = int(list(quotes.keys())[-1])+1
-            log.log_more('Prøver å legge til quote nummer {}'.format(new_quote_number))
+            log.log_more('Legge til quote nummer {}'.format(new_quote_number))
             quote_in += '\n({}, {})'.format(get_dt('date'), get_dt('timefull', sep=':'))
             quotes[str(new_quote_number)] = quote_in
-            log.log_more('#{}\n{}'.format(new_quote_number, quotes[str(new_quote_number)]))
+            log.log_more('\n#{}\n{}'.format(new_quote_number, quotes[str(new_quote_number)]))
             file_io.write_json(_vars.quote_file, quotes)
             await ctx.message.reply('La til følgende sitat:#{}\n{}'.format(new_quote_number, quote_in))
             new_quote_number += 1
