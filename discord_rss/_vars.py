@@ -19,6 +19,8 @@ feed_file = JSON_DIR / 'feeds.json'
 feed_log_file = JSON_DIR / 'feeds-log.json'
 quote_file = JSON_DIR / 'quotes.json'
 quote_log_file = JSON_DIR / 'quotes-log.json'
+dilemmas_file = JSON_DIR / 'dilemmas.json'
+dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
 
 # Botlines
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
