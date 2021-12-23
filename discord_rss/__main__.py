@@ -45,10 +45,13 @@ async def on_ready():
 
 # Load cogs
 for filename in os.listdir(_vars.COGS_DIR):
-    if filename.endswith('.py'):
-        _config.bot.load_extension('{}.{}'.format(
-            _vars.COGS_REL_DIR, filename[:-3]
-        ))
+    if filename.endswith('.py') and not filename.startswith('_'):
+        log.log('Loading cog: {}'.format(filename))
+        _config.bot.load_extension(
+            '{}.{}'.format(
+                _vars.COGS_REL_DIR, filename[:-3]
+            )
+        )
 
 
 # Commands
