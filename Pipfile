@@ -12,6 +12,7 @@ pendulum = "*"
 colorama = "*"
 cogs = "*"
 bs4 = "*"
+ratelimit = "*"
 
 [dev-packages]
 
