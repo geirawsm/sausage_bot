@@ -21,6 +21,8 @@ quote_file = JSON_DIR / 'quotes.json'
 quote_log_file = JSON_DIR / 'quotes-log.json'
 dilemmas_file = JSON_DIR / 'dilemmas.json'
 dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
+ps_sale_file = JSON_DIR / 'ps_sales.json'
+ps_sale_log_file = LIST_DIR / 'ps_sales-log.list'
 
 # Botlines
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
