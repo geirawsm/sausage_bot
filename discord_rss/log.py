@@ -54,7 +54,10 @@ def log_func_name():
     func_name = frame_func.f_code.co_name
     func_file = frame_file.f_back.f_code.co_filename
     func_file = Path(func_file).stem
-    return '{}.{}'.format(func_file, func_name)
+    if func_name == '<module>':
+        return func_file
+    else:
+        return '{}.{}'.format(func_file, func_name)
 
 
 async def log_to_bot_channel(text_in):

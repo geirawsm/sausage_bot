@@ -67,6 +67,7 @@ def read_json(json_file):
     Open `json_file` as a JSON and convert to as a dict
     Returns _file as a dict or an empty dict
     '''
+    ensure_file(json_file)
     readtext = io.open(json_file, mode="r", encoding="utf-8")
     try:
         json_in = dict(json.loads(readtext.read()))

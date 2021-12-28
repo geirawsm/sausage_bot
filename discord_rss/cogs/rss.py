@@ -132,7 +132,9 @@ async def rss_parse():
     return
 
 
-if not args.no_rss:
+if args.no_rss:
+    log.log_more('Module loaded but disabled for this session')
+elif not args.no_rss:
     rss_parse.start()
 
 

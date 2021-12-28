@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import requests
+import re
 import sys
 from bs4 import BeautifulSoup
 from lxml import etree
@@ -23,8 +24,8 @@ Things this script should be able to do:
 def get_feed(url):
     # TODO This should push an error if there is a problem with the link
     req = requests.get(url)
+    log.log_more('Got a {} when fetching {}'.format(req.status_code, url))
     if req.status_code != 200:
-        log.log('Got a {} when fetching {}'.format(req.status_code, url))
         return None
     else:
         return req
@@ -32,6 +33,8 @@ def get_feed(url):
 
 def check_feed_validity(url):
     req = get_feed(url)
+    if req is None:
+        return False
     try:
         feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         return True
@@ -46,18 +49,29 @@ def add_feed_to_file(name, feed_link, channel, user_add):
     feed_file[name] = {'url': feed_link,
                        'channel': channel,
                        'added': date_now,
-                       'added by': user_add}
+                       'added by': user_add,
+                       'status': 'Added'}
     file_io.write_json(_vars.feed_file, feed_file)
 
 
 def remove_feed_from_file(name):
-    '''
-    Remove a new feed from the feed-json
-    '''
+    '''Remove a new feed from the feed-json'''
     name = str(name)
     feed_file = file_io.read_json(_vars.feed_file)
     try:
         feed_file.pop(name)
+        file_io.write_json(_vars.feed_file, feed_file)
+        return True
+    except(KeyError):
+        return False
+
+
+def update_feed_status(name, status):
+    '''Update a feed in the feed-json'''
+    name = str(name)
+    feed_file = file_io.read_json(_vars.feed_file)
+    try:
+        feed_file[name]['status'] = str(status)
         file_io.write_json(_vars.feed_file, feed_file)
         return True
     except(KeyError):
@@ -68,21 +82,25 @@ def get_feed_links(url):
     'Get the links from a feed url'
     # Get the url and make it parseable
     req = get_feed(url)
-#    req.encoding = req.apparent_encoding
-#    try:
-#        feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
-#    except(etree.XMLSyntaxError):
-#        return None
+    if req is None:
+        return None
     try:
         soup = BeautifulSoup(req.content, 'lxml')
     except(AttributeError):
         log.log('Error when reading soup from {}'.format(url))
+        return None
     links = []
     # Try normal RSS
     if '<rss version="' in str(soup).lower():
         feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         for item in feed_in.xpath('/rss/channel/item')[0:2]:
-            links.append(item.xpath("./link/text()")[0].strip())
+            try:
+                link = item.xpath("./link/text()")[0].strip()
+            except(IndexError):
+                log.log('Error when getting link for item {} in {}'.format(item, url))
+            if 'wp.blgr.app' in link:
+                link = link.replace('wp.blgr.app', 'www.blaugrana.no')
+            links.append(link)
     elif '<feed xml' in str(soup):
         for entry in soup.findAll('entry')[0:2]:
             links.append(entry.find('link')['href'])
@@ -149,6 +167,7 @@ def get_feed_list(long=False):
 
 
 if __name__ == "__main__":
-    #test_urls = ['https://wordpress.blaugrana.no/feed',
-    #             'http://lovdata.no/feed?data=newArticles&type=RSS']
+    test_urls = ['https://rss.kode24.no/',
+                 'http://lovdata.no/feed?data=newArticles&type=RSS']
+    print(get_feed_links('https://wp.blgr.app/feed'))
     pass
