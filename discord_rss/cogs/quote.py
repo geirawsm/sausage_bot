@@ -33,7 +33,7 @@ class Quotes(commands.Cog):
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             if number is None:
                 if len(recent_quotes_log[log_ctx]) == len(quotes):
-                    recent_quotes_log[log_ctx] = {}
+                    recent_quotes_log[log_ctx] = []
                     file_io.write_json(_vars.quote_log_file, recent_quotes_log)
                 _rand = random.choice([i for i in range(0, len(quotes)) if str(i) not in recent_quotes_log[log_ctx]])
                 if str(_rand) not in recent_quotes_log[log_ctx]:
