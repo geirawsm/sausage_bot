@@ -13,14 +13,22 @@ from discord_rss.datetime_funcs import get_dt as get_dt
 init(autoreset=True)
 
 
-def log_function(log_in):
+def log_function(log_in, color=None):
     log_out = '[{}] '.format(get_dt(format='datetimefull'))
+    if color is None:
+        color = Fore.GREEN
+    else:
+        color = eval('Fore.{}'.format(color.upper()))
+    function_name = log_func_name()
+    if args.log_highlight is not None:
+        if str(args.log_highlight) in function_name:
+            color = Fore.RED
     if args.log_print:
-        log_out += '{color}{style}[ {func_name} ]{reset} '.format(
-            color = Fore.GREEN,
+        log_out += '{color}{style}[ {function_name} ]{reset} '.format(
+            color = color,
             style = Style.BRIGHT,
             reset = Style.RESET_ALL,
-            func_name = log_func_name())
+            function_name = function_name)
     else:
         log_out += '[ {} ] '.format(log_func_name())
     log_out += log_in
@@ -35,16 +43,16 @@ def log_function(log_in):
         write_log.close()
 
 
-def log(log_in):
+def log(log_in, color=None):
     '''Log the input `log_in`'''
     if args.log:
-        log_function(log_in)
+        log_function(log_in, color)
 
 
-def log_more(log_in):
+def log_more(log_in, color=None):
     '''Log the input `log_in`. Used as more verbose than `log`'''
     if args.log_more:
-        log_function(log_in)
+        log_function(log_in, color)
 
 
 def log_func_name():

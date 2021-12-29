@@ -25,6 +25,11 @@ logging_args.add_argument('--no-rss',
                           action='store_true',
                           default=False,
                           dest='no_rss')
+logging_args.add_argument('--highlight', '-hl',
+                          help='Highlight chosen text in logging function naming',
+                          action='store',
+                          default=None,
+                          dest='log_highlight')
 
 maintenance_args = parser.add_argument_group('Maintenance')
 maintenance_args.add_argument('--maintenance-mode',
