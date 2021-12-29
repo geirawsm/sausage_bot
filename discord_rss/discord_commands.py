@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 from discord_rss import _config
 
+
 def get_channel_list():
     channel_dict = {}
     for guild in _config.bot.guilds:

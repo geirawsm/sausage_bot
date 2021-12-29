@@ -11,7 +11,7 @@ PREFIX = config['bot_prefix']
 BOT_CHANNEL = config['bot_dump_channel']
 BOT_OWNER = config['bot_owner']
 
-# envs for the `PS_sale` cog
+# envs for the `ps_sale` cog
 PLATPRICE_API_KEY = config['platprice_api']
 GAME_CHANNEL = config['game_channel']
 

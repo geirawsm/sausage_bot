@@ -2,12 +2,10 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-import re
 import os
 from random import randrange
-from discord_rss import rss_core, _vars, file_io, log, _config, discord_commands
+from discord_rss import _vars, file_io, log, _config, discord_commands
 from discord_rss._args import args
-import sys
 
 
 # Create necessary folders before starting
@@ -32,6 +30,7 @@ async def on_ready():
             break
     log.log('{} has connected to `{}`'.format(_config.bot.user, guild.name))
     if args.maintenance:
+        log.log('Maintenance mode activated', color='RED')
         await _config.bot.change_presence(
             status=discord.Status.dnd)
     else:
