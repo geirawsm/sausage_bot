@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
-import typing
-import random
 import re
 from discord_rss import rss_core, file_io, _vars, log, _config, discord_commands
-from discord_rss.datetime_funcs import get_dt
 from discord_rss._args import args
-
-
-
-
 
 
 class RSSfeed(commands.Cog):
