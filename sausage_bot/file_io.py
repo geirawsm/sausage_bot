@@ -125,4 +125,4 @@ def ensure_file(file_path, file_template=False):
         return False
 
 if __name__ == "__main__":
-    add_to_list(_vars.LIST_DIR / 'test.list', 'twestitem2')
+    pass
