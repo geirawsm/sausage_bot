@@ -5,7 +5,7 @@ import os
 import stat
 import json
 from pathlib import Path
-from discord_rss import log, _vars
+from sausage_bot import log, _vars
 import pathlib
 
 

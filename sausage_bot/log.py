@@ -5,9 +5,9 @@ import sys
 from colorama import init, Fore, Style
 from pathlib import Path
 from discord.ext import commands
-from discord_rss import _vars, discord_commands, _config
-from discord_rss._args import args
-from discord_rss.datetime_funcs import get_dt as get_dt
+from sausage_bot import _vars, discord_commands, _config
+from sausage_bot._args import args
+from sausage_bot.datetime_funcs import get_dt as get_dt
 
 # colorama specific reset routine
 init(autoreset=True)

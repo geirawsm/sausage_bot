@@ -11,7 +11,7 @@ COGS_DIR = ROOT_DIR / 'cogs'
 IMG_DIR = ROOT_DIR / 'img'
 
 # Relative paths
-COGS_REL_DIR = 'discord_rss.cogs'
+COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Files
 env_file = ROOT_DIR / '.env'

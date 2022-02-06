@@ -5,7 +5,7 @@ import re
 import sys
 from bs4 import BeautifulSoup
 from lxml import etree
-from discord_rss import file_io, _vars, datetime_funcs, log
+from sausage_bot import file_io, _vars, datetime_funcs, log
 
 '''
 This script does the rss-job for the bot. All feeds are stored in

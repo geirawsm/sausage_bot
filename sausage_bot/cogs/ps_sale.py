@@ -5,9 +5,9 @@ import requests
 from hashlib import md5
 import json
 from discord.ext import commands, tasks
-from discord_rss import file_io, _vars, log, _config, discord_commands
-from discord_rss.datetime_funcs import get_dt
-from discord_rss._args import args
+from sausage_bot import file_io, _vars, log, _config, discord_commands
+from sausage_bot.datetime_funcs import get_dt
+from sausage_bot._args import args
 
 import sys
 

@@ -4,8 +4,8 @@ import discord
 from discord.ext import commands
 import os
 from random import randrange
-from discord_rss import _vars, file_io, log, _config, discord_commands
-from discord_rss._args import args
+from sausage_bot import _vars, file_io, log, _config, discord_commands
+from sausage_bot._args import args
 
 
 # Create necessary folders before starting

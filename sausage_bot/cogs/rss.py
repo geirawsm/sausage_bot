@@ -2,8 +2,8 @@
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
 import re
-from discord_rss import rss_core, file_io, _vars, log, _config, discord_commands
-from discord_rss._args import args
+from sausage_bot import rss_core, file_io, _vars, log, _config, discord_commands
+from sausage_bot._args import args
 
 
 class RSSfeed(commands.Cog):

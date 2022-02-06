@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from discord_rss import _config
+from sausage_bot import _config
 
 
 def get_channel_list():
