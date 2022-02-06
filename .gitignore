@@ -1,4 +1,4 @@
-__pycache__
+__pycache__/
 .env
 *.code-*
 .vscode/
@@ -7,3 +7,4 @@ logs/
 json/
 lists/
 out
+cogs/
