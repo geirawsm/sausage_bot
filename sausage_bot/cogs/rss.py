@@ -105,6 +105,9 @@ async def rss_parse():
                         break
                 log.log('Checking {} ({})'.format(feed, CHANNEL))
                 feed_links = rss_core.get_feed_links(URL)
+                if feed_links is None:
+                    log.log('{}: this feed returned NoneType. What\'s up with that?'.format(feed))
+                    return
                 feed_log = file_io.read_json(_vars.feed_log_file)
                 for link in feed_links:
                     try:

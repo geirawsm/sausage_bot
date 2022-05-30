@@ -92,7 +92,10 @@ def get_feed_links(url):
     links = []
     # Try normal RSS
     if '<rss version="' in str(soup).lower():
-        feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
+        try:
+            feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
+        except(lxml.etree.XMLSyntaxError):
+            return None
         for item in feed_in.xpath('/rss/channel/item')[0:2]:
             try:
                 link = item.xpath("./link/text()")[0].strip()
@@ -167,7 +170,12 @@ def get_feed_list(long=False):
 
 
 if __name__ == "__main__":
-    test_urls = ['https://rss.kode24.no/',
-                 'http://lovdata.no/feed?data=newArticles&type=RSS']
-    print(get_feed_links('https://wp.blgr.app/feed'))
+    test_urls = [
+        'https://rss.kode24.no/',
+        'http://lovdata.no/feed?data=newArticles&type=RSS',
+        'https://wp.blgr.app/feed',
+        'https://www.vif-fotball.no/rss-nyheter'
+    ]
+    for url in test_urls:
+        print(get_feed_links(url))
     pass
