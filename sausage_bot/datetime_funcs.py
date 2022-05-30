@@ -68,25 +68,21 @@ def get_dt(format='epoch', sep='.', dt=False):
     elif not dt:
         dt = pendulum.now(tz)
     if format == 'date':
-        return dt.format('DD{sep}MM{sep}YYYY'.format(sep=sep))
+        return dt.format(f'DD{sep}MM{sep}YYYY')
     elif format == 'datetext':
-        return dt.format('DD{sep} MMMM{sep} YYYY'.format(sep=sep),
-                         locale=locale)
+        return dt.format(f'DD{sep} MMMM{sep} YYYY', locale=locale)
     elif format == 'revdate':
-        return dt.format('YYYY{sep}MM{sep}DD'.format(sep=sep))
+        return dt.format(f'YYYY{sep}MM{sep}DD')
     elif format == 'datetime':
-        return dt.format('DD{sep}MM{sep}YYYY HH{sep}mm'
-                         .format(sep=sep))
+        return dt.format(f'DD{sep}MM{sep}YYYY HH{sep}mm')
     elif format == 'datetimefull':
-        return dt.format('DD{sep}MM{sep}YYYY HH{sep}mm{sep}ss'
-                         .format(sep=sep))
+        return dt.format(f'DD{sep}MM{sep}YYYY HH{sep}mm{sep}ss')
     elif format == 'revdatetimefull':
-        return dt.format('YYYY{sep}MM{sep}DD HH{sep}mm{sep}ss'
-                         .format(sep=sep))
+        return dt.format(f'YYYY{sep}MM{sep}DD HH{sep}mm{sep}ss')
     elif format == 'time':
-        return dt.format('HH{sep}mm'.format(sep=sep))
+        return dt.format(f'HH{sep}mm')
     elif format == 'timefull':
-        return dt.format('HH{sep}mm{sep}ss'.format(sep=sep))
+        return dt.format(f'HH{sep}mm{sep}ss')
     elif format == 'week':
         return dt.week_of_year
     elif format == 'year':
