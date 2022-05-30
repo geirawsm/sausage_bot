@@ -34,10 +34,13 @@ async def on_ready():
         await _config.bot.change_presence(
             status=discord.Status.dnd)
     else:
+<<<<<<< HEAD
         if not _config.BOT_WATCHING:
             presence_name = 'some random youtube video'
         if _config.BOT_WATCHING:
             presence_name = _config.BOT_WATCHING
+=======
+>>>>>>> 211e028ee4da705b6c3a0f8ea413141f83bf757d
         await _config.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
