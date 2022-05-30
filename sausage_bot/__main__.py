@@ -34,11 +34,14 @@ async def on_ready():
         await _config.bot.change_presence(
             status=discord.Status.dnd)
     else:
-        season = randrange(1, 6)
+        if not _config.BOT_WATCHING:
+            presence_name = 'some random youtube video'
+        if _config.BOT_WATCHING:
+            presence_name = _config.BOT_WATCHING
         await _config.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name='Tangerudbakken s0{}'.format(season)
+                name=_config.BOT_WATCHING
             )
         )
 
