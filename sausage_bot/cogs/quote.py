@@ -56,7 +56,7 @@ class Quotes(commands.Cog):
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             new_quote_number = int(list(quotes.keys())[-1])+1
             log.log_more('Legge til quote nummer {}'.format(new_quote_number))
-            quote_in += '\n({}, {})'.format(get_dt('date'), get_dt('timefull', sep=':'))
+            quote_in += '\n({}, {})'.format(get_dt('date'), get_dt('time', sep=':'))
             quotes[str(new_quote_number)] = quote_in
             log.log_more('\n#{}\n{}'.format(new_quote_number, quotes[str(new_quote_number)]))
             file_io.write_json(_vars.quote_file, quotes)
