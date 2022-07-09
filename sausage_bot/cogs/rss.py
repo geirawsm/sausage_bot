@@ -39,10 +39,14 @@ Eksempler:
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
                 rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)
-                log_text = '{} la til feeden {} ({}) til kanalen {}'.format(
-                    AUTHOR, feed_name, feed_link, channel
+                await log.log_to_bot_channel(
+                    _vars.RSS_ADDED_BOT.format(
+                        AUTHOR, feed_name, feed_link, channel
+                    )
                 )
-                await log.log_to_bot_channel(log_text)
+                await ctx.send(
+                    _vars.RSS_ADDED.format(feed_name, channel)
+                )
                 return
             elif not URL_OK:
                 await ctx.send(_vars.RSS_URL_NOT_OK)
@@ -55,13 +59,23 @@ Eksempler:
     @rss.group(name='remove')
     async def remove(self, ctx, feed_name):
         '''***'''
+        AUTHOR = ctx.message.author.name
         removal = rss_core.remove_feed_from_file(feed_name)
         if removal:
-            await ctx.send(_vars.RSS_REMOVED.format(feed_name))
+            log_text = f'{AUTHOR} removed feed {feed_name}'
+            log.log_to_bot_channel(
+                _vars.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
+            )
+            await ctx.send(
+                _vars.RSS_REMOVED.format(feed_name)
+                )
         elif removal is False:
             # Couldn't remove the feed
             await ctx.send(_vars.RSS_COULD_NOT_REMOVE.format(feed_name))
             # Also log and send error to either a bot-channel or admin
+            await log.log_to_bot_channel(
+                _vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
+            )
         return
 
 
