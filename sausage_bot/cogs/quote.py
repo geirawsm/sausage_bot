@@ -16,8 +16,11 @@ class Quotes(commands.Cog):
     async def sitat(self, ctx, number: typing.Optional[int] = None):
         '''Henter et tilfeldig sitat fra telegram-chaten (2019 - 2021) og nyere sitater hentet fra Discord.'''
 
-        def pretty_quote(quote_in, number):
-            quote_out = '```#{}\n{}```'.format(number, quote_in)
+        def pretty_quote(number, quote_in):
+            log.log_more(f'quote_in: {quote_in}')
+            quote_out = '```#{}\n{}\n({})```'.format(
+                number, quote_in['quote'], quote_in['datetime']
+            )
             return quote_out
         
         # If no `number` is given, get a random quote
@@ -39,26 +42,31 @@ class Quotes(commands.Cog):
                 if str(_rand) not in recent_quotes_log[log_ctx]:
                     recent_quotes_log[log_ctx].append(str(_rand))
                     file_io.write_json(_vars.quote_log_file, recent_quotes_log)
-                _quote = pretty_quote(quotes[str(_rand)], _rand)
+                _quote = pretty_quote(_rand, quotes[str(_rand)])
                 await ctx.send(_quote)
                 return
             # If `number` is given, get that specific quote
             elif number:
-                _quote = pretty_quote(quotes[str(number)], number)
+                _quote = pretty_quote(number, quotes[str(number)])
                 await ctx.send(_quote)
                 return
 
     @sitat.group(name='add')
-    async def add(self, ctx, quote_in):
+    async def add(self, ctx, quote_text, quote_date=None):
         '''Legger til et sitat som kan hentes opp seinere.'''
         # Sjekk om admin eller bot-eier
         if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
             quotes = file_io.import_file_as_dict(_vars.quote_file)
             new_quote_number = int(list(quotes.keys())[-1])+1
             log.log_more('Legge til quote nummer {}'.format(new_quote_number))
-            quote_in += '\n({}, {})'.format(get_dt('date'), get_dt('time', sep=':'))
-            quotes[str(new_quote_number)] = quote_in
-            log.log_more('\n#{}\n{}'.format(new_quote_number, quotes[str(new_quote_number)]))
+            # If no date is specified through `quote_date`, use date and time
+            # as of now
+            if quote_date is None:
+                quote_date = '{}, {}'.format(get_dt('date'), get_dt('time', sep=':'))
+            # Add the quote
+            quotes[str(new_quote_number)] = {'quote': '', 'datetime': ''}
+            quotes[str(new_quote_number)]['quote'] = quote_text
+            quotes[str(new_quote_number)]['datetime'] = quote_date
             file_io.write_json(_vars.quote_file, quotes)
             await ctx.message.reply('La til følgende sitat:#{}\n{}'.format(new_quote_number, quote_in))
             new_quote_number += 1
