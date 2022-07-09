@@ -74,6 +74,41 @@ class Quotes(commands.Cog):
         else:
             await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
             return
+
+    @sitat.group(name='edit')
+    async def edit(self, ctx, quote_number, quote_in, custom_date=None):
+        '''Endrer et eksisterende sitat'''
+        # Check if the command is run by a bot owner or admin
+        if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
+            # Get the quote file
+            quotes = file_io.import_file_as_dict(_vars.quote_file)
+            existing_quotes_numbers = list(quotes.keys())
+            # Check if the given `quote_number` even exist
+            if quote_number not in existing_quotes_numbers:
+                await ctx.message.reply('Det sitatnummeret finnes ikke.')
+                return
+            log.log_more('Endrer sitat nummer {}'.format(quote_number))
+            # If no date is specified through `custom_date`, use date and time
+            # as of now
+            if custom_date is None:
+                quote_date = quotes[quote_number]['datetime']
+            else:
+                # TODO Sanitize input?
+                quote_date = custom_date
+            old_q = quotes[str(quote_number)]['quote']
+            old_dt = quotes[str(quote_number)]['datetime']
+            await ctx.message.reply(
+                f'Endret sitat #{quote_number} fra:\n```\n{old_q}\n'
+                f'({old_dt})```\n...til:\n```\n{quote_in}\n'
+                f'({quote_date})```'
+            )
+            quotes[str(new_quote_number)]['quote'] = quote_text
+            quotes[str(new_quote_number)]['datetime'] = quote_date
+            file_io.write_json(_vars.quote_file, quotes)
+            return
+        else:
+            await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
+            return
     
     @sitat.group(name='count')
     async def count(self, ctx):
