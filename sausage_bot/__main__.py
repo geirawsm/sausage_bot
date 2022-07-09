@@ -74,7 +74,7 @@ async def ping(ctx):
 
 @_config.bot.command(aliases=['purge', 'clear', 'cls'])
 @commands.has_permissions(manage_messages=True)
-async def prune(ctx, amount=0):
+async def delete(ctx, amount=0):
     if amount == 0:
         await ctx.send('Please specify the number of messages you want to delete!')
         await ctx.message.add_reaction(emoji='❌')
