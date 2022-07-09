@@ -34,13 +34,10 @@ async def on_ready():
         await _config.bot.change_presence(
             status=discord.Status.dnd)
     else:
-<<<<<<< HEAD
         if not _config.BOT_WATCHING:
             presence_name = 'some random youtube video'
         if _config.BOT_WATCHING:
             presence_name = _config.BOT_WATCHING
-=======
->>>>>>> 211e028ee4da705b6c3a0f8ea413141f83bf757d
         await _config.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
@@ -115,6 +112,23 @@ async def say(ctx, *, text):
     if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
         await ctx.message.delete()
         await ctx.send(f"{text}")
+
+
+#@commands.has_permissions(manage_messages=True)
+@_config.bot.command(name='checkmsg')
+async def checkmsg(ctx):
+    from difflib import SequenceMatcher
+    async for msg in ctx.channel.history(limit=10):
+        # wrong link:
+        # https://stackoverflow.com/questions/22434218/delteing-user-mesasges-in-discord-py
+        check_str = 'https://stackoverflow.com/questions/42182243/deleting-user-messages-in-discord-py'
+        duplication_ratio = float(SequenceMatcher(a=check_str, b=msg.content).ratio())
+        if duplication_ratio >= 0.9:
+            await msg.edit(content=check_str)
+    #async for message in _config.bot.logs_from(channel, limit=5):
+    #    print(message.content)
+    #    return
+    #await ctx.channel.purge()
 
 
 _config.bot.run(_config.TOKEN)
