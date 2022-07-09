@@ -110,4 +110,11 @@ async def ban(ctx, member: discord.Member, *, reason=None):
         await ctx.message.add_reaction(emoji='❌')
 
 
+@_config.bot.command()
+async def say(ctx, *, text):
+    if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
+        await ctx.message.delete()
+        await ctx.send(f"{text}")
+
+
 _config.bot.run(_config.TOKEN)
