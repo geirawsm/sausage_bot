@@ -32,7 +32,7 @@ logging_args.add_argument('--highlight', '-hl',
                           dest='log_highlight')
 
 maintenance_args = parser.add_argument_group('Maintenance')
-maintenance_args.add_argument('--maintenance-mode',
+maintenance_args.add_argument('--maintenance',
                               help='Start the bot in maintenance mode',
                               action='store_true',
                               default=False,
