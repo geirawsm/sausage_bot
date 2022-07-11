@@ -5,6 +5,7 @@ import re
 import sys
 from bs4 import BeautifulSoup
 from lxml import etree
+from difflib import SequenceMatcher
 from sausage_bot import file_io, _vars, datetime_funcs, log
 
 '''
@@ -179,3 +180,8 @@ if __name__ == "__main__":
     for url in test_urls:
         print(get_feed_links(url))
     pass
+
+
+def check_link_duplication(logged_link, new_link):
+    return float(SequenceMatcher(a=logged_link,b=new_link).ratio())
+    

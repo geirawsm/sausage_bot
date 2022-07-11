@@ -10,6 +10,7 @@ GUILD = config['discord_guild']
 PREFIX = config['bot_prefix']
 BOT_CHANNEL = config['bot_dump_channel']
 BOT_OWNER = config['bot_owner']
+BOT_ID = config['bot_id']
 BOT_WATCHING = config['watching']
 
 # envs for the `ps_sale` cog

@@ -128,6 +128,28 @@ async def rss_parse():
                         feed_log[feed]
                     except(KeyError):
                         feed_log[feed] = []
+                    # Make a duplication check
+                    for feed_link_check in feed_log[feed]:
+                        # Check if this has already been posted but with a
+                        # "spleling error"
+                        duplication_ratio = rss_core.check_link_duplication(feed_link_check, link)
+                        if duplication_ratio >= 0.9:
+                            log.log(
+                                'Got a supsiciously high ratio {} for new link:\n`{}`\nvs'
+                                '\n{}'.format(
+                                    duplication_ratio,
+                                    feed_link_check, link
+                                )
+                            )
+                            # The text is so alike that this probably is a
+                            # correcting or updating of some sort.
+                            # Find the link and replace it in chat
+                            if CHANNEL in channel_dict:
+                                channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
+                                async for msg in channel_out.history(limit=30):
+                                    if str(msg.author.id) == _config.BOT_ID:
+                                        if feed_link_check in msg.content:
+                                            await msg.edit(content=link)
                     if link not in feed_log[feed]:
                         log.log('Got fresh link from {}. Posting...'.format(feed))
                         # Post link to channel
