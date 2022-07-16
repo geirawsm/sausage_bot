@@ -3,7 +3,7 @@
 from pathlib import Path
 
 # Folders
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 JSON_DIR = ROOT_DIR / 'json'
 LIST_DIR = ROOT_DIR / 'lists'
 LOG_DIR = ROOT_DIR / 'logs'
@@ -38,3 +38,10 @@ RSS_REMOVED_BOT = 'RSS-feeden {} ble fjernet av {}'
 RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden {}'
 RSS_COULD_NOT_REMOVE = 'Klarte ikke å fjerne RSS-feeden {}'
 RSS_LIST_ARG_WRONG = 'Kjenner ikke til kommandoen {}'
+RSS_INVALID_URL = 'Inputen `{}` er ikke en ordentlig URL. Dobbelsjekk staving.'
+RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
+    'prøver igjen...'
+RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
+
+if __name__ == "__main__":
+    print(ROOT_DIR)

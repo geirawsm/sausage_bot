@@ -5,13 +5,19 @@ import os
 import stat
 import json
 from pathlib import Path
-from sausage_bot import log, _vars
+
+from . import _vars
+from ..log import log
 import pathlib
 
 
 def write_file(file_out, contents):
+    if not isinstance(file_out, str):
+        return None
+    ensure_file(file_out)
     with open(file_out, 'w') as fout:
         fout.write(str(contents))
+        return True
 
 
 def import_file_as_list(file_in):
@@ -124,5 +130,7 @@ def ensure_file(file_path, file_template=False):
     else:
         return False
 
+
 if __name__ == "__main__":
-    pass
+    #pass
+    write_file('test', 'test')

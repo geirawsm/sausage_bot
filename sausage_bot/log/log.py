@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-import os
 import sys
 from colorama import init, Fore, Style
 from pathlib import Path
 from discord.ext import commands
-from sausage_bot import _vars, discord_commands, _config
-from sausage_bot._args import args
-from sausage_bot.datetime_funcs import get_dt as get_dt
+from ..funcs import _config, _vars, _args, discord_commands
 
 # colorama specific reset routine
 init(autoreset=True)
 
+args = _args.args
 
 def log_function(log_in, color=None):
+    from ..funcs import datetimefuncs
+    get_dt = datetimefuncs.get_dt
     log_out = '[{}] '.format(get_dt(format='datetimefull'))
     if color is None:
         color = Fore.GREEN
@@ -36,7 +36,6 @@ def log_function(log_in, color=None):
         print(log_out)
     else:
         log_out += '\n'
-        
         _logfilename = _vars.LOG_DIR / '{}.log'.format(get_dt('revdate', sep='-'))
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)

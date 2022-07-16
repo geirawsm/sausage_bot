@@ -6,7 +6,9 @@ import sys
 from bs4 import BeautifulSoup
 from lxml import etree
 from difflib import SequenceMatcher
-from sausage_bot import file_io, _vars, datetime_funcs, log
+
+from . import file_io, _vars, datetimefuncs
+from ..log import log
 
 '''
 This script does the rss-job for the bot. All feeds are stored in
@@ -23,8 +25,22 @@ Things this script should be able to do:
 
 
 def get_feed(url):
-    # TODO This should push an error if there is a problem with the link
-    req = requests.get(url)
+    if type(url) is not str:
+        log.log(_vars.RSS_INVALID_URL)
+        return None
+    try:
+        req = requests.get(url)
+    except(requests.exceptions.InvalidSchema):
+        log.log(_vars.RSS_INVALID_URL)
+        return None
+    except(requests.exceptions.MissingSchema):
+        log.log(_vars.RSS_MISSING_SCHEME)
+        req = get_feed(f'https://{url}')
+    except(requests.exceptions.ConnectionError):
+        log.log(_vars.RSS_CONNECTION_ERROR)
+        return None
+    if req is None:
+        return None
     log.log_more('Got a {} when fetching {}'.format(req.status_code, url))
     if req.status_code != 200:
         return None
@@ -45,7 +61,7 @@ def check_feed_validity(url):
 
 def add_feed_to_file(name, feed_link, channel, user_add):
     '''Add a new feed to the feed-json'''
-    date_now = datetime_funcs.get_dt(format='datetime')
+    date_now = datetimefuncs.get_dt(format='datetime')
     feed_file = file_io.read_json(_vars.feed_file)
     feed_file[name] = {'url': feed_link,
                        'channel': channel,
@@ -86,7 +102,7 @@ def get_feed_links(url):
     if req is None:
         return None
     try:
-        soup = BeautifulSoup(req.content, 'lxml')
+        soup = BeautifulSoup(req.content, features='lxml')
     except(AttributeError):
         log.log('Error when reading soup from {}'.format(url))
         return None
@@ -95,7 +111,7 @@ def get_feed_links(url):
     if '<rss version="' in str(soup).lower():
         try:
             feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
-        except(lxml.etree.XMLSyntaxError):
+        except(etree.XMLSyntaxError):
             return None
         for item in feed_in.xpath('/rss/channel/item')[0:2]:
             try:
@@ -109,6 +125,7 @@ def get_feed_links(url):
         for entry in soup.findAll('entry')[0:2]:
             links.append(entry.find('link')['href'])
     return links
+
 
 def get_feed_list(long=False):
     def get_feed_item_lengths(feed_file):
@@ -170,18 +187,16 @@ def get_feed_list(long=False):
     return text_out
 
 
-if __name__ == "__main__":
-    test_urls = [
-        'https://rss.kode24.no/',
-        'http://lovdata.no/feed?data=newArticles&type=RSS',
-        'https://wp.blgr.app/feed',
-        'https://www.vif-fotball.no/rss-nyheter'
-    ]
-    for url in test_urls:
-        print(get_feed_links(url))
-    pass
-
-
 def check_link_duplication(logged_link, new_link):
-    return float(SequenceMatcher(a=logged_link,b=new_link).ratio())
-    
+    '''
+    Return a float number between 0 and 1 to indicate how similar two links
+    are
+    '''
+    if type(logged_link) is str and type(new_link) is str:
+        return float(SequenceMatcher(a=logged_link,b=new_link).ratio())
+    else:
+        return None
+
+
+if __name__ == "__main__":
+    pass

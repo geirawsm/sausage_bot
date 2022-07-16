@@ -37,8 +37,8 @@ maintenance_args.add_argument('--maintenance',
                               action='store_true',
                               default=False,
                               dest='maintenance')
-args = parser.parse_args()
+args, unknown = parser.parse_known_args()
 
 
 if __name__ == "__main__":
-    print(args)
+    pass
