@@ -132,66 +132,70 @@ async def rss_parse():
                 channel_dict[channel.name] = channel.id
             # Update the feeds
             feeds = file_io.read_json(_vars.feed_file)
-            log.log_more('Got these feeds:')
-            for feed in feeds:
-                log.log_more('- {}'.format(feed))
-            for feed in feeds:
-                log.log('{}: {}'.format(feed, feeds[feed]['status']))
-                CHANNEL = feeds[feed]['channel']
-                URL = feeds[feed]['url']
-                URL_STATUS = feeds[feed]['status']
-                if URL_STATUS == 'stale':
-                    log.log('Feed {} is stale, checking it...'.format(feed))
-                    if rss_core.get_feed_links(URL) is not None:
-                        log.log('Feed {} is ok, reactivating!'.format(feed))
-                        rss_core.update_feed_status(feed, 'ok')
-                    elif rss_core.get_feed_links(URL) is None:
-                        log.log('Feed {} is still stale, skipping'.format(feed))
-                        break
-                log.log('Checking {} ({})'.format(feed, CHANNEL))
-                feed_links = rss_core.get_feed_links(URL)
-                if feed_links is None:
-                    log.log('{}: this feed returned NoneType. What\'s up with that?'.format(feed))
-                    return
-                feed_log = file_io.read_json(_vars.feed_log_file)
-                for link in feed_links:
-                    try:
-                        feed_log[feed]
-                    except(KeyError):
-                        feed_log[feed] = []
-                    # Make a duplication check
-                    for feed_link_check in feed_log[feed]:
-                        # Check if this has already been posted but with a
-                        # "spleling error"
-                        duplication_ratio = rss_core.check_link_duplication(feed_link_check, link)
-                        if duplication_ratio >= 0.9:
-                            log.log(
-                                'Got a supsiciously high ratio {} for new link:\n`{}`\nvs'
-                                '\n{}'.format(
-                                    duplication_ratio,
-                                    feed_link_check, link
+            if len(feeds) == 0:
+                log.log('No feeds found')
+                return
+            else:
+                log.log_more('Got these feeds:')
+                for feed in feeds:
+                    log.log_more('- {}'.format(feed))
+                for feed in feeds:
+                    log.log('{}: {}'.format(feed, feeds[feed]['status']))
+                    CHANNEL = feeds[feed]['channel']
+                    URL = feeds[feed]['url']
+                    URL_STATUS = feeds[feed]['status']
+                    if URL_STATUS == 'stale':
+                        log.log('Feed {} is stale, checking it...'.format(feed))
+                        if rss_core.get_feed_links(URL) is not None:
+                            log.log('Feed {} is ok, reactivating!'.format(feed))
+                            rss_core.update_feed_status(feed, 'ok')
+                        elif rss_core.get_feed_links(URL) is None:
+                            log.log('Feed {} is still stale, skipping'.format(feed))
+                            break
+                    log.log('Checking {} ({})'.format(feed, CHANNEL))
+                    feed_links = rss_core.get_feed_links(URL)
+                    if feed_links is None:
+                        log.log('{}: this feed returned NoneType. What\'s up with that?'.format(feed))
+                        return
+                    feed_log = file_io.read_json(_vars.feed_log_file)
+                    for link in feed_links:
+                        try:
+                            feed_log[feed]
+                        except(KeyError):
+                            feed_log[feed] = []
+                        # Make a duplication check
+                        for feed_link_check in feed_log[feed]:
+                            # Check if this has already been posted but with a
+                            # "spleling error"
+                            duplication_ratio = rss_core.check_link_duplication(feed_link_check, link)
+                            if 0.85 <= duplication_ratio > 0.95:
+                                log.log(
+                                    'Got a suspiciously high ratio {} for new link:\n`{}`\nvs'
+                                    '\n`{}`'.format(
+                                        duplication_ratio,
+                                        feed_link_check, link
+                                    )
                                 )
-                            )
-                            # The text is so alike that this probably is a
-                            # correcting or updating of some sort.
-                            # Find the link and replace it in chat
+                                # The text is so alike that this probably is a
+                                # correcting or updating of some sort.
+                                # Find the link and replace it in chat
+                                if CHANNEL in channel_dict:
+                                    channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
+                                    async for msg in channel_out.history(limit=30):
+                                        if str(msg.author.id) == _config.BOT_ID:
+                                            if feed_link_check in msg.content:
+                                                await msg.edit(content=link)
+                        if link not in feed_log[feed]:
+                            log.log('Got fresh link from {}. Posting...'.format(feed))
+                            # Post link to channel
                             if CHANNEL in channel_dict:
                                 channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
-                                async for msg in channel_out.history(limit=30):
-                                    if str(msg.author.id) == _config.BOT_ID:
-                                        if feed_link_check in msg.content:
-                                            await msg.edit(content=link)
-                    if link not in feed_log[feed]:
-                        log.log('Got fresh link from {}. Posting...'.format(feed))
-                        # Post link to channel
-                        if CHANNEL in channel_dict:
-                            channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
-                            await channel_out.send(link)
-                            # Legg til link i logg
-                            feed_log[feed].append(link)
-                            file_io.write_json(_vars.feed_log_file, feed_log)
-                    else:
-                        log.log_more('Link {} already logged. Skipping.'.format(link))
+                                await channel_out.send(link)
+                                # Legg til link i logg
+                                feed_log[feed].append(link)
+                                file_io.write_json(_vars.feed_log_file, feed_log)
+                        else:
+                            log.log_more('Link {} already logged. Skipping.'.format(link))
     return
 
 
