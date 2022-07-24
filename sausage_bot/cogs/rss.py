@@ -111,11 +111,11 @@ Eksempler:
 
 
     @rss.group(name='list')
-    async def list_rss(self, ctx):
-        if ctx.invoked_subcommand == 'long':
-            list_format = rss_core.get_feed_list(long=True)
-        else:
+    async def list_rss(self, ctx, long=None):
+        if long is None:
             list_format = rss_core.get_feed_list()
+        elif long == 'long':
+            list_format = rss_core.get_feed_list(long=True)
         await ctx.send(list_format)
         return
 
