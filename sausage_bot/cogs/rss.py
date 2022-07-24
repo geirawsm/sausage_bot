@@ -26,7 +26,7 @@ Eksempler:
 
     @rss.group(name='add')
     async def add(self, ctx, feed_name, feed_link, channel):
-        '''Legg til RSS-feeder'''
+        '''Add an RSS feed to a specific channel'''
         AUTHOR = ctx.message.author.name
         URL_OK = False
         CHANNEL_OK = False

@@ -67,6 +67,7 @@ async def polse(ctx):
 
 @_config.bot.command(name='ping')
 async def ping(ctx):
+    'Checks the bot\'s latency'
     await ctx.send(f'Pong! {round(_config.bot.latency * 1000)} ms')
     await ctx.message.add_reaction(emoji='✅')
 
@@ -74,6 +75,7 @@ async def ping(ctx):
 @_config.bot.command(aliases=['purge', 'clear', 'cls'])
 @commands.has_permissions(manage_messages=True)
 async def delete(ctx, amount=0):
+    'Delete x number of messages in the chat'
     if amount == 0:
         await ctx.send('Please specify the number of messages you want to delete!')
         await ctx.message.add_reaction(emoji='❌')
@@ -88,6 +90,7 @@ async def delete(ctx, amount=0):
 @_config.bot.command()
 @commands.has_permissions(kick_members=True)  # check user permission
 async def kick(ctx, member: discord.Member, *, reason=None):
+    'Kick a member from the server'
     try:
         await member.kick(reason=reason)
         await ctx.send(f'{member} has been kicked!')
@@ -100,6 +103,7 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 @_config.bot.command()
 @commands.has_permissions(ban_members=True)  # check user permission
 async def ban(ctx, member: discord.Member, *, reason=None):
+    'Ban a member from the server'
     try:
         await member.ban(reason=reason)
         await ctx.send(f'{member} has been banned!')
@@ -111,6 +115,7 @@ async def ban(ctx, member: discord.Member, *, reason=None):
 
 @_config.bot.command()
 async def say(ctx, *, text):
+    'Make the bot say something'
     if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
         await ctx.message.delete()
         await ctx.send(f"{text}")

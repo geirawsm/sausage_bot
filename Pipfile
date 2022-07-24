@@ -13,6 +13,8 @@ colorama = "*"
 cogs = "*"
 bs4 = "*"
 ratelimit = "*"
+pytest = "*"
+pytest-mock = "*"
 
 [dev-packages]
 
