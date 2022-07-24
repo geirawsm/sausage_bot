@@ -133,9 +133,8 @@ async def ban(ctx, member: discord.Member, *, reason=None):
     )
 async def say(ctx, *, text):
     'Make the bot say something'
-    if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
-        await ctx.message.delete()
-        await ctx.send(f"{text}")
+    await ctx.message.delete()
+    await ctx.send(f"{text}")
 
 
 #@commands.has_permissions(manage_messages=True)
