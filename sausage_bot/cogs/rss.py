@@ -168,7 +168,7 @@ async def rss_parse():
                             # Check if this has already been posted but with a
                             # "spleling error"
                             duplication_ratio = rss_core.check_link_duplication(feed_link_check, link)
-                            if 0.85 <= duplication_ratio > 0.95:
+                            if 0.85 <= duplication_ratio <= 0.99999995:
                                 log.log(
                                     'Got a suspiciously high ratio {} for new link:\n`{}`\nvs'
                                     '\n`{}`'.format(
@@ -195,7 +195,7 @@ async def rss_parse():
                                 feed_log[feed].append(link)
                                 file_io.write_json(_vars.feed_log_file, feed_log)
                         else:
-                            log.log_more('Link {} already logged. Skipping.'.format(link))
+                            log.log_more('Link `{}` already logged. Skipping.'.format(link))
     return
 
 
