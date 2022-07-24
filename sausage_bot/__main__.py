@@ -20,9 +20,13 @@ for folder in check_and_create_folders:
 
 
 # Create necessary files before starting
-check_and_create_files = [_vars.feed_file, _vars.feed_log_file]
+log.log_more('Creating necessary files')
+check_and_create_files = [(_vars.feed_file, '{}'), _vars.feed_log_file]
 for file in check_and_create_files:
-    file_io.ensure_file(file)
+    if isinstance(file, tuple):
+        file_io.ensure_file(file[0], file_template=file[1])
+    else:
+        file_io.ensure_file(file)
 
 
 @_config.bot.event
