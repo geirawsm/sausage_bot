@@ -29,36 +29,58 @@ Eksempler:
         commands.has_permissions(administrator=True)
     )
     @rss.group(name='add')
-    async def add(self, ctx, feed_name, feed_link, channel):
-        '''Add an RSS feed to a specific channel'''
+    async def add(self, ctx, feed_name=None, feed_link=None, channel=None):
+        '''
+        Add an RSS feed to a specific channel
+        
+        `feed_name` = The custom name for the feed
+        `feed_link` = The link to the RSS-/XML-feed
+        `channel` = The channel to post from the feed
+        '''
         AUTHOR = ctx.message.author.name
         URL_OK = False
         CHANNEL_OK = False
-        if re.match(r'(www|http:|https:)+[^\s]+[\w]', feed_link):
-            # Check rss validity
-            if rss_core.check_feed_validity(feed_link):
-                URL_OK = True
-            else:
-                URL_OK = False
-            if channel in discord_commands.get_channel_list():
-                CHANNEL_OK = True
-            if URL_OK and CHANNEL_OK:
-                rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)
-                await log.log_to_bot_channel(
-                    _vars.RSS_ADDED_BOT.format(
-                        AUTHOR, feed_name, feed_link, channel
+        if feed_name is None:
+            await ctx.send(
+                _vars.RSS_TOO_FEW_ARGUMENTS
+                )
+            return
+        elif feed_link is None:
+            await ctx.send(
+                _vars.RSS_TOO_FEW_ARGUMENTS
+                )
+            return
+        elif channel is None:
+            await ctx.send(
+                _vars.RSS_TOO_FEW_ARGUMENTS
+                )
+            return
+        else:
+            if re.match(r'(www|http:|https:)+[^\s]+[\w]', feed_link):
+                # Check rss validity
+                if rss_core.check_feed_validity(feed_link):
+                    URL_OK = True
+                else:
+                    URL_OK = False
+                if channel in discord_commands.get_channel_list():
+                    CHANNEL_OK = True
+                if URL_OK and CHANNEL_OK:
+                    rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)
+                    await log.log_to_bot_channel(
+                        _vars.RSS_ADDED_BOT.format(
+                            AUTHOR, feed_name, feed_link, channel
+                        )
                     )
-                )
-                await ctx.send(
-                    _vars.RSS_ADDED.format(feed_name, channel)
-                )
-                return
-            elif not URL_OK:
-                await ctx.send(_vars.RSS_URL_NOT_OK)
-                return
-            elif not CHANNEL_OK:
-                await ctx.send(_vars.RSS_CHANNEL_NOT_OK)
-                return
+                    await ctx.send(
+                        _vars.RSS_ADDED.format(feed_name, channel)
+                    )
+                    return
+                elif not URL_OK:
+                    await ctx.send(_vars.RSS_URL_NOT_OK)
+                    return
+                elif not CHANNEL_OK:
+                    await ctx.send(_vars.RSS_CHANNEL_NOT_OK)
+                    return
 
 
     @commands.check_any(
