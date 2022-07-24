@@ -24,6 +24,10 @@ Eksempler:
 `!rss list long`'''
         pass
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss.group(name='add')
     async def add(self, ctx, feed_name, feed_link, channel):
         '''Add an RSS feed to a specific channel'''
@@ -57,6 +61,10 @@ Eksempler:
                 return
 
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss.group(name='remove')
     async def remove(self, ctx, feed_name):
         '''***'''

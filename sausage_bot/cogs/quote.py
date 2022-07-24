@@ -52,6 +52,10 @@ class Quotes(commands.Cog):
                 await ctx.send(_quote)
                 return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @sitat.group(name='add')
     async def add(self, ctx, quote_text, quote_date=None):
         '''Legger til et sitat som kan hentes opp seinere.'''
@@ -72,10 +76,12 @@ class Quotes(commands.Cog):
             await ctx.message.reply('La til følgende sitat:#{}\n{}'.format(new_quote_number, quote_in))
             new_quote_number += 1
             return
-        else:
-            await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
-            return
 
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @sitat.group(name='edit')
     async def edit(self, ctx, quote_number, quote_in, custom_date=None):
         '''Endrer et eksisterende sitat'''
