@@ -102,7 +102,7 @@ def get_feed_links(url):
     if req is None:
         return None
     try:
-        soup = BeautifulSoup(req.content, features='lxml')
+        soup = BeautifulSoup(req.content, features='xml')
     except(AttributeError):
         log.log('Error when reading soup from {}'.format(url))
         return None
