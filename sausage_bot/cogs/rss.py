@@ -176,6 +176,20 @@ async def rss_parse():
                                         feed_link_check, link
                                     )
                                 )
+                                # Will also log this to keep tabs on if it gets to eager
+                                duplicate_links = file_io.read_json(_vars.feed_duplicate_log_file)
+                                date = datetimefuncs.get_dt('revdate')
+                                if date not in duplicate_links:
+                                    duplicate_links[date] = {}
+                                if feed not in duplicate_links[date]:
+                                    duplicate_links[date][feed] = {}
+                                duplicate_links[date][feed] = {
+                                    'gammel': link, 'ny': feed_link_check
+                                }
+                                file_io.write_json(
+                                    _vars.feed_duplicate_log_file,
+                                    duplicate_links
+                                )
                                 # The text is so alike that this probably is a
                                 # correcting or updating of some sort.
                                 # Find the link and replace it in chat
