@@ -3,7 +3,7 @@
 from discord.ext import commands, tasks
 import re
 from sausage_bot.funcs._args import args
-from sausage_bot.funcs import _config, _vars, file_io, rss_core, discord_commands
+from sausage_bot.funcs import _config, _vars, datetimefuncs, file_io, rss_core, discord_commands
 from sausage_bot.log import log
 
 
