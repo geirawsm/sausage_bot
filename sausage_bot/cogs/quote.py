@@ -129,9 +129,60 @@ class Quotes(commands.Cog):
         quotes[str(quote_number)]['datetime'] = quote_date
         file_io.write_json(_vars.quote_file, quotes)
         return
-        else:
-            await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
+
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @sitat.group(name='del')
+    async def delete(self, ctx, quote_number):
+        '''Sletter et sitat som kan hentes opp seinere.'''
+        async def delete_logged_msgs(ctx):
+            async for msg in ctx.history(limit=20):
+                if str(msg.author.id) == _config.BOT_ID:
+                    keyphrases = [
+                        'Er du sikker på at du vil slette følgende sitat',
+                        'Ikke fått svar på 60 sekunder',
+                        'Slettet sitat #'
+                    ]
+                    if any(phrase in msg.content for phrase in keyphrases):
+                        await msg.delete()
+
+        # Get file where all the quotes are stored
+        quotes = file_io.read_json(_vars.quote_file)
+        if quotes is None:
+            await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
             return
+        await ctx.message.reply(
+            'Er du sikker på at du vil slette følgende sitat (Svar med '
+            'reaksjon 👍 eller 👎):\n```#{}\n{}\n({})```\n'.format(
+                quote_number, quotes[quote_number]['quote'],
+                quotes[quote_number]['datetime'])
+        )
+        def check(reaction, user):
+            return user == ctx.author and str(reaction.emoji) == '👍'
+
+        try:
+            reaction, user = await _config.bot.wait_for(
+                 'reaction_add', timeout=60.0, check=check
+            )
+        except asyncio.TimeoutError:
+            await ctx.send('Ikke fått svar på 60 sekunder, stopper sletting')
+            sleep(3)
+            await delete_logged_msgs(ctx)
+            await ctx.message.delete()
+        else:
+            # Remove the quote
+            del quotes[str(quote_number)]
+            file_io.write_json(_vars.quote_file, quotes)
+            # Confirm that the quote has been deleted
+            await ctx.message.reply('Slettet sitat #{}'.format(quote_number))
+            sleep(3)
+            await delete_logged_msgs(ctx)
+            await ctx.message.delete()
+            return
+
     
     @sitat.group(name='count')
     async def count(self, ctx):
