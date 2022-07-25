@@ -31,10 +31,16 @@ class Quotes(commands.Cog):
                 log_ctx = 'dm@{}'.format(ctx.message.author)
             else:
                 log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
-            recent_quotes_log = file_io.import_file_as_dict(_vars.quote_log_file)
+            recent_quotes_log = file_io.read_json(_vars.quote_log_file)
+            if recent_quotes_log is None:
+                await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_log_file))
+                return
             if log_ctx not in recent_quotes_log:
                 recent_quotes_log[log_ctx] = []
-            quotes = file_io.import_file_as_dict(_vars.quote_file)
+            quotes = file_io.read_json(_vars.quote_file)
+            if quotes is None:
+                await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
+                return
             if number is None:
                 if len(recent_quotes_log[log_ctx]) == len(quotes):
                     recent_quotes_log[log_ctx] = []
@@ -58,24 +64,32 @@ class Quotes(commands.Cog):
     )
     @sitat.group(name='add')
     async def add(self, ctx, quote_text, quote_date=None):
-        '''Legger til et sitat som kan hentes opp seinere.'''
-        # Sjekk om admin eller bot-eier
-        if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
-            quotes = file_io.import_file_as_dict(_vars.quote_file)
-            new_quote_number = int(list(quotes.keys())[-1])+1
-            log.log_more('Legge til quote nummer {}'.format(new_quote_number))
-            # If no date is specified through `quote_date`, use date and time
-            # as of now
-            if quote_date is None:
-                quote_date = '{}, {}'.format(get_dt('date'), get_dt('time', sep=':'))
-            # Add the quote
-            quotes[str(new_quote_number)] = {'quote': '', 'datetime': ''}
-            quotes[str(new_quote_number)]['quote'] = quote_text
-            quotes[str(new_quote_number)]['datetime'] = quote_date
-            file_io.write_json(_vars.quote_file, quotes)
-            await ctx.message.reply('La til følgende sitat:#{}\n{}'.format(new_quote_number, quote_in))
-            new_quote_number += 1
+        '''
+        Legger til et sitat som kan hentes opp seinere.
+        '''
+        # Get file where all the quotes are stored
+        quotes = file_io.read_json(_vars.quote_file)
+        if quotes is None:
+            await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
             return
+        # Find the next availabel quote number
+        new_quote_number = int(list(quotes.keys())[-1])+1
+        log.log_more('Legge til quote nummer {}'.format(new_quote_number))
+        # If no date is specified through `quote_date`, use date and time
+        # as of now
+        if quote_date is None:
+            quote_date = '{}, {}'.format(get_dt('date'), get_dt('time', sep=':'))
+        # Add the quote
+        quotes[str(new_quote_number)] = {'quote': '', 'datetime': ''}
+        quotes[str(new_quote_number)]['quote'] = quote_text
+        quotes[str(new_quote_number)]['datetime'] = quote_date
+        file_io.write_json(_vars.quote_file, quotes)
+        # Confirm that the quote has been saved
+        await ctx.message.reply(
+            'La til følgende sitat: ```#{}\n{}\n({})```'.format(
+                new_quote_number, quote_text, quote_date))
+        new_quote_number += 1
+        return
 
 
     @commands.check_any(
@@ -86,33 +100,35 @@ class Quotes(commands.Cog):
     async def edit(self, ctx, quote_number, quote_in, custom_date=None):
         '''Endrer et eksisterende sitat'''
         # Check if the command is run by a bot owner or admin
-        if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
-            # Get the quote file
-            quotes = file_io.import_file_as_dict(_vars.quote_file)
-            existing_quotes_numbers = list(quotes.keys())
-            # Check if the given `quote_number` even exist
-            if quote_number not in existing_quotes_numbers:
-                await ctx.message.reply('Det sitatnummeret finnes ikke.')
-                return
-            log.log_more('Endrer sitat nummer {}'.format(quote_number))
-            # If no date is specified through `custom_date`, use date and time
-            # as of now
-            if custom_date is None:
-                quote_date = quotes[quote_number]['datetime']
-            else:
-                # TODO Sanitize input?
-                quote_date = custom_date
-            old_q = quotes[str(quote_number)]['quote']
-            old_dt = quotes[str(quote_number)]['datetime']
-            await ctx.message.reply(
-                f'Endret sitat #{quote_number} fra:\n```\n{old_q}\n'
-                f'({old_dt})```\n...til:\n```\n{quote_in}\n'
-                f'({quote_date})```'
-            )
-            quotes[str(new_quote_number)]['quote'] = quote_text
-            quotes[str(new_quote_number)]['datetime'] = quote_date
-            file_io.write_json(_vars.quote_file, quotes)
+        # Get the quote file
+        quotes = file_io.read_json(_vars.quote_file)
+        if quotes is None:
+            await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
             return
+        existing_quotes_numbers = list(quotes.keys())
+        # Check if the given `quote_number` even exist
+        if quote_number not in existing_quotes_numbers:
+            await ctx.message.reply('Det sitatnummeret finnes ikke.')
+            return
+        log.log_more('Endrer sitat nummer {}'.format(quote_number))
+        # If no date is specified through `custom_date`, use date and time
+        # as of now
+        if custom_date is None:
+            quote_date = quotes[quote_number]['datetime']
+        else:
+            # TODO Sanitize input?
+            quote_date = custom_date
+        old_q = quotes[str(quote_number)]['quote']
+        old_dt = quotes[str(quote_number)]['datetime']
+        await ctx.message.reply(
+            f'Endret sitat #{quote_number} fra:\n```\n{old_q}\n'
+            f'({old_dt})```\n...til:\n```\n{quote_in}\n'
+            f'({quote_date})```'
+        )
+        quotes[str(quote_number)]['quote'] = quote_in
+        quotes[str(quote_number)]['datetime'] = quote_date
+        file_io.write_json(_vars.quote_file, quotes)
+        return
         else:
             await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
             return
