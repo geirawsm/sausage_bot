@@ -165,10 +165,10 @@ class Quotes(commands.Cog):
 
         try:
             reaction, user = await _config.bot.wait_for(
-                 'reaction_add', timeout=60.0, check=check
+                 'reaction_add', timeout=30.0, check=check
             )
         except asyncio.TimeoutError:
-            await ctx.send('Ikke fått svar på 60 sekunder, stopper sletting')
+            await ctx.send('Ikke fått svar på 30 sekunder, stopper sletting')
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()
