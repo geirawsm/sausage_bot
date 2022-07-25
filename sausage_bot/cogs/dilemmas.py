@@ -30,10 +30,16 @@ class Dilemmas(commands.Cog):
                 log_ctx = 'dm@{}'.format(ctx.message.author)
             else:
                 log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
-            recent_dilemmas_log = file_io.import_file_as_dict(_vars.dilemmas_log_file)
+            recent_dilemmas_log = file_io.read_json(_vars.dilemmas_log_file)
+            if recent_dilemmas_log is None:
+                await ctx.send(_vars.UNREADABLE_FILE.format(_vars.dilemmas_log_file))
+                return
             if log_ctx not in recent_dilemmas_log:
                 recent_dilemmas_log[log_ctx] = []
-            dilemmas = file_io.import_file_as_dict(_vars.dilemmas_file)
+            dilemmas = file_io.read_json(_vars.dilemmas_file)
+            if dilemmas is None:
+                await ctx.send(_vars.UNREADABLE_FILE.format(_vars.dilemmas_file))
+                return
             if len(recent_dilemmas_log[log_ctx]) == len(dilemmas):
                 recent_dilemmas_log[log_ctx] = []
                 file_io.write_json(_vars.dilemmas_log_file, recent_dilemmas_log)
@@ -41,8 +47,8 @@ class Dilemmas(commands.Cog):
             if str(_rand) not in recent_dilemmas_log[log_ctx]:
                 recent_dilemmas_log[log_ctx].append(str(_rand))
                 file_io.write_json(_vars.dilemmas_log_file, recent_dilemmas_log)
-            _quote = prettify(dilemmas[str(_rand)])
-            await ctx.send(_quote)
+            _dilemma = prettify(dilemmas[str(_rand)])
+            await ctx.send(_dilemma)
             return
 
 
@@ -51,7 +57,7 @@ class Dilemmas(commands.Cog):
         '''Legger til et dilemmas som kan hentes opp seinere.'''
         # Sjekk om admin eller bot-eier
         if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
-            dilemmas = file_io.import_file_as_dict(_vars.dilemmas_file)
+            dilemmas = file_io.read_json(_vars.dilemmas_file)
             new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
             log.log_more('Prøver å legge til dilemmas nummer {}'.format(new_dilemmas_number))
             dilemmas[str(new_dilemmas_number)] = dilemmas_in
