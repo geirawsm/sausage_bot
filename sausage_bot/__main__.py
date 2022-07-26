@@ -77,16 +77,16 @@ async def ping(ctx):
 
 
 @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_messages=True)
-    )
+    commands.is_owner(),
+    commands.has_permissions(manage_messages=True)
+)
 @_config.bot.command(aliases=['cls'])
 async def delete(ctx, amount=0):
     'Delete x number of messages in the chat'
     if amount == 0:
         await ctx.send('Please specify the number of messages you want to delete!')
         await ctx.message.add_reaction(emoji='❌')
-    elif amount <= 0:  # lower then 0
+    elif amount <= 0:  # lower than 0
         await ctx.send("The number must be bigger than 0!")
         await ctx.message.add_reaction(emoji='❌')
     else:
@@ -96,9 +96,9 @@ async def delete(ctx, amount=0):
 
 @_config.bot.command()
 @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(kick_members=True)
-    )
+    commands.is_owner(),
+    commands.has_permissions(kick_members=True)
+)
 async def kick(ctx, member: discord.Member, *, reason=None):
     'Kick a member from the server'
     try:
@@ -112,9 +112,9 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 
 @_config.bot.command()
 @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(ban_members=True)
-    )
+    commands.is_owner(),
+    commands.has_permissions(ban_members=True)
+)
 async def ban(ctx, member: discord.Member, *, reason=None):
     'Ban a member from the server'
     try:
@@ -128,9 +128,9 @@ async def ban(ctx, member: discord.Member, *, reason=None):
 
 @_config.bot.command()
 @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(ban_members=True)
-    )
+    commands.is_owner(),
+    commands.has_permissions(ban_members=True)
+)
 async def say(ctx, *, text):
     'Make the bot say something'
     await ctx.message.delete()

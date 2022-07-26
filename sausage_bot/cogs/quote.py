@@ -165,7 +165,7 @@ class Quotes(commands.Cog):
 
         try:
             reaction, user = await _config.bot.wait_for(
-                 'reaction_add', timeout=30.0, check=check
+                'reaction_add', timeout=30.0, check=check
             )
         except asyncio.TimeoutError:
             await ctx.send('Ikke fått svar på 30 sekunder, stopper sletting')
@@ -188,7 +188,7 @@ class Quotes(commands.Cog):
     async def count(self, ctx):
         '''Teller opp antall sitater som er tilgjengelig for øyeblikket'''
         quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
-        await ctx.send('Jeg har {} sitater på lager'.format(quote_count))
+        await ctx.send(f'Jeg har {quote_count} sitater på lager')
         return
 
 

@@ -31,6 +31,7 @@ RSS_CHANNEL_NOT_OK = 'Jeg finner ikke kanalen du vil legge inn feeden på'
 RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal du ønsker '\
     'den skal publiseres til.'
 RSS_TOO_MANY_ARGUMENTS = 'Du har gitt for mange argumenter til kommandoen'
+RSS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
 RSS_ADDED = '{} ble lag til i kanalen {}'
 RSS_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
 RSS_REMOVED = 'RSS-feeden {} ble fjernet'
