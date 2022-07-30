@@ -13,7 +13,7 @@ BOT_ID = config['bot_id']
 BOT_WATCHING = config['watching']
 
 # envs for the `ps_sale` cog
-PLATPRICE_API_KEY = config['platprice_api']
-GAME_CHANNEL = config['game_channel']
+#PLATPRICE_API_KEY = config['platprice_api']
+#GAME_CHANNEL = config['game_channel']
 
 bot = commands.Bot(command_prefix=PREFIX)
