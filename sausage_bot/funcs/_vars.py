@@ -15,8 +15,8 @@ COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Files
 env_file = ROOT_DIR / '.env'
-feed_file = JSON_DIR / 'feeds.json'
-feed_log_file = JSON_DIR / 'feeds-log.json'
+feeds_file = JSON_DIR / 'feeds.json'
+feeds_logs_file = JSON_DIR / 'feeds-log.json'
 quote_file = JSON_DIR / 'quotes.json'
 quote_log_file = JSON_DIR / 'quotes-log.json'
 dilemmas_file = JSON_DIR / 'dilemmas.json'
