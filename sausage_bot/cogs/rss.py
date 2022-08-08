@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+from ctypes.wintypes import BOOL
 from discord.ext import commands, tasks
 import re
 from sausage_bot.funcs._args import args
@@ -120,104 +121,112 @@ Eksempler:
         return
 
 
-#Tasks
-@tasks.loop(minutes = 1)
-async def rss_parse():
-    log.log('Starting `rss_parse`')
-    channel_dict = {}
-    for guild in _config.bot.guilds:
-        if guild.name == _config.GUILD:
-            # Get all channels and their IDs
-            for channel in guild.text_channels:
-                channel_dict[channel.name] = channel.id
-            # Update the feeds
-            feeds = file_io.read_json(_vars.feed_file)
-            if len(feeds) == 0:
-                log.log('No feeds found')
-                return
+    #Tasks
+    #@tasks.loop(minutes = 10)
+    @tasks.loop(minutes = 1)
+    async def rss_parse():
+        def review_feeds_status(feeds):
+            for feed in feeds:
+                log.log('{}: {}'.format(feed, feeds[feed]['status']))
+                URL = feeds[feed]['url']
+                URL_STATUS = feeds[feed]['status']
+                if URL_STATUS == 'stale':
+                    log.log('Feed {} is stale, checking it...'.format(feed))
+                    if rss_core.get_feed_links(URL) is not None:
+                        log.log('Feed {} is ok, reactivating!'.format(feed))
+                        rss_core.update_feed_status(feed, 'ok')
+                    elif rss_core.get_feed_links(URL) is None:
+                        log.log('Feed {} is still stale, skipping'.format(feed))
+                        break
+
+        def link_is_in_log(link: str, feed_log: list) -> BOOL:
+            # Checks if given link is in the log given
+            if link in feed_log:
+                return True
             else:
-                log.log_more('Got these feeds:')
-                for feed in feeds:
-                    log.log_more('- {}'.format(feed))
-                for feed in feeds:
-                    log.log('{}: {}'.format(feed, feeds[feed]['status']))
-                    CHANNEL = feeds[feed]['channel']
-                    URL = feeds[feed]['url']
-                    URL_STATUS = feeds[feed]['status']
-                    if URL_STATUS == 'stale':
-                        log.log('Feed {} is stale, checking it...'.format(feed))
-                        if rss_core.get_feed_links(URL) is not None:
-                            log.log('Feed {} is ok, reactivating!'.format(feed))
-                            rss_core.update_feed_status(feed, 'ok')
-                        elif rss_core.get_feed_links(URL) is None:
-                            log.log('Feed {} is still stale, skipping'.format(feed))
-                            break
-                    log.log('Checking {} ({})'.format(feed, CHANNEL))
-                    feed_links = rss_core.get_feed_links(URL)
-                    if feed_links is None:
-                        log.log('{}: this feed returned NoneType. What\'s up with that?'.format(feed))
-                        return
-                    feed_log = file_io.read_json(_vars.feed_log_file)
-                    for link in feed_links:
-                        try:
-                            feed_log[feed]
-                        except(KeyError):
-                            feed_log[feed] = []
-                        # Make a duplication check
-                        for feed_link_check in feed_log[feed]:
-                            # Check if this has already been posted but with a
-                            # "spleling error"
-                            duplication_ratio = rss_core.check_link_duplication(feed_link_check, link)
-                            if 0.95 <= duplication_ratio <= 0.99999995:
-                                log.log(
-                                    'Got a suspiciously high ratio {} for new link:\n`{}`\nvs'
-                                    '\n`{}`'.format(
-                                        duplication_ratio,
-                                        feed_link_check, link
-                                    )
-                                )
-                                # Will also log this to keep tabs on if it gets to eager
-                                duplicate_links = file_io.read_json(_vars.feed_duplicate_log_file)
-                                date = datetimefuncs.get_dt('revdate')
-                                if date not in duplicate_links:
-                                    duplicate_links[date] = {}
-                                if feed not in duplicate_links[date]:
-                                    duplicate_links[date][feed] = {}
-                                duplicate_links[date][feed] = {
-                                    'gammel': link, 'ny': feed_link_check
-                                }
-                                file_io.write_json(
-                                    _vars.feed_duplicate_log_file,
-                                    duplicate_links
-                                )
-                                # The text is so alike that this probably is a
-                                # correcting or updating of some sort.
-                                # Find the link and replace it in chat
-                                if CHANNEL in channel_dict:
-                                    channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
-                                    async for msg in channel_out.history(limit=30):
-                                        if str(msg.author.id) == _config.BOT_ID:
-                                            if feed_link_check in msg.content:
-                                                await msg.edit(content=link)
-                        if link not in feed_log[feed]:
-                            log.log('Got fresh link from {}. Posting...'.format(feed))
-                            # Post link to channel
-                            if CHANNEL in channel_dict:
-                                channel_out = _config.bot.get_channel(channel_dict[CHANNEL])
-                                await channel_out.send(link)
-                                # Legg til link i logg
-                                feed_log[feed].append(link)
-                                file_io.write_json(_vars.feed_log_file, feed_log)
-                        else:
-                            log.log_more('Link `{}` already logged. Skipping.'.format(link))
-    return
+                return False
+
+        def link_similar_to_logged_post(link: str, feed_log: list):
+            '''
+            Checks if given link is similar to any logged link,
+            then return the similar link from log.
+            If no log-links are found to be similar, return None
+            '''
+            for log_item in feed_log:
+                if rss_core.check_similarity(log_item, link):
+                    return log_item
+
+        log.log('Starting `rss_parse`')
+        channel_dict = {}
+        for guild in _config.bot.guilds:
+            if guild.name == _config.GUILD:
+                # Get all channels and their IDs
+                for channel in guild.text_channels:
+                    channel_dict[channel.name] = channel.id
+        # Update the feeds
+        feeds = file_io.read_json(_vars.feeds_file)
+        if len(feeds) == 0:
+            log.log('No feeds found')
+            return
+        else:
+            log.log_more('Got these feeds:')
+            for feed in feeds:
+                log.log_more('- {}'.format(feed))
+            # Make sure that the feed links aren't stale / 404
+            review_feeds_status(feeds)
+            FEED_LOG = file_io.read_json(_vars.feeds_logs_file)
+            try:
+                FEED_LOG[feed]
+            except(KeyError):
+                FEED_LOG[feed] = []
+            # Start processing per feed settings
+            for feed in feeds:
+                CHANNEL = feeds[feed]['channel']
+                URL = feeds[feed]['url']
+                log.log('Checking {} ({})'.format(feed, CHANNEL))
+                FEED_POSTS = rss_core.get_feed_links(URL)
+                if FEED_POSTS is None:
+                    log.log(f'{feed}: this feed returned NoneType.')
+                    return
+                else:
+                    log.log(
+                        f'{feed}: `FEED_POSTS` are good:\n'
+                        f'### {FEED_POSTS} ###'
+                        )
+                for feed_link in FEED_POSTS:
+                    log.log_more(f'Got feed_link `{feed_link}`')
+                    # Check if the link is in the log
+                    if not link_is_in_log(feed_link, FEED_LOG[feed]):
+                        feed_link_similar = link_similar_to_logged_post(feed_link, FEED_LOG[feed])
+                        if not feed_link_similar:
+                            # Consider this a whole new post and post link to channel
+                            await discord_commands.post_to_channel(feed_link, CHANNEL)
+                            # Add link to log
+                            FEED_LOG[feed].append(feed_link)
+                        elif feed_link_similar:
+                            # Consider this a similar post that needs to
+                            # be edited in the channel
+                            await discord_commands.edit_post(
+                                feed_link_similar, feed_link, CHANNEL
+                            )
+                            FEED_LOG[feed].remove(feed_link_similar)
+                            FEED_LOG[feed].append(feed_link)
+                    elif link_is_in_log(feed_link, FEED_LOG[feed]):
+                        log.log_more(f'Link `{feed_link}` already logged. Skipping.')
+                    # Write to the logs-file at the end
+                    file_io.write_json(_vars.feeds_logs_file, FEED_LOG)
+        return
 
 
-if args.no_rss:
-    log.log_more('Module loaded but disabled for this session')
-elif not args.no_rss:
-    rss_parse.start()
+    @rss_parse.before_loop
+    async def before_rss_parse():
+        log.log_more('`rss_parse` waiting for bot to be ready...')
+        await _config.bot.wait_until_ready()
 
+    if args.no_rss:
+        log.log_more('Module loaded but disabled for this session')
+    elif not args.no_rss:
+        rss_parse.start()
 
 
 def setup(bot):
