@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from xmlrpc.client import Boolean
 import requests
 import re
 import sys
@@ -62,22 +63,22 @@ def check_feed_validity(url):
 def add_feed_to_file(name, feed_link, channel, user_add):
     '''Add a new feed to the feed-json'''
     date_now = datetimefuncs.get_dt(format='datetime')
-    feed_file = file_io.read_json(_vars.feed_file)
-    feed_file[name] = {'url': feed_link,
+    feeds_file = file_io.read_json(_vars.feeds_file)
+    feeds_file[name] = {'url': feed_link,
                        'channel': channel,
                        'added': date_now,
                        'added by': user_add,
                        'status': 'Added'}
-    file_io.write_json(_vars.feed_file, feed_file)
+    file_io.write_json(_vars.feeds_file, feeds_file)
 
 
 def remove_feed_from_file(name):
     '''Remove a new feed from the feed-json'''
     name = str(name)
-    feed_file = file_io.read_json(_vars.feed_file)
+    feeds_file = file_io.read_json(_vars.feeds_file)
     try:
-        feed_file.pop(name)
-        file_io.write_json(_vars.feed_file, feed_file)
+        feeds_file.pop(name)
+        file_io.write_json(_vars.feeds_file, feeds_file)
         return True
     except(KeyError):
         return False
@@ -86,10 +87,10 @@ def remove_feed_from_file(name):
 def update_feed_status(name, status):
     '''Update a feed in the feed-json'''
     name = str(name)
-    feed_file = file_io.read_json(_vars.feed_file)
+    feeds_file = file_io.read_json(_vars.feeds_file)
     try:
-        feed_file[name]['status'] = str(status)
-        file_io.write_json(_vars.feed_file, feed_file)
+        feeds_file[name]['status'] = str(status)
+        file_io.write_json(_vars.feeds_file, feeds_file)
         return True
     except(KeyError):
         return False
@@ -128,14 +129,14 @@ def get_feed_links(url):
 
 
 def get_feed_list(long=False):
-    def get_feed_item_lengths(feed_file):
+    def get_feed_item_lengths(feeds_file):
         feed_len = 0
         url_len = 0
         channel_len = 0
         added_len = 0
         added_by_len = 0
-        for feed in feed_file:
-            _feed = feed_file[feed]
+        for feed in feeds_file:
+            _feed = feeds_file[feed]
             if len(feed) > feed_len:
                 feed_len = len(feed)
             if len(_feed['url']) > url_len:
@@ -151,8 +152,8 @@ def get_feed_list(long=False):
                 'added_by_len': added_by_len}
 
     text_out = ''
-    feed_file = file_io.read_json(_vars.feed_file)
-    lengths = get_feed_item_lengths(feed_file)
+    feeds_file = file_io.read_json(_vars.feeds_file)
+    lengths = get_feed_item_lengths(feeds_file)
     if long:
         template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}} | {:{added_len}} | {:{added_by_len}}'
         # Add headers first
@@ -161,13 +162,13 @@ def get_feed_list(long=False):
             channel_len=lengths['channel_len'], added_len=lengths['added_len'],
             added_by_len=lengths['added_by_len'])
         text_out += '\n'
-        for feed in feed_file:
-            _feed = feed_file[feed]
+        for feed in feeds_file:
+            _feed = feeds_file[feed]
             text_out += template_line.format(feed, _feed['url'], _feed['channel'],
                 _feed['added'], _feed['added by'], feed_len=lengths['feed_len'],
                 url_len=lengths['url_len'], channel_len=lengths['channel_len'],
                 added_len=lengths['added_len'], added_by_len=lengths['added_by_len'])
-            if feed != list(feed_file)[-1]:
+            if feed != list(feeds_file)[-1]:
                 text_out += '\n'
     else:
         template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}}'
@@ -176,26 +177,46 @@ def get_feed_list(long=False):
             feed_len=lengths['feed_len'], url_len=lengths['url_len'],
             channel_len=lengths['channel_len'])
         text_out += '\n'
-        for feed in feed_file:
-            _feed = feed_file[feed]
+        for feed in feeds_file:
+            _feed = feeds_file[feed]
             text_out += template_line.format(feed, _feed['url'], _feed['channel'],
                 feed_len=lengths['feed_len'], url_len=lengths['url_len'],
                 channel_len=lengths['channel_len'])
-            if feed != list(feed_file)[-1]:
+            if feed != list(feeds_file)[-1]:
                 text_out += '\n'
     text_out = '```{}```'.format(text_out)
     return text_out
 
 
-def check_link_duplication(logged_link, new_link):
+def check_similarity(text1: str, text2: str) -> Boolean:
     '''
-    Return a float number between 0 and 1 to indicate how similar two links
-    are
+    Check how similar `text1` and `text2` is. If it resembles eachother by
+    between 95 % to 99.999999995 %, it is considered "similar" and will return
+    True. Otherwise, return False.
+
+    If neither `text1` nor `text2` is a string, it will return None.
     '''
-    if type(logged_link) is str and type(new_link) is str:
-        return float(SequenceMatcher(a=logged_link,b=new_link).ratio())
-    else:
+    # Stop function if input is not str
+    if type(text1) is not str or type(text2) is not str:
         return None
+    ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
+    # Our "similarity" is defined by the following equation:
+    if 0.95 <= ratio <= 0.99999999995:
+        log.log(
+            f'These texts seem similiar (ratio: {ratio}):\n'
+            f'`{text1}`\n'
+            'vs\n'
+            f'`{text2}`'
+        )
+        return True
+    else:
+        log.log(
+            f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
+            f'`{text1}`\n'
+            'vs\n'
+            f'`{text2}`'
+        )
+        return False
 
 
 if __name__ == "__main__":
