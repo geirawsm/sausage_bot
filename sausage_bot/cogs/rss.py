@@ -134,9 +134,14 @@ Eksempler:
                     channel_dict[channel.name] = channel.id
         # Update the feeds
         feeds = file_io.read_json(_vars.feeds_file)
-        if len(feeds) == 0:
-            log.log('No feeds found')
-            return
+        try:
+            if len(feeds) == 0:
+                log.log(_vars.RSS_NO_FEEDS_FOUND)
+                return
+        except:
+            if feeds is None:
+                log.log(_vars.RSS_NO_FEEDS_FOUND)
+                return
         else:
             log.log_more('Got these feeds:')
             for feed in feeds:

@@ -44,6 +44,7 @@ RSS_INVALID_URL = 'Inputen `{}` er ikke en ordentlig URL. Dobbelsjekk staving.'
 RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
     'prøver igjen...'
 RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
+RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 
