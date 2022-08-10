@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from ctypes.wintypes import BOOL
+
 from discord.ext import commands, tasks
 import re
 from sausage_bot.funcs._args import args
-from sausage_bot.funcs import _config, _vars, datetimefuncs, file_io, rss_core, discord_commands
+from sausage_bot.funcs import _config, _vars, file_io, rss_core, discord_commands
 from sausage_bot.log import log
 
 
@@ -125,37 +125,6 @@ Eksempler:
     #@tasks.loop(minutes = 10)
     @tasks.loop(minutes = 1)
     async def rss_parse():
-        def review_feeds_status(feeds):
-            for feed in feeds:
-                log.log('{}: {}'.format(feed, feeds[feed]['status']))
-                URL = feeds[feed]['url']
-                URL_STATUS = feeds[feed]['status']
-                if URL_STATUS == 'stale':
-                    log.log('Feed {} is stale, checking it...'.format(feed))
-                    if rss_core.get_feed_links(URL) is not None:
-                        log.log('Feed {} is ok, reactivating!'.format(feed))
-                        rss_core.update_feed_status(feed, 'ok')
-                    elif rss_core.get_feed_links(URL) is None:
-                        log.log('Feed {} is still stale, skipping'.format(feed))
-                        break
-
-        def link_is_in_log(link: str, feed_log: list) -> BOOL:
-            # Checks if given link is in the log given
-            if link in feed_log:
-                return True
-            else:
-                return False
-
-        def link_similar_to_logged_post(link: str, feed_log: list):
-            '''
-            Checks if given link is similar to any logged link,
-            then return the similar link from log.
-            If no log-links are found to be similar, return None
-            '''
-            for log_item in feed_log:
-                if rss_core.check_similarity(log_item, link):
-                    return log_item
-
         log.log('Starting `rss_parse`')
         channel_dict = {}
         for guild in _config.bot.guilds:
@@ -173,12 +142,7 @@ Eksempler:
             for feed in feeds:
                 log.log_more('- {}'.format(feed))
             # Make sure that the feed links aren't stale / 404
-            review_feeds_status(feeds)
-            FEED_LOG = file_io.read_json(_vars.feeds_logs_file)
-            try:
-                FEED_LOG[feed]
-            except(KeyError):
-                FEED_LOG[feed] = []
+            rss_core.review_feeds_status(feeds)
             # Start processing per feed settings
             for feed in feeds:
                 CHANNEL = feeds[feed]['channel']
@@ -193,28 +157,9 @@ Eksempler:
                         f'{feed}: `FEED_POSTS` are good:\n'
                         f'### {FEED_POSTS} ###'
                         )
-                for feed_link in FEED_POSTS:
-                    log.log_more(f'Got feed_link `{feed_link}`')
-                    # Check if the link is in the log
-                    if not link_is_in_log(feed_link, FEED_LOG[feed]):
-                        feed_link_similar = link_similar_to_logged_post(feed_link, FEED_LOG[feed])
-                        if not feed_link_similar:
-                            # Consider this a whole new post and post link to channel
-                            await discord_commands.post_to_channel(feed_link, CHANNEL)
-                            # Add link to log
-                            FEED_LOG[feed].append(feed_link)
-                        elif feed_link_similar:
-                            # Consider this a similar post that needs to
-                            # be edited in the channel
-                            await discord_commands.edit_post(
-                                feed_link_similar, feed_link, CHANNEL
-                            )
-                            FEED_LOG[feed].remove(feed_link_similar)
-                            FEED_LOG[feed].append(feed_link)
-                    elif link_is_in_log(feed_link, FEED_LOG[feed]):
-                        log.log_more(f'Link `{feed_link}` already logged. Skipping.')
-                    # Write to the logs-file at the end
-                    file_io.write_json(_vars.feeds_logs_file, FEED_LOG)
+                await rss_core.process_links_for_posting_or_editing(
+                    feed, FEED_POSTS, _vars.feeds_logs_file, CHANNEL
+                )
         return
 
 

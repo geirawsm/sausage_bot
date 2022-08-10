@@ -1,28 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from xmlrpc.client import Boolean
+from ctypes.wintypes import BOOL
 import requests
-import re
-import sys
 from bs4 import BeautifulSoup
 from lxml import etree
 from difflib import SequenceMatcher
+from sausage_bot.funcs import _vars, file_io, rss_core, discord_commands
 
 from . import file_io, _vars, datetimefuncs
 from ..log import log
-
-'''
-This script does the rss-job for the bot. All feeds are stored in
-`json/feeds.json`, and all articles that has already been processed are
-stored in `json/feed_logging.json`.
-
-Things this script should be able to do:
-- Parse a feed
-- Add a feed
-- Remove a feed
-- List feeds
-- Log feed items that has been fetched
-'''
 
 
 def get_feed(url):
@@ -188,7 +174,7 @@ def get_feed_list(long=False):
     return text_out
 
 
-def check_similarity(text1: str, text2: str) -> Boolean:
+def check_similarity(text1: str, text2: str) -> BOOL:
     '''
     Check how similar `text1` and `text2` is. If it resembles eachother by
     between 95 % to 99.999999995 %, it is considered "similar" and will return
@@ -217,6 +203,73 @@ def check_similarity(text1: str, text2: str) -> Boolean:
             f'`{text2}`'
         )
         return False
+
+
+def review_feeds_status(feeds):
+    for feed in feeds:
+        log.log('{}: {}'.format(feed, feeds[feed]['status']))
+        URL = feeds[feed]['url']
+        URL_STATUS = feeds[feed]['status']
+        if URL_STATUS == 'stale':
+            log.log('Feed {} is stale, checking it...'.format(feed))
+            if rss_core.get_feed_links(URL) is not None:
+                log.log('Feed {} is ok, reactivating!'.format(feed))
+                rss_core.update_feed_status(feed, 'ok')
+            elif rss_core.get_feed_links(URL) is None:
+                log.log('Feed {} is still stale, skipping'.format(feed))
+                break
+
+
+def link_is_in_log(link: str, feed_log: list) -> BOOL:
+    # Checks if given link is in the log given
+    if link in feed_log:
+        return True
+    else:
+        return False
+
+
+def link_similar_to_logged_post(link: str, feed_log: list):
+    '''
+    Checks if given link is similar to any logged link,
+    then return the similar link from log.
+    If no log-links are found to be similar, return None
+    '''
+    for log_item in feed_log:
+        if check_similarity(log_item, link):
+            return log_item
+
+
+async def process_links_for_posting_or_editing(
+    feed, FEED_POSTS, feed_log_file, CHANNEL
+):
+    FEED_LOG = file_io.read_json(feed_log_file)
+    try:
+        FEED_LOG[feed]
+    except(KeyError):
+        FEED_LOG[feed] = []
+    for feed_link in FEED_POSTS:
+        log.log_more(f'Got feed_link `{feed_link}`')
+        # Check if the link is in the log
+        if not link_is_in_log(feed_link, FEED_LOG[feed]):
+            feed_link_similar = link_similar_to_logged_post(feed_link, FEED_LOG[feed])
+            if not feed_link_similar:
+                # Consider this a whole new post and post link to channel
+                log.log_more(f'Posting link `{feed_link}`')
+                await discord_commands.post_to_channel(feed_link, CHANNEL)
+                # Add link to log
+                FEED_LOG[feed].append(feed_link)
+            elif feed_link_similar:
+                # Consider this a similar post that needs to
+                # be edited in the channel
+                await discord_commands.edit_post(
+                    feed_link_similar, feed_link, CHANNEL
+                )
+                FEED_LOG[feed].remove(feed_link_similar)
+                FEED_LOG[feed].append(feed_link)
+        elif link_is_in_log(feed_link, FEED_LOG[feed]):
+            log.log_more(f'Link `{feed_link}` already logged. Skipping.')
+        # Write to the logs-file at the end
+        file_io.write_json(feed_log_file, FEED_LOG)
 
 
 if __name__ == "__main__":

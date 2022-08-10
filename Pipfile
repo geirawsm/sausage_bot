@@ -15,6 +15,7 @@ bs4 = "*"
 ratelimit = "*"
 pytest = "*"
 pytest-mock = "*"
+html5lib = "*"
 
 [dev-packages]
 
