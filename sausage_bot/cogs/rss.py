@@ -122,8 +122,7 @@ Eksempler:
 
 
     #Tasks
-    #@tasks.loop(minutes = 10)
-    @tasks.loop(minutes = 1)
+    @tasks.loop(minutes = 10)
     async def rss_parse():
         log.log('Starting `rss_parse`')
         channel_dict = {}
