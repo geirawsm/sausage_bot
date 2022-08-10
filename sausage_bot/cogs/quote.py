@@ -97,13 +97,20 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @sitat.group(name='edit')
-    async def edit(self, ctx, quote_number, quote_in, custom_date=None):
+    async def edit(self, ctx, quote_number=None, quote_in=None, custom_date=None):
         '''Endrer et eksisterende sitat'''
         # Check if the command is run by a bot owner or admin
         # Get the quote file
         quotes = file_io.read_json(_vars.quote_file)
         if quotes is None:
             await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
+            return
+        # Typecheck `quote_number`
+        if quote_number is None or 0 >= int(quote_number):
+            log.log(_vars.QUOTE_EDIT_NO_NUMBER_GIVEN)
+            return
+        if quote_in is None:
+            log.log(_vars.QUOTE_EDIT_NO_TEXT_GIVEN)
             return
         existing_quotes_numbers = list(quotes.keys())
         # Check if the given `quote_number` even exist

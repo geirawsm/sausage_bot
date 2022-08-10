@@ -46,6 +46,9 @@ RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
 RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 
+QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal redigeres'
+QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
+
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 
 
