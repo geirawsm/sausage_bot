@@ -125,12 +125,6 @@ Eksempler:
     @tasks.loop(minutes = 10)
     async def rss_parse():
         log.log('Starting `rss_parse`')
-        channel_dict = {}
-        for guild in _config.bot.guilds:
-            if guild.name == _config.GUILD:
-                # Get all channels and their IDs
-                for channel in guild.text_channels:
-                    channel_dict[channel.name] = channel.id
         # Update the feeds
         feeds = file_io.read_json(_vars.feeds_file)
         try:
