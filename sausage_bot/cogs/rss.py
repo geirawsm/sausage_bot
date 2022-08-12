@@ -63,6 +63,7 @@ Eksempler:
                     URL_OK = True
                 else:
                     URL_OK = False
+                log.log_more(f'Getting channel list:\n{discord_commands.get_channel_list()}')
                 if channel in discord_commands.get_channel_list():
                     CHANNEL_OK = True
                 if URL_OK and CHANNEL_OK:
@@ -122,7 +123,7 @@ Eksempler:
 
 
     #Tasks
-    @tasks.loop(minutes = 10)
+    @tasks.loop(minutes = 5)
     async def rss_parse():
         log.log('Starting `rss_parse`')
         # Update the feeds
