@@ -6,7 +6,7 @@ from sausage_bot.funcs import _config, _vars
 def get_channel_list():
     channel_dict = {}
     for guild in _config.bot.guilds:
-        if guild.name == _config.GUILD:
+        if str(guild.name).lower() == _config.GUILD.lower():
             # Get all channels and their IDs
             for channel in guild.text_channels:
                 channel_dict[channel.name] = channel.id
