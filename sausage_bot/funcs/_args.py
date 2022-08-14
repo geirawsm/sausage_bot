@@ -25,6 +25,11 @@ logging_args.add_argument('--no-rss',
                           action='store_true',
                           default=False,
                           dest='no_rss')
+logging_args.add_argument('--no-yt',
+                          help='Start the bot, but with no youtube functionality',
+                          action='store_true',
+                          default=False,
+                          dest='no_yt')
 logging_args.add_argument('--highlight', '-hl',
                           help='Highlight chosen text in logging function naming',
                           action='store',

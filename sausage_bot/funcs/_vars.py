@@ -15,8 +15,10 @@ COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Files
 env_file = ROOT_DIR / '.env'
-feeds_file = JSON_DIR / 'feeds.json'
-feeds_logs_file = JSON_DIR / 'feeds-log.json'
+rss_feeds_file = JSON_DIR / 'rss-feeds.json'
+rss_feeds_logs_file = JSON_DIR / 'rss-feeds-log.json'
+yt_feeds_file = JSON_DIR / 'yt-feeds.json'
+yt_feeds_logs_file = JSON_DIR / 'yt-feeds-log.json'
 scrape_logs_file = JSON_DIR / 'scrape-log.json'
 quote_file = JSON_DIR / 'quotes.json'
 quote_log_file = JSON_DIR / 'quotes-log.json'
@@ -48,6 +50,13 @@ RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal redigeres'
 QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
+
+YOUTUBE_ADDED = '{} ble lag til i kanalen {}'
+YOUTUBE_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
+YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
+YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
+
+CHANNEL_NOT_OK = 'Jeg finner ikke kanalen '
 
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 

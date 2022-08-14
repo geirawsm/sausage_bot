@@ -21,7 +21,10 @@ for folder in check_and_create_folders:
 
 # Create necessary files before starting
 log.log_more('Creating necessary files')
-check_and_create_files = [(_vars.feeds_file, '{}'), _vars.feeds_logs_file]
+check_and_create_files = [
+    (_vars.rss_feeds_file, '{}'), _vars.rss_feeds_logs_file,
+    (_vars.yt_feeds_file, '{}'), _vars.yt_feeds_logs_file
+]
 for file in check_and_create_files:
     if isinstance(file, tuple):
         file_io.ensure_file(file[0], file_template=file[1])

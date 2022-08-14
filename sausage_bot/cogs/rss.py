@@ -93,10 +93,10 @@ Eksempler:
     async def remove(self, ctx, feed_name):
         '''***'''
         AUTHOR = ctx.message.author.name
-        removal = rss_core.remove_feed_from_file(feed_name)
+        removal = rss_core.remove_feed_from_file(
+            feed_name, _vars.rss_feeds_file)
         if removal:
-            log_text = f'{AUTHOR} removed feed {feed_name}'
-            log.log_to_bot_channel(
+            await log.log_to_bot_channel(
                 _vars.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
             )
             await ctx.send(
@@ -115,9 +115,9 @@ Eksempler:
     @rss.group(name='list')
     async def list_rss(self, ctx, long=None):
         if long is None:
-            list_format = rss_core.get_feed_list()
+            list_format = rss_core.get_feed_list(_vars.rss_feeds_file)
         elif long == 'long':
-            list_format = rss_core.get_feed_list(long=True)
+            list_format = rss_core.get_feed_list(_vars.rss_feeds_file, long=True)
         await ctx.send(list_format)
         return
 
@@ -127,7 +127,7 @@ Eksempler:
     async def rss_parse():
         log.log('Starting `rss_parse`')
         # Update the feeds
-        feeds = file_io.read_json(_vars.feeds_file)
+        feeds = file_io.read_json(_vars.rss_feeds_file)
         try:
             if len(feeds) == 0:
                 log.log(_vars.RSS_NO_FEEDS_FOUND)
@@ -157,7 +157,7 @@ Eksempler:
                         f'### {FEED_POSTS} ###'
                         )
                 await rss_core.process_links_for_posting_or_editing(
-                    feed, FEED_POSTS, _vars.feeds_logs_file, CHANNEL
+                    feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
                 )
         return
 

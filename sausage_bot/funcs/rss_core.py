@@ -40,7 +40,7 @@ def check_feed_validity(url):
     if req is None:
         return False
     try:
-        feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
+        etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         return True
     except(etree.XMLSyntaxError):
         return False
@@ -49,22 +49,22 @@ def check_feed_validity(url):
 def add_feed_to_file(name, feed_link, channel, user_add):
     '''Add a new feed to the feed-json'''
     date_now = datetimefuncs.get_dt(format='datetime')
-    feeds_file = file_io.read_json(_vars.feeds_file)
+    feeds_file = file_io.read_json(_vars.rss_feeds_file)
     feeds_file[name] = {'url': feed_link,
                        'channel': channel,
                        'added': date_now,
                        'added by': user_add,
                        'status': 'Added'}
-    file_io.write_json(_vars.feeds_file, feeds_file)
+    file_io.write_json(_vars.rss_feeds_file, feeds_file)
 
 
-def remove_feed_from_file(name):
-    '''Remove a new feed from the feed-json'''
+def remove_feed_from_file(name, feed_file):
+    '''Remove a new feed from a feed file'''
     name = str(name)
-    feeds_file = file_io.read_json(_vars.feeds_file)
+    feeds_list = file_io.read_json(feed_file)
     try:
-        feeds_file.pop(name)
-        file_io.write_json(_vars.feeds_file, feeds_file)
+        feeds_list.pop(name)
+        file_io.write_json(feed_file, feeds_list)
         return True
     except(KeyError):
         return False
@@ -73,10 +73,10 @@ def remove_feed_from_file(name):
 def update_feed_status(name, status):
     '''Update a feed in the feed-json'''
     name = str(name)
-    feeds_file = file_io.read_json(_vars.feeds_file)
+    feeds_file = file_io.read_json(_vars.rss_feeds_file)
     try:
         feeds_file[name]['status'] = str(status)
-        file_io.write_json(_vars.feeds_file, feeds_file)
+        file_io.write_json(_vars.rss_feeds_file, feeds_file)
         return True
     except(KeyError):
         return False
@@ -114,7 +114,7 @@ def get_feed_links(url):
     return links
 
 
-def get_feed_list(long=False):
+def get_feed_list(feeds_file, long=False):
     def get_feed_item_lengths(feeds_file):
         feed_len = 0
         url_len = 0
@@ -137,8 +137,8 @@ def get_feed_list(long=False):
                 'channel_len': channel_len, 'added_len': added_len,
                 'added_by_len': added_by_len}
 
+    feeds_file = file_io.read_json(feeds_file)
     text_out = ''
-    feeds_file = file_io.read_json(_vars.feeds_file)
     lengths = get_feed_item_lengths(feeds_file)
     if long:
         template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}} | {:{added_len}} | {:{added_by_len}}'
@@ -269,7 +269,7 @@ async def process_links_for_posting_or_editing(
         elif link_is_in_log(feed_link, FEED_LOG[feed]):
             log.log_more(f'Link `{feed_link}` already logged. Skipping.')
         # Write to the logs-file at the end
-        file_io.write_json(feed_log_file, FEED_LOG)
+        file_io.write_json(FEED_LOG, feed_log_file)
 
 
 if __name__ == "__main__":

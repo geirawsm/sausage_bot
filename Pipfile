@@ -16,6 +16,7 @@ ratelimit = "*"
 pytest = "*"
 pytest-mock = "*"
 html5lib = "*"
+python-youtube = "*"
 
 [dev-packages]
 

@@ -12,6 +12,7 @@ BOT_CHANNEL = config['bot_dump_channel']
 BOT_ID = config['bot_id']
 BOT_WATCHING = config['watching']
 RSS_SCRAPE_FCB_AGREEMENT_CHANNEL=config['rss_scrape_fcb_agreement_channel']
+YOUTUBE_API_KEY = config['youtube_api_key']
 
 # envs for the `ps_sale` cog
 #PLATPRICE_API_KEY = config['platprice_api']
