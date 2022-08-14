@@ -66,12 +66,6 @@ for filename in os.listdir(_vars.COGS_DIR):
 
 
 # Commands
-@_config.bot.command(name='pølse')
-async def polse(ctx):
-    'Poster det famøse "Pølse-gate"-klippet fra Tangerudbakken'
-    await ctx.send('https://www.youtube.com/watch?v=geJZ3kJUqoY')
-
-
 @_config.bot.command(name='ping')
 async def ping(ctx):
     'Checks the bot\'s latency'
@@ -138,23 +132,6 @@ async def say(ctx, *, text):
     'Make the bot say something'
     await ctx.message.delete()
     await ctx.send(f"{text}")
-
-
-#@commands.has_permissions(manage_messages=True)
-@_config.bot.command(name='checkmsg')
-async def checkmsg(ctx):
-    from difflib import SequenceMatcher
-    async for msg in ctx.channel.history(limit=10):
-        # wrong link:
-        # https://stackoverflow.com/questions/22434218/delteing-user-mesasges-in-discord-py
-        check_str = 'https://stackoverflow.com/questions/42182243/deleting-user-messages-in-discord-py'
-        duplication_ratio = float(SequenceMatcher(a=check_str, b=msg.content).ratio())
-        if duplication_ratio >= 0.9:
-            await msg.edit(content=check_str)
-    #async for message in _config.bot.logs_from(channel, limit=5):
-    #    print(message.content)
-    #    return
-    #await ctx.channel.purge()
 
 
 _config.bot.run(_config.TOKEN)
