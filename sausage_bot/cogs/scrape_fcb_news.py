@@ -69,7 +69,10 @@ class scrape_and_post(commands.Cog):
         log.log_more('`post_fcb_news` waiting for bot to be ready...')
         await _config.bot.wait_until_ready()
 
-    post_fcb_news.start()
+    if args.no_scrape:
+        log.log_more('Module loaded but tasks are disabled for this session')
+    elif not args.no_scrape:
+        post_fcb_news.start()
 
 
 def setup(bot):
