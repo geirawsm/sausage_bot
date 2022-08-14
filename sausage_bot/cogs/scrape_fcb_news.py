@@ -20,7 +20,7 @@ class scrape_and_post(commands.Cog):
             soup = BeautifulSoup(scrape.content, features='html5lib')
             return soup
 
-        def scrape_fcb_agreement_links():
+        def scrape_fcb_news_links():
             wanted_links = [
                 'https://www.fcbarcelona.com/en/football/first-team/news',
                 'https://www.fcbarcelona.com/en/football/womens-football/news',
@@ -38,22 +38,19 @@ class scrape_and_post(commands.Cog):
                 for row in news_dev:
                     if index_items < max_items:
                         for news_item in row.find_all('a'):
-                            tag = news_item.find('div', attrs={'class': 'content-tag'}).text
-                            news_text = news_item.find ('div', attrs={'class': 'thumbnail__text'}).text
-                            if 'agreement' in news_text.lower():
-                                link = news_item['href']
-                                if link[0:4] == '/en/':
-                                    link = f'{root_url}{link}'
-                                links.append(link)
-                                index_items += 1
+                            link = news_item['href']
+                            if link[0:4] == '/en/':
+                                link = f'{root_url}{link}'
+                            links.append(link)
+                            index_items += 1
                     elif index_items >= max_items:
                         break
             return links
         
-        feed = 'FCB agreement news'
+        feed = 'FCB news'
         CHANNEL = _config.SCRAPE_FCB_TO_CHANNEL
         log.log('Checking {} ({})'.format(feed, CHANNEL))
-        FEED_POSTS = scrape_fcb_agreement_links()
+        FEED_POSTS = scrape_fcb_news_links()
         if FEED_POSTS is None:
             log.log(f'{feed}: this feed returned NoneType.')
             return
