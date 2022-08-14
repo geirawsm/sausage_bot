@@ -11,8 +11,13 @@ PREFIX = config['bot_prefix']
 BOT_CHANNEL = config['bot_dump_channel']
 BOT_ID = config['bot_id']
 BOT_WATCHING = config['watching']
-SCRAPE_FCB_TO_CHANNEL=config['scrape_fcb_to_channel']
 YOUTUBE_API_KEY = config['youtube_api_key']
+
+# envs for `scrape_fcb_news`
+FIRSTTEAM = config['firstteam']
+FEMENI = config['femeni']
+ATLETIC = config['atletic']
+JUVENIL = config['juvenil']
 
 # envs for the `ps_sale` cog
 #PLATPRICE_API_KEY = config['platprice_api']
