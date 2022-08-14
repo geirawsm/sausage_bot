@@ -11,7 +11,7 @@ PREFIX = config['bot_prefix']
 BOT_CHANNEL = config['bot_dump_channel']
 BOT_ID = config['bot_id']
 BOT_WATCHING = config['watching']
-RSS_SCRAPE_FCB_AGREEMENT_CHANNEL=config['rss_scrape_fcb_agreement_channel']
+SCRAPE_FCB_TO_CHANNEL=config['scrape_fcb_to_channel']
 YOUTUBE_API_KEY = config['youtube_api_key']
 
 # envs for the `ps_sale` cog

@@ -247,7 +247,7 @@ async def process_links_for_posting_or_editing(
         FEED_LOG[feed]
     except(KeyError):
         FEED_LOG[feed] = []
-    for feed_link in FEED_POSTS:
+    for feed_link in FEED_POSTS[0:2]:
         log.log_more(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
         if not link_is_in_log(feed_link, FEED_LOG[feed]):
@@ -269,7 +269,7 @@ async def process_links_for_posting_or_editing(
         elif link_is_in_log(feed_link, FEED_LOG[feed]):
             log.log_more(f'Link `{feed_link}` already logged. Skipping.')
         # Write to the logs-file at the end
-        file_io.write_json(FEED_LOG, feed_log_file)
+        file_io.write_json(feed_log_file, FEED_LOG)
 
 
 if __name__ == "__main__":
