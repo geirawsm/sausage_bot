@@ -3,7 +3,7 @@
 from sausage_bot.funcs import _config, _vars
 
 
-def get_channel_list():
+def get_text_channel_list():
     channel_dict = {}
     for guild in _config.bot.guilds:
         if str(guild.name).lower() == _config.GUILD.lower():
@@ -15,7 +15,7 @@ def get_channel_list():
 
 async def post_to_channel(content_in, channel_in):
     # Post link to channel
-    server_channels = get_channel_list()
+    server_channels = get_text_channel_list()
     channel_out = _config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
         await channel_out.send(content_in)
@@ -30,7 +30,7 @@ async def post_to_channel(content_in, channel_in):
 
 async def edit_post(replace_content, replace_with, channel_in):
     # Replace content in post
-    server_channels = get_channel_list()
+    server_channels = get_text_channel_list()
     channel_out = _config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
         async for msg in channel_in.history(limit=30):

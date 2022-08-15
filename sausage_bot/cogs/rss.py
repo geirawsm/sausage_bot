@@ -63,8 +63,8 @@ Eksempler:
                     URL_OK = True
                 else:
                     URL_OK = False
-                log.log_more(f'Getting channel list:\n{discord_commands.get_channel_list()}')
-                if channel in discord_commands.get_channel_list():
+                log.log_more(f'Getting channel list:\n{discord_commands.get_text_channel_list()}')
+                if channel in discord_commands.get_text_channel_list():
                     CHANNEL_OK = True
                 if URL_OK and CHANNEL_OK:
                     rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)

@@ -105,8 +105,8 @@ Eksempler:
                 )
             return
         else:
-            log.log_more(f'Getting channel list:\n{discord_commands.get_channel_list()}')
-            if channel in discord_commands.get_channel_list():
+            log.log_more(f'Getting channel list:\n{discord_commands.get_text_channel_list()}')
+            if channel in discord_commands.get_text_channel_list():
                 CHANNEL_OK = True
             if CHANNEL_OK:
                 self.add_feed_to_file(str(feed_name), str(yt_link), channel, AUTHOR)

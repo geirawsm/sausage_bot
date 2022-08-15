@@ -70,5 +70,5 @@ def log_func_name():
 async def log_to_bot_channel(text_in):
     'Messages you want to send directly to a specific channel'
     await _config.bot.get_channel(
-        discord_commands.get_channel_list()[_config.BOT_CHANNEL]
+        discord_commands.get_text_channel_list()[_config.BOT_CHANNEL]
     ).send(text_in)
