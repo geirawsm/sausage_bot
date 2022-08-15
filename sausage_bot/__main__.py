@@ -152,6 +152,9 @@ async def say(ctx, *, text):
     commands.has_permissions(administrator=True)
 )
 async def cog(ctx, cmd_in=None, cog_name=None):
+    '''
+    Enable, disable or list cogs for this bot
+    '''
     def change_status(cog_name, status):
         cogs_status = file_io.read_json(_vars.cogs_status_file)
         try:
