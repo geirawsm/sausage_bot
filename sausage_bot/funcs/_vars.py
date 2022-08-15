@@ -26,6 +26,7 @@ dilemmas_file = JSON_DIR / 'dilemmas.json'
 dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
 ps_sale_file = JSON_DIR / 'ps_sales.json'
 ps_sale_log_file = LIST_DIR / 'ps_sales-log.list'
+cogs_status_file = JSON_DIR / 'cogs_status.json'
 
 # Botlines
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
@@ -59,6 +60,12 @@ YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 CHANNEL_NOT_OK = 'Jeg finner ikke kanalen '
 
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
+
+COGS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
+COGS_CHANGE_STATUS_FAIL = 'Klarte ikke å endre status. Feilmelding: {}'
+COGS_WRONG_STATUS = 'Kjente ikke igjen status `{}`'
+COGS_ENABLED = 'Aktiverte cog `{}`'
+COGS_DISABLED = 'Deaktiverte cog `{}`'
 
 
 if __name__ == "__main__":

@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 
 from discord.ext import commands, tasks
-from sausage_bot.funcs._args import args
 from sausage_bot.funcs import _config, datetimefuncs, _vars, file_io
 from sausage_bot.funcs import rss_core, discord_commands
 from sausage_bot.log import log
@@ -230,11 +229,20 @@ Eksempler:
         log.log_more('`youtube_parse` waiting for bot to be ready...')
         await _config.bot.wait_until_ready()
 
-    if args.no_yt:
-        log.log_more('Module loaded but tasks are disabled for this session')
-    elif not args.no_yt:
-        youtube_parse.start()
+    youtube_parse.start()
 
 
 def setup(bot):
+    # Create necessary files before starting
+    log.log_more('Creating necessary files')
+    check_and_create_files = [
+        (_vars.yt_feeds_file, '{}'),
+        _vars.yt_feeds_logs_file
+    ]
+    for file in check_and_create_files:
+        if isinstance(file, tuple):
+            file_io.ensure_file(file[0], file_template=file[1])
+        else:
+            file_io.ensure_file(file)
+    # Starting the cog
     bot.add_cog(Youtube(bot))
