@@ -11,7 +11,7 @@ from . import file_io, _vars, datetimefuncs
 from ..log import log
 
 
-def get_feed(url):
+def get_link(url):
     if type(url) is not str:
         log.log(_vars.RSS_INVALID_URL)
         return None
@@ -22,7 +22,7 @@ def get_feed(url):
         return None
     except(requests.exceptions.MissingSchema):
         log.log(_vars.RSS_MISSING_SCHEME)
-        req = get_feed(f'https://{url}')
+        req = get_link(f'https://{url}')
     except(requests.exceptions.ConnectionError):
         log.log(_vars.RSS_CONNECTION_ERROR)
         return None
@@ -36,7 +36,7 @@ def get_feed(url):
 
 
 def check_feed_validity(url):
-    req = get_feed(url)
+    req = get_link(url)
     if req is None:
         return False
     try:
@@ -85,7 +85,7 @@ def update_feed_status(name, status):
 def get_feed_links(url):
     'Get the links from a feed url'
     # Get the url and make it parseable
-    req = get_feed(url)
+    req = get_link(url)
     if req is None:
         return None
     try:

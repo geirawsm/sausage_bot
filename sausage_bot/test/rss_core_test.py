@@ -5,21 +5,21 @@ import requests
 from ..funcs import rss_core
 
 
-def test_get_feed():
+def test_get_link():
     link_not_string = 1234
     link_correct = 'https://www.kode24.no/artikkel/ny-utviklingsavdeling-skal-revolusjonere-mattilsynet-vi-ma-torre-a-vaere-mer-risikovillige/76194994'
     link_error_https = 'httsp://gv.on'
     link_error_no_scheme_but_correct_address = 'vg.no'
     link_error_no_scheme_and_wrong_address = 'gv.on'
-    assert rss_core.get_feed(link_not_string) is None
+    assert rss_core.get_link(link_not_string) is None
     assert type(
-        rss_core.get_feed(link_correct)
+        rss_core.get_link(link_correct)
     ) is requests.models.Response
-    assert rss_core.get_feed(link_error_https) is None
+    assert rss_core.get_link(link_error_https) is None
     assert type(
-        rss_core.get_feed(link_error_no_scheme_but_correct_address)
+        rss_core.get_link(link_error_no_scheme_but_correct_address)
     ) is requests.models.Response
-    assert rss_core.get_feed(link_error_no_scheme_and_wrong_address) is None
+    assert rss_core.get_link(link_error_no_scheme_and_wrong_address) is None
 
 
 
