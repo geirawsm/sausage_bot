@@ -43,17 +43,17 @@ Eksempler:
         CHANNEL_OK = False
         if feed_name is None:
             await ctx.send(
-                _vars.RSS_TOO_FEW_ARGUMENTS
+                _vars.TOO_FEW_ARGUMENTS
                 )
             return
         elif feed_link is None:
             await ctx.send(
-                _vars.RSS_TOO_FEW_ARGUMENTS
+                _vars.TOO_FEW_ARGUMENTS
                 )
             return
         elif channel is None:
             await ctx.send(
-                _vars.RSS_TOO_FEW_ARGUMENTS
+                _vars.TOO_FEW_ARGUMENTS
                 )
             return
         else:
