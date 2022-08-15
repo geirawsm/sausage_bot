@@ -13,6 +13,16 @@ def get_text_channel_list():
     return channel_dict
 
 
+def get_voice_channel_list():
+    channel_dict = {}
+    for guild in _config.bot.guilds:
+        if str(guild.name).lower() == _config.GUILD.lower():
+            # Get all channels and their IDs
+            for channel in guild.voice_channels:
+                channel_dict[channel.name] = channel.id
+    return channel_dict
+
+
 async def post_to_channel(content_in, channel_in):
     # Post link to channel
     server_channels = get_text_channel_list()
