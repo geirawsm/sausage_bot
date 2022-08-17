@@ -30,63 +30,63 @@ def make_dt(date_in):
         # Remove all special characters from input
         date_in = re.sub(r'\s+|\s*,\s*| |\.+|:+|-+', ' ', str(date_in).strip())
         # Count the number of datetime-units in input
-        date_in_split = re.split(' ', date_in)
-        date_in_len = len(date_in_split)
+        d_split = re.split(' ', date_in)
+        d_len = len(d_split)
         # Decide how to interpret the input
         try:
             log.log_more('`date_in` is {}'.format(date_in))
-            log.log_more(f'Got `date_in_len` {date_in_len}')
-            log.log_more(f'date_in_split: {date_in_split}')
-            if date_in_len == 3:
+            log.log_more(f'Got `d_len` {d_len}')
+            log.log_more(f'd_split: {d_split}')
+            if d_len == 3:
                 # Expecting `DD MM YYYY`, `YYY MM DD` or `DD MM YY`
-                if len(date_in_split[2]) == 4:
+                if len(d_split[2]) == 4:
                     return pendulum.from_format(date_in, 'DD MM YYYY', tz=tz)
-                elif len(date_in_split[0]) == 4:
+                elif len(d_split[0]) == 4:
                     return pendulum.from_format(date_in, 'YYYY MM DD', tz=tz)
-                elif all(len(timeunit) == 2 for timeunit in date_in_split):
+                elif all(len(timeunit) == 2 for timeunit in d_split):
                     # We have to assume that this is DD MM YY
                     return pendulum.from_format(date_in, 'DD MM YY', tz=tz)
-            elif date_in_len == 4:
+            elif d_len == 4:
                 # Expecting a wrong space or separator somewhere
                 # If all units have 2 in len, then it could be a split in YYYY,
-                if all(len(timeunit) == 2 for timeunit in date_in_split):
-                    d = date_in_split
+                if all(len(timeunit) == 2 for timeunit in d_split):
+                    d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]}'
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY', tz=tz
                     )
                 # If the fourth and last unit has a len of 4, it probably
                 # is the time with a missing separator
-                elif all(len(timeunit) == 2 for timeunit in date_in_split[0:2])\
-                        and len(date_in_split[3]) == 4:
-                    date_in_split[3] = '{} {}'.format(
-                        date_in_split[3][0:2],
-                        date_in_split[3][2:4]
+                elif all(len(timeunit) == 2 for timeunit in d_split[0:2])\
+                        and len(d_split[3]) == 4:
+                    d_split[3] = '{} {}'.format(
+                        d_split[3][0:2],
+                        d_split[3][2:4]
                     )
-                    if len(date_in_split[2]) == 2:
-                        date_in_split[2] = '20{}'.format(
-                            date_in_split[2]
+                    if len(d_split[2]) == 2:
+                        d_split[2] = '20{}'.format(
+                            d_split[2]
                         )
-                    d = date_in_split
+                    d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]} {d[3]}'
                     date_in = date_in.strip()
                     log.log_more('date_in: {}'.format(date_in))
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm', tz=tz
                     )
-            elif date_in_len == 5:
-                if len(date_in_split[2]) == 4:
+            elif d_len == 5:
+                if len(d_split[2]) == 4:
                     return pendulum.from_format(date_in, 'DD MM YYYY HH mm', tz=tz)
-                elif len(date_in_split[2]) == 2:
-                    return pendulum.from_format(date_in, 'DD MM YY HH mm', tz=tz)
-                elif len(date_in_split[0]) == 4:
+                elif len(d_split[0]) == 4:
                     return pendulum.from_format(date_in, 'YYYY MM DD HH mm', tz=tz)
-                elif len(date_in_split[0]) == 2:
+                elif len(d_split[2]) == 2:
+                    return pendulum.from_format(date_in, 'DD MM YY HH mm', tz=tz)
+                elif len(d_split[0]) == 2:
                     return pendulum.from_format(date_in, 'YY MM DD HH mm', tz=tz)
-            elif date_in_len == 6:
+            elif d_len == 6:
                 # A split of 6 is most likely a split in YYYY
-                if all(len(timeunit) == 2 for timeunit in date_in_split):
-                    d = date_in_split
+                if all(len(timeunit) == 2 for timeunit in d_split):
+                    d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]} {d[4]} {d[5]}'
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm', tz=tz
@@ -118,7 +118,9 @@ def get_dt(format='epoch', sep='.', dt=False):
     if format == 'date':
         return dt.format(f'DD{sep}MM{sep}YYYY')
     elif format == 'datetext':
-        return dt.format(f'DD{sep} MMMM{sep} YYYY', locale=locale)
+        return dt.format(f'DD{sep} MMMM YYYY', locale=locale)
+    elif format == 'datetextfull':
+        return dt.format(f'DD{sep} MMMM YYYY, HH{sep}mm', locale=locale)
     elif format == 'revdate':
         return dt.format(f'YYYY{sep}MM{sep}DD')
     elif format == 'datetime':
@@ -139,6 +141,28 @@ def get_dt(format='epoch', sep='.', dt=False):
        return dt.int_timestamp
     else:
         return None
+
+
+def change_dt(
+    pendulum_object_in, change=None, count=None, unit=None
+):
+    '''Take a pendulum datetime object and change the datetime relatively'''
+    if change is None or unit is None or count is None:
+        log.log(_vars.TOO_FEW_ARGUMENTS)
+        return None
+    accepted_units=['years', 'months', 'days', 'hours', 'minutes', 'seconds']
+    if unit not in accepted_units:
+        log.log(f'Unit `{unit}` is not accepted')
+        return None
+    if not isinstance(count, (int, float)):
+        log.log(f'Count `{count}` is not a number')
+        return None
+    p = pendulum_object_in
+    if change == 'add':
+        return eval(f'p.add({unit}={count})')
+    elif change == 'remove':
+        return eval(f'p.subtract({unit}={count})')
+
 
 
 if __name__ == "__main__":

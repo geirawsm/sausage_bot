@@ -15,7 +15,7 @@ class Quotes(commands.Cog):
 
     @commands.group(name='sitat')
     async def sitat(self, ctx, number: typing.Optional[int] = None):
-        '''Henter et tilfeldig sitat fra telegram-chaten (2019 - 2021) og nyere sitater hentet fra Discord.'''
+        '''Legg til sitater i tekstform og hent tilfeldig sitat fra disse'''
 
         def pretty_quote(number, quote_in):
             log.log_more(f'quote_in: {quote_in}')
