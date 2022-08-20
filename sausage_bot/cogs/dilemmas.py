@@ -70,5 +70,6 @@ class Dilemmas(commands.Cog):
             await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
             return
     
-def setup(bot):
-    bot.add_cog(Dilemmas(bot))
+async def setup(bot):
+    log.log('Starting cog: `dilemmas`')
+    await bot.add_cog(Dilemmas(bot))

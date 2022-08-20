@@ -81,7 +81,7 @@ Eksempler:
                     await ctx.send(_vars.RSS_URL_NOT_OK)
                     return
                 elif not CHANNEL_OK:
-                    await ctx.send(_vars.RSS_CHANNEL_NOT_OK)
+                    await ctx.send(_vars.CHANNEL_NOT_FOUND)
                     return
 
 
@@ -170,8 +170,9 @@ Eksempler:
     rss_parse.start()
 
 
-def setup(bot):
+async def setup(bot):
     # Create necessary files before starting
+    log.log('Starting cog: `rss`')
     log.log_more('Creating necessary files')
     check_and_create_files = [
         (_vars.rss_feeds_file, '{}'),
@@ -183,4 +184,4 @@ def setup(bot):
         else:
             file_io.ensure_file(file)
     # Starting the cog
-    bot.add_cog(RSSfeed(bot))
+    await bot.add_cog(RSSfeed(bot))

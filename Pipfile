@@ -17,6 +17,8 @@ pytest = "*"
 pytest-mock = "*"
 html5lib = "*"
 python-youtube = "*"
+tzlocal = "*"
+requests-testadapter = "*"
 
 [dev-packages]
 

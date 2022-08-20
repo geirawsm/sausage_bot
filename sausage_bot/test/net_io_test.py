@@ -39,3 +39,9 @@ def test_scrape_page():
     assert scrape_page(url_fail1) == None
     assert scrape_page(url_fail2) == None
     assert scrape_page(url_fail3) == None
+
+
+def test_make_event_start_stop():
+    date, time = ('17.05.2022', '21:00')
+    
+    assert type(net_io.make_event_start_stop(date, time)) is dict

@@ -199,5 +199,6 @@ class Quotes(commands.Cog):
         return
 
 
-def setup(bot):
-    bot.add_cog(Quotes(bot))
+async def setup(bot):
+    log.log('Starting cog: `quote`')
+    await bot.add_cog(Quotes(bot))

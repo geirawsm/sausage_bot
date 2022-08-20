@@ -120,7 +120,7 @@ Eksempler:
                 )
                 return
             elif not CHANNEL_OK:
-                await ctx.send(_vars.RSS_CHANNEL_NOT_OK)
+                await ctx.send(_vars.CHANNEL_NOT_FOUND)
                 return
 
 
@@ -232,7 +232,8 @@ Eksempler:
     youtube_parse.start()
 
 
-def setup(bot):
+async def setup(bot):
+    log.log('Starting cog: `youtube`')
     # Create necessary files before starting
     log.log_more('Creating necessary files')
     check_and_create_files = [
@@ -245,4 +246,4 @@ def setup(bot):
         else:
             file_io.ensure_file(file)
     # Starting the cog
-    bot.add_cog(Youtube(bot))
+    await bot.add_cog(Youtube(bot))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pendulum
+from datetime import datetime
 import re
 
 from ..log import log
@@ -146,7 +147,7 @@ def get_dt(format='epoch', sep='.', dt=False):
 def change_dt(
     pendulum_object_in, change=None, count=None, unit=None
 ):
-    '''Take a pendulum datetime object and change the datetime relatively'''
+    '''Take a pendulum datetime object and change it relatively'''
     if change is None or unit is None or count is None:
         log.log(_vars.TOO_FEW_ARGUMENTS)
         return None
@@ -164,6 +165,12 @@ def change_dt(
         return eval(f'p.subtract({unit}={count})')
 
 
+def make_dt_object(date_in):
+    date_in
+    return datetime()
+
 
 if __name__ == "__main__":
-    pass
+    #pass
+    x = datetime(2022, 5, 17, 21, 00)
+    print(x.strftime('%d. %B, kl. %H:%M'))

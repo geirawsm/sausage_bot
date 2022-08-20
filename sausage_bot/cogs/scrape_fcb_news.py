@@ -91,5 +91,6 @@ class scrape_and_post(commands.Cog):
         post_fcb_news.start()
 
 
-def setup(bot):
-    bot.add_cog(scrape_and_post(bot))
+async def setup(bot):
+    log.log('Starting cog: `scrape_fcb_news`')
+    await bot.add_cog(scrape_and_post(bot))

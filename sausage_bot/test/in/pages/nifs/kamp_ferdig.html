@@ -1,0 +1,1304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0085)https://www.nifs.no/kampfakta.php?kamp_id=2015142&land=1&t=5&u=688480&lag1=16&lag2=48 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+
+<meta name="description" content="Norsk Internasjonal FotballStatistikk. Resultater, tabeller og statistikk fra norsk og internasjonal fotball">
+<meta name="keywords" content="fotball, statistikk, fotballstatistikk, soccer, football, statistics, internasjonal fotball, norsk fotball, fotbold, fotboll, resultat, tabell, kampoppsett, fixtures, results, kampprogram, interaktiv, head to head, ligastats, fotballkalender, football calendar, 1. deild, tippeligaen, premier league, 1. divisjon, toppserien, bundesliga, serie a, primera division, le championat, allsvenskan, superliga, champions league, uefa cup, royal league, intertoto">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
+<meta http-equiv="pragma" content="no-cache">
+<title>NIFS - Norsk &amp; Internasjonal Fotballstatistikk</title>
+<link rel="stylesheet" type="text/css" href="./kamp_ferdig_files/fotstat.css">
+<link rel="stylesheet" type="text/css" href="./kamp_ferdig_files/new.css">
+<link rel="shortcut icon" href="https://www.nifs.no/favicon.ico">
+
+<script type="text/javascript" src="./kamp_ferdig_files/jquery-2.1.4.min.js.last ned"></script>
+<script type="text/javascript">
+
+	var SHOW_NIFS = [1, 2];
+
+	var TOURNAMENT_TYPE_NATIONAL_WITH_CLUB_TEAMS = 2;
+	var TOURNAMENT_TYPE_INTERNATIONAL_WITH_CLUB_TEAMS = 3;
+	var TOURNAMENT_TYPE_FRIENDLIES_WITH_CLUB_TEAMS = 4;
+
+	function go() {
+		document.skjema.submit();
+	}
+	function go2() {
+		document.skjema2.submit();
+	}
+	function go3() {
+		document.skjema3.submit();
+	}
+	function go4() {
+		document.skjema4.submit();
+	}
+
+	
+
+	nt_kamper = [];
+	
+	var apiURL = 'https://api.nifs.no/';
+
+</script>
+
+<!-- Hotjar Tracking Code for https://www.nifs.no/ -->
+
+<script type="text/javascript">
+	(function(h,o,t,j,a,r){
+		h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+		h._hjSettings={hjid:1237425,hjsv:6};
+		a=o.getElementsByTagName('head')[0];
+		r=o.createElement('script');r.async=1;
+		r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+		a.appendChild(r);
+	})(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+</script><script async="" src="./kamp_ferdig_files/hotjar-1237425.js.last ned"></script>
+
+
+</head>
+<body>
+<div>
+    <a href="http://www.ntb.no/" target="ntb"><img src="./kamp_ferdig_files/NTB_logo.png" alt="NTB" style="height: 41px; padding-left: 2px;"></a>
+</div>
+<div style="width: 980px; height: 130px; position: absolute; left: 10px; top: 50px; background-image: url(&#39;nifs_980x130.gif&#39;); background-repeat:no-repeat;">
+	<a href="https://www.nifs.no/" style="height: 90px; width:980px; display: inline-block; text-decoration: none;">&nbsp;</a>
+	<div id="menu" style="position: absolute; top: 90px; left: 4px; white-space: nowrap;">
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/tabell.php?land=1&amp;t=5&amp;u=688480">Tabell</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/kamper.php?land=1&amp;t=5&amp;u=688480">Kamper</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/lagkamp.php?land=1&amp;t=5&amp;u=688480">Ett lag</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/head2head.php?land=1&amp;t=5&amp;u=688480">Head to head</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/ligastats.php?land=1&amp;t=5&amp;u=688480">Ligastats</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/maraton.php?land=1&amp;t=5&amp;u=688480">Maraton</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/other.php?land=1&amp;t=5&amp;u=688480">Annet</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/soek.php?land=1&amp;t=5&amp;u=688480">Søk</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/grid.php?land=1&amp;t=5&amp;u=688480">Grid</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/idag.php?land=1&amp;t=5&amp;u=688480">I dag</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/overgang.php?land=1&amp;t=5&amp;u=688480">Overganger</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/tilskuertall.php?land=1&amp;t=5&amp;u=688480">Tilskuere</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/kort_lag.php?land=1&amp;t=5&amp;u=688480">Kort/lag</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/straffe_lag.php?land=1&amp;t=5&amp;u=688480">Str./lag</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/straffe.php?land=1&amp;t=5&amp;u=688480">Straffer</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/MatchStatistics.php?land=1&amp;t=5&amp;u=688480">Avslutninger</a>
+							|
+					</span>
+		<span>
+			<a class="nifs_link_menu" href="https://www.nifs.no/meritter.php?land=1&amp;t=5&amp;u=688480">Meritter</a>
+					</span>
+	</div>
+	<div id="menu2" style="position: absolute; top: 105px; left: 4px;">
+        <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/mesterskap.php?championshipId=418&amp;land=1&amp;t=5&amp;u=688480">CL</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/mesterskap.php?championshipId=419&amp;land=1&amp;t=5&amp;u=688480">EL</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/mesterskap.php?championshipId=420&amp;land=1&amp;t=5&amp;u=688480">ECL</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/mesterskap.php?championshipId=424&amp;land=1&amp;t=5&amp;u=688480">UWCL</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/mesterskap.php?championshipId=406&amp;land=1&amp;t=5&amp;u=688480">VM kval</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/mesterskap.php?championshipId=421&amp;land=1&amp;t=5&amp;u=688480">VM kval kv.</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/landprofil.php?land_id=1">NOR</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/landprofil.php?land_id=2">ENG</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/landprofil.php?land_id=9">TYS</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/landprofil.php?land_id=21">ITA</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/landprofil.php?land_id=20">SPA</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/landprofil.php?velg_land=1">Andre land</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/toppscorer.php?land=1&amp;t=5&amp;u=688480">Toppscorer</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/selvmaal.php?land=1&amp;t=5&amp;u=688480">Selvmål</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/gule_kort.php?land=1&amp;t=5&amp;u=688480">Kort</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/poengliga.php?land=1&amp;t=5&amp;u=688480">Poengliga</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/dommerstatistikk.php?land=1&amp;t=5&amp;u=688480">Dommere</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/ntb-boers.php?land=1&amp;t=5&amp;u=688480">NTB-Børsen</a>
+        </span> |         <span>
+            <a class="nifs_link_menu" href="https://www.nifs.no/utenlandsproffer.php?land=1&amp;t=5&amp;u=688480">Utenlandsproffer</a>
+        </span>	</div>
+</div>
+<div style="position:absolute; left: 10px; top: 185px;">
+
+<table width="980" border="0" cellspacing="0" cellpadding="0" align="center">
+	<tbody><tr>
+		<td>
+			<table width="980" border="0" cellspacing="0" cellpadding="0" align="center" class="nifs_table_l_nb">
+				<tbody><tr>
+					<td class="nifs_big_headline" colspan="4" style="padding: 0px; border-bottom: 1px solid white; background-color: #E7E7E7;">
+						<div style="float: left; width: 10%;">
+														&nbsp;
+													</div>
+						<div style="text-align: center; float: left; width: 80%;">
+							<div style="margin: auto; display: inline-block; height: 30px;">
+
+								<div style="float: left;">
+									<a class="nifs_link_style" href="https://www.nifs.no/lagprofil.php?teamId=16">Haugesund</a>
+								</div>
+								<div style="float: left;">
+								&nbsp;&nbsp;-&nbsp;&nbsp;
+								</div>
+								<div style="float: left;">
+									<a class="nifs_link_style" href="https://www.nifs.no/lagprofil.php?teamId=48">Sandefjord</a>
+								</div>
+								<div style="float: left;">
+								&nbsp;
+								1 - 3
+																	(0 - 3)
+																</div>
+								<div class="clear">&nbsp;</div>
+							</div>
+						</div>
+						<div style="float: right; width: 10%; text-align: right;">
+														&nbsp;
+													</div>
+						<div class="clear">&nbsp;</div>
+																							</td>
+				</tr>
+				<tr>
+					<td class="nifs_default">
+						<b>Turnering:</b>
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/kamper.php?land=1&amp;t=5&amp;u=688480">
+						Eliteserien
+																		2022
+																			- Runde 1
+												</a>
+					</td>
+					<td class="nifs_default">
+						<b>Dato:</b>
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/idag.php?valgtdag=2022-04-03">2022-04-03</a>
+					</td>
+				</tr><tr>
+					<td class="nifs_default">
+						<b>Dommer:</b>
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=74518">Sivert Amland</a>
+					</td>
+					<td class="nifs_default">
+						<b>Starttidspunkt:</b>
+					</td>
+					<td class="nifs_default">
+						18:00
+					</td>
+				</tr>
+				<tr>
+					<td class="nifs_default">
+						<b>Assistentdommere:</b>
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=124063">Kristoffer Gullhav</a>
+					</td>
+					<td class="nifs_default">
+						<b>Stadion:</b>
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/stadionprofil.php?stadion_id=7222">Haugesund Sparebank Arena</a>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						&nbsp;
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=60667">Tom Harald Grønevik</a>
+					</td>
+					<td class="nifs_default">
+						<b>Tilskuertall:</b>
+					</td>
+					<td class="nifs_default">
+						3187
+					</td>
+				</tr>
+				<tr>
+					<td class="nifs_default">
+						<b>Fjerdedommer:</b>
+					</td>
+					<td class="nifs_default">
+						<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=135035">Mischa Kellerhals</a>
+					</td>
+					<td class="nifs_default">
+						<b>Kampstatus:</b>
+					</td>
+					<td class="nifs_default">
+						Spilt
+											</td>
+				</tr>
+				                                                <tr>
+					                    <td class="nifs_default">
+                        <b>Avslutninger totalt:</b>
+                    </td>
+                    <td class="nifs_default">
+                        16 - 15
+                    </td>
+																<td class="nifs_default">
+							<b>Avslutninger på mål:</b>
+						</td>
+						<td class="nifs_default">
+							5 - 8
+						</td>
+									</tr>
+												<tr>
+					<td class="nifs_default">
+						<b>Ballbesittelse:</b>
+					</td>
+					<td class="nifs_default">
+						58 - 42
+					</td>
+                </tr>
+                				<tr>
+					<td colspan="4">
+						&nbsp;
+					</td>
+				</tr>
+				<tr>
+					<td colspan="4">
+						<table border="0" cellspacing="0" cellpadding="0" style="width:100%" class="nifs_table_l_nb">
+							<tbody><tr>
+								<td style="width:50%; border-width: 0px 1px 0px 0px; border-style:solid" valign="top">
+									<table border="0" cellspacing="0" cellpadding="0" class="nifs_default" style="width: 100%">
+										<tbody><tr>
+											<td colspan="5" class="nifs_headline" style="text-align:center;">
+												<a class="nifs_link_style" href="https://www.nifs.no/lagprofil.php?teamId=16">Haugesund</a>
+											</td>
+										</tr>
+										<tr>
+											<td width="15">
+												<b>Nr:</b>
+											</td>
+											<td width="165">
+												<b>Navn:</b>
+											</td>
+											<td width="20">
+												<b>Inn:</b>
+											</td>
+											<td width="20">
+												<b>Ut:</b>
+											</td>
+											<td width="110">
+												<b>Posisjon:</b>
+											</td>
+										</tr>
+																																														<tr>
+														<td style="text-align:right;">
+															1
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=141139">Egil Selvik</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Keeper
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															7
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=274274">Peter Therkildsen</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Høyreback
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															15
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=188002">Ulrik Fredriksen</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Høyre midtforsvar
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															5
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=78685">Søren Reese</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Venstre midtforsvar
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															3
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=115258">Nikolas Walstad</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Venstreback
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															27
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=112526">Mads Sande</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															46
+														</td>
+														<td>
+																															Høyre indreløper
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															8
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=158269">Kevin Martin Krygård</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Sentral midtbane
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															10
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=330025">Christos Zafeiris</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															90
+														</td>
+														<td>
+																															Venstre indreløper
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															99
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=189344">Bilal Njie</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															46
+														</td>
+														<td>
+																															Høyreving
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															11
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=276259">Joacim Holtan</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															62
+														</td>
+														<td>
+																															Spiss
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															25
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=186009">Alioune Ndour</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															90
+														</td>
+														<td>
+																															Venstreving
+																													</td>
+													</tr>
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																														<tr><td colspan="5"><hr></td></tr>
+																																																																																																																																																																																																																																																																																																												<tr>
+														<td style="text-align:right;">
+															32
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=310828">Frank Stople</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															4
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=349101">Anders Bærtelsen</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															36
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=373264">Eivind Helgeland</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=135168">Torje Naustdal</a>
+														</td>
+														<td>
+															46
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															37
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=314943">Sander Håvik Innvær</a>
+														</td>
+														<td>
+															90
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															38
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=355275">Vegard Solheim</a>
+														</td>
+														<td>
+															90
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															39
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=374101">Mathias Tjoland</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															16
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=24313">Alexander Søderlund</a>
+														</td>
+														<td>
+															62
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															17
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=186718">Hilary Gong</a>
+														</td>
+														<td>
+															46
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																										</tbody></table>
+								</td>
+								<td style="width:50%" valign="top">
+									<table border="0" cellspacing="0" cellpadding="0" class="nifs_default" style="width: 100%">
+										<tbody><tr>
+											<td colspan="5" class="nifs_headline" style="text-align:center;">
+												<a class="nifs_link_style" href="https://www.nifs.no/lagprofil.php?teamId=48">Sandefjord</a>
+											</td>
+										</tr>
+										<tr>
+											<td width="15">
+												<b>Nr:</b>
+											</td>
+											<td width="165">
+												<b>Navn:</b>
+											</td>
+											<td width="20">
+												<b>In:</b>
+											</td>
+											<td width="20">
+												<b>Out:</b>
+											</td>
+											<td width="110">
+												<b>Posisjon:</b>
+											</td>
+										</tr>
+																																														<tr>
+														<td style="text-align:right;">
+															1
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=84774">Jacob Storevik</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Keeper
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															2
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=93107">Mats Haakenstad</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Høyreback
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															15
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=135226">Jesper Taaje</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Høyre midtforsvar
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															17
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=159213">Sander Moen Foss</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Venstre midtforsvar
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															4
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=409126">Ian Smeulers</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Venstreback
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															6
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=255822">Sander Risan Mørk</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Høyre indreløper
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															8
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=129469">William Kurtovic</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Sentral midtbane
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															5
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=555194">Aleksander Nilsson</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Venstre indreløper
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															7
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=107723">Mohamed Ofkir</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															71
+														</td>
+														<td>
+																															Høyreving
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															14
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=31336">Alexander Ruud Tveter</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																															Spiss
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															20
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=179819">Franklin Nyenetue</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															76
+														</td>
+														<td>
+																															Venstreving
+																													</td>
+													</tr>
+																																																																																																																																																																																																																																																																																																																																																																																																																																														<tr><td colspan="5"><hr></td></tr>
+																																																																																																																																																																																																																																																																																																												<tr>
+														<td style="text-align:right;">
+															12
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=121426">Hugo Keto</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															3
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=134030">Quint Jansen</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															13
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=282700">Lars Markmanrud</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															25
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=341097">Vetle Walle Egeli</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															23
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=410797">Keanin Ayer</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															24
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=22228">Harmeet Singh</a>
+														</td>
+														<td>
+															76
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															9
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=72330">Sivert Gussiås</a>
+														</td>
+														<td>
+															
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																																<tr>
+														<td style="text-align:right;">
+															10
+														</td>
+														<td>
+															<a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=93339">Deyver Vega</a>
+														</td>
+														<td>
+															71
+														</td>
+														<td>
+															
+														</td>
+														<td>
+																													</td>
+													</tr>
+																																										</tbody></table>
+								</td>
+							</tr>
+							<tr><td colspan="2"><hr></td></tr>
+							<tr>
+								<td colspan="2">
+									<table border="0" cellspacing="0" cellpadding="0" width="100%" class="nifs_default">
+																																																			<tbody><tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            12'
+                                                                                                    																								<b>[0 - 1]</b>
+												
+																									Mål
+																											av <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=31336">Alexander Ruud Tveter</a>
+																										
+																							</td>
+
+											
+										</tr>
+																															<tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            26'
+                                                                                                    																								<b>[0 - 2]</b>
+												
+																									Mål
+																											av <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=31336">Alexander Ruud Tveter</a>
+																																								Assist: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=255822">Sander Risan Mørk</a>
+																													<a class="tooltips" href="https://www.nifs.no/kampfakta.php?kamp_id=2015142&amp;land=1&amp;t=5&amp;u=688480&amp;lag1=16&amp;lag2=48#" style="color: #c00">
+																(indirekte)
+																<span>
+																	<p style="padding-left: 10px;">"Indirekte assists" er assister som ikke vanligvis telles i statistikken. Eksempler:</p>
+																	<ul>
+																		<li>Spilleren som blir felt før et straffemål</li>
+																		<li>Spilleren som blir felt før et frisparkmål</li>
+																		<li>Spilleren som er nest sist på ballen før et selvmål</li>
+																		<li>Medspilleren som er nest sist på ballen ved mål på returer</li>
+																		<li>Spilleren som slår innlegget som blir halvklarert</li>
+																		<li>Spilleren som slår innlegget via en motspiller der ballen får en merkbar retningsforandring</li>
+																	</ul>
+																</span>
+															</a>
+																											
+																							</td>
+
+											
+										</tr>
+																															<tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            33'
+                                                                                                    																								[0 - 2]
+												
+																									Gult kort til <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=409126">Ian Smeulers</a>																							</td>
+
+											
+										</tr>
+																															<tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            41'
+                                                                                                    																								<b>[0 - 3]</b>
+												
+																									Mål
+																											av <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=31336">Alexander Ruud Tveter</a>
+																																								Assist: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=179819">Franklin Nyenetue</a>
+																											
+																							</td>
+
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            45'
+                                                                                                    																								[0 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=135168">Torje Naustdal</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=112526">Mads Sande</a>
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            45'
+                                                                                                    																								[0 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=186718">Hilary Gong</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=189344">Bilal Njie</a>
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            57'
+                                                                                                    																								[0 - 3]
+												
+																									Gult kort til <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=274274">Peter Therkildsen</a>																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            61'
+                                                                                                    																								[0 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=24313">Alexander Søderlund</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=276259">Joacim Holtan</a>
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            70'
+                                                                                                    																								[0 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=93339">Deyver Vega</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=107723">Mohamed Ofkir</a>
+																							</td>
+
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            74'
+                                                                                                    																								<b>[1 - 3]</b>
+												
+																									Mål
+																											av <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=186718">Hilary Gong</a>
+																																								Assist: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=186009">Alioune Ndour</a>
+																													<a class="tooltips" href="https://www.nifs.no/kampfakta.php?kamp_id=2015142&amp;land=1&amp;t=5&amp;u=688480&amp;lag1=16&amp;lag2=48#" style="color: #c00">
+																(indirekte)
+																<span>
+																	<p style="padding-left: 10px;">"Indirekte assists" er assister som ikke vanligvis telles i statistikken. Eksempler:</p>
+																	<ul>
+																		<li>Spilleren som blir felt før et straffemål</li>
+																		<li>Spilleren som blir felt før et frisparkmål</li>
+																		<li>Spilleren som er nest sist på ballen før et selvmål</li>
+																		<li>Medspilleren som er nest sist på ballen ved mål på returer</li>
+																		<li>Spilleren som slår innlegget som blir halvklarert</li>
+																		<li>Spilleren som slår innlegget via en motspiller der ballen får en merkbar retningsforandring</li>
+																	</ul>
+																</span>
+															</a>
+																											
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            74'
+                                                                                                    																								[1 - 3]
+												
+																									Mål
+																											av <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id="> </a>
+																										
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            75'
+                                                                                                    																								[1 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=22228">Harmeet Singh</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=179819">Franklin Nyenetue</a>
+																							</td>
+
+											
+										</tr>
+																															<tr>
+																						<td>&nbsp;</td>
+											
+											<td width="50%">
+                                                                                                                                                            76'
+                                                                                                    																								[1 - 3]
+												
+																									Gult kort til <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=129469">William Kurtovic</a>																							</td>
+
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            89'
+                                                                                                    																								[1 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=355275">Vegard Solheim</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=330025">Christos Zafeiris</a>
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																															<tr>
+											
+											<td width="50%">
+                                                                                                                                                            89'
+                                                                                                    																								[1 - 3]
+												
+																									Spillerbytte. Inn: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=314943">Sander Håvik Innvær</a>
+													Ut: <a class="nifs_link" href="https://www.nifs.no/personprofil.php?person_id=186009">Alioune Ndour</a>
+																							</td>
+
+																						<td>&nbsp;</td>
+											
+										</tr>
+																																								
+									</tbody></table>
+								</td>
+							</tr>
+						</tbody></table>
+					</td>
+				</tr>
+			</tbody></table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<p class="nifs_signature">
+				Tjenesten leveres av <a class="nifs_link" href="http://www.ntb.no/" target="ntb">NTB</a>.<br>
+				Eventuelle feil og forslag til forbedringer kan sendes til <a class="nifs_link" href="mailto:nifs@ntb.no">nifs</a>.<br>
+				Produktsjef Terje Alstad
+			</p>
+			
+			<!-- Google analytics -->
+			<script src="./kamp_ferdig_files/urchin.js.last ned" type="text/javascript">
+			</script>
+			<script type="text/javascript">
+			_uacct = "UA-800632-2";
+			urchinTracker();
+			</script>
+			<!-- End google analytics -->
+			
+		</td>
+	</tr>
+</tbody></table>
+
+<script type="text/javascript">
+
+
+
+//Firefox at least, maybe other browsers too, remembers selection of radiobuttons when reloading. This must be prevented.
+function clearNorskTipping() {
+
+	for (var j in nt_kamper) {
+		var radioGroupName = "nt_kamp_" + j;
+		if ($(radioGroupName + "_1")) {
+			$("#" + radioGroupName + "_1").removeAttr('checked');
+			$("#" + radioGroupName + "_2").removeAttr('checked');
+			$("#" + radioGroupName + "_2").removeAttr('checked');
+		}
+	}
+}
+
+clearNorskTipping();
+
+
+
+</script>
+
+</div>
+
+
+</body></html>

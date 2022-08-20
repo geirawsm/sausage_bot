@@ -3,12 +3,14 @@
 import discord
 from discord.ext import commands
 import os
-from random import randrange
-from sausage_bot.funcs import discord_commands
+import locale
 from sausage_bot.funcs._args import args
 from sausage_bot.funcs import _config, _vars, file_io
 from sausage_bot.log import log
 
+
+# Set locale
+locale.setlocale(locale.LC_ALL, _config.LOCALE)
 
 # Create necessary folders before starting
 check_and_create_folders = [_vars.LOG_DIR]
@@ -17,7 +19,6 @@ for folder in check_and_create_folders:
         os.makedirs(folder)
     except(FileExistsError):
         pass
-
 
 # Create necessary files before starting
 log.log_more('Creating necessary files')
@@ -37,6 +38,7 @@ async def on_ready():
         if guild.name == _config.GUILD:
             break
     log.log('{} has connected to `{}`'.format(_config.bot.user, guild.name))
+    await load_enabled_cogs()
     if args.maintenance:
         log.log('Maintenance mode activated', color='RED')
         await _config.bot.change_presence(
@@ -53,36 +55,63 @@ async def on_ready():
             )
         )
 
-# Load cogs
-# Add cogs that are not present in the `cogs_status` file
-cogs_status = file_io.read_json(_vars.cogs_status_file)
-for filename in os.listdir(_vars.COGS_DIR):
-    if filename.endswith('.py'):
-        cog_name = filename[:-3]
-        if cog_name not in cogs_status:
-            # Added as disable
-            log.log('Added cog {} to cogs_status file'.format(cog_name))
-            cogs_status[cog_name] = 'disable'
-file_io.write_json(_vars.cogs_status_file, cogs_status)
-print(cogs_status)
-# Start cogs based on status
-log.log('Checking `cogs_status` file for enabled cogs')
-for cog_name in cogs_status:
-    if cogs_status[cog_name] == 'enable':
-        log.log('Loading cog: {}'.format(cog_name))
-        _config.bot.load_extension(
-            '{}.{}'.format(
-                _vars.COGS_REL_DIR, cog_name
-            )
-        )
+# Cogs
+def change_status(cog_name, status):
+    cogs_status = file_io.read_json(_vars.cogs_status_file)
+    try:
+        # Change status
+        cogs_status[cog_name] = status
+        # Write changes
+        file_io.write_json(_vars.cogs_status_file, cogs_status)
+        return True
+    except Exception as e:
+        log.log(_vars.COGS_CHANGE_STATUS_FAIL.format(e))
+        return False
 
+
+async def load_cog(cog_name):
+    await _config.bot.load_extension(
+        '{}.{}'.format(
+            _vars.COGS_REL_DIR, f'{cog_name}'
+        )
+    )
+    return
+
+
+async def unload_cog(cog_name):
+    await _config.bot.unload_extension(
+        '{}.{}'.format(
+            _vars.COGS_REL_DIR, f'{cog_name}'
+        )
+    )
+    return
+
+
+async def load_enabled_cogs():
+    # Add cogs that are not present in the `cogs_status` file
+    cogs_status = file_io.read_json(_vars.cogs_status_file)
+    for filename in os.listdir(_vars.COGS_DIR):
+        if filename.endswith('.py'):
+            cog_name = filename[:-3]
+            if cog_name not in cogs_status:
+                # Added as disable
+                log.log('Added cog {} to cogs_status file'.format(cog_name))
+                cogs_status[cog_name] = 'disable'
+    file_io.write_json(_vars.cogs_status_file, cogs_status)
+    # Start cogs based on status
+    cogs_status = file_io.read_json(_vars.cogs_status_file)
+    log.log('Checking `cogs_status` file for enabled cogs')
+    for cog_name in cogs_status:
+        if cogs_status[cog_name] == 'enable':
+            log.log('Loading cog: {}'.format(cog_name))
+            await load_cog(cog_name)
 
 # Commands
 @_config.bot.command(name='ping')
 async def ping(ctx):
     'Checks the bot\'s latency'
     await ctx.send(f'Pong! {round(_config.bot.latency * 1000)} ms')
-    await ctx.message.add_reaction(emoji='✅')
+    await ctx.message.add_reaction('✅')
 
 
 @commands.check_any(
@@ -94,12 +123,12 @@ async def delete(ctx, amount=0):
     'Delete x number of messages in the chat'
     if amount == 0:
         await ctx.send('Please specify the number of messages you want to delete!')
-        await ctx.message.add_reaction(emoji='❌')
+        await ctx.message.add_reaction('❌')
     elif amount <= 0:  # lower than 0
         await ctx.send("The number must be bigger than 0!")
-        await ctx.message.add_reaction(emoji='❌')
+        await ctx.message.add_reaction('❌')
     else:
-        await ctx.message.add_reaction(emoji='✅')
+        await ctx.message.add_reaction('✅')
         await ctx.channel.purge(limit=amount + 1)
 
 
@@ -113,10 +142,10 @@ async def kick(ctx, member: discord.Member, *, reason=None):
     try:
         await member.kick(reason=reason)
         await ctx.send(f'{member} has been kicked!')
-        await ctx.message.add_reaction(emoji='✅')
+        await ctx.message.add_reaction('✅')
     except Exception as failkick:
         await ctx.send("Failed to kick: " + str(failkick))
-        await ctx.message.add_reaction(emoji='❌')
+        await ctx.message.add_reaction('❌')
 
 
 @_config.bot.command()
@@ -129,10 +158,10 @@ async def ban(ctx, member: discord.Member, *, reason=None):
     try:
         await member.ban(reason=reason)
         await ctx.send(f'{member} has been banned!')
-        await ctx.message.add_reaction(emoji='✅')
+        await ctx.message.add_reaction('✅')
     except Exception as e:
         await ctx.send("Failed to ban: " + str(e))
-        await ctx.message.add_reaction(emoji='❌')
+        await ctx.message.add_reaction('❌')
 
 
 @_config.bot.command()
@@ -155,17 +184,6 @@ async def cog(ctx, cmd_in=None, cog_name=None):
     '''
     Enable, disable or list cogs for this bot
     '''
-    def change_status(cog_name, status):
-        cogs_status = file_io.read_json(_vars.cogs_status_file)
-        try:
-            # Change status
-            cogs_status[cog_name] = status
-            # Write changes
-            file_io.write_json(_vars.cogs_status_file, cogs_status)
-            return True
-        except Exception as e:
-            log.log(_vars.COGS_CHANGE_STATUS_FAIL.format(e))
-            return False
 
     def get_cogs_list(cogs_file):
         def get_cog_item_lengths(cogs_file):
@@ -198,11 +216,7 @@ async def cog(ctx, cmd_in=None, cog_name=None):
 
     if cmd_in == 'enable':
         # Start Cog
-        _config.bot.load_extension(
-            '{}.{}'.format(
-                _vars.COGS_REL_DIR, f'{cog_name}'
-            )
-        )
+        await load_cog(cog_name)
         change_status(cog_name, 'enable')
         await ctx.send(
             _vars.COGS_ENABLED.format(cog_name)
@@ -210,11 +224,7 @@ async def cog(ctx, cmd_in=None, cog_name=None):
         return True
     elif cmd_in == 'disable':
         # Stop cog
-        _config.bot.unload_extension(
-            '{}.{}'.format(
-                _vars.COGS_REL_DIR, f'{cog_name}'
-            )
-        )
+        await unload_cog(cog_name)
         change_status(cog_name, 'disable')
         await ctx.send(
             _vars.COGS_DISABLED.format(cog_name)

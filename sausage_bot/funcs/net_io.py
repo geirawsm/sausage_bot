@@ -1,28 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import requests
-import re
+import discord
+from datetime import datetime
 from bs4 import BeautifulSoup
 from sausage_bot.funcs import _vars, datetimefuncs
+from sausage_bot.funcs._args import args
 
 from ..log import log
+
+if args.local_parsing:
+    from ..test.modules.requests_local import requests_session as requests
+    from ..test.modules import _vars_test
+else:
+    import requests
 
 
 def get_link(url):
     if type(url) is not str:
         log.log(_vars.RSS_INVALID_URL.format(url))
         return None
-    try:
+    if args.local_parsing:
         req = requests.get(url)
-    except(requests.exceptions.InvalidSchema):
-        log.log(_vars.RSS_INVALID_URL.format(url))
-        return None
-    except(requests.exceptions.MissingSchema):
-        log.log(_vars.RSS_MISSING_SCHEME)
-        req = get_link(f'https://{url}')
-    except(requests.exceptions.ConnectionError):
-        log.log(_vars.RSS_CONNECTION_ERROR)
-        return None
+    else:
+        try:
+            req = requests.get(url)
+        except(requests.exceptions.InvalidSchema):
+            log.log(_vars.RSS_INVALID_URL.format(url))
+            return None
+        except(requests.exceptions.MissingSchema):
+            log.log(_vars.RSS_MISSING_SCHEME)
+            req = get_link(f'https://{url}')
+        except(requests.exceptions.ConnectionError):
+            log.log(_vars.RSS_CONNECTION_ERROR)
+            return None
     if req is None:
         return None
     log.log_more('Got a {} when fetching {}'.format(req.status_code, url))
@@ -40,69 +50,55 @@ def scrape_page(url):
     except:
         return None
 
-def parse(url):
-    ''''''
-    def make_relative_date(epoch):
-        return f'<t:{epoch}:R>'.strip()
-    
-    def make_event_start_stop(date, time):
-        '''
-        `date` and ´time´ is for the start of the match.
-        The event should start 30 minutes prior
-        The event should end 2 hours and 30 minutes after
-        '''
-        startdt_obj = datetimefuncs.make_dt(f'{date} {time}')
-        startdt_new = datetimefuncs.change_dt(startdt_obj, 'remove', 30, 'minutes')
-        enddt_new = datetimefuncs.change_dt(startdt_obj, 'add', 2.5, 'hours')
-        startdt = datetimefuncs.get_dt(format='datetextfull', dt=startdt_new)
-        enddt = datetimefuncs.get_dt(format='datetextfull', dt=enddt_new)
+def make_event_start_stop(date, time):
+    '''
+    `date` and ´time´ is for the start of the match.
+    The event should start 30 minutes prior
+    The event should end 2 hours and 30 minutes after
+    '''
+    try:
+        # Make the original startdate an object
+        start_dt = datetimefuncs.make_dt(f'{date} {time}')
+        # Make a startdate for the event that starts 30 minutes before
+        # the match
+        start_event = datetimefuncs.change_dt(
+            start_dt, 'remove', 30, 'minutes'
+        )
+        # Make an enddate for the event that should stop approximately 
+        # 30 minutes after the match is over
+        end_dt = datetimefuncs.change_dt(start_dt, 'add', 2.5, 'hours')
+        # Make the epochs that the event will use
+        start_epoch = datetimefuncs.get_dt(dt=start_event)
+        end_epoch = datetimefuncs.get_dt(dt=end_dt)
+        # Make a relative start object for discord
+        rel_start = discord.utils.format_dt(
+            datetime.fromtimestamp(start_epoch).astimezone(),
+            'R'
+        )
         return {
-            'start': startdt,
-            'end': enddt}
+            'start_dt': start_dt,
+            'start_epoch': start_epoch,
+            'rel_start': rel_start,
+            'end_dt': end_dt,
+            'end_epoch': end_epoch
+        }
+    except Exception as e:
+        log.log(_vars.ERROR_WITH_ERROR_MSG.format(e))
+        return None
 
-#    def parse_aof(soup):
-#        '''
-#        Emne: Kampchat - [lag1] vs [lag2]
-#        startdato
-#        startklokkeslett
-#        beskrivelse: kom opp med en standardtekst som også har med
-#            hvor lenge det er igjen til det starter
-#        '''
-#        infoboks = soup.find('table', attrs={'class': 'sd_game'})
-#        info_upper = infoboks.find('tr', attrs={'class': 'sd_game_big'})
-#        hjemmelag = info_upper.find(
-#            'td', attrs={'class': 'sd_game_home'}
-#        ).text.strip()
-#        bortelag = info_upper.find(
-#            'td', attrs={'class': 'sd_game_away'}
-#        ).text.strip()
-#        info_lower = infoboks.find('tr', attrs={'class': 'sd_game_small'})
-#        _info = info_lower.find(
-#            'td', attrs={'class': 'sd_game_home'}
-#        ).text.strip()
-#
-#        _runde = info_lower.find(
-#            'td', attrs={'class': 'sd_game_away'}
-#        ).text.strip()
-#        ###
-#        return {
-#            'teams': {
-#                'home': team_home,
-#                'away': team_away
-#            },
-#            'tournament': tournament,
-#            'datetime': {
-#                'date': date,
-#                'time': time,
-#                'rel_date': rel_date
-#            },
-#            'stadium': stadium
-#        }
+def parse(url: str):
+    '''
+    Parse the given url to get info about a football match
 
+    Returns a dict with information about the match given
+    '''
     def parse_nifs(soup):
+        '''
+        Parse content from matchpages from nifs.no
+        '''
         info_tbl = soup.find('table', attrs={'class': 'nifs_table_l_nb'})
         rows = info_tbl.find_all('tr')
-        # Get team names
+        # Get info relevant for the event
         info0 = rows[0].find_all('a', attrs={'class': 'nifs_link_style'})
         team_home = info0[0].text.strip()
         team_away = info0[1].text.strip()
@@ -111,16 +107,12 @@ def parse(url):
         date = info1[3].text.strip()
         time = rows[2].find_all('td')[3].text.strip()
         dt_in = make_event_start_stop(date, time)
-        startdt = dt_in['start']
-        enddt = dt_in['end']
-        
-        # Make epochdate
-        epoch = datetimefuncs.get_dt(
-            dt=datetimefuncs.make_dt(
-                f'{date} {time}'
-            )
-        )
-        rel_date = make_relative_date(epoch)
+        if dt_in is None:
+            return None
+        start_dt = dt_in['start_dt']
+        end_dt = dt_in['end_dt']
+        start_epoch = dt_in['start_epoch']
+        rel_start = f'<t:{start_epoch}:R>'
         stadium = rows[3].find_all('td')[3].text.strip()
         return {
             'teams': {
@@ -131,29 +123,33 @@ def parse(url):
             'datetime': {
                 'date': date,
                 'time': time,
-                'rel_date': rel_date,
-                'startdt': startdt,
-                'enddt': enddt
+                'start_dt': start_dt,
+                'start_epoch' : start_epoch,
+                'end_dt': end_dt,
+                'rel_start': rel_start
             },
             'stadium': stadium
         }
 
     soup = scrape_page(url)
+    PARSER = None
     if 'nifs.no' in url:
-        return parse_nifs(soup)
-    elif 'altomfotball.no' in url:
-        return parse_aof(soup)
+        PARSER = 'nifs'
+    elif args.force_parser:
+        PARSER = args.force_parser
+    if PARSER == 'nifs':
+        try:
+            parse = parse_nifs(soup)
+            return parse
+        except Exception as e:
+            log.log(_vars.AUTOEVENT_PARSE_ERROR.format(url, e))
+            return None
+#    elif 'altomfotball.no' in url:
+#        return parse_aof(soup)
     else:
         log.log('Linken er ikke kjent')
         return None
 
 if __name__ == "__main__":
-    # Barca
-    url = 'https://www.nifs.no/kampfakta.php?kamp_id=2133607&land=20&t=45&u=690408&lag1=835&lag2=844'
-    # Bundesliga
-    #url = 'https://www.nifs.no/kampfakta.php?kamp_id=2125660&land=9&t=36&u=690357&lag1=673&lag2=6455'
-    # CL
-    #url = 'https://www.nifs.no/kampfakta.php?kamp_id=1980909'
-    #
-    #url = 'https://www.altomfotball.no/element.do?cmd=match&matchId=1127006&tournamentId=238&seasonId=344&useFullUrl=false
-    print(parse(url))
+    #url = 'file:/mnt/c/Users/uaasgei00/Nextcloud/pc/dotfiles/coding/git/discord/sausage_bot/sausage_bot/test/in/pages/kamp_ferdig.html'
+    print(parse(_vars_test.kamp_ferdig_fil))

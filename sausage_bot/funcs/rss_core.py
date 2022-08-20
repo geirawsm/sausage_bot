@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from ctypes.wintypes import BOOL
 from bs4 import BeautifulSoup
 from lxml import etree
-from difflib import SequenceMatcher
 from sausage_bot.funcs import _vars, file_io, rss_core, discord_commands
 from sausage_bot.funcs import net_io
 
@@ -150,37 +148,6 @@ def get_feed_list(feeds_file, long=False):
     return text_out
 
 
-def check_similarity(text1: str, text2: str) -> BOOL:
-    '''
-    Check how similar `text1` and `text2` is. If it resembles eachother by
-    between 95 % to 99.999999995 %, it is considered "similar" and will return
-    True. Otherwise, return False.
-
-    If neither `text1` nor `text2` is a string, it will return None.
-    '''
-    # Stop function if input is not str
-    if type(text1) is not str or type(text2) is not str:
-        return None
-    ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
-    # Our "similarity" is defined by the following equation:
-    if 0.95 <= ratio <= 0.99999999995:
-        log.log(
-            f'These texts seem similiar (ratio: {ratio}):\n'
-            f'`{text1}`\n'
-            'vs\n'
-            f'`{text2}`'
-        )
-        return True
-    else:
-        log.log(
-            f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
-            f'`{text1}`\n'
-            'vs\n'
-            f'`{text2}`'
-        )
-        return False
-
-
 def review_feeds_status(feeds):
     for feed in feeds:
         log.log('{}: {}'.format(feed, feeds[feed]['status']))
@@ -196,7 +163,7 @@ def review_feeds_status(feeds):
                 break
 
 
-def link_is_in_log(link: str, feed_log: list) -> BOOL:
+def link_is_in_log(link: str, feed_log: list) -> bool:
     # Checks if given link is in the log given
     if link in feed_log:
         return True
@@ -211,7 +178,7 @@ def link_similar_to_logged_post(link: str, feed_log: list):
     If no log-links are found to be similar, return None
     '''
     for log_item in feed_log:
-        if check_similarity(log_item, link):
+        if file_io.check_similarity(log_item, link):
             return log_item
 
 

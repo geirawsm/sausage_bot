@@ -41,6 +41,18 @@ logging_args.add_argument('--highlight', '-hl',
                           default=None,
                           dest='log_highlight')
 
+testing_args = parser.add_argument_group('Testing')
+testing_args.add_argument('--local-parsing',
+                          help='Use requests-testadapter instead of requests',
+                          action='store_true',
+                          default=False,
+                          dest='local_parsing')
+testing_args.add_argument('--force-parser',
+                          help='Force what parser to use in `autoevent`',
+                          action='store',
+                          default=False,
+                          dest='force_parser')
+
 maintenance_args = parser.add_argument_group('Maintenance')
 maintenance_args.add_argument('--maintenance',
                               help='Start the bot in maintenance mode',

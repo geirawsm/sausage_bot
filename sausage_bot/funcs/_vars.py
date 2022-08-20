@@ -9,6 +9,7 @@ LIST_DIR = ROOT_DIR / 'lists'
 LOG_DIR = ROOT_DIR / 'logs'
 COGS_DIR = ROOT_DIR / 'cogs'
 IMG_DIR = ROOT_DIR / 'img'
+STATIC_DIR = ROOT_DIR / 'static'
 
 # Relative paths
 COGS_REL_DIR = 'sausage_bot.cogs'
@@ -28,12 +29,25 @@ ps_sale_file = JSON_DIR / 'ps_sales.json'
 ps_sale_log_file = LIST_DIR / 'ps_sales-log.list'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
 
-# Botlines
+### Botlines ###
+# Generiske
+GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
 TOO_MANY_ARGUMENTS = 'Du har gitt for mange argumenter til kommandoen'
 TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
+CHANNEL_NOT_FOUND = 'Jeg finner ikke kanalen du vil legge inn feeden på'
+UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
+ERROR_WITH_ERROR_MSG = 'Feil: {}'
+
+# COG - COG ADMIN IN MAIN
+COGS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
+COGS_CHANGE_STATUS_FAIL = 'Klarte ikke å endre status. Feilmelding: {}'
+COGS_WRONG_STATUS = 'Kjente ikke igjen status `{}`'
+COGS_ENABLED = 'Aktiverte cog `{}`'
+COGS_DISABLED = 'Deaktiverte cog `{}`'
+
+# COG - RSS
 RSS_URL_NOT_OK = 'Linken du ga ser ikke ut til å være en ordenlig URL'
-RSS_CHANNEL_NOT_OK = 'Jeg finner ikke kanalen du vil legge inn feeden på'
 RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal du ønsker '\
     'den skal publiseres til.'
 RSS_ADDED = '{} ble lag til i kanalen {}'
@@ -49,23 +63,19 @@ RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
 RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 
+# COG - QUOTE
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal redigeres'
 QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
 
+# COG - YOUTUBE
 YOUTUBE_ADDED = '{} ble lag til i kanalen {}'
 YOUTUBE_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
 YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
 YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 
-CHANNEL_NOT_OK = 'Jeg finner ikke kanalen '
-
-UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
-
-COGS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
-COGS_CHANGE_STATUS_FAIL = 'Klarte ikke å endre status. Feilmelding: {}'
-COGS_WRONG_STATUS = 'Kjente ikke igjen status `{}`'
-COGS_ENABLED = 'Aktiverte cog `{}`'
-COGS_DISABLED = 'Deaktiverte cog `{}`'
+# COG - AUTOEVENT
+AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
+AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
 
 
 if __name__ == "__main__":

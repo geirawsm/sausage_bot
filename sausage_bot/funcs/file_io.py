@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import io
 import os
 import stat
 import json
-from pathlib import Path
 
-from . import _vars
+
+from difflib import SequenceMatcher
+
 from ..log import log
 import pathlib
 
@@ -107,6 +107,62 @@ def ensure_file(file_path: str, file_template=False):
                 fout.write('')
 
 
+def get_max_item_lengths(headers, dict_in):
+    lengths = {}
+    for item in headers:
+        lengths[item] = len(item)
+    for item in dict_in:
+        for x in dict_in[item]:
+            if lengths[x] < len(str(dict_in[item][x])):
+                lengths[x] = len(str(dict_in[item][x]))
+    return lengths
+
+
+def check_similarity(text1: str, text2: str) -> bool:
+    '''
+    Check how similar `text1` and `text2` is. If it resembles eachother by
+    between 95 % to 99.999999995 %, it is considered "similar" and will return
+    True. Otherwise, return False.
+
+    If neither `text1` nor `text2` is a string, it will return None.
+    '''
+    # Stop function if input is not str
+    if type(text1) is not str or type(text2) is not str:
+        return None
+    ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
+    # Our "similarity" is defined by the following equation:
+    if 0.95 <= ratio <= 0.99999999995:
+        log.log(
+            f'These texts seem similiar (ratio: {ratio}):\n'
+            f'`{text1}`\n'
+            'vs\n'
+            f'`{text2}`'
+        )
+        return True
+    else:
+        log.log(
+            f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
+            f'`{text1}`\n'
+            'vs\n'
+            f'`{text2}`'
+        )
+        return False
+
+
 if __name__ == "__main__":
     #pass
-    print(import_file_as_list(_vars.ps_sale_log_file))
+    dict_in = {
+        "FC Barcelona": {
+            "url": "https://www.youtube.com/c/FCBarcelona",
+            "channel": "general",
+            "added": "14.08.2022 01.21",
+            "added by": "geirawsasdasdm"
+        },
+        "CH": {
+            "url": "https://www.youtube.com/c/collegehumor",
+            "channel": "generelt",
+            "added": "18.08.2022 10.13.00",
+            "added by": "geirawsm"
+        }
+    }
+    print(get_max_item_lengths(dict_in))
