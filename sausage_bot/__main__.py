@@ -38,7 +38,7 @@ async def on_ready():
         if guild.name == _config.GUILD:
             break
     log.log('{} has connected to `{}`'.format(_config.bot.user, guild.name))
-    await load_enabled_cogs()
+    await load_and_clean_cogs()
     if args.maintenance:
         log.log('Maintenance mode activated', color='RED')
         await _config.bot.change_presence(
@@ -87,24 +87,53 @@ async def unload_cog(cog_name):
     return
 
 
-async def load_enabled_cogs():
+async def reload_cog(cog_name):
+    await _config.bot.reload_extension(
+        '{}.{}'.format(
+            _vars.COGS_REL_DIR, f'{cog_name}'
+        )
+    )
+    return
+
+
+async def load_and_clean_cogs():
+    cog_files = []
     # Add cogs that are not present in the `cogs_status` file
     cogs_status = file_io.read_json(_vars.cogs_status_file)
     for filename in os.listdir(_vars.COGS_DIR):
         if filename.endswith('.py'):
             cog_name = filename[:-3]
+            # Add all cog names to `cog_files` for easier cleaning
+            cog_files.append(cog_name)
             if cog_name not in cogs_status:
                 # Added as disable
                 log.log('Added cog {} to cogs_status file'.format(cog_name))
                 cogs_status[cog_name] = 'disable'
-    file_io.write_json(_vars.cogs_status_file, cogs_status)
+    # Clean out cogs that no longer has a file
+    log.log('Checking `cogs_status` file for non-existing cogs')
+    to_be_removed = []
+    for cog_name in cogs_status:
+        if cog_name not in cog_files:
+            log.log(f'Removing `{cog_name}`')
+            to_be_removed.append(cog_name)
+    for removal in to_be_removed:
+        cogs_status.pop(removal)
     # Start cogs based on status
-    cogs_status = file_io.read_json(_vars.cogs_status_file)
     log.log('Checking `cogs_status` file for enabled cogs')
     for cog_name in cogs_status:
         if cogs_status[cog_name] == 'enable':
             log.log('Loading cog: {}'.format(cog_name))
             await load_cog(cog_name)
+    file_io.write_json(_vars.cogs_status_file, cogs_status)
+
+
+async def reload_all_cogs():
+    cogs_status = file_io.read_json(_vars.cogs_status_file)
+    for cog_name in cogs_status:
+        if cogs_status[cog_name] == 'enable':
+            log.log('Reloading cog: {}'.format(cog_name))
+            await reload_cog(cog_name)
+
 
 # Commands
 @_config.bot.command(name='ping')
@@ -231,14 +260,21 @@ async def cog(ctx, cmd_in=None, cog_name=None):
         )
         return True
     elif cmd_in == 'list':
+        # List cogs and their status
         cogs_status = file_io.read_json(_vars.cogs_status_file)
         await ctx.send(
             get_cogs_list(cogs_status)
         )
+        return
+    elif cmd_in == 'reload':
+        # Reload all cogs
+        await reload_all_cogs()
+        await ctx.send('Cogs reloaded')
     elif cmd_in is None and cog_name is None:
         await ctx.send(
             COGS_TOO_FEW_ARGUMENTS
         )
+        return
     else:
         log.log('Something else happened?')
         return False
