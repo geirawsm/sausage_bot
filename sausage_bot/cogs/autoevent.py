@@ -28,12 +28,17 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='add', aliases=['a'])
-    async def add(self, ctx, url=None, channel=None):
+    async def add(self, ctx, url=None, channel=None, text=None):
         '''
         Add a scheduled event.
-        `channel` should be a voice channel that the event 
-        `url` should be a link to a specific match from an accepted site:
-        - nifs.no/kamper.php
+
+        `channel` should be a voice channel for the event.
+
+        `url` should be a link to a specific match from an accepted site.
+        As of now only match links from nifs.no is parsed.
+
+        `text` is additional text that should be added to the description
+        of the event.
         '''
         kampchat_img = _vars.STATIC_DIR / 'kampchat.png'
         SCRAPE_OK = False
@@ -49,19 +54,19 @@ class AutoEvent(commands.Cog):
             else:
                 SCRAPE_OK = True
             voice_channels = discord_commands.get_voice_channel_list()
-            log.log_more(f'Getting channel list:\n{voice_channels}')
+            log.log_more(_vars.GOT_CHANNEL_LIST.format(voice_channels))
             if channel in voice_channels:
                 CHANNEL_OK = True
                 channel_id = voice_channels[channel]
-                log.log_more(f'Found voice channel `{channel}` with id `{channel_id}`')
+                log.log_more(
+                    _vars.GOT_SPECIFIC_CHANNEL.format(
+                        channel, channel_id
+                    )
+                )
             else:
                 CHANNEL_OK = False
                 await ctx.send(_vars.CHANNEL_NOT_FOUND)
                 return
-            log.log_more(
-                f'Last statuscheck before scraping and adding: '
-                f'SCRAPE_OK = {SCRAPE_OK}, CHANNEL_OK = {CHANNEL_OK}'
-            )
             if SCRAPE_OK and CHANNEL_OK:
                 scr = scraped_info
                 # Start creating the event
@@ -75,13 +80,16 @@ class AutoEvent(commands.Cog):
                 rel_start = _dt['rel_start']
                 start_dt = _dt['start_dt']
                 end_dt = _dt['end_dt']
+                description = f'Turnering: {tournament}\n'\
+                    f'Når: {start_text} ({rel_start})\n'\
+                    f'Hvor: {stadium}'
+                if text:
+                    description += f'\n\n{text}'
                 with open(kampchat_img, 'rb') as f:
                     image_in = f.read()
                 await ctx.guild.create_scheduled_event(
-                    name = f'{home} - {away}',
-                    description = f'Turnering: {tournament}\n'\
-                        f'Når: {start_text} ({rel_start})\n'\
-                        f'Hvor: {stadium}',
+                    name = f'Kampchat: {home} - {away}',
+                    description = description,
                     channel = _config.bot.get_channel(channel_id),
                     entity_type = discord.EntityType.voice,
                     image = image_in,
@@ -94,26 +102,30 @@ class AutoEvent(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='cancel', aliases=['c'])
+    @autoevent.group(name='remove', aliases=['r'])
     async def remove(self, ctx, event_id_in):
-        '''Cancels a scheduled event that has not started yet'''
+        '''Removes a scheduled event that has not started yet'''
         event_dict = discord_commands.get_scheduled_events()
         for event in event_dict:
             _id = event_dict[event]['id']
             log.log_more(
-                f'Comparing `{event_id_in}` to `{_id}`'
+                _vars.COMPARING_IDS.format(
+                    event_id_in, _id
+                )
             )
             event_id_in = str(event_id_in).strip()
             if event_id_in == str(event_dict[event]['id']):
-                log.log('Found event to cancel: `{}`'.format(
-                    event_dict[event]['name']
-                ))
+                log.log(
+                    _vars.AUTOEVENT_EVENT_FOUND.format(
+                        event_dict[event]['name']
+                    )
+                )
                 # Delete event
                 guild = discord_commands.get_guild()
                 _event = guild.get_scheduled_event(int(event_id_in))
                 await _event.delete()
                 return
-        log.log('No event found, check spelling')
+        log.log(_vars.AUTOEVENT_EVENT_NOT_FOUND)
         return
 
 
@@ -123,6 +135,7 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='list', aliases=['l'])
     async def list_events(self, ctx):
+        '''Lists all the planned events'''
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:
             msg_out = _vars.AUTOEVENT_NO_EVENTS_LISTED

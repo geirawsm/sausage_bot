@@ -39,6 +39,8 @@ CHANNEL_NOT_FOUND = 'Jeg finner ikke kanalen du vil legge inn feeden på'
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
 GOT_CHANNEL_LIST = 'Getting channel list:\n{}'
+GOT_SPECIFIC_CHANNEL = 'Found channel `{}` with id `{}`'
+COMPARING_IDS = 'Comparing `{}` to `{}`'
 
 # COG - COG ADMIN IN MAIN
 COGS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
@@ -77,6 +79,10 @@ YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
 AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
+AUTOEVENT_EVENT_FOUND = 'Fant event: {}'
+AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\
+    'liste på nytt med `!autoevent list`'
+
 
 
 if __name__ == "__main__":
