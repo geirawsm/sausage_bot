@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-
 from discord.ext import commands, tasks
 from sausage_bot.funcs import _config, datetimefuncs, _vars, file_io
 from sausage_bot.funcs import rss_core, discord_commands

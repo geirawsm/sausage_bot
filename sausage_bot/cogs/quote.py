@@ -4,7 +4,7 @@ from discord.ext import commands
 import typing
 import random
 from sausage_bot.funcs.datetimefuncs import get_dt
-from sausage_bot.funcs import _config, _vars, file_io, discord_commands
+from sausage_bot.funcs import _config, _vars, file_io
 from sausage_bot.log import log
 
 

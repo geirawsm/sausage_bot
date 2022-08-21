@@ -5,7 +5,7 @@ import requests
 from time import sleep as sleep
 from discord.ext import commands, tasks
 from sausage_bot.funcs._args import args
-from sausage_bot.funcs import _config, _vars, datetimefuncs, file_io, rss_core, discord_commands
+from sausage_bot.funcs import _config, _vars, rss_core
 from sausage_bot.log import log
 
 

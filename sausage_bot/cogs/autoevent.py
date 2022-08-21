@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from asyncore import file_dispatcher
 from discord.ext import commands
 import discord
-from datetime import datetime
-from tzlocal import get_localzone
 from sausage_bot.funcs import _vars, _config
 from sausage_bot.funcs import discord_commands, net_io
 from sausage_bot.log import log
