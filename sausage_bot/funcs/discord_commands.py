@@ -131,7 +131,7 @@ async def edit_post(replace_content, replace_with, channel_in):
     server_channels = get_text_channel_list()
     channel_out = _config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
-        async for msg in channel_in.history(limit=30):
+        async for msg in channel_out.history(limit=30):
             if str(msg.author.id) == _config.BOT_ID:
                 if replace_content == msg.content:
                     await msg.edit(content=replace_with)
