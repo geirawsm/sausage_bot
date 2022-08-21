@@ -204,10 +204,6 @@ async def setup(bot):
         (_vars.rss_feeds_file, '{}'),
         _vars.rss_feeds_logs_file
     ]
-    for file in check_and_create_files:
-        if isinstance(file, tuple):
-            file_io.ensure_file(file[0], file_template=file[1])
-        else:
-            file_io.ensure_file(file)
+    file_io.create_necessary_files(check_and_create_files)
     # Starting the cog
     await bot.add_cog(RSSfeed(bot))

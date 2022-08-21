@@ -12,7 +12,6 @@ class AutoEvent(commands.Cog):
         self.bot = bot
 
     @commands.group(name='autoevent', aliases=['e', 'event'])
-    #@commands.group(name='autoevent', aliases=['event'])
     async def autoevent(self, ctx):
         '''
         Create scheduled events based on match-urls from a predefined

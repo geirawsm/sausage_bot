@@ -149,6 +149,17 @@ def check_similarity(text1: str, text2: str) -> bool:
         return False
 
 
+def create_necessary_files(file_list):
+    # Create necessary files before starting
+    log.log('Starting cog: `rss`')
+    log.log_more('Creating necessary files')
+    for file in file_list:
+        if isinstance(file, tuple):
+            ensure_file(file[0], file_template=file[1])
+        else:
+            ensure_file(file)
+
+
 if __name__ == "__main__":
     #pass
     dict_in = {

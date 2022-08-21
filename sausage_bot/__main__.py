@@ -225,6 +225,8 @@ async def cog(ctx, cmd_in=None, cog_name=None):
                     status_len = len(cogs_file[cog])
             return {'cog_len': cog_len, 'status_len': status_len}
 
+        # Sort cogs first
+        cogs_file = dict(sorted(cogs_file.items()))
         text_out = ''
         lengths = get_cog_item_lengths(cogs_file)
         template_line = '{:{cog_len}} | {:{status_len}}'

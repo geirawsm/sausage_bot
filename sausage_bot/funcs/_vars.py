@@ -87,6 +87,5 @@ AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\
     'liste på nytt med `!autoevent list`'
 
 
-
 if __name__ == "__main__":
     print(ROOT_DIR)
