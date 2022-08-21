@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import discord
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup
 from sausage_bot.funcs import _vars, datetimefuncs
@@ -22,14 +23,13 @@ def get_link(url):
     if args.local_parsing:
         req = requests.get(url)
     else:
+        if not re.match(r'(www|http:|https:)+[^\s]+[\w]', url):
+            url = f'https://{url}'
         try:
             req = requests.get(url)
         except(requests.exceptions.InvalidSchema):
             log.log(_vars.RSS_INVALID_URL.format(url))
             return None
-        except(requests.exceptions.MissingSchema):
-            log.log(_vars.RSS_MISSING_SCHEME)
-            req = get_link(f'https://{url}')
         except(requests.exceptions.ConnectionError):
             log.log(_vars.RSS_CONNECTION_ERROR)
             return None

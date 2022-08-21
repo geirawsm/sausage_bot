@@ -10,13 +10,16 @@ from ..log import log
 
 
 def check_feed_validity(url):
+    log.log_more(f'Sjekker `{url}`')
     req = net_io.get_link(url)
     if req is None:
+        log.log_more(f'Fikk None')
         return False
     try:
         etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         return True
-    except(etree.XMLSyntaxError):
+    except(etree.XMLSyntaxError) as e:
+        log.log_more(_vars.ERROR_WITH_ERROR_MSG.format(e))
         return False
 
 

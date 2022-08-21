@@ -57,32 +57,32 @@ Eksempler:
                 )
             return
         else:
-            if re.match(r'(www|http:|https:)+[^\s]+[\w]', feed_link):
-                # Check rss validity
-                if rss_core.check_feed_validity(feed_link):
-                    URL_OK = True
-                else:
-                    URL_OK = False
-                log.log_more(_vars.GOT_CHANNEL_LIST.format(discord_commands.get_text_channel_list()))
-                if channel in discord_commands.get_text_channel_list():
-                    CHANNEL_OK = True
-                if URL_OK and CHANNEL_OK:
-                    rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)
-                    await log.log_to_bot_channel(
-                        _vars.RSS_ADDED_BOT.format(
-                            AUTHOR, feed_name, feed_link, channel
-                        )
+            # Check rss validity
+            if rss_core.check_feed_validity(feed_link):
+                URL_OK = True
+            else:
+                URL_OK = False
+            log.log_more(f'URL_OK is {URL_OK}')
+            log.log_more(_vars.GOT_CHANNEL_LIST.format(discord_commands.get_text_channel_list()))
+            if channel in discord_commands.get_text_channel_list():
+                CHANNEL_OK = True
+            if URL_OK and CHANNEL_OK:
+                rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)
+                await log.log_to_bot_channel(
+                    _vars.RSS_ADDED_BOT.format(
+                        AUTHOR, feed_name, feed_link, channel
                     )
-                    await ctx.send(
-                        _vars.RSS_ADDED.format(feed_name, channel)
-                    )
-                    return
-                elif not URL_OK:
-                    await ctx.send(_vars.RSS_URL_NOT_OK)
-                    return
-                elif not CHANNEL_OK:
-                    await ctx.send(_vars.CHANNEL_NOT_FOUND)
-                    return
+                )
+                await ctx.send(
+                    _vars.RSS_ADDED.format(feed_name, channel)
+                )
+                return
+            elif not URL_OK:
+                await ctx.send(_vars.RSS_URL_NOT_OK)
+                return
+            elif not CHANNEL_OK:
+                await ctx.send(_vars.CHANNEL_NOT_FOUND)
+                return
 
 
     @commands.check_any(
@@ -123,7 +123,7 @@ Eksempler:
 
 
     #Tasks
-    @tasks.loop(minutes = 5)
+    @tasks.loop(minutes = 1)
     async def rss_parse():
         log.log('Starting `rss_parse`')
         # Update the feeds
