@@ -31,7 +31,7 @@ def add_feed_to_file(name, feed_link, channel, user_add):
                        'channel': channel,
                        'added': date_now,
                        'added by': user_add,
-                       'status': 'Added'}
+                       'status': 'added'}
     file_io.write_json(_vars.rss_feeds_file, feeds_file)
 
 
@@ -47,16 +47,20 @@ def remove_feed_from_file(name, feed_file):
         return False
 
 
-def update_feed_status(name, status):
-    '''Update a feed in the feed-json'''
-    name = str(name)
+def update_feed_status(
+    feed_name, channel_in=None, url_status=None, channel_status=None
+    ):
+    '''Update a feed's status in the feed-json'''
+    feed_name = str(feed_name)
     feeds_file = file_io.read_json(_vars.rss_feeds_file)
-    try:
-        feeds_file[name]['status'] = str(status)
-        file_io.write_json(_vars.rss_feeds_file, feeds_file)
-        return True
-    except(KeyError):
-        return False
+    if url_status:
+        feeds_file[feed_name]['status']['url'] = str(url_status).lower()
+    if channel_status:
+        feeds_file[feed_name]['status']['channel'] = str(channel_status).lower()
+    if channel_in:
+        feeds_file[feed_name]['channel'] = str(channel_in).lower()
+    file_io.write_json(_vars.rss_feeds_file, feeds_file)
+    return True
     
 
 def get_feed_links(url):
@@ -155,15 +159,31 @@ def review_feeds_status(feeds):
     for feed in feeds:
         log.log('{}: {}'.format(feed, feeds[feed]['status']))
         URL = feeds[feed]['url']
-        URL_STATUS = feeds[feed]['status']
+        URL_STATUS = feeds[feed]['status']['url']
         if URL_STATUS == 'stale':
-            log.log('Feed {} is stale, checking it...'.format(feed))
-            if rss_core.get_feed_links(URL) is not None:
-                log.log('Feed {} is ok, reactivating!'.format(feed))
-                rss_core.update_feed_status(feed, 'ok')
-            elif rss_core.get_feed_links(URL) is None:
-                log.log('Feed {} is still stale, skipping'.format(feed))
+            log.log('Feed url for {} is stale, checking it...'.format(feed))
+            if get_feed_links(URL) is not None:
+                log.log('Feed url for {} is ok, reactivating!'.format(feed))
+                update_feed_status(feed, url_status='ok')
                 break
+            elif get_feed_links(URL) is None:
+                log.log('Feed url for {} is still stale, skipping'.format(feed))
+                break
+        CHANNEL = feeds[feed]['channel']
+        CHANNEL_STATUS = feeds[feed]['status']['channel']
+        if CHANNEL_STATUS == 'unlisted':
+            log.log(
+                'Feed channel {} for {} is unlisted, checking it...'.format(
+                    CHANNEL, feed
+                )
+            )
+            if CHANNEL in discord_commands.get_text_channel_list():
+                log.log(
+                    'Feed channel {} for {} is ok, reactivating!'.format(
+                        CHANNEL, feed
+                    )
+                )
+                update_feed_status(feed, channel_status='ok')
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:

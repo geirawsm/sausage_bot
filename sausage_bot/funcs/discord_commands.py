@@ -29,6 +29,14 @@ def get_text_channel_list():
     return channel_dict
 
 
+def channel_exist(channel_in):
+    all_channels = get_text_channel_list()
+    if channel_in in all_channels:
+        return True
+    else:
+        return False
+
+
 def get_voice_channel_list():
     channel_dict = {}
     guild = get_guild()
@@ -119,11 +127,11 @@ async def post_to_channel(content_in, channel_in):
         await channel_out.send(content_in)
     else:
         log.log(
-            _vars.CHANNEL_DOES_NOT_EXIST.format(
-                channel_out
+            _vars.POST_TO_NON_EXISTING_CHANNEL.format(
+                channel_in
             )
         )
-        return
+        return None
 
 
 async def edit_post(replace_content, replace_with, channel_in):

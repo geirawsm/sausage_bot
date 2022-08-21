@@ -35,7 +35,9 @@ GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
 TOO_MANY_ARGUMENTS = 'Du har gitt for mange argumenter til kommandoen'
 TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
-CHANNEL_NOT_FOUND = 'Jeg finner ikke kanalen du vil legge inn feeden på'
+CHANNEL_NOT_FOUND = 'Finner ikke kanalen du vil legge inn feeden på'
+POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
+    'finnes ikke'
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
 GOT_CHANNEL_LIST = 'Getting channel list:\n{}'
@@ -65,6 +67,7 @@ RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
     'prøver igjen...'
 RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
+RSS_CHANGED_CHANNEL = 'Endret kanal for feeden `{}` til `{}`'
 
 # COG - QUOTE
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal redigeres'

@@ -110,6 +110,26 @@ Eksempler:
                 _vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
+    
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @rss.group(name='channel')
+    async def channel(self, ctx, feed_name, channel_in):
+        '''Edit a feed's channel based on `feed_name`'''
+        AUTHOR = ctx.message.author.name
+        rss_core.update_feed_status(feed_name, channel_in=channel_in)
+        await ctx.send(
+            _vars.RSS_CHANGED_CHANNEL.format(
+                feed_name, channel_in)
+            )
+        await log.log_to_bot_channel(
+            f'rss: {AUTHOR} endret kanalen til feeden `{feed_name}` til '
+            f'`{channel_in}`'
+        )
+        return
 
 
     @rss.group(name='list')
@@ -142,11 +162,20 @@ Eksempler:
                 log.log_more('- {}'.format(feed))
             # Make sure that the feed links aren't stale / 404
             rss_core.review_feeds_status(feeds)
-            # Start processing per feed settings
-            for feed in feeds:
-                CHANNEL = feeds[feed]['channel']
-                URL = feeds[feed]['url']
-                log.log('Checking {} ({})'.format(feed, CHANNEL))
+        # Start processing per feed settings
+        for feed in feeds:
+            CHANNEL = feeds[feed]['channel']
+            # Make a check to see if the channel exist
+            if not discord_commands.channel_exist(CHANNEL):
+                rss_core.update_feed_status(feed, channel_status='unlisted')
+                msg_out = _vars.POST_TO_NON_EXISTING_CHANNEL.format(
+                    CHANNEL
+                )
+                log.log(msg_out)
+                await log.log_to_bot_channel(msg_out)
+                return
+            URL = feeds[feed]['url']
+            log.log('Checking {} ({})'.format(feed, CHANNEL))
                 FEED_POSTS = rss_core.get_feed_links(URL)
                 if FEED_POSTS is None:
                     log.log(f'{feed}: this feed returned NoneType.')
