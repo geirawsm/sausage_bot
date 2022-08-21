@@ -114,8 +114,8 @@ def get_sorted_scheduled_events():
 async def post_to_channel(content_in, channel_in):
     # Post link to channel
     server_channels = get_text_channel_list()
-    channel_out = _config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
+        channel_out = _config.bot.get_channel(server_channels[channel_in])
         await channel_out.send(content_in)
     else:
         log.log(
