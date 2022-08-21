@@ -28,6 +28,7 @@ dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
 ps_sale_file = JSON_DIR / 'ps_sales.json'
 ps_sale_log_file = LIST_DIR / 'ps_sales-log.list'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
+stats_logs_file = JSON_DIR / 'stats_logs.json'
 
 ### Botlines ###
 # Generiske

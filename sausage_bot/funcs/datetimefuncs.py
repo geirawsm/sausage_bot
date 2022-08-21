@@ -137,7 +137,11 @@ def get_dt(format='epoch', sep='.', dt=False):
     elif format == 'week':
         return dt.week_of_year
     elif format == 'year':
-        return dt.year
+        return dt.format(f'YYYY')
+    elif format == 'month':
+        return dt.format(f'MM')
+    elif format == 'day':
+        return dt.format(f'DD')
     elif format == 'epoch':
        return dt.int_timestamp
     else:
