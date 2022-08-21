@@ -91,7 +91,7 @@ Eksempler:
     )
     @rss.group(name='remove')
     async def remove(self, ctx, feed_name):
-        '''***'''
+        '''Remove a feed based on `feed_name`'''
         AUTHOR = ctx.message.author.name
         removal = rss_core.remove_feed_from_file(
             feed_name, _vars.rss_feeds_file)
@@ -143,7 +143,7 @@ Eksempler:
 
 
     #Tasks
-    @tasks.loop(minutes = 1)
+    @tasks.loop(minutes = 5)
     async def rss_parse():
         log.log('Starting `rss_parse`')
         # Update the feeds
@@ -156,12 +156,11 @@ Eksempler:
             if feeds is None:
                 log.log(_vars.RSS_NO_FEEDS_FOUND)
                 return
-        else:
-            log.log_more('Got these feeds:')
-            for feed in feeds:
-                log.log_more('- {}'.format(feed))
-            # Make sure that the feed links aren't stale / 404
-            rss_core.review_feeds_status(feeds)
+        log.log_more('Got these feeds:')
+        for feed in feeds:
+            log.log_more('- {}'.format(feed))
+        # Make sure that the feed links aren't stale / 404
+        rss_core.review_feeds_status(feeds)
         # Start processing per feed settings
         for feed in feeds:
             CHANNEL = feeds[feed]['channel']
@@ -176,18 +175,18 @@ Eksempler:
                 return
             URL = feeds[feed]['url']
             log.log('Checking {} ({})'.format(feed, CHANNEL))
-                FEED_POSTS = rss_core.get_feed_links(URL)
-                if FEED_POSTS is None:
-                    log.log(f'{feed}: this feed returned NoneType.')
-                    return
-                else:
-                    log.log(
-                        f'{feed}: `FEED_POSTS` are good:\n'
-                        f'### {FEED_POSTS} ###'
-                        )
-                await rss_core.process_links_for_posting_or_editing(
-                    feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
-                )
+            FEED_POSTS = rss_core.get_feed_links(URL)
+            if FEED_POSTS is None:
+                log.log(f'{feed}: this feed returned NoneType.')
+                return
+            else:
+                log.log(
+                    f'{feed}: `FEED_POSTS` are good:\n'
+                    f'### {FEED_POSTS} ###'
+                    )
+            await rss_core.process_links_for_posting_or_editing(
+                feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
+            )
         return
 
 
