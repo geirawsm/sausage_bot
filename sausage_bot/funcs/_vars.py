@@ -38,6 +38,7 @@ TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
 CHANNEL_NOT_FOUND = 'Jeg finner ikke kanalen du vil legge inn feeden på'
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
+GOT_CHANNEL_LIST = 'Getting channel list:\n{}'
 
 # COG - COG ADMIN IN MAIN
 COGS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'

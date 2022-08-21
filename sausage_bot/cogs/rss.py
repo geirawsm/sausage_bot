@@ -63,7 +63,7 @@ Eksempler:
                     URL_OK = True
                 else:
                     URL_OK = False
-                log.log_more(f'Getting channel list:\n{discord_commands.get_text_channel_list()}')
+                log.log_more(_vars.GOT_CHANNEL_LIST.format(discord_commands.get_text_channel_list()))
                 if channel in discord_commands.get_text_channel_list():
                     CHANNEL_OK = True
                 if URL_OK and CHANNEL_OK:
