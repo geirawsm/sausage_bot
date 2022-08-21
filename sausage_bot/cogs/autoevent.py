@@ -83,8 +83,9 @@ class AutoEvent(commands.Cog):
                     description += f'\n\n{text}'
                 with open(kampchat_img, 'rb') as f:
                     image_in = f.read()
-                await ctx.guild.create_scheduled_event(
-                    name = f'Kampchat: {home} - {away}',
+                guild = discord_commands.get_guild()
+                await guild.create_scheduled_event(
+                    name = f'{home} - {away}',
                     description = description,
                     channel = _config.bot.get_channel(channel_id),
                     entity_type = discord.EntityType.voice,
