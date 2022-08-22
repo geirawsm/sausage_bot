@@ -13,9 +13,12 @@ def get_members():
     roles = discord_commands.get_roles()
     for role in roles:
         if str(role) == _config.PATREON_ROLE:
-            patreon_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
-        elif str(role) == "@everyone":
-            member_count = len(guild.get_role(roles['@everyone']).members)
+            patreon_count = 0
+            _patreons = guild.get_role(roles[_config.PATREON_ROLE]).members
+            for p in _patreons:
+                print(p)
+                patreon_count += 1
+    member_count = guild.member_count
     return {
         'member_count': member_count,
         'patreon_count': patreon_count
