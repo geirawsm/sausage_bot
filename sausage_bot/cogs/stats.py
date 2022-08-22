@@ -10,13 +10,8 @@ from sausage_bot.funcs.datetimefuncs import get_dt
 
 def get_members():
     guild = discord_commands.get_guild()
-    roles = discord_commands.get_roles()
-    for role in roles:
-        if str(role) == _config.PATREON_ROLE:
-            patreon_count = 0
-            _patreons = guild.get_role(roles[_config.PATREON_ROLE]).members
-            for p in _patreons:
-                patreon_count += 1
+    patreon_role = guild.get_role(int(_config.PATREON_ROLE_ID))
+    patreon_count = len(patreon_role.members)
     member_count = guild.member_count
     return {
         'member_count': member_count,
