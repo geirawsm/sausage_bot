@@ -16,7 +16,6 @@ def get_members():
             patreon_count = 0
             _patreons = guild.get_role(roles[_config.PATREON_ROLE]).members
             for p in _patreons:
-                print(p)
                 patreon_count += 1
     member_count = guild.member_count
     return {
