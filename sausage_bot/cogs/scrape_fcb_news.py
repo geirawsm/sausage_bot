@@ -73,7 +73,6 @@ class scrape_and_post(commands.Cog):
                 )
             for team in FEED_POSTS:
                 CHANNEL = team.upper()
-                sleep(2)
                 await rss_core.process_links_for_posting_or_editing(
                     feed, FEED_POSTS[team], _vars.scrape_logs_file,
                     eval(f'_config.{CHANNEL}')
@@ -85,10 +84,7 @@ class scrape_and_post(commands.Cog):
         log.log_more('`post_fcb_news` waiting for bot to be ready...')
         await _config.bot.wait_until_ready()
 
-    if args.no_scrape:
-        log.log_more('Module loaded but tasks are disabled for this session')
-    elif not args.no_scrape:
-        post_fcb_news.start()
+    post_fcb_news.start()
 
 
 async def setup(bot):

@@ -13,7 +13,10 @@ def get_members():
     guild = discord_commands.get_guild()
     total_members = len(guild.members)
     roles = discord_commands.get_roles()
-    patreon_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
+    for role in roles:
+        if _config.PATREON_ROLE in role:
+            patreon_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
+            break
     return {
         'total_members': total_members,
         'patreon_count': patreon_count
@@ -90,5 +93,3 @@ async def setup(bot):
         ]
     file_io.create_necessary_files(check_and_create_files)
     await bot.add_cog(Stats(bot))
-    sleep(3)
-    await discord_commands.update_stats()
