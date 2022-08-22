@@ -227,7 +227,7 @@ async def process_links_for_posting_or_editing(
             elif feed_link_similar:
                 # Consider this a similar post that needs to
                 # be edited in the channel
-                await discord_commands.edit_post(
+                await discord_commands.replace_post(
                     feed_link_similar, feed_link, CHANNEL
                 )
                 FEED_LOG[feed].remove(feed_link_similar)

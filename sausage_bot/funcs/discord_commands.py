@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from datetime import datetime
-
 from sausage_bot.funcs import _config, _vars, file_io
 
 from ..log import log
@@ -119,6 +117,15 @@ def get_sorted_scheduled_events():
         return out
 
 
+def get_roles():
+    roles_dict = {}
+    guild = get_guild()
+    # Get all roles and their IDs
+    for role in guild.roles:
+        roles_dict[role.name] = role.id
+    return roles_dict
+
+
 async def post_to_channel(content_in, channel_in):
     # Post link to channel
     server_channels = get_text_channel_list()
@@ -134,7 +141,7 @@ async def post_to_channel(content_in, channel_in):
         return None
 
 
-async def edit_post(replace_content, replace_with, channel_in):
+async def replace_post(replace_content, replace_with, channel_in):
     # Replace content in post
     server_channels = get_text_channel_list()
     channel_out = _config.bot.get_channel(server_channels[channel_in])
@@ -153,6 +160,21 @@ async def edit_post(replace_content, replace_with, channel_in):
         return
 
 
+async def update_stats_post(stats_info, stats_channel):
+    # Replace content in stats-post
+    server_channels = get_text_channel_list()
+    if stats_channel in server_channels:
+        channel_out = _config.bot.get_channel(server_channels[stats_channel])
+        found_stats_msg = False
+        async for msg in channel_out.history(limit=10):
+            if str(msg.author.id) == _config.BOT_ID:
+                if 'Stats:' in str(msg.content):
+                    await msg.edit(content=stats_info)
+                    found_stats_msg = True
+                    return
+        if found_stats_msg is False:
+            await channel_out.send(stats_info)
+
+
 if __name__ == "__main__":
     pass
-    print(get_guild(), (type(get_guild())))
