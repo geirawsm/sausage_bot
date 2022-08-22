@@ -11,14 +11,15 @@ from sausage_bot.funcs.datetimefuncs import get_dt
 
 def get_members():
     guild = discord_commands.get_guild()
-    total_members = len(guild.members)
+    #total_members = len(guild.members)
     roles = discord_commands.get_roles()
     for role in roles:
         if _config.PATREON_ROLE in role:
             patreon_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
-            break
+        elif role == "@everyone":
+            member_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
     return {
-        'total_members': total_members,
+        'member_count': member_count,
         'patreon_count': patreon_count
     }
 
@@ -57,13 +58,13 @@ class Stats(commands.Cog):
         if _d not in stats_log[_y][_m]:
             stats_log[_y][_m][_d] = {
                 'members': {
-                    'total': members['total_members'],
+                    'total': members['member_count'],
                     'patreon': members['patreon_count']
                 },
                 'lines_in_codebase': lines_in_codebase
             }
         # Update the stats-msg
-        tot_members = members['total_members']
+        tot_members = members['member_count']
         patreon_members = members['patreon_count']
         stats_msg = f'Stats:\n'\
             f'Antall medlemmer: {tot_members}\n'\
