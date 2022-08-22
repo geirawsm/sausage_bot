@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from datetime import time
 import os
 from discord.ext import commands, tasks
 from sausage_bot.funcs import _vars, file_io, _config
@@ -11,13 +10,12 @@ from sausage_bot.funcs.datetimefuncs import get_dt
 
 def get_members():
     guild = discord_commands.get_guild()
-    #total_members = len(guild.members)
     roles = discord_commands.get_roles()
     for role in roles:
-        if _config.PATREON_ROLE in role:
+        if str(role) == _config.PATREON_ROLE:
             patreon_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
-        elif role == "@everyone":
-            member_count = len(guild.get_role(roles[_config.PATREON_ROLE]).members)
+        elif str(role) == "@everyone":
+            member_count = len(guild.get_role(roles['@everyone']).members)
     return {
         'member_count': member_count,
         'patreon_count': patreon_count
@@ -66,10 +64,12 @@ class Stats(commands.Cog):
         # Update the stats-msg
         tot_members = members['member_count']
         patreon_members = members['patreon_count']
+        dt_log = datetimefuncs.get_dt('datetimefull')
         stats_msg = f'Stats:\n'\
             f'Antall medlemmer: {tot_members}\n'\
             f'Antall Patreon-medlemmer: {patreon_members}\n'\
-            f'Antall linjer med kode: {lines_in_codebase}'
+            f'Antall linjer med kode: {lines_in_codebase}\n'\
+            f'(Siste oppdatering: {dt_log})'
         log.log_more('Trying to post stats...')
         await discord_commands.update_stats_post(stats_msg, _config.STATS_CHANNEL)
 
