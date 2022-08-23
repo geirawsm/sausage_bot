@@ -28,6 +28,5 @@ JUVENIL = config['juvenil']
 #PLATPRICE_API_KEY = config['platprice_api']
 #GAME_CHANNEL = config['game_channel']
 
-intents = discord.Intents.default()
-intents.message_content = True
+intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)

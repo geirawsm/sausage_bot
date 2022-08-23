@@ -20,29 +20,36 @@ def get_members():
 
 def get_stats_codebase():
     total_lines = 0
+    total_files = 0
     for root, dirs, files in os.walk(_vars.ROOT_DIR):
         for filename in files:
             filename_without_extension, extension = os.path.splitext(filename)
             if extension == '.py':
+                total_files += 1
                 with open(os.path.join(root, filename), 'r') as f:
                     for l in f:
                         total_lines += 1
-    return total_lines
+    return {
+        'total_lines': total_lines,
+        'total_files': total_files
+    }
 
 
 class Stats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     #Tasks
-    #@tasks.loop(time = time.fromisoformat('23:55:00+02:00'))
-    @tasks.loop(minutes = 1)
+    @tasks.loop(minutes = 5)
     async def update_stats():
         log.log('Starting `update_stats`')
         stats_log = file_io.read_json(_vars.stats_logs_file)
         # Get server members as of now
         members = get_members()
-        lines_in_codebase = get_stats_codebase()
+        _codebase = get_stats_codebase()
+        lines_in_codebase = _codebase['total_lines']
+        files_in_codebase = _codebase['total_files']
         _y = datetimefuncs.get_dt('year')
         _m = datetimefuncs.get_dt('month')
         _d = datetimefuncs.get_dt('day')
@@ -56,6 +63,7 @@ class Stats(commands.Cog):
                     'total': members['member_count'],
                     'patreon': members['patreon_count']
                 },
+                'files_in_codebase': files_in_codebase,
                 'lines_in_codebase': lines_in_codebase
             }
         # Update the stats-msg
@@ -65,8 +73,9 @@ class Stats(commands.Cog):
         stats_msg = f'Stats:\n'\
             f'Antall medlemmer: {tot_members}\n'\
             f'Antall Patreon-medlemmer: {patreon_members}\n'\
+            f'Antall filer med kode: {files_in_codebase}\n'\
             f'Antall linjer med kode: {lines_in_codebase}\n'\
-            f'(Siste oppdatering: {dt_log})'
+            f'(Sist oppdatert: {dt_log})'
         log.log_more('Trying to post stats...')
         await discord_commands.update_stats_post(stats_msg, _config.STATS_CHANNEL)
 
