@@ -31,7 +31,10 @@ def add_feed_to_file(name, feed_link, channel, user_add):
                        'channel': channel,
                        'added': date_now,
                        'added by': user_add,
-                       'status': 'added'}
+                       'status': {
+                            'url': 'added',
+                            'channel': 'ok'
+                        }
     file_io.write_json(_vars.rss_feeds_file, feeds_file)
 
 
