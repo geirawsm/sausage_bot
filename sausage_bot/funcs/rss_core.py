@@ -27,14 +27,16 @@ def add_feed_to_file(name, feed_link, channel, user_add):
     '''Add a new feed to the feed-json'''
     date_now = datetimefuncs.get_dt(format='datetime')
     feeds_file = file_io.read_json(_vars.rss_feeds_file)
-    feeds_file[name] = {'url': feed_link,
-                       'channel': channel,
-                       'added': date_now,
-                       'added by': user_add,
-                       'status': {
-                            'url': 'added',
-                            'channel': 'ok'
-                        }
+    feeds_file[name] = {
+        'url': feed_link,
+        'channel': channel,
+        'added': date_now,
+        'added by': user_add,
+        'status': {
+             'url': 'added',
+             'channel': 'ok'
+        }
+    }
     file_io.write_json(_vars.rss_feeds_file, feeds_file)
 
 
