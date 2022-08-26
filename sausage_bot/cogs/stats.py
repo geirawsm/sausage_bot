@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import os
+from datetime import time
 from discord.ext import commands, tasks
 from sausage_bot.funcs import _vars, file_io, _config
 from sausage_bot.funcs import discord_commands, datetimefuncs
@@ -10,6 +11,7 @@ from sausage_bot.funcs.datetimefuncs import get_dt
 
 def get_members():
     guild = discord_commands.get_guild()
+#    roles = discord_commands.get_roles()
     patreon_role = guild.get_role(int(_config.PATREON_ROLE_ID))
     patreon_count = len(patreon_role.members)
     member_count = guild.member_count

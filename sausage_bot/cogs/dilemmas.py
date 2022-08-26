@@ -50,23 +50,22 @@ class Dilemmas(commands.Cog):
             return
 
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @dilemmas.group(name='add')
     async def add(self, ctx, dilemmas_in):
         '''Legger til et dilemmas som kan hentes opp seinere.'''
-        # Sjekk om admin eller bot-eier
-        if discord_commands.is_bot_owner(ctx) or discord_commands.is_admin(ctx):
-            dilemmas = file_io.read_json(_vars.dilemmas_file)
-            new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
-            log.log_more('Prøver å legge til dilemmas nummer {}'.format(new_dilemmas_number))
-            dilemmas[str(new_dilemmas_number)] = dilemmas_in
-            log.log_more('#{}: {}'.format(new_dilemmas_number, dilemmas[str(new_dilemmas_number)]))
-            file_io.write_json(_vars.dilemmas_file, dilemmas)
-            await ctx.message.reply('La til følgende dilemmas: {}'.format(dilemmas_in))
-            new_dilemmas_number += 1
-            return
-        else:
-            await ctx.message.reply('Nope. Du er verken admin eller bot-eier.')
-            return
+        dilemmas = file_io.read_json(_vars.dilemmas_file)
+        new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
+        log.log_more('Prøver å legge til dilemmas nummer {}'.format(new_dilemmas_number))
+        dilemmas[str(new_dilemmas_number)] = dilemmas_in
+        log.log_more('#{}: {}'.format(new_dilemmas_number, dilemmas[str(new_dilemmas_number)]))
+        file_io.write_json(_vars.dilemmas_file, dilemmas)
+        await ctx.message.reply('La til følgende dilemmas: {}'.format(dilemmas_in))
+        new_dilemmas_number += 1
+        return
     
 async def setup(bot):
     log.log('Starting cog: `dilemmas`')

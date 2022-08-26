@@ -99,7 +99,6 @@ class Quotes(commands.Cog):
     @sitat.group(name='edit')
     async def edit(self, ctx, quote_number=None, quote_in=None, custom_date=None):
         '''Endrer et eksisterende sitat'''
-        # Check if the command is run by a bot owner or admin
         # Get the quote file
         quotes = file_io.read_json(_vars.quote_file)
         if quotes is None:
