@@ -50,8 +50,12 @@ class scrape_and_post(commands.Cog):
             root_url = 'https://www.fcbarcelona.com'
             for team in wanted_links:
                 for wanted_link in wanted_links[team]:
-                    main_dev = scrape_fcb_page(wanted_link).find('div', attrs={'class': 'widget__content-wrapper'})
-                    news_dev = main_dev.find_all('div', attrs={'class': 'feed__items'})
+                    try:
+                        main_dev = scrape_fcb_page(wanted_link).find('div', attrs={'class': 'widget__content-wrapper'})
+                        news_dev = main_dev.find_all('div', attrs={'class': 'feed__items'})
+                    except(AttributeError) as e:
+                        log.log(f'Fikk feil ved henting av nyhetssaker: {e}')
+                        return None
                     max_items = 2
                     index_items = 0
                     for row in news_dev:
@@ -72,6 +76,8 @@ class scrape_and_post(commands.Cog):
         
         feed = 'FCB news'
         FEED_POSTS = scrape_fcb_news_links()
+        if FEED_POSTS is None:
+            return
         if len(FEED_POSTS) < 1:
             log.log(f'{feed}: this feed is empty')
             return
