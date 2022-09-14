@@ -16,8 +16,11 @@ class Quotes(commands.Cog):
     @commands.group(name='quote')
     async def quote(self, ctx, number: typing.Optional[int] = None):
         '''
-        Administer quotes
-        Add, edit, delete or count quotes
+        Post, add, edit, delete or count quotes
+
+        `!quote` posts a random quote
+
+        `!quote [number]` posts a specific quote
         '''
         def pretty_quote(number, quote_in):
             'Prettify a quote before posting'
@@ -65,14 +68,15 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @sitat.group(name='add')
+    @quote.group(name='add')
     async def add(self, ctx, quote_text, quote_date=None):
         '''
-        Adding a quote
+        Add a quote: `!quote add [quote_text] ([quote_date])`
 
-        `quote_text` should be enclosed in quotation marks
-        `quote_date` is voluntary if you want to set a specific date and
-            time for the quote added
+        `quote_text`:   The quote text. Must be enclosed in quotation marks.
+
+        `quote_date`:   Set a custom date and time for the quote added
+            (dd.mm.yyyy, HH:MM)
         '''
         # Get file where all the quotes are stored
         quotes = file_io.read_json(_vars.quote_file)
@@ -105,14 +109,16 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @sitat.group(name='edit')
+    @quote.group(name='edit')
     async def edit(self, ctx, quote_number=None, quote_in=None, custom_date=None):
         '''
-        Edit an existing quote
+        Edit an existing quote: `!quote edit [quote_number] [quote_in] [custom_date]`
 
-        `quote_number` is the quote to edit
-        `quote_in` is the new text for the quote
-        `custom_date` is for setting a different date than already set
+        `quote_number`: The number of quote to edit.
+
+        `quote_in`:     The quote text. Must be enclosed in quotation marks.
+
+        `custom_date`:  Set a different date and time.
         '''
         # Get the quote file
         quotes = file_io.read_json(_vars.quote_file)
@@ -156,10 +162,13 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @sitat.group(name='del')
+    @quote.group(name='del')
     async def delete(self, ctx, quote_number):
         '''
-        Deleting a quote by `quote_number`'''
+        Delete an existing quote: `!quote delete [quote_number]`
+
+        `quote_number`: The number of quote to edit.
+        '''
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == _config.BOT_ID:
@@ -210,9 +219,9 @@ class Quotes(commands.Cog):
             return
 
     
-    @sitat.group(name='count')
+    @quote.group(name='count')
     async def count(self, ctx):
-        '''Counting the number of quotes available'''
+        '''Count the number of quotes available: `!quote count`'''
         quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
         # TODO _var-msgs
         await ctx.send(f'Jeg har {quote_count} sitater på lager')

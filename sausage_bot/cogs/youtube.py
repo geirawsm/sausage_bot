@@ -87,8 +87,8 @@ Examples:
     @youtube.group(name='add')
     async def add(self, ctx, feed_name=None, yt_link=None, channel=None):
         '''
-        Add a Youtube feed to a specific channel
-        
+        Add a Youtube feed to a specific channel: `!youtube add [feed_name] [yt_link] [channel]`
+
         `feed_name`:    The custom name for the feed
         `yt_link`:      The link for the youtube-channel
         `channel`:      The Discord channel to post from the feed

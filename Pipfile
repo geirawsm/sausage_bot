@@ -10,17 +10,18 @@ lxml = "*"
 requests = "*"
 pendulum = "*"
 colorama = "*"
-cogs = "*"
 bs4 = "*"
 ratelimit = "*"
-pytest = "*"
-pytest-mock = "*"
 html5lib = "*"
 python-youtube = "*"
 tzlocal = "*"
-requests-testadapter = "*"
+path = "*"
 
 [dev-packages]
+astunparse = "*"
+requests-testadapter = "*"
+pytest = "*"
+pytest-mock = "*"
 
 [requires]
 python_version = "3"

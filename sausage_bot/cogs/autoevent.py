@@ -27,12 +27,13 @@ class AutoEvent(commands.Cog):
     @autoevent.group(name='add', aliases=['a'])
     async def add(self, ctx, url=None, channel=None, text=None):
         '''
-        Add a scheduled event:
-        `!autoevent add [url] [channel] [text]`
+        Add a scheduled event: `!autoevent add [url] [channel] [text]`
 
         `channel` should be a voice channel for the event.
+        
         `url` should be a link to a specific match from an accepted site.
         As of now only match links from nifs.no is parsed.
+        
         `text` is additional text that should be added to the description
         of the event.
         '''
@@ -102,10 +103,9 @@ class AutoEvent(commands.Cog):
     @autoevent.group(name='remove', aliases=['r'])
     async def remove(self, ctx, event_id_in):
         '''
-        Removes a scheduled event that has not started yet:
-        `!autoevent remove [event_id_in]`
+        Removes a scheduled event that has not started yet: `!autoevent remove [event_id_in]`
 
-        You can get [event_id_in] by getting list of all events
+        You can get `event_id_in` by getting list of all events
         '''
         event_dict = discord_commands.get_scheduled_events()
         for event in event_dict:
@@ -138,8 +138,7 @@ class AutoEvent(commands.Cog):
     @autoevent.group(name='list', aliases=['l'])
     async def list_events(self, ctx):
         '''
-        Lists all the planned events:
-        `!autoevent list`
+        Lists all the planned events: `!autoevent list`
         '''
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:

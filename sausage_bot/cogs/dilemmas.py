@@ -59,8 +59,7 @@ class Dilemmas(commands.Cog):
     )
     @dilemmas.group(name='add')
     async def add(self, ctx, dilemmas_in):
-        '''Add a dilemma:
-        `! dilemmas add [dilemmas_in]`'''
+        'Add a dilemma: `!dilemmas add [dilemmas_in]`'
         dilemmas = file_io.read_json(_vars.dilemmas_file)
         new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
         log.log_more('Trying to add dilemma number {}'.format(new_dilemmas_number))
@@ -70,7 +69,7 @@ class Dilemmas(commands.Cog):
         await ctx.message.reply('Added the following dilemma: {}'.format(dilemmas_in))
         new_dilemmas_number += 1
         return
-    
+
 async def setup(bot):
     log.log('Starting cog: `dilemmas`')
     await bot.add_cog(Dilemmas(bot))

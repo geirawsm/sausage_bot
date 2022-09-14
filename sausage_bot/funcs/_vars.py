@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'Set variables for the module like folder, files and botlines'
+
 from pathlib import Path
 
 # Folders
@@ -29,6 +31,23 @@ ps_sale_file = JSON_DIR / 'ps_sales.json'
 ps_sale_log_file = LIST_DIR / 'ps_sales-log.list'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
+
+# Template content
+env_template = '''discord_token=
+discord_guild=
+bot_prefix=!
+locale=
+bot_dump_channel=general
+patreon_role_id=
+stats_channel=general
+bot_id=
+watching=
+youtube_api_key=
+# Scrape FCB channels
+firstteam=
+femeni=
+atletic=
+juvenil='''
 
 ### Botlines ###
 # Generiske

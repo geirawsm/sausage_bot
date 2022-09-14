@@ -49,7 +49,8 @@ class Stats(commands.Cog):
     async def update_stats():
         '''
         Update interesting stats in a channel post and write the info to
-        `_vars.stats_logs_file`
+        `_vars.stats_logs_file`.
+        The channel is defined in the .env file (stats_channel).
         '''
         log.log('Starting `update_stats`')
         stats_log = file_io.read_json(_vars.stats_logs_file)

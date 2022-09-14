@@ -127,7 +127,12 @@ Examples:
     )
     @rss.group(name='channel')
     async def channel(self, ctx, feed_name, channel_in):
-        '''Edit a feed's channel based on `feed_name`'''
+        '''
+        Edit a feed's channel: !rss channel [feed_name] [channel_in]
+
+        `feed_name`:    The feed to change channel
+        `channel_in`:   New channel
+        '''
         AUTHOR = ctx.message.author.name
         rss_core.update_feed_status(feed_name, channel_in=channel_in)
         await ctx.send(
@@ -143,6 +148,7 @@ Examples:
 
     @rss.group(name='list')
     async def list_rss(self, ctx, long=None):
+        'List all active rss feeds on the discord server'
         if long is None:
             list_format = rss_core.get_feed_list(_vars.rss_feeds_file)
         elif long == 'long':

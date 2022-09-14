@@ -197,12 +197,5 @@ def change_dt(
         return eval(f'p.subtract({unit}={count})')
 
 
-def make_dt_object(date_in):
-    date_in
-    return datetime()
-
-
 if __name__ == "__main__":
-    #pass
-    x = datetime(2022, 5, 17, 21, 00)
-    print(x.strftime('%d. %B, kl. %H:%M'))
+    pass
