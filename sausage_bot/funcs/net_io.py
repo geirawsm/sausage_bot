@@ -6,8 +6,8 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from sausage_bot.funcs import _vars, datetimefuncs
 from sausage_bot.funcs._args import args
-
 from ..log import log
+
 
 if args.local_parsing:
     from ..test.modules.requests_local import requests_session as requests
@@ -17,6 +17,7 @@ else:
 
 
 def get_link(url):
+    'Get a requests object from a `url`'
     if type(url) is not str:
         log.log(_vars.RSS_INVALID_URL.format(url))
         return None
@@ -43,6 +44,7 @@ def get_link(url):
 
 
 def scrape_page(url):
+    'Get a bs4 object from `url`'
     scrape = get_link(url)
     try:
         soup = BeautifulSoup(scrape.content, features='html5lib')
@@ -52,9 +54,12 @@ def scrape_page(url):
 
 def make_event_start_stop(date, time):
     '''
-    `date` and ´time´ is for the start of the match.
-    The event should start 30 minutes prior
-    The event should end 2 hours and 30 minutes after
+    Make datetime objects for the event based on the start date and time.
+    The event will start 30 minutes prior to the match, and it will end 2
+    hours and 30 minutes after
+    
+    `date`: The match date
+    `time`: The match start time
     '''
     try:
         # Make the original startdate an object
@@ -88,11 +93,46 @@ def make_event_start_stop(date, time):
 
 def parse(url: str):
     '''
-    Parse the given url to get info about a football match
+    Parse `url` to get info about a football match.
 
-    Returns a dict with information about the match given
+    Returns a dict with information about the match given.
     '''
     def parse_nifs(soup):
+        'Parse content from matchpages from nifs.no'
+        info_tbl = soup.find('table', attrs={'class': 'nifs_table_l_nb'})
+        rows = info_tbl.find_all('tr')
+        # Get info relevant for the event
+        info0 = rows[0].find_all('a', attrs={'class': 'nifs_link_style'})
+        team_home = info0[0].text.strip()
+        team_away = info0[1].text.strip()
+        info1 = rows[1].find_all('td')
+        tournament = info1[1].text.strip().replace('\t', '').replace('\n', ' ')
+        date = info1[3].text.strip()
+        time = rows[2].find_all('td')[3].text.strip()
+        dt_in = make_event_start_stop(date, time)
+        if dt_in is None:
+            return None
+        start_dt = dt_in['start_dt']
+        end_dt = dt_in['end_dt']
+        start_epoch = dt_in['start_epoch']
+        rel_start = f'<t:{start_epoch}:R>'
+        stadium = rows[3].find_all('td')[3].text.strip()
+        return {
+            'teams': {
+                'home': team_home,
+                'away': team_away
+            },
+            'tournament': tournament,
+            'datetime': {
+                'date': date,
+                'time': time,
+                'start_dt': start_dt,
+                'start_epoch' : start_epoch,
+                'end_dt': end_dt,
+                'rel_start': rel_start
+            },
+            'stadium': stadium
+        }
         '''
         Parse content from matchpages from nifs.no
         '''
@@ -151,5 +191,4 @@ def parse(url: str):
         return None
 
 if __name__ == "__main__":
-    #url = 'file:/mnt/c/Users/uaasgei00/Nextcloud/pc/dotfiles/coding/git/discord/sausage_bot/sausage_bot/test/in/pages/kamp_ferdig.html'
-    print(parse(_vars_test.kamp_ferdig_fil))
+    pass

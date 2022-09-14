@@ -3,12 +3,10 @@
 from sausage_bot.funcs import _config, _vars, file_io
 
 from ..log import log
-#
-import sys
-#
 
 
 def get_guild():
+    'Get the active guild object'
     for guild in _config.bot.guilds:
         if str(guild.name).lower() == _config.GUILD.lower():
             log.log_more(f'Got guild {guild} ({type(guild)})')
@@ -19,6 +17,7 @@ def get_guild():
 
 
 def get_text_channel_list():
+    'Get a dict of all text channels and their ID\'s'
     channel_dict = {}
     guild = get_guild()
     # Get all channels and their IDs
@@ -28,6 +27,7 @@ def get_text_channel_list():
 
 
 def channel_exist(channel_in):
+    'Check if channel actually exist on server'
     all_channels = get_text_channel_list()
     if channel_in in all_channels:
         return True
@@ -36,6 +36,7 @@ def channel_exist(channel_in):
 
 
 def get_voice_channel_list():
+    'Get a dict of all voice channels and their ID\'s'
     channel_dict = {}
     guild = get_guild()
     # Get all channels and their IDs
@@ -45,6 +46,7 @@ def get_voice_channel_list():
 
 
 def get_scheduled_events():
+    'Get all scheduled events from server'
     guild = get_guild()
     event_dict = {}
     if guild.scheduled_events is None:
@@ -72,6 +74,7 @@ def get_scheduled_events():
 
 
 def get_sorted_scheduled_events():
+    'Get a sorted list of events and prettify it'
     # Sort the dict based on epoch
     events_in = get_scheduled_events()
     if len(events_in) == 0:
@@ -118,6 +121,7 @@ def get_sorted_scheduled_events():
 
 
 def get_roles():
+    'Get a dict of all roles on server and their ID\'s'
     roles_dict = {}
     guild = get_guild()
     # Get all roles and their IDs
@@ -127,7 +131,7 @@ def get_roles():
 
 
 async def post_to_channel(content_in, channel_in):
-    # Post link to channel
+    'Post `content_in` in plain text to channel `channel_in`'
     server_channels = get_text_channel_list()
     if channel_in in server_channels:
         channel_out = _config.bot.get_channel(server_channels[channel_in])
@@ -142,7 +146,10 @@ async def post_to_channel(content_in, channel_in):
 
 
 async def replace_post(replace_content, replace_with, channel_in):
-    # Replace content in post
+    '''
+    Look through the bot's messages for `replace_content` in channel
+    `channel_in` and replace it with `replace_with.`
+    '''
     server_channels = get_text_channel_list()
     channel_out = _config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
@@ -161,7 +168,7 @@ async def replace_post(replace_content, replace_with, channel_in):
 
 
 async def update_stats_post(stats_info, stats_channel):
-    # Replace content in stats-post
+    'Replace content in stats-post'
     server_channels = get_text_channel_list()
     if stats_channel in server_channels:
         channel_out = _config.bot.get_channel(server_channels[stats_channel])

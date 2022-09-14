@@ -8,18 +8,21 @@ from sausage_bot.log import log
 
 
 class Dilemmas(commands.Cog):
+    'Post a random dilemma'
     def __init__(self, bot):
         self.bot = bot
 
-
     @commands.group(name='dilemmas')
     async def dilemmas(self, ctx):
-        '''Henter et tilfeldig dilemmas.'''
+        '''
+        Post a random dilemma:
+        `!dilemmas`
+        '''
 
         def prettify(dilemmas_in):
+            'Enclosing `dilemmas_in` in quotation marks'
             out = '```{}```'.format(dilemmas_in)
             return out
-        
         
         # Get a random dilemmas
         if ctx.invoked_subcommand is None:
@@ -56,14 +59,15 @@ class Dilemmas(commands.Cog):
     )
     @dilemmas.group(name='add')
     async def add(self, ctx, dilemmas_in):
-        '''Legger til et dilemmas som kan hentes opp seinere.'''
+        '''Add a dilemma:
+        `! dilemmas add [dilemmas_in]`'''
         dilemmas = file_io.read_json(_vars.dilemmas_file)
         new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
-        log.log_more('Prøver å legge til dilemmas nummer {}'.format(new_dilemmas_number))
+        log.log_more('Trying to add dilemma number {}'.format(new_dilemmas_number))
         dilemmas[str(new_dilemmas_number)] = dilemmas_in
         log.log_more('#{}: {}'.format(new_dilemmas_number, dilemmas[str(new_dilemmas_number)]))
         file_io.write_json(_vars.dilemmas_file, dilemmas)
-        await ctx.message.reply('La til følgende dilemmas: {}'.format(dilemmas_in))
+        await ctx.message.reply('Added the following dilemma: {}'.format(dilemmas_in))
         new_dilemmas_number += 1
         return
     

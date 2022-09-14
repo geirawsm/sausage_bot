@@ -10,10 +10,11 @@ from ..log import log
 
 
 def check_feed_validity(url):
-    log.log_more(f'Sjekker `{url}`')
+    'Make sure that `url` is a valid link'
+    log.log_more(f'Checking `{url}`')
     req = net_io.get_link(url)
     if req is None:
-        log.log_more(f'Fikk None')
+        log.log_more(f'Returned None')
         return False
     try:
         etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
@@ -24,7 +25,14 @@ def check_feed_validity(url):
 
 
 def add_feed_to_file(name, feed_link, channel, user_add):
-    '''Add a new feed to the feed-json'''
+    '''
+    Add a new feed to the feed-json.
+    
+    `name`:         The identifiable name of the added feed
+    `feed_link`:    The link for the feed
+    `channel`       The discord channel to post the feed to
+    `user_add`      The user who added the feed
+    '''
     date_now = datetimefuncs.get_dt(format='datetime')
     feeds_file = file_io.read_json(_vars.rss_feeds_file)
     feeds_file[name] = {
@@ -41,7 +49,7 @@ def add_feed_to_file(name, feed_link, channel, user_add):
 
 
 def remove_feed_from_file(name, feed_file):
-    '''Remove a new feed from a feed file'''
+    'Remove a new from `feed file` based on `name`'
     name = str(name)
     feeds_list = file_io.read_json(feed_file)
     try:
@@ -55,7 +63,14 @@ def remove_feed_from_file(name, feed_file):
 def update_feed_status(
     feed_name, channel_in=None, url_status=None, channel_status=None
     ):
-    '''Update a feed's status in the feed-json'''
+    '''
+    Update the fields for a feed in `_vars.rss_feeds_file`
+    
+    `feed_name`:        Idenetifiable name for the feed
+    `channel_in`:       The channel to receive feed updates
+    `url_status`:       The status of the url
+    `channel_status`:   The status of the channel
+    '''
     feed_name = str(feed_name)
     feeds_file = file_io.read_json(_vars.rss_feeds_file)
     if url_status:
@@ -69,7 +84,7 @@ def update_feed_status(
     
 
 def get_feed_links(url):
-    'Get the links from a feed url'
+    'Get the links from a feeds `url`'
     # Get the url and make it parseable
     req = net_io.get_link(url)
     if req is None:
@@ -101,7 +116,13 @@ def get_feed_links(url):
 
 
 def get_feed_list(feeds_file, long=False):
+    '''
+    Get a prettified list of feeds from `feeds_file`.
+    
+    Get some extra field if `long` is given.
+    '''
     def get_feed_item_lengths(feeds_file):
+        'Get max lengths of items in `feeds_file`'
         feed_len = 0
         url_len = 0
         channel_len = 0
@@ -161,6 +182,7 @@ def get_feed_list(feeds_file, long=False):
 
 
 def review_feeds_status(feeds):
+    'Get a status for a feed from `feeds` and update it in source file'
     for feed in feeds:
         log.log('{}: {}'.format(feed, feeds[feed]['status']))
         URL = feeds[feed]['url']
@@ -192,7 +214,7 @@ def review_feeds_status(feeds):
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:
-    # Checks if given link is in the log given
+    'Checks if `link` is in the `feed_log`'
     if link in feed_log:
         return True
     else:
@@ -201,9 +223,9 @@ def link_is_in_log(link: str, feed_log: list) -> bool:
 
 def link_similar_to_logged_post(link: str, feed_log: list):
     '''
-    Checks if given link is similar to any logged link,
-    then return the similar link from log.
-    If no log-links are found to be similar, return None
+    Checks if `link` is similar to any other logged link in `feed_log`.
+    If simliar, return the similar link from log.
+    If no links are found to be similar, return None.
     '''
     for log_item in feed_log:
         if file_io.check_similarity(log_item, link):
@@ -213,6 +235,20 @@ def link_similar_to_logged_post(link: str, feed_log: list):
 async def process_links_for_posting_or_editing(
     feed, FEED_POSTS, feed_log_file, CHANNEL
 ):
+    '''
+    Compare `FEED_POSTS` to posts belonging to `feed` in `feed_log_file`
+    to see if they already have been posted or not.
+    If not posted, post to `CHANNEL`
+    If posted, make a similarity check just to make sure we are not posting
+    duplicate links because someone's aggregation systems can't handle
+    editing urls with spelling mistakes. If it is simliar, but not identical,
+    replace the logged link and edit the previous post with the new link.
+
+    `feed`:             Name of the feed to process
+    `FEED_POSTS`:       The newly received feed posts
+    `feed_log_file`:    File containing the logs of posts
+    `CHANNEL`:          Discord channel to post/edit
+    '''
     FEED_LOG = file_io.read_json(feed_log_file)
     try:
         FEED_LOG[feed]

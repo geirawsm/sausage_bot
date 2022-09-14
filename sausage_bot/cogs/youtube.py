@@ -8,12 +8,13 @@ import pyyoutube
 
 
 class Youtube(commands.Cog):
+    'Autopost new videos from given Youtube channels'
     def __init__(self, bot):
         self.bot = bot
 
 
     def add_feed_to_file(self, name, feed_link, channel, user_add):
-        '''Add a new feed'''
+        '''Add a new Youtube feed'''
         date_now = datetimefuncs.get_dt(format='datetime')
         feeds_file = file_io.read_json(_vars.yt_feeds_file)
         feeds_file[name] = {'url': feed_link,
@@ -24,7 +25,7 @@ class Youtube(commands.Cog):
 
 
     def remove_feed_from_file(name):
-        '''Remove a new feed from the feed-json'''
+        '''Remove a Youtube feed from the feeds file'''
         name = str(name)
         feeds_file = file_io.read_json(_vars.yt_feeds_file)
         try:
@@ -36,6 +37,7 @@ class Youtube(commands.Cog):
 
 
     def get_videos_from_yt_link(url):
+        'Get the 6 last videos from channel'
         id_in = url.split('/')[-1]
         api = pyyoutube.Api(api_key=_config.YOUTUBE_API_KEY)
         channel_info = None
@@ -61,16 +63,21 @@ class Youtube(commands.Cog):
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
-        '''Bruker actions `add` og `remove` for å legge til og fjerne
-Youtube kanaler som skal poste til gitte kanaler.
-Du kan også få en liste over aktiverte youtube-koblinger ved å bruke `list`.
+        '''Uses `add` and `remove` to administer what Youtube channels to post
+to any given channels on the Discord server.
 
-Eksempler:
-`!youtube add [navn på yt-feed] [url til youtube-kanal]
-    [discord-kanal som nye videoer skal publiseres til]`
-`!youtube remove [navn på rss]`
-`!youtube list`
-`!youtube list long`'''
+`list` returns a list over the feeds that are active as of now.
+
+Examples:
+```
+!youtube add [name of youtube feed] [youtube channel's url] [youtube feed posting channel]
+
+!youtube remove [name of youtube feed]
+
+!youtube list
+
+!youtube list long
+```'''
         pass
 
     @commands.check_any(
@@ -82,9 +89,9 @@ Eksempler:
         '''
         Add a Youtube feed to a specific channel
         
-        `feed_name` = The custom name for the feed
-        `yt_link` = The link for the youtube-channel
-        `channel` = The Discord channel to post from the feed
+        `feed_name`:    The custom name for the feed
+        `yt_link`:      The link for the youtube-channel
+        `channel`:      The Discord channel to post from the feed
         '''
         AUTHOR = ctx.message.author.name
         CHANNEL_OK = False
@@ -129,7 +136,7 @@ Eksempler:
     )
     @youtube.group(name='remove')
     async def remove(self, ctx, feed_name):
-        '''***'''
+        '''Remove a Youtube feed based on `feed_name`'''
         AUTHOR = ctx.message.author.name
         removal = rss_core.remove_feed_from_file(
             feed_name, _vars.yt_feeds_file
@@ -153,6 +160,7 @@ Eksempler:
 
     @youtube.group(name='list')
     async def list_youtube(self, ctx, long=None):
+        'List all active Youtube feeds'
         if long is None:
             list_format = rss_core.get_feed_list(_vars.yt_feeds_file)
         elif long == 'long':
@@ -164,6 +172,7 @@ Eksempler:
     async def process_links_for_posting_or_editing(
         feed, FEED_POSTS, feed_log_file, CHANNEL
     ):
+        'Check new links against the log and post them if they are brand new'
         FEED_LOG = file_io.read_json(feed_log_file)
         try:
             FEED_LOG[feed]

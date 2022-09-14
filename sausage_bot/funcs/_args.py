@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'Arguments to use for running the bot in the terminal'
 import argparse
 
 parser = argparse.ArgumentParser()

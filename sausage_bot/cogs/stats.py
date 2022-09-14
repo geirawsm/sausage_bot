@@ -10,6 +10,7 @@ from sausage_bot.funcs.datetimefuncs import get_dt
 
 
 def get_members():
+    'Get number of members and number of Patreon-members'
     guild = discord_commands.get_guild()
 #    roles = discord_commands.get_roles()
     patreon_role = guild.get_role(int(_config.PATREON_ROLE_ID))
@@ -21,6 +22,7 @@ def get_members():
     }
 
 def get_stats_codebase():
+    'Get statistics for the code base'
     total_lines = 0
     total_files = 0
     for root, dirs, files in os.walk(_vars.ROOT_DIR):
@@ -38,13 +40,17 @@ def get_stats_codebase():
 
 
 class Stats(commands.Cog):
+    'Get interesting stats for the discord server'
     def __init__(self, bot):
         self.bot = bot
-
 
     #Tasks
     @tasks.loop(minutes = 5)
     async def update_stats():
+        '''
+        Update interesting stats in a channel post and write the info to
+        `_vars.stats_logs_file`
+        '''
         log.log('Starting `update_stats`')
         stats_log = file_io.read_json(_vars.stats_logs_file)
         # Get server members as of now

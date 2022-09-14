@@ -7,20 +7,29 @@ from sausage_bot.log import log
 
 
 class RSSfeed(commands.Cog):
+    '''
+    Administer RSS-feeds that will autopost to a given channel when published
+    '''
     def __init__(self, bot):
         self.bot = bot
 
 
     @commands.group(name='rss')
     async def rss(self, ctx):
-        '''Bruker actions `add` og `remove` for å legge til og fjerne RSS-feeder.
-Du kan også få en liste over aktiverte RSS-feeds ved å bruke `list`.
+        '''Uses `add` and `remove` to administer RSS-feeds.
 
-Eksempler:
-`!rss add [navn på rss] [rss url] [kanal som rss skal publiseres til]`
-`!rss remove [navn på rss]`
-`!rss list`
-`!rss list long`'''
+`list` returns a list over the feeds that are active as of now.
+
+Examples:
+```
+!rss add [name for rss] [rss url] [rss posting channel]
+
+!rss remove [name for rss]
+
+!rss list
+
+!rss list long
+```'''
         pass
 
     @commands.check_any(
@@ -32,9 +41,11 @@ Eksempler:
         '''
         Add an RSS feed to a specific channel
         
-        `feed_name` = The custom name for the feed
-        `feed_link` = The link to the RSS-/XML-feed
-        `channel` = The channel to post from the feed
+        `feed_name`: The custom name for the feed
+
+        `feed_link`: The link to the RSS-/XML-feed
+
+        `channel`:   The channel to post from the feed
         '''
         AUTHOR = ctx.message.author.name
         URL_OK = False

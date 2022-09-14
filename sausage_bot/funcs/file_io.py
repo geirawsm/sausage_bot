@@ -4,31 +4,32 @@ import os
 import stat
 import json
 
-
 from difflib import SequenceMatcher
 
 from ..log import log
 import pathlib
 
 
-def write_file(file_out, contents):
-    if not isinstance(file_out, str):
-        return None
-    ensure_file(file_out)
-    with open(file_out, 'w') as fout:
-        fout.write(str(contents))
+def write_file(filename, content_to_write):
+    'Write `content_to_write` to the file `filename`'
+    if not isinstance(filename, str):
+        filename = str(filename)
+    ensure_file(filename)
+    with open(filename, 'w') as fout:
+        fout.write(str(content_to_write))
         return True
 
 
 def import_file_as_list(file_in):
     '''
-    Open `file_in` and import it as a list.
+    Open `file_in`, import it as a list and return ut.
+    If this fails, return None.
     '''
     file_in = str(file_in)
     ensure_file(file_in, '[]')
     try:
         with open(file_in, 'r', encoding='utf-8') as f:
-            list_out = eval(str(f.read()))        
+            list_out = eval(str(f.read()))
         return list_out
     except:
         log.log(f"Couldn't open file `{file_in}`")
@@ -36,6 +37,7 @@ def import_file_as_list(file_in):
 
 
 def add_to_list(list_file_in, item_add):
+    'Add `item_add` to a list in file `list_file_in`'
     list_file_in = str(list_file_in)
     if not isinstance(item_add, (str, float, int)):
         return None
@@ -48,8 +50,8 @@ def add_to_list(list_file_in, item_add):
 
 def read_json(json_file):
     '''
-    Open `json_file` as a JSON and convert to as a dict
-    Returns _file as a dict or an empty dict
+    Open `json_file` as a JSON and convert to as a dict.
+    Returns _file as a dict or an empty dict.
     '''
     ensure_file(json_file, '{}')
     try: 
@@ -68,22 +70,23 @@ def write_json(json_file, json_out):
         json.dump(json_out, write_file)
 
 
+def file_size(filename):
+    '''
+    Checks the file size of a file. If it can't find the file it will
+    return False
+    '''
+    try:
+        _stats = os.stat(filename, follow_symlinks=True)
+        return _stats[stat.ST_SIZE]
+    except(FileNotFoundError):
+        return False
+
+
 def ensure_file(file_path: str, file_template=False):
     '''
-    Create file if it doesn't exist and include the `file_template` if
-    provided.
+    Create file `file_path` if it doesn't exist and include the
+    `file_template` if provided.
     '''
-    def file_size(filename):
-        '''
-        Checks the file size of a file. If it can't find the file it will
-        return False
-        '''
-        try:
-            _stats = os.stat(filename, follow_symlinks=True)
-            return _stats[stat.ST_SIZE]
-        except(FileNotFoundError):
-            return False
-
     file_path = str(file_path)
     # Make the folders if necessary
     if not os.path.exists(file_path):
@@ -108,6 +111,7 @@ def ensure_file(file_path: str, file_template=False):
 
 
 def get_max_item_lengths(headers, dict_in):
+    'Get the maximum lengths for keys in dicts `headers` and `dict_in`'
     lengths = {}
     for item in headers:
         lengths[item] = len(item)
@@ -150,8 +154,7 @@ def check_similarity(text1: str, text2: str) -> bool:
 
 
 def create_necessary_files(file_list):
-    # Create necessary files before starting
-    log.log('Starting cog: `rss`')
+    'Get `file_list` (list) and create necessary files before running code'
     log.log_more('Creating necessary files')
     for file in file_list:
         if isinstance(file, tuple):
@@ -161,19 +164,4 @@ def create_necessary_files(file_list):
 
 
 if __name__ == "__main__":
-    #pass
-    dict_in = {
-        "FC Barcelona": {
-            "url": "https://www.youtube.com/c/FCBarcelona",
-            "channel": "general",
-            "added": "14.08.2022 01.21",
-            "added by": "geirawsasdasdm"
-        },
-        "CH": {
-            "url": "https://www.youtube.com/c/collegehumor",
-            "channel": "generelt",
-            "added": "18.08.2022 10.13.00",
-            "added by": "geirawsm"
-        }
-    }
-    print(get_max_item_lengths(dict_in))
+    pass

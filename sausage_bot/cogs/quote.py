@@ -9,21 +9,24 @@ from sausage_bot.log import log
 
 
 class Quotes(commands.Cog):
+    'Administer or post quotes'
     def __init__(self, bot):
         self.bot = bot
 
-
-    @commands.group(name='sitat')
-    async def sitat(self, ctx, number: typing.Optional[int] = None):
-        '''Legg til sitater i tekstform og hent tilfeldig sitat fra disse'''
-
+    @commands.group(name='quote')
+    async def quote(self, ctx, number: typing.Optional[int] = None):
+        '''
+        Administer quotes
+        Add, edit, delete or count quotes
+        '''
         def pretty_quote(number, quote_in):
+            'Prettify a quote before posting'
             log.log_more(f'quote_in: {quote_in}')
             quote_out = '```#{}\n{}\n({})```'.format(
                 number, quote_in['quote'], quote_in['datetime']
             )
             return quote_out
-        
+
         # If no `number` is given, get a random quote
         if ctx.invoked_subcommand is None:
             # Check if the message is a DM or guild-call
@@ -65,7 +68,11 @@ class Quotes(commands.Cog):
     @sitat.group(name='add')
     async def add(self, ctx, quote_text, quote_date=None):
         '''
-        Legger til et sitat som kan hentes opp seinere.
+        Adding a quote
+
+        `quote_text` should be enclosed in quotation marks
+        `quote_date` is voluntary if you want to set a specific date and
+            time for the quote added
         '''
         # Get file where all the quotes are stored
         quotes = file_io.read_json(_vars.quote_file)
@@ -74,11 +81,12 @@ class Quotes(commands.Cog):
             return
         # Find the next availabel quote number
         new_quote_number = int(list(quotes.keys())[-1])+1
-        log.log_more('Legge til quote nummer {}'.format(new_quote_number))
         # If no date is specified through `quote_date`, use date and time
         # as of now
         if quote_date is None:
-            quote_date = '{}, {}'.format(get_dt('date'), get_dt('time', sep=':'))
+            quote_date = '{}, {}'.format(
+                get_dt('date'), get_dt('time', sep=':')
+            )
         # Add the quote
         quotes[str(new_quote_number)] = {'quote': '', 'datetime': ''}
         quotes[str(new_quote_number)]['quote'] = quote_text
@@ -86,6 +94,7 @@ class Quotes(commands.Cog):
         file_io.write_json(_vars.quote_file, quotes)
         # Confirm that the quote has been saved
         await ctx.message.reply(
+            # TODO lag _vars-msg
             'La til følgende sitat: ```#{}\n{}\n({})```'.format(
                 new_quote_number, quote_text, quote_date))
         new_quote_number += 1
@@ -98,7 +107,13 @@ class Quotes(commands.Cog):
     )
     @sitat.group(name='edit')
     async def edit(self, ctx, quote_number=None, quote_in=None, custom_date=None):
-        '''Endrer et eksisterende sitat'''
+        '''
+        Edit an existing quote
+
+        `quote_number` is the quote to edit
+        `quote_in` is the new text for the quote
+        `custom_date` is for setting a different date than already set
+        '''
         # Get the quote file
         quotes = file_io.read_json(_vars.quote_file)
         if quotes is None:
@@ -117,16 +132,16 @@ class Quotes(commands.Cog):
             await ctx.message.reply('Det sitatnummeret finnes ikke.')
             return
         log.log_more('Endrer sitat nummer {}'.format(quote_number))
-        # If no date is specified through `custom_date`, use date and time
-        # as of now
+        # If no date is specified through `custom_date`, use the existing
+        # date and time
         if custom_date is None:
             quote_date = quotes[quote_number]['datetime']
         else:
-            # TODO Sanitize input?
             quote_date = custom_date
         old_q = quotes[str(quote_number)]['quote']
         old_dt = quotes[str(quote_number)]['datetime']
         await ctx.message.reply(
+            # TODO _vars-msg
             f'Endret sitat #{quote_number} fra:\n```\n{old_q}\n'
             f'({old_dt})```\n...til:\n```\n{quote_in}\n'
             f'({quote_date})```'
@@ -143,11 +158,13 @@ class Quotes(commands.Cog):
     )
     @sitat.group(name='del')
     async def delete(self, ctx, quote_number):
-        '''Sletter et sitat som kan hentes opp seinere.'''
+        '''
+        Deleting a quote by `quote_number`'''
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == _config.BOT_ID:
                     keyphrases = [
+                        # TODO _var-msgs
                         'Er du sikker på at du vil slette følgende sitat',
                         'Ikke fått svar på 60 sekunder',
                         'Slettet sitat #'
@@ -161,6 +178,7 @@ class Quotes(commands.Cog):
             await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
             return
         await ctx.message.reply(
+            # TODO _var-msgs
             'Er du sikker på at du vil slette følgende sitat (Svar med '
             'reaksjon 👍 eller 👎):\n```#{}\n{}\n({})```\n'.format(
                 quote_number, quotes[quote_number]['quote'],
@@ -174,6 +192,7 @@ class Quotes(commands.Cog):
                 'reaction_add', timeout=30.0, check=check
             )
         except asyncio.TimeoutError:
+            # TODO _var-msgs
             await ctx.send('Ikke fått svar på 30 sekunder, stopper sletting')
             sleep(3)
             await delete_logged_msgs(ctx)
@@ -183,6 +202,7 @@ class Quotes(commands.Cog):
             del quotes[str(quote_number)]
             file_io.write_json(_vars.quote_file, quotes)
             # Confirm that the quote has been deleted
+            # TODO _var-msgs
             await ctx.message.reply('Slettet sitat #{}'.format(quote_number))
             sleep(3)
             await delete_logged_msgs(ctx)
@@ -192,8 +212,9 @@ class Quotes(commands.Cog):
     
     @sitat.group(name='count')
     async def count(self, ctx):
-        '''Teller opp antall sitater som er tilgjengelig for øyeblikket'''
+        '''Counting the number of quotes available'''
         quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
+        # TODO _var-msgs
         await ctx.send(f'Jeg har {quote_count} sitater på lager')
         return
 

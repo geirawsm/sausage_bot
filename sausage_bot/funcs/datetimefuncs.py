@@ -108,6 +108,24 @@ def get_dt(format='epoch', sep='.', dt=False):
         `pendulum.now()`.
     - If `sep` (separator) isn't specified, it will use dots.
     - If `format` is not specified, it will return in epoch/linux time-format
+    ```
+    Formats:
+    (Example date: May 17th 2014; time: 14:23:39; timezone: GMT)
+    `date`:             17.05.2014
+    `datetext`:         17 May 2014
+    `datetextfull`:     17 May 2014, 14.23
+    `revdate`:          2014.05.17
+    `datetime`:         17.05.2014 14.23
+    `datetimefull`:     17.05.2014 14.23.39
+    `revdatetimefull`:  2014.05.17 14.23.39
+    `time`:             14.23
+    `timefull`:         14.23.39
+    `week`:             20
+    `year`:             2014
+    `month`:            05
+    `day`:              17
+    `epoch`:            1400336619
+    ```
     '''
     if type(dt) == str:
         dt = make_dt(dt)
@@ -151,7 +169,17 @@ def get_dt(format='epoch', sep='.', dt=False):
 def change_dt(
     pendulum_object_in, change=None, count=None, unit=None
 ):
-    '''Take a pendulum datetime object and change it relatively'''
+    '''
+    Take a pendulum datetime object and change it relatively
+    
+    `pendulum_object_in`: The object to change
+    
+    `change`: Accepts `add` or `remove`
+
+    `count`: How many `units` to change
+
+    `unit`: Unit to change. Accepted units are `years`, `months`, `days`,
+        `hours`, `minutes` and `seconds`'''
     if change is None or unit is None or count is None:
         log.log(_vars.TOO_FEW_ARGUMENTS)
         return None

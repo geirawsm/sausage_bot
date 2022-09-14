@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'Custom logging for the module'
 import sys
 from colorama import init, Fore, Style
 from pathlib import Path
-from discord.ext import commands
 from ..funcs import _config, _vars, _args, discord_commands
 
 # colorama specific reset routine
@@ -12,6 +12,11 @@ init(autoreset=True)
 args = _args.args
 
 def log_function(log_in, color=None):
+    '''
+    Include the name of the function in logging.
+    
+    If no `color` is specified, it will highlight in green.
+    '''
     from ..funcs import datetimefuncs
     get_dt = datetimefuncs.get_dt
     log_out = '[{}] '.format(get_dt(format='datetimefull'))
@@ -43,7 +48,13 @@ def log_function(log_in, color=None):
 
 
 def log(log_in, color=None):
-    '''Log the input `log_in`'''
+    '''
+    Log the input `log_in`
+    
+    Optional: Specify the color for highlighting the function name.
+
+    Available colors: black, red, green, yellow, blue, magenta, cyan, white.
+    '''
     if args.log:
         log_function(log_in, color)
 

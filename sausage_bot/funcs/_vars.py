@@ -89,4 +89,4 @@ AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\
 
 
 if __name__ == "__main__":
-    print(ROOT_DIR)
+    pass

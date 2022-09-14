@@ -34,6 +34,9 @@ for file in check_and_create_files:
 
 @_config.bot.event
 async def on_ready():
+    '''
+    When the bot is ready, it will notify in the log.
+    '''
     for guild in _config.bot.guilds:
         if guild.name == _config.GUILD:
             break
@@ -157,7 +160,7 @@ class Cog:
 # Commands
 @_config.bot.command(name='ping')
 async def ping(ctx):
-    'Checks the bot\'s latency'
+    'Checks the bot latency'
     await ctx.send(f'Pong! {round(_config.bot.latency * 1000)} ms')
     await ctx.message.add_reaction('✅')
 
@@ -168,7 +171,7 @@ async def ping(ctx):
 )
 @_config.bot.command(aliases=['cls'])
 async def delete(ctx, amount=0):
-    'Delete x number of messages in the chat'
+    'Delete `amount` number of messages in the chat'
     if amount == 0:
         await ctx.send('Please specify the number of messages you want to delete!')
         await ctx.message.add_reaction('❌')
@@ -229,12 +232,12 @@ async def say(ctx, *, text):
     commands.has_permissions(administrator=True)
 )
 async def cog(ctx, cmd_in=None, cog_name=None):
-    '''
-    Enable, disable or list cogs for this bot
-    '''
+    'Enable, disable, reload or list cogs for this bot'
 
     def get_cogs_list(cogs_file):
+        'Get a pretty list of all the cogs'
         def get_cog_item_lengths(cogs_file):
+            'Find max lengths for info fields about a cog'
             cog_len = 0
             status_len = 0
             for cog in cogs_file:

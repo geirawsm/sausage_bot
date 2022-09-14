@@ -14,8 +14,9 @@ class AutoEvent(commands.Cog):
     @commands.group(name='autoevent', aliases=['e', 'event'])
     async def autoevent(self, ctx):
         '''
-        Create scheduled events based on match-urls from a predefined
-        set of pages
+        Administer match events on the discord server based on a url from a
+        supported website.
+        Add, remove or list events.
         '''
         pass
 
@@ -26,13 +27,12 @@ class AutoEvent(commands.Cog):
     @autoevent.group(name='add', aliases=['a'])
     async def add(self, ctx, url=None, channel=None, text=None):
         '''
-        Add a scheduled event.
+        Add a scheduled event:
+        `!autoevent add [url] [channel] [text]`
 
         `channel` should be a voice channel for the event.
-
         `url` should be a link to a specific match from an accepted site.
         As of now only match links from nifs.no is parsed.
-
         `text` is additional text that should be added to the description
         of the event.
         '''
@@ -101,7 +101,12 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='remove', aliases=['r'])
     async def remove(self, ctx, event_id_in):
-        '''Removes a scheduled event that has not started yet'''
+        '''
+        Removes a scheduled event that has not started yet:
+        `!autoevent remove [event_id_in]`
+
+        You can get [event_id_in] by getting list of all events
+        '''
         event_dict = discord_commands.get_scheduled_events()
         for event in event_dict:
             _id = event_dict[event]['id']
@@ -132,7 +137,10 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='list', aliases=['l'])
     async def list_events(self, ctx):
-        '''Lists all the planned events'''
+        '''
+        Lists all the planned events:
+        `!autoevent list`
+        '''
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:
             msg_out = _vars.AUTOEVENT_NO_EVENTS_LISTED

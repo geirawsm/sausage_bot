@@ -10,18 +10,27 @@ from sausage_bot.log import log
 
 
 class scrape_and_post(commands.Cog):
+    '''
+    A hardcoded cog - get newsposts from https://www.fcbarcelona.com and post
+    them to specific team channels
+    '''
     def __init__(self, bot):
         self.bot = bot
 
     #Tasks
     @tasks.loop(minutes = 5)
     async def post_fcb_news():
+        '''
+        Post news from https://www.fcbarcelona.com to specific team channels
+        '''
         def scrape_fcb_page(url):
+            'Scrape https://www.fcbarcelona.com'
             scrape = requests.get(url)
             soup = BeautifulSoup(scrape.content, features='html5lib')
             return soup
 
         def scrape_fcb_news_links():
+            'Find links for specific team news and return it as a dict'
             wanted_links = {
                 'firstteam': [
                     'https://www.fcbarcelona.com/en/football/first-team/news'
