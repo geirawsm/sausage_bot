@@ -30,10 +30,10 @@ class AutoEvent(commands.Cog):
         Add a scheduled event: `!autoevent add [url] [channel] [text]`
 
         `channel` should be a voice channel for the event.
-        
+
         `url` should be a link to a specific match from an accepted site.
         As of now only match links from nifs.no is parsed.
-        
+
         `text` is additional text that should be added to the description
         of the event.
         '''

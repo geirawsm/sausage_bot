@@ -3,7 +3,7 @@
 import pendulum
 from datetime import datetime
 import re
-
+from . import _vars
 from ..log import log
 
 # Set correct timezone and locale

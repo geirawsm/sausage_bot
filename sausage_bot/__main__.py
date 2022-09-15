@@ -13,7 +13,9 @@ from sausage_bot.log import log
 locale.setlocale(locale.LC_ALL, _config.LOCALE)
 
 # Create necessary folders before starting
-check_and_create_folders = [_vars.LOG_DIR]
+check_and_create_folders = [
+    _vars.LOG_DIR, _vars.JSON_DIR, _vars.COGS_DIR, _vars.STATIC_DIR
+]
 for folder in check_and_create_folders:
     try:
         os.makedirs(folder)
@@ -23,7 +25,8 @@ for folder in check_and_create_folders:
 # Create necessary files before starting
 log.log_more('Creating necessary files')
 check_and_create_files = [
-    (_vars.cogs_status_file, '{}')
+    (_vars.cogs_status_file, '{}'),
+    (_vars.env_file, _vars.env_template)
 ]
 for file in check_and_create_files:
     if isinstance(file, tuple):
@@ -292,11 +295,11 @@ async def cog(ctx, cmd_in=None, cog_name=None):
         return
     elif cmd_in == 'reload':
         # Reload all cogs
-        await reload_all_cogs()
+        await Cog.reload_all_cogs()
         await ctx.send('Cogs reloaded')
     elif cmd_in is None and cog_name is None:
         await ctx.send(
-            COGS_TOO_FEW_ARGUMENTS
+            _vars.COGS_TOO_FEW_ARGUMENTS
         )
         return
     else:

@@ -119,7 +119,7 @@ Examples:
                 _vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
-    
+
 
     @commands.check_any(
         commands.is_owner(),
