@@ -44,6 +44,9 @@ class scrape_and_post(commands.Cog):
                 'juvenil': [
                     'https://www.fcbarcelona.com/en/football/fc-barcelona-u19a/news',
                     'https://www.fcbarcelona.com/en/football/barca-youth/news'
+                ],
+                'club': [
+                    'https://www.fcbarcelona.com/en/club/news'
                 ]
             }
             links = {}
@@ -73,7 +76,7 @@ class scrape_and_post(commands.Cog):
                         elif index_items >= max_items:
                             break
             return links
-        
+
         feed = 'FCB news'
         FEED_POSTS = scrape_fcb_news_links()
         if FEED_POSTS is None:

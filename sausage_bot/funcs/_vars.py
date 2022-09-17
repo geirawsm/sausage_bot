@@ -47,7 +47,8 @@ youtube_api_key=
 firstteam=
 femeni=
 atletic=
-juvenil='''
+juvenil=
+club='''
 
 ### Botlines ###
 # Generiske
