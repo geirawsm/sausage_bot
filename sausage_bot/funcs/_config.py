@@ -24,8 +24,7 @@ config = dotenv_values(_vars.env_file)
 try:
     TOKEN = config['discord_token']
     if TOKEN == '':
-        # TODO var msgs
-        log.log('The bot is not properly set up')
+        log.log(_vars.BOT_NOT_SET_UP)
     GUILD = config['discord_guild']
     PREFIX = config['bot_prefix']
     LOCALE = config['locale']

@@ -91,8 +91,8 @@ def get_feed_links(url):
         return None
     try:
         soup = BeautifulSoup(req.content, features='xml')
-    except(AttributeError):
-        log.log('Error when reading soup from {}'.format(url))
+    except Error as e:
+        log.log(RSSCORE_SOUP_ERROR.format(url, e))
         return None
     links = []
     # Try normal RSS
@@ -105,7 +105,7 @@ def get_feed_links(url):
             try:
                 link = item.xpath("./link/text()")[0].strip()
             except(IndexError):
-                log.log('Error when getting link for item {} in {}'.format(item, url))
+                log.log(RSSCORE_LINK_INDEX_ERROR.format(item, url))
             if 'wp.blgr.app' in link:
                 link = link.replace('wp.blgr.app', 'www.blaugrana.no')
             links.append(link)
