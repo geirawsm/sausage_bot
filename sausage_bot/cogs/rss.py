@@ -140,8 +140,7 @@ Examples:
                 feed_name, channel_in)
             )
         await log.log_to_bot_channel(
-            f'rss: {AUTHOR} endret kanalen til feeden `{feed_name}` til '
-            f'`{channel_in}`'
+            _vars.RSS_FEED_CHANNEL_CHANGE.format(AUTHOR, feed_name, channel_in)
         )
         return
 
@@ -192,13 +191,8 @@ Examples:
             log.log('Checking {} ({})'.format(feed, CHANNEL))
             FEED_POSTS = rss_core.get_feed_links(URL)
             if FEED_POSTS is None:
-                log.log(f'{feed}: this feed returned NoneType.')
+                log.log_vars.RSS_FEED_POSTS_IS_NONE.format(feed))
                 return
-            else:
-                log.log(
-                    f'{feed}: `FEED_POSTS` are good:\n'
-                    f'### {FEED_POSTS} ###'
-                    )
             await rss_core.process_links_for_posting_or_editing(
                 feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
             )
@@ -215,8 +209,8 @@ Examples:
 
 async def setup(bot):
     # Create necessary files before starting
-    log.log('Starting cog: `rss`')
-    log.log_more('Creating necessary files')
+    log.log(_vars.COG_STARTING.format('rss'))
+    log.log_more(_vars.CREATING_FILES)
     check_and_create_files = [
         (_vars.rss_feeds_file, '{}'),
         _vars.rss_feeds_logs_file

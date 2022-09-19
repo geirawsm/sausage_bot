@@ -100,9 +100,10 @@ class Quotes(commands.Cog):
         file_io.write_json(_vars.quote_file, quotes)
         # Confirm that the quote has been saved
         await ctx.message.reply(
-            # TODO lag _vars-msg
-            'La til følgende sitat: ```#{}\n{}\n({})```'.format(
-                new_quote_number, quote_text, quote_date))
+            _vars.QUOTE_ADD_CONFIRMATION.format(
+                new_quote_number, quote_text, quote_date
+            )
+        )
         new_quote_number += 1
         return
 
@@ -149,10 +150,9 @@ class Quotes(commands.Cog):
         old_q = quotes[str(quote_number)]['quote']
         old_dt = quotes[str(quote_number)]['datetime']
         await ctx.message.reply(
-            # TODO _vars-msg
-            f'Endret sitat #{quote_number} fra:\n```\n{old_q}\n'
-            f'({old_dt})```\n...til:\n```\n{quote_in}\n'
-            f'({quote_date})```'
+            _vars.QUOTE_EDIT_CONFIRMATION.format(
+                quote_number, old_q, old_dt, quote_in, quote_date
+            )
         )
         quotes[str(quote_number)]['quote'] = quote_in
         quotes[str(quote_number)]['datetime'] = quote_date
@@ -174,12 +174,7 @@ class Quotes(commands.Cog):
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == _config.BOT_ID:
-                    keyphrases = [
-                        # TODO _var-msgs
-                        'Er du sikker på at du vil slette følgende sitat',
-                        'Ikke fått svar på 60 sekunder',
-                        'Slettet sitat #'
-                    ]
+                    keyphrases = _vars.QUOTE_KEY_PHRASES
                     if any(phrase in msg.content for phrase in keyphrases):
                         await msg.delete()
 
@@ -189,9 +184,7 @@ class Quotes(commands.Cog):
             await ctx.send(_vars.UNREADABLE_FILE.format(_vars.quote_file))
             return
         await ctx.message.reply(
-            # TODO _var-msgs
-            'Er du sikker på at du vil slette følgende sitat (Svar med '
-            'reaksjon 👍 eller 👎):\n```#{}\n{}\n({})```\n'.format(
+            _vars.QUOTE_CONFIRM_DELETE.format(
                 quote_number, quotes[quote_number]['quote'],
                 quotes[quote_number]['datetime'])
         )
@@ -203,8 +196,7 @@ class Quotes(commands.Cog):
                 'reaction_add', timeout=30.0, check=check
             )
         except asyncio.TimeoutError:
-            # TODO _var-msgs
-            await ctx.send('Ikke fått svar på 30 sekunder, stopper sletting')
+            await ctx.send(_vars.QUOTE_NO_CONFIRMATION_RECEIVED)
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()
@@ -213,8 +205,7 @@ class Quotes(commands.Cog):
             del quotes[str(quote_number)]
             file_io.write_json(_vars.quote_file, quotes)
             # Confirm that the quote has been deleted
-            # TODO _var-msgs
-            await ctx.message.reply('Slettet sitat #{}'.format(quote_number))
+            await ctx.message.reply(QUOTE_DELETE_CONFIRMED.format(quote_number))
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()
@@ -225,11 +216,10 @@ class Quotes(commands.Cog):
     async def count(self, ctx):
         '''Count the number of quotes available: `!quote count`'''
         quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
-        # TODO _var-msgs
-        await ctx.send(f'Jeg har {quote_count} sitater på lager')
+        await ctx.send(_vars.QUOTE_COUNT.format(quote_count))
         return
 
 
 async def setup(bot):
-    log.log('Starting cog: `quote`')
+    log.log(_vars.COG_STARTING.format('quote'))
     await bot.add_cog(Quotes(bot))

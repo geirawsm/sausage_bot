@@ -221,11 +221,6 @@ Examples:
                 if FEED_POSTS is None:
                     log.log(f'{feed}: this feed returned NoneType.')
                     return
-                else:
-                    log.log(
-                        f'{feed}: `FEED_POSTS` are good:\n'
-                        f'### {FEED_POSTS} ###'
-                        )
                 await Youtube.process_links_for_posting_or_editing(
                     feed, FEED_POSTS, _vars.yt_feeds_logs_file, CHANNEL
                 )
@@ -241,9 +236,9 @@ Examples:
 
 
 async def setup(bot):
-    log.log('Starting cog: `youtube`')
+    log.log(_vars.COG_STARTING.format('youtube'))
     # Create necessary files before starting
-    log.log_more('Creating necessary files')
+    log.log_more(_vars.CREATING_FILES)
     check_and_create_files = [
         (_vars.yt_feeds_file, '{}'),
         _vars.yt_feeds_logs_file

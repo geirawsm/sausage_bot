@@ -103,7 +103,8 @@ class Stats(commands.Cog):
 
 async def setup(bot):
     # Starting the cog
-    log.log('Starting cog: `stats`')
+    log.log(_vars.COG_STARTING.format('stats'))
+    log.log_more(_vars.CREATING_FILES)
     check_and_create_files = [
             (_vars.stats_logs_file, '{}')
         ]

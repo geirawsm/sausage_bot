@@ -151,6 +151,6 @@ class AutoEvent(commands.Cog):
 
 
 async def setup(bot):
-    log.log('Starting cog: `autoevent`')
+    log.log(_vars.COG_STARTING.format('autoevent'))
     # Starting the cog
     await bot.add_cog(AutoEvent(bot))

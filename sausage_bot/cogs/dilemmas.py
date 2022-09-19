@@ -71,5 +71,5 @@ class Dilemmas(commands.Cog):
         return
 
 async def setup(bot):
-    log.log('Starting cog: `dilemmas`')
+    log.log(_vars.COG_STARTING.format('dilemmas'))
     await bot.add_cog(Dilemmas(bot))
