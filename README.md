@@ -11,15 +11,37 @@ This code is intended to be selfhosted and run on a server you have access to.
 Ok, so you want to run a Discord bot?
 
 ### Register Discord bot
-Read up on what you need to do to register a bot on Discord: https://discord.com/developers/docs/getting-started
+Follow the instructions on this page on *Creating a Discord Bot Account*: https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account
+- Navigate to https://discord.com/developers/applications and log in.
+- Click on New Application.
+- Enter the application's name.
+- Click on Bot on the left side settings menu.
+- Click "Add Bot" and confirm with "Yes, do it!".
+- Give your bot a cool name and a nice icon.
+- Activate all the intents under "Bot" -> "Privileged Gateway Intents" and click "Save Changes".
 
-### .env file
-The .env file is essential to the bot. It contains all the important information that the bot uses, both for connecting to Discord and setting the correct stats channel, setting a custom "watching" info for the bot, and adding your API key if you want to use the Youtube-cog.
-The first time running the script, it will fail, but it will also create a template .env file for you in the root folder.
+### Setup the python environment
+It is recommended to run the bot in a controlled environment, by using `pipenv` or similar services.
 
-### Actually running the bot
-It is recommended to run the bot in a controlled environment, by using pipenv or similar services.
-The bot is ran by the command `python -m sausage_bot` (or any other name you want to give the root folder).
+- Using the terminal, navigate to the folder where you want to install the bot
+- Run `git clone https://github.com/geirawsm/sausage_bot.git`
+- `cd` into sausage_bot
+- Install `pipenv` if you haven't already
+- Run `pipenv shell` to create the python environment and start the shell
+- Run `pipenv install` to install dependencies
+- Run the bot once to get the .env file: `python -m sausage_bot`
+- Open `sausage_bot/sausage_bot/.env` and add as a minimum these values:
+    - `discord_token`   Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN" 
+    - `discord_guild`   The name of the discord server you want to connect to
+    - `bot_id`          Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
+- Invite the bot to your discord server:
+    - Again, go back to the [Discord Developer portal](https://discord.com/developers/applications), "OAuth2", "URL Generator".
+    - Chose the scope "bot"
+    - Chose the minimum neede permission for the bot. Only chose "Administrator" if you're absolutely sure.
+    - Click "Copy" on "Generated url", visit that link in a browser.
+    - Make sure that the information looks correct, select the server you want it to join, and click "Continue" and confirm the permissions by clicking "Authorize". Your bot should now join the channel in a disconnected state.
+- Start the bot
+    - Go back to the terminal and run `python -m sausage_bot` again. The bot will now be online.
 
 If you run `python -m sausage_bot -h` you can also see all the arguments you can add.
 
