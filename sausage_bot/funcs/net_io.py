@@ -52,6 +52,7 @@ def scrape_page(url):
     except:
         return None
 
+
 def make_event_start_stop(date, time):
     '''
     Make datetime objects for the event based on the start date and time.
@@ -90,6 +91,7 @@ def make_event_start_stop(date, time):
     except Exception as e:
         log.log(_vars.ERROR_WITH_ERROR_MSG.format(e))
         return None
+
 
 def parse(url: str):
     '''
