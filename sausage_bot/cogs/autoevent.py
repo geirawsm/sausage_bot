@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+from nis import match
 from discord.ext import commands
 import discord
-from sausage_bot.funcs import _vars, _config
-from sausage_bot.funcs import discord_commands, net_io
+from sausage_bot.funcs import _vars, _config, net_io,datetimefuncs
+from sausage_bot.funcs import discord_commands
 from sausage_bot.log import log
+import re
+from time import sleep
 
 
 class AutoEvent(commands.Cog):
@@ -148,6 +151,38 @@ class AutoEvent(commands.Cog):
         await ctx.send(
             msg_out
         )
+
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_events=True)
+    )
+    @autoevent.group(name='timesync', aliases=['t'])
+    async def timesync(self, ctx, start_time, countdown):
+        '''
+        Create a timer in the active channel to make it easier for people
+        attending an event to sync something that they're watching:
+        `!autoevent timesync [start_time] [countdown]`
+
+        `start_time`    A start time for the timer or a command for
+            deleting the timer.
+        `countdown`     How many seconds should it count down before
+            hitting the `start_time`
+        '''
+        # Check that `start_time` is a decent time
+        if re.match(r'^\d{1,2}[-:.,;_]+\d{1,2}', str(start_time)):
+            timer_epoch = datetimefuncs.get_dt() + int(countdown)
+            rel_start = f'<t:{timer_epoch}:R>'
+            await ctx.send(
+                f'Sync til {start_time} {rel_start}', delete_after=int(countdown)
+            )
+        else:
+            await ctx.send(
+                _vars.AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT,
+                delete_after=3
+            )
+        await ctx.message.delete()
+        return
 
 
 async def setup(bot):

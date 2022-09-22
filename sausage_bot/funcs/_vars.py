@@ -105,6 +105,7 @@ AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
 AUTOEVENT_EVENT_FOUND = 'Fant event: {}'
 AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\
     'liste på nytt med `!autoevent list`'
+AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT = '`start_time` ser ikke ut til å være i riktig format'
 
 
 if __name__ == "__main__":
