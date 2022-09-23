@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
-from sausage_bot.funcs import _config, datetimefuncs, _vars, file_io
-from sausage_bot.funcs import rss_core, discord_commands
+from sausage_bot.funcs import _config, datetimefuncs, _vars, feeds_core, file_io
+from sausage_bot.funcs import discord_commands
 from sausage_bot.log import log
 import pyyoutube
 
@@ -11,29 +11,6 @@ class Youtube(commands.Cog):
     'Autopost new videos from given Youtube channels'
     def __init__(self, bot):
         self.bot = bot
-
-
-    def add_feed_to_file(self, name, feed_link, channel, user_add):
-        '''Add a new Youtube feed'''
-        date_now = datetimefuncs.get_dt(format='datetime')
-        feeds_file = file_io.read_json(_vars.yt_feeds_file)
-        feeds_file[name] = {'url': feed_link,
-                        'channel': channel,
-                        'added': date_now,
-                        'added by': user_add}
-        file_io.write_json(_vars.yt_feeds_file, feeds_file)
-
-
-    def remove_feed_from_file(name):
-        '''Remove a Youtube feed from the feeds file'''
-        name = str(name)
-        feeds_file = file_io.read_json(_vars.yt_feeds_file)
-        try:
-            feeds_file.pop(name)
-            file_io.write_json(_vars.yt_feeds_file, feeds_file)
-            return True
-        except(KeyError):
-            return False
 
 
     def get_videos_from_yt_link(url):
@@ -90,7 +67,9 @@ Examples:
         Add a Youtube feed to a specific channel: `!youtube add [feed_name] [yt_link] [channel]`
 
         `feed_name`:    The custom name for the feed
+
         `yt_link`:      The link for the youtube-channel
+
         `channel`:      The Discord channel to post from the feed
         '''
         AUTHOR = ctx.message.author.name
@@ -115,7 +94,10 @@ Examples:
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if CHANNEL_OK:
-                self.add_feed_to_file(str(feed_name), str(yt_link), channel, AUTHOR)
+                feeds_core.add_feed_to_file(
+                    str(feed_name), str(yt_link), channel, AUTHOR,
+                    _vars.yt_feeds_file
+                )
                 await log.log_to_bot_channel(
                     _vars.YOUTUBE_ADDED_BOT.format(
                         AUTHOR, feed_name, yt_link, channel
@@ -138,7 +120,7 @@ Examples:
     async def remove(self, ctx, feed_name):
         '''Remove a Youtube feed based on `feed_name`'''
         AUTHOR = ctx.message.author.name
-        removal = rss_core.remove_feed_from_file(
+        removal = feeds_core.remove_feed_from_file(
             feed_name, _vars.yt_feeds_file
         )
         if removal:
@@ -162,9 +144,9 @@ Examples:
     async def list_youtube(self, ctx, long=None):
         'List all active Youtube feeds'
         if long is None:
-            list_format = rss_core.get_feed_list(_vars.yt_feeds_file)
+            list_format = feeds_core.get_feed_list(_vars.yt_feeds_file)
         elif long == 'long':
-            list_format = rss_core.get_feed_list(_vars.yt_feeds_file, long=True)
+            list_format = feeds_core.get_feed_list(_vars.yt_feeds_file, long=True)
         await ctx.send(list_format)
         return
 
@@ -181,14 +163,14 @@ Examples:
         for video_id in FEED_POSTS[0:2]:
             log.log_more(f'Got video_id `{video_id}`')
             # Check if the link is in the log
-            if not rss_core.link_is_in_log(video_id, FEED_LOG[feed]):
+            if not feeds_core.link_is_in_log(video_id, FEED_LOG[feed]):
                 # Consider this a whole new post and post link to channel
                 video_link = f'https://www.youtube.com/watch?v={video_id}'
                 log.log_more(f'Posting link `{video_link}`')
                 await discord_commands.post_to_channel(video_link, CHANNEL)
                 # Add link to log
                 FEED_LOG[feed].append(video_id)
-            elif rss_core.link_is_in_log(video_id, FEED_LOG[feed]):
+            elif feeds_core.link_is_in_log(video_id, FEED_LOG[feed]):
                 log.log_more(f'Link `{video_id}` already logged. Skipping.')
             # Write to the logs-file at the end
             file_io.write_json(feed_log_file, FEED_LOG)

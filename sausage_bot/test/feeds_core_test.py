@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 import requests
-from ..funcs import rss_core, net_io, file_io
+from ..funcs import feeds_core, net_io, file_io
 
 
 def test_get_link():
@@ -43,5 +43,5 @@ def test_process_feeds_correct():
         'https://www.vif-fotball.no/rss-nyheter'
     ]
     for url in test_urls:
-        test_feed = rss_core.get_feed_links(url)
+        test_feed = feeds_core.get_feed_links(url)
         assert type(test_feed) is list

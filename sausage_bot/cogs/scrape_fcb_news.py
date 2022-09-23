@@ -5,7 +5,7 @@ import requests
 from time import sleep as sleep
 from discord.ext import commands, tasks
 from sausage_bot.funcs._args import args
-from sausage_bot.funcs import _config, _vars, rss_core
+from sausage_bot.funcs import _config, _vars, feeds_core
 from sausage_bot.log import log
 
 
@@ -91,7 +91,7 @@ class scrape_and_post(commands.Cog):
                 )
             for team in FEED_POSTS:
                 CHANNEL = team.upper()
-                await rss_core.process_links_for_posting_or_editing(
+                await feeds_core.process_links_for_posting_or_editing(
                     feed, FEED_POSTS[team], _vars.scrape_logs_file,
                     eval(f'_config.{CHANNEL}')
                 )

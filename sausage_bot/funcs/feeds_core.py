@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from lxml import etree
-from sausage_bot.funcs import _vars, file_io, rss_core, discord_commands
+from sausage_bot.funcs import _vars, file_io, discord_commands
 from sausage_bot.funcs import net_io
 
 from . import file_io, _vars, datetimefuncs
@@ -24,17 +24,17 @@ def check_feed_validity(url):
         return False
 
 
-def add_feed_to_file(name, feed_link, channel, user_add):
+def add_feed_to_file(name, feed_link, channel, user_add, feeds_filename):
     '''
     Add a new feed to the feed-json.
-    
+
     `name`:         The identifiable name of the added feed
     `feed_link`:    The link for the feed
     `channel`       The discord channel to post the feed to
     `user_add`      The user who added the feed
     '''
     date_now = datetimefuncs.get_dt(format='datetime')
-    feeds_file = file_io.read_json(_vars.rss_feeds_file)
+    feeds_file = file_io.read_json(feeds_filename)
     feeds_file[name] = {
         'url': feed_link,
         'channel': channel,
@@ -106,6 +106,7 @@ def get_feed_links(url):
                 link = item.xpath("./link/text()")[0].strip()
             except(IndexError):
                 log.log(RSSCORE_LINK_INDEX_ERROR.format(item, url))
+            # TODO Is this still necessary?
             if 'wp.blgr.app' in link:
                 link = link.replace('wp.blgr.app', 'www.blaugrana.no')
             links.append(link)

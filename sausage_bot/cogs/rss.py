@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
-from sausage_bot.funcs import _config, _vars, file_io
-from sausage_bot.funcs import rss_core, discord_commands
+from sausage_bot.funcs import _config, _vars, feeds_core, file_io
+from sausage_bot.funcs import discord_commands
 from sausage_bot.log import log
 
 
@@ -40,12 +40,12 @@ Examples:
     async def add(self, ctx, feed_name=None, feed_link=None, channel=None):
         '''
         Add an RSS feed to a specific channel
-        
-        `feed_name`: The custom name for the feed
 
-        `feed_link`: The link to the RSS-/XML-feed
+        `feed_name`:    The custom name for the feed
 
-        `channel`:   The channel to post from the feed
+        `feed_link`:    The link to the RSS-/XML-feed
+
+        `channel`:      The channel to post from the feed
         '''
         AUTHOR = ctx.message.author.name
         URL_OK = False
@@ -67,16 +67,19 @@ Examples:
             return
         else:
             # Check rss validity
-            if rss_core.check_feed_validity(feed_link):
+            if feeds_core.check_feed_validity(feed_link):
                 URL_OK = True
             else:
                 URL_OK = False
             log.log_more(f'URL_OK is {URL_OK}')
             log.log_more(_vars.GOT_CHANNEL_LIST.format(discord_commands.get_text_channel_list()))
-            if channel in discord_commands.get_text_channel_list():
+            if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
-                rss_core.add_feed_to_file(str(feed_name), str(feed_link), channel, AUTHOR)
+                feeds_core.add_feed_to_file(
+                    str(feed_name), str(feed_link), channel, AUTHOR,
+                    _vars.rss_feeds_file
+                )
                 await log.log_to_bot_channel(
                     _vars.RSS_ADDED_BOT.format(
                         AUTHOR, feed_name, feed_link, channel
@@ -102,7 +105,7 @@ Examples:
     async def remove(self, ctx, feed_name):
         '''Remove a feed based on `feed_name`'''
         AUTHOR = ctx.message.author.name
-        removal = rss_core.remove_feed_from_file(
+        removal = feeds_core.remove_feed_from_file(
             feed_name, _vars.rss_feeds_file)
         if removal:
             await log.log_to_bot_channel(
@@ -134,7 +137,7 @@ Examples:
         `channel_in`:   New channel
         '''
         AUTHOR = ctx.message.author.name
-        rss_core.update_feed_status(feed_name, channel_in=channel_in)
+        feeds_core.update_feed_status(feed_name, channel_in=channel_in)
         await ctx.send(
             _vars.RSS_CHANGED_CHANNEL.format(
                 feed_name, channel_in)
@@ -149,9 +152,9 @@ Examples:
     async def list_rss(self, ctx, long=None):
         'List all active rss feeds on the discord server'
         if long is None:
-            list_format = rss_core.get_feed_list(_vars.rss_feeds_file)
+            list_format = feeds_core.get_feed_list(_vars.rss_feeds_file)
         elif long == 'long':
-            list_format = rss_core.get_feed_list(_vars.rss_feeds_file, long=True)
+            list_format = feeds_core.get_feed_list(_vars.rss_feeds_file, long=True)
         await ctx.send(list_format)
         return
 
@@ -175,13 +178,13 @@ Examples:
         for feed in feeds:
             log.log_more('- {}'.format(feed))
         # Make sure that the feed links aren't stale / 404
-        rss_core.review_feeds_status(feeds)
+        feeds_core.review_feeds_status(feeds)
         # Start processing per feed settings
         for feed in feeds:
             CHANNEL = feeds[feed]['channel']
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
-                rss_core.update_feed_status(feed, channel_status='unlisted')
+                feeds_core.update_feed_status(feed, channel_status='unlisted')
                 msg_out = _vars.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
                 )
@@ -190,11 +193,11 @@ Examples:
                 return
             URL = feeds[feed]['url']
             log.log('Checking {} ({})'.format(feed, CHANNEL))
-            FEED_POSTS = rss_core.get_feed_links(URL)
+            FEED_POSTS = feeds_core.get_feed_links(URL)
             if FEED_POSTS is None:
                 log.log_vars.RSS_FEED_POSTS_IS_NONE.format(feed)
                 return
-            await rss_core.process_links_for_posting_or_editing(
+            await feeds_core.process_links_for_posting_or_editing(
                 feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
             )
         return
