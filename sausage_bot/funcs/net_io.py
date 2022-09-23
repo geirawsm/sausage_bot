@@ -49,7 +49,8 @@ def scrape_page(url):
     try:
         soup = BeautifulSoup(scrape.content, features='html5lib')
         return soup
-    except:
+    except Exception as e:
+        log.log(_vars.RSS_NOT_ABLE_TO_SCRAPE.format(url, e))
         return None
 
 
@@ -58,7 +59,7 @@ def make_event_start_stop(date, time):
     Make datetime objects for the event based on the start date and time.
     The event will start 30 minutes prior to the match, and it will end 2
     hours and 30 minutes after
-    
+
     `date`: The match date
     `time`: The match start time
     '''

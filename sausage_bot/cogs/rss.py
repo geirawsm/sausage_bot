@@ -166,7 +166,8 @@ Examples:
             if len(feeds) == 0:
                 log.log(_vars.RSS_NO_FEEDS_FOUND)
                 return
-        except:
+        except Exception as e:
+            log.log(f'Got error when getting RSS feeds: {e}')
             if feeds is None:
                 log.log(_vars.RSS_NO_FEEDS_FOUND)
                 return

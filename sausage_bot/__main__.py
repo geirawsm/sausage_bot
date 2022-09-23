@@ -195,11 +195,9 @@ async def kick(ctx, member: discord.Member, *, reason=None):
     'Kick a member from the server'
     try:
         await member.kick(reason=reason)
-        await ctx.send(f'{member} has been kicked!')
-        await ctx.message.add_reaction('✅')
+        await ctx.send(f'{member} has been kicked')
     except Exception as failkick:
-        await ctx.send("Failed to kick: " + str(failkick))
-        await ctx.message.add_reaction('❌')
+        await ctx.send(f'Failed to kick: {failkick}', delete_after=5)
 
 
 @_config.bot.command()
@@ -212,10 +210,8 @@ async def ban(ctx, member: discord.Member, *, reason=None):
     try:
         await member.ban(reason=reason)
         await ctx.send(f'{member} has been banned!')
-        await ctx.message.add_reaction('✅')
     except Exception as e:
-        await ctx.send("Failed to ban: " + str(e))
-        await ctx.message.add_reaction('❌')
+        await ctx.send(f'Failed to ban: {e}', delete_after=5)
 
 
 @_config.bot.command()

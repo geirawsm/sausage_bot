@@ -89,6 +89,7 @@ def get_sorted_scheduled_events():
         try:
             event_dict = dict(sorted(events_in.items()))
         except Exception as e:
+            # events_in/get_scheduled_events() already describes the error
             log.log(str(e))
             return None
         lengths = file_io.get_max_item_lengths(headers, event_dict)

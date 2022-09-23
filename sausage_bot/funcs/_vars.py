@@ -97,6 +97,7 @@ RSS_INVALID_URL = 'Inputen `{}` er ikke en ordentlig URL. Dobbelsjekk staving.'
 RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
     'prøver igjen...'
 RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
+RSS_NOT_ABLE_TO_SCRAPE = 'Klarte ikke å scrape {}: {}'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
 RSS_CHANGED_CHANNEL = 'Endret kanal for feeden `{}` til `{}`'
@@ -132,6 +133,7 @@ YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
+AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
 AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
 AUTOEVENT_EVENT_FOUND = 'Fant event: {}'
 AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\

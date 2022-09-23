@@ -193,7 +193,7 @@ class Quotes(commands.Cog):
 
         try:
             reaction, user = await _config.bot.wait_for(
-                'reaction_add', timeout=30.0, check=check
+                'reaction_add', timeout=10.0, check=check
             )
         except asyncio.TimeoutError:
             await ctx.send(_vars.QUOTE_NO_CONFIRMATION_RECEIVED)
