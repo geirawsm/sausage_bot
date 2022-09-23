@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from sausage_bot.funcs import _vars, datetimefuncs
 from sausage_bot.funcs._args import args
 from ..log import log
+import json
 
 
 if args.local_parsing:
@@ -54,18 +55,23 @@ def scrape_page(url):
         return None
 
 
-def make_event_start_stop(date, time):
+def make_event_start_stop(date, time=None):
     '''
     Make datetime objects for the event based on the start date and time.
     The event will start 30 minutes prior to the match, and it will end 2
     hours and 30 minutes after
 
-    `date`: The match date
-    `time`: The match start time
+    `date`: The match date or a datetime-object
+    `time`: The match start time (optional)
     '''
     try:
         # Make the original startdate an object
-        start_dt = datetimefuncs.make_dt(f'{date} {time}')
+        if time is None:
+            start_dt = datetimefuncs.make_dt(date)
+        else:
+            start_dt = datetimefuncs.make_dt(f'{date} {time}')
+        start_date = datetimefuncs.get_dt('date', dt=start_dt)
+        start_time = datetimefuncs.get_dt('time', sep=':', dt=start_dt)
         # Make a startdate for the event that starts 30 minutes before
         # the match
         start_event = datetimefuncs.change_dt(
@@ -83,6 +89,8 @@ def make_event_start_stop(date, time):
             'R'
         )
         return {
+            'start_date': start_date,
+            'start_time': start_time,
             'start_dt': start_dt,
             'start_epoch': start_epoch,
             'rel_start': rel_start,
@@ -136,27 +144,33 @@ def parse(url: str):
             },
             'stadium': stadium
         }
-        '''
-        Parse content from matchpages from nifs.no
-        '''
-        info_tbl = soup.find('table', attrs={'class': 'nifs_table_l_nb'})
-        rows = info_tbl.find_all('tr')
+
+    def parse_vglive(url):
+        'Parse content from matchpages from vglive.no'
+        # https://vglive.no/kamp/v%C3%A5lerenga-str%C3%B8msgodset/528898/rapport
+        match_id = re.search(r'.*/(\d+)/rapport', url)
+        # https://vglive.no/api/vg/events/528898
+        json_url = 'https://vglive.no/api/vg/events/{}'.format(
+            match_id.group(1)
+        )
+        match_json = json.loads(get_link(json_url).content)
         # Get info relevant for the event
-        info0 = rows[0].find_all('a', attrs={'class': 'nifs_link_style'})
-        team_home = info0[0].text.strip()
-        team_away = info0[1].text.strip()
-        info1 = rows[1].find_all('td')
-        tournament = info1[1].text.strip().replace('\t', '').replace('\n', ' ')
-        date = info1[3].text.strip()
-        time = rows[2].find_all('td')[3].text.strip()
-        dt_in = make_event_start_stop(date, time)
+        home_id = match_json['event']['participantIds'][0]
+        away_id = match_json['event']['participantIds'][1]
+        team_home = match_json['participants'][home_id]['name']
+        team_away = match_json['participants'][away_id]['name']
+        tournament = match_json['tournamentSeason']['name']
+        datetime = match_json['event']['startDate']
+        dt_in = make_event_start_stop(datetime)
         if dt_in is None:
             return None
+        date = dt_in['start_date']
+        time = dt_in['start_time']
         start_dt = dt_in['start_dt']
         end_dt = dt_in['end_dt']
         start_epoch = dt_in['start_epoch']
-        rel_start = f'<t:{start_epoch}:R>'
-        stadium = rows[3].find_all('td')[3].text.strip()
+        rel_start = dt_in['rel_start']
+        stadium = match_json['event']['details']['venue']['name']
         return {
             'teams': {
                 'home': team_home,
@@ -174,21 +188,32 @@ def parse(url: str):
             'stadium': stadium
         }
 
-    soup = scrape_page(url)
+
     PARSER = None
     if 'nifs.no' in url:
         PARSER = 'nifs'
+    elif 'vglive.no' in url:
+        PARSER = 'vglive'
     elif args.force_parser:
         PARSER = args.force_parser
+    log.log_more(f'Got parser `{PARSER}`')
     if PARSER == 'nifs':
+        soup = scrape_page(url)
         try:
             parse = parse_nifs(soup)
             return parse
         except Exception as e:
-            log.log(_vars.AUTOEVENT_PARSE_ERROR.format(url, e))
+            error_msg = _vars.AUTOEVENT_PARSE_ERROR.format(url, e)
+            log.log(error_msg)
             return None
-#    elif 'altomfotball.no' in url:
-#        return parse_aof(soup)
+    elif PARSER == 'vglive':
+        try:
+            parse = parse_vglive(url)
+            return parse
+        except Exception as e:
+            error_msg = _vars.AUTOEVENT_PARSE_ERROR.format(url, e)
+            log.log(error_msg)
+            return None
     else:
         log.log('Linken er ikke kjent')
         return None
