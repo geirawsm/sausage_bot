@@ -195,7 +195,7 @@ Examples:
             log.log('Checking {} ({})'.format(feed, CHANNEL))
             FEED_POSTS = feeds_core.get_feed_links(URL)
             if FEED_POSTS is None:
-                log.log_vars.RSS_FEED_POSTS_IS_NONE.format(feed)
+                log.log(_vars.RSS_FEED_POSTS_IS_NONE.format(feed))
                 return
             await feeds_core.process_links_for_posting_or_editing(
                 feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
