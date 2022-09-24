@@ -205,7 +205,7 @@ class Quotes(commands.Cog):
             del quotes[str(quote_number)]
             file_io.write_json(_vars.quote_file, quotes)
             # Confirm that the quote has been deleted
-            await ctx.message.reply(QUOTE_DELETE_CONFIRMED.format(quote_number))
+            await ctx.message.reply(_vars.QUOTE_DELETE_CONFIRMED.format(quote_number))
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()

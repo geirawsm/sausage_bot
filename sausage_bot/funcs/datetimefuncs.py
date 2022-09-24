@@ -24,6 +24,7 @@ def make_dt(date_in):
     - 17.05.2022, 11.22
     - 17.05.2022, 1122
     - 17.05.20 22, 11.22
+    - 2022-05-17T11:22:00Z
     '''
     if 'T' in str(date_in):
         return pendulum.parse(date_in)
@@ -171,9 +172,9 @@ def change_dt(
 ):
     '''
     Take a pendulum datetime object and change it relatively
-    
+
     `pendulum_object_in`: The object to change
-    
+
     `change`: Accepts `add` or `remove`
 
     `count`: How many `units` to change

@@ -91,8 +91,8 @@ def get_feed_links(url):
         return None
     try:
         soup = BeautifulSoup(req.content, features='xml')
-    except Error as e:
-        log.log(RSSCORE_SOUP_ERROR.format(url, e))
+    except Exception as e:
+        log.log(_vars.RSSCORE_SOUP_ERROR.format(url, e))
         return None
     links = []
     # Try normal RSS
@@ -105,7 +105,7 @@ def get_feed_links(url):
             try:
                 link = item.xpath("./link/text()")[0].strip()
             except(IndexError):
-                log.log(RSSCORE_LINK_INDEX_ERROR.format(item, url))
+                log.log(_vars.RSSCORE_LINK_INDEX_ERROR.format(item, url))
             # TODO Is this still necessary?
             if 'wp.blgr.app' in link:
                 link = link.replace('wp.blgr.app', 'www.blaugrana.no')
