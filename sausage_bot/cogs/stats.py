@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import os
-from datetime import time
 from discord.ext import commands, tasks
 from sausage_bot.funcs import _vars, file_io, _config
 from sausage_bot.funcs import discord_commands, datetimefuncs
+from sausage_bot.funcs._args import args
 from sausage_bot.log import log
 from sausage_bot.funcs.datetimefuncs import get_dt
 
@@ -89,7 +89,10 @@ class Stats(commands.Cog):
         await discord_commands.update_stats_post(stats_msg, _config.STATS_CHANNEL)
 
         # Write changes to file
-        file_io.write_json(_vars.stats_logs_file, stats_log)
+        if not args.maintenance:
+            file_io.write_json(_vars.stats_logs_file, stats_log)
+        else:
+            log.log('Did not write changes to file', color='RED')
 
 
     @update_stats.before_loop
