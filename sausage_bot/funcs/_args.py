@@ -45,7 +45,7 @@ testing_args.add_argument('--force-parser',
                           dest='force_parser')
 
 maintenance_args = parser.add_argument_group('Maintenance')
-maintenance_args.add_argument('--maintenance',
+maintenance_args.add_argument('--maintenance', '-m',
                               help='Start the bot in maintenance mode',
                               action='store_true',
                               default=False,

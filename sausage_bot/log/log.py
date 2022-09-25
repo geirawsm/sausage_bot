@@ -4,12 +4,13 @@
 import sys
 from colorama import init, Fore, Style
 from pathlib import Path
-from ..funcs import _config, _vars, _args, discord_commands
+from ..funcs import _config, _vars, discord_commands
+from ..funcs._args import args
+from time import sleep
 
 # colorama specific reset routine
 init(autoreset=True)
 
-args = _args.args
 
 def log_function(log_in, color=None):
     '''
@@ -57,12 +58,16 @@ def log(log_in, color=None):
     '''
     if args.log:
         log_function(log_in, color)
+    if args.log_slow:
+        sleep(3)
 
 
 def log_more(log_in, color=None):
     '''Log the input `log_in`. Used as more verbose than `log`'''
     if args.log_more:
         log_function(log_in, color)
+    if args.log_slow:
+        sleep(3)
 
 
 def log_func_name():
