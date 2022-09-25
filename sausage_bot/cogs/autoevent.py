@@ -176,8 +176,8 @@ class AutoEvent(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='timesync', aliases=['t'])
-    async def timesync(self, ctx, start_time, countdown):
+    @autoevent.group(name='sync', aliases=['s'])
+    async def sync(self, ctx, start_time, countdown):
         '''
         Create a timer in the active channel to make it easier for people
         attending an event to sync something that they're watching:
