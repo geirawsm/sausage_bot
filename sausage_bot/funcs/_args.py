@@ -6,36 +6,26 @@ import argparse
 parser = argparse.ArgumentParser()
 
 logging_args = parser.add_argument_group('Logging')
-logging_args.add_argument('--log',
+logging_args.add_argument('--log', '-l',
                           help='Log important messages',
                           action='store_true',
                           default=False,
                           dest='log')
-logging_args.add_argument('--log-more',
+logging_args.add_argument('--log-more', '-lm',
                           help='Log absolutely everything',
                           action='store_true',
                           default=False,
                           dest='log_more')
-logging_args.add_argument('--log-print',
+logging_args.add_argument('--log-print', '-lp',
                           help='Print logging instead of writing to file',
                           action='store_true',
                           default=False,
                           dest='log_print')
-logging_args.add_argument('--no-rss',
-                          help='Start the bot, but with no RSS functionality',
+logging_args.add_argument('--log-slow', '-ls',
+                          help='Wait 3 seconds after each logging',
                           action='store_true',
                           default=False,
-                          dest='no_rss')
-logging_args.add_argument('--no-yt',
-                          help='Start the bot, but with no youtube functionality',
-                          action='store_true',
-                          default=False,
-                          dest='no_yt')
-logging_args.add_argument('--no-scrape',
-                          help='Start the bot, but with no scraping functionality',
-                          action='store_true',
-                          default=False,
-                          dest='no_scrape')
+                          dest='log_slow')
 logging_args.add_argument('--highlight', '-hl',
                           help='Highlight chosen text in logging function naming',
                           action='store',
