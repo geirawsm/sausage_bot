@@ -10,12 +10,12 @@ lxml = "*"
 requests = "*"
 pendulum = "*"
 colorama = "*"
-bs4 = "*"
 ratelimit = "*"
 html5lib = "*"
 python-youtube = "*"
 tzlocal = "*"
 path = "*"
+instagramy = "*"
 
 [dev-packages]
 astunparse = "*"
