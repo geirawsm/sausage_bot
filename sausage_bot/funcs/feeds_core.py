@@ -33,6 +33,10 @@ def add_feed_to_file(name, feed_link, channel, user_add, feeds_filename):
     `channel`       The discord channel to post the feed to
     `user_add`      The user who added the feed
     '''
+    # Test the link first
+    test_link = net_io.get_link(feed_link)
+    if test_link is None:
+        return None
     date_now = datetimefuncs.get_dt(format='datetime')
     feeds_file = file_io.read_json(feeds_filename)
     feeds_file[name] = {
@@ -45,7 +49,7 @@ def add_feed_to_file(name, feed_link, channel, user_add, feeds_filename):
              'channel': 'ok'
         }
     }
-    file_io.write_json(_vars.rss_feeds_file, feeds_file)
+    file_io.write_json(feeds_filename, feeds_file)
 
 
 def remove_feed_from_file(name, feed_file):
@@ -61,30 +65,31 @@ def remove_feed_from_file(name, feed_file):
 
 
 def update_feed_status(
-    feed_name, channel_in=None, url_status=None, channel_status=None
+    feed_name, feeds_file_in, channel_in=None, url_status=None, channel_status=None
     ):
     '''
-    Update the fields for a feed in `_vars.rss_feeds_file`
+    Update the fields for a feed in `feeds_file`
     
-    `feed_name`:        Idenetifiable name for the feed
+    `feed_name`:        Identifiable name for the feed
+    `feeds_file_in`:       The file in where to update feed
     `channel_in`:       The channel to receive feed updates
     `url_status`:       The status of the url
     `channel_status`:   The status of the channel
     '''
     feed_name = str(feed_name)
-    feeds_file = file_io.read_json(_vars.rss_feeds_file)
+    feeds_file = file_io.read_json(feeds_file_in)
     if url_status:
         feeds_file[feed_name]['status']['url'] = str(url_status).lower()
     if channel_status:
         feeds_file[feed_name]['status']['channel'] = str(channel_status).lower()
     if channel_in:
         feeds_file[feed_name]['channel'] = str(channel_in).lower()
-    file_io.write_json(_vars.rss_feeds_file, feeds_file)
+    file_io.write_json(feeds_file_in, feeds_file)
     return True
     
 
 def get_feed_links(url):
-    'Get the links from a feeds `url`'
+    'Get the links from a RSS-feeds `url`'
     # Get the url and make it parseable
     req = net_io.get_link(url)
     if req is None:

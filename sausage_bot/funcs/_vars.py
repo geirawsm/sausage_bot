@@ -127,9 +127,10 @@ QUOTE_COUNT = 'Jeg har {} sitater på lager'
 
 # COG - YOUTUBE
 YOUTUBE_ADDED = '{} ble lag til i kanalen {}'
-YOUTUBE_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
+YOUTUBE_ADDED_BOT = '{} la til feeden {} (`{}`) til kanalen {}'
 YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
 YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
+YOUTUBE_EMPTY_LINK = 'Klarer ikke å hente linken: `{}`'
 
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'

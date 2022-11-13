@@ -17,18 +17,24 @@ else:
     import requests
 
 
-def get_link(url):
+def get_link(url, cookies=None):
     'Get a requests object from a `url`'
     if type(url) is not str:
         log.log(_vars.RSS_INVALID_URL.format(url))
         return None
     if args.local_parsing:
-        req = requests.get(url)
+        if cookies:
+            req = requests.get(url, cookies)
+        else:
+            req = requests.get(url)
     else:
         if not re.match(r'(www|http:|https:)+[^\s]+[\w]', url):
             url = f'https://{url}'
         try:
-            req = requests.get(url)
+            if cookies:
+                req = requests.get(url, cookies)
+            else:
+                req = requests.get(url)
         except(requests.exceptions.InvalidSchema):
             log.log(_vars.RSS_INVALID_URL.format(url))
             return None
@@ -44,9 +50,12 @@ def get_link(url):
         return req
 
 
-def scrape_page(url):
+def scrape_page(url, cookies=None):
     'Get a bs4 object from `url`'
-    scrape = get_link(url)
+    if cookies:
+        scrape = get_link(url, cookies)
+    else:
+        scrape = get_link(url)
     try:
         soup = BeautifulSoup(scrape.content, features='html5lib')
         return soup

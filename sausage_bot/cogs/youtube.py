@@ -1,42 +1,73 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
-from sausage_bot.funcs import _config, datetimefuncs, _vars, feeds_core, file_io
+from sausage_bot.funcs import _config, _vars, feeds_core, file_io, net_io
 from sausage_bot.funcs import discord_commands
 from sausage_bot.log import log
-import pyyoutube
+import re
 
 
 class Youtube(commands.Cog):
     'Autopost new videos from given Youtube channels'
+
     def __init__(self, bot):
         self.bot = bot
 
-
     def get_videos_from_yt_link(url):
         'Get the 6 last videos from channel'
+        log.debug(f'Got `url`: {url}')
         id_in = url.split('/')[-1]
-        api = pyyoutube.Api(api_key=_config.YOUTUBE_API_KEY)
-        channel_info = None
-        channel_by_username = api.get_channel_info(for_username=id_in)
-        channel_by_id = api.get_channel_info(channel_id=id_in)
-        if channel_by_username.items is not None:
-            channel_info = channel_by_username
-        elif channel_by_id.items is not None:
-            channel_info = channel_by_id
-        else:
-            log.log_more(f'Nothing found')
+        log.debug(f'`id_in` is `{id_in}`')
+        channel_by_username = f'https://www.youtube.com/feeds/videos.xml?user={id_in}'
+        log.debug(f'Got `channel_by_username`: `{channel_by_username}`')
+        channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
+        log.debug(f'Got `channel_by_id.items`: `{channel_by_id}`')
+        videos = None
+        # Try to get videos based on username
+        if videos is None:
+            try:
+                videos = feeds_core.get_feed_links(channel_by_username)
+            except:
+                pass
+        # Try to get videos based on ID
+        if videos is None:
+            try:
+                videos = feeds_core.get_feed_links(channel_by_id)
+            except:
+                pass
+        if videos is None:
             return None
-        playlist_id = channel_info.items[0].contentDetails.relatedPlaylists.uploads
-        uploads_playlist_items = api.get_playlist_items(
-            playlist_id=playlist_id, count=10, limit=6
-        )
-        videos = []
-        for item in uploads_playlist_items.items:
-            video_id = item.contentDetails.videoId
-            videos.append(video_id)
-        return videos
+        video_log = []
+        for video in videos:
+            video_log.append(video)
+        return video_log
 
+    def test_link_for_yt_compatibility(url):
+        'Test a Youtube-link to make sure it can get videos'
+        log.debug(f'Got `url`: {url}')
+        id_in = url.split('/')[-1]
+        log.debug(f'`id_in` is `{id_in}`')
+        channel_by_username = f'https://www.youtube.com/feeds/videos.xml?user={id_in}'
+        log.debug(f'Got `channel_by_username`: `{channel_by_username}`')
+        channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
+        log.debug(f'Got `channel_by_id.items`: `{channel_by_id}`')
+        test_ok = None
+        # Try to get videos based on username
+        if test_ok is None:
+            try:
+                test_ok = feeds_core.get_feed_links(channel_by_username)
+            except:
+                pass
+        # Try to get videos based on ID
+        if test_ok is None:
+            try:
+                test_ok = feeds_core.get_feed_links(channel_by_id)
+            except:
+                pass
+        if test_ok is not None:
+            return True
+        else:
+            return False
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
@@ -77,23 +108,36 @@ Examples:
         if feed_name is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
-                )
+            )
             return
         elif yt_link is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
-                )
+            )
             return
         elif channel is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
-                )
+            )
             return
         else:
             # Make a check to see if the channel exist
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if CHANNEL_OK:
+                # Remove trailing slash from url
+                try:
+                    slash_filter = re.match(r'(.*)/$', yt_link).group(1)
+                    if slash_filter:
+                        yt_link = slash_filter
+                except:
+                    pass
+                # Test if the link can get videos
+                if not Youtube.test_link_for_yt_compatibility(yt_link):
+                    await ctx.send(
+                        _vars.YOUTUBE_EMPTY_LINK.format(yt_link)
+                    )
+                    return
                 feeds_core.add_feed_to_file(
                     str(feed_name), str(yt_link), channel, AUTHOR,
                     _vars.yt_feeds_file
@@ -110,7 +154,6 @@ Examples:
             elif not CHANNEL_OK:
                 await ctx.send(_vars.CHANNEL_NOT_FOUND)
                 return
-
 
     @commands.check_any(
         commands.is_owner(),
@@ -129,7 +172,7 @@ Examples:
             )
             await ctx.send(
                 _vars.RSS_REMOVED.format(feed_name)
-                )
+            )
         elif removal is False:
             # Couldn't remove the feed
             await ctx.send(_vars.RSS_COULD_NOT_REMOVE.format(feed_name))
@@ -139,17 +182,16 @@ Examples:
             )
         return
 
-
     @youtube.group(name='list')
     async def list_youtube(self, ctx, long=None):
         'List all active Youtube feeds'
         if long is None:
             list_format = feeds_core.get_feed_list(_vars.yt_feeds_file)
         elif long == 'long':
-            list_format = feeds_core.get_feed_list(_vars.yt_feeds_file, long=True)
+            list_format = feeds_core.get_feed_list(
+                _vars.yt_feeds_file, long=True)
         await ctx.send(list_format)
         return
-
 
     async def process_links_for_posting_or_editing(
         feed, FEED_POSTS, feed_log_file, CHANNEL
@@ -158,26 +200,25 @@ Examples:
         FEED_LOG = file_io.read_json(feed_log_file)
         try:
             FEED_LOG[feed]
-        except(KeyError):
+        except (KeyError):
             FEED_LOG[feed] = []
-        for video_id in FEED_POSTS[0:2]:
-            log.log_more(f'Got video_id `{video_id}`')
+        for video in FEED_POSTS[0:2]:
+            log.log_more(f'Got video `{video}`')
             # Check if the link is in the log
-            if not feeds_core.link_is_in_log(video_id, FEED_LOG[feed]):
+            if not feeds_core.link_is_in_log(video, FEED_LOG[feed]):
                 # Consider this a whole new post and post link to channel
-                video_link = f'https://www.youtube.com/watch?v={video_id}'
-                log.log_more(f'Posting link `{video_link}`')
-                await discord_commands.post_to_channel(video_link, CHANNEL)
+                log.log_more(f'Posting link `{video}`')
+                await discord_commands.post_to_channel(video, CHANNEL)
                 # Add link to log
-                FEED_LOG[feed].append(video_id)
-            elif feeds_core.link_is_in_log(video_id, FEED_LOG[feed]):
-                log.log_more(f'Link `{video_id}` already logged. Skipping.')
+                FEED_LOG[feed].append(video)
+            elif feeds_core.link_is_in_log(video, FEED_LOG[feed]):
+                log.log_more(f'Link `{video}` already logged. Skipping.')
             # Write to the logs-file at the end
             file_io.write_json(feed_log_file, FEED_LOG)
 
+    # Tasks
 
-    #Tasks
-    @tasks.loop(minutes = 1)
+    @tasks.loop(minutes=1)
     async def youtube_parse():
         log.log('Starting `youtube_parse`')
         # Update the feeds
@@ -208,7 +249,6 @@ Examples:
                     feed, FEED_POSTS, _vars.yt_feeds_logs_file, CHANNEL
                 )
         return
-
 
     @youtube_parse.before_loop
     async def before_youtube_parse():

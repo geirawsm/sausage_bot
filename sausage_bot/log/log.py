@@ -70,6 +70,14 @@ def log_more(log_in, color=None):
         sleep(3)
 
 
+def debug(log_in):
+    '''Log the input `log_in` as debug messages.'''
+    if args.debug:
+        log_function(log_in, 'yellow')
+    if args.log_slow:
+        sleep(3)
+
+
 def log_func_name():
     'Get the function name that the `log`-function is used within'
     frame_file = sys._getframe(2)

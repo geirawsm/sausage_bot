@@ -21,6 +21,11 @@ logging_args.add_argument('--log-print', '-lp',
                           action='store_true',
                           default=False,
                           dest='log_print')
+logging_args.add_argument('--debug', '-d',
+                          help='Show debug messages',
+                          action='store_true',
+                          default=False,
+                          dest='debug')
 logging_args.add_argument('--log-slow', '-ls',
                           help='Wait 3 seconds after each logging',
                           action='store_true',

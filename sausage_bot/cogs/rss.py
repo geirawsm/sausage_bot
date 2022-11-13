@@ -129,15 +129,16 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @rss.group(name='channel')
-    async def channel(self, ctx, feed_name, channel_in):
+    async def channel(self, ctx, feed_name, channel_in, feeds_file):
         '''
         Edit a feed's channel: !rss channel [feed_name] [channel_in]
 
         `feed_name`:    The feed to change channel
         `channel_in`:   New channel
+        `feeds_file`:   The file for updating
         '''
         AUTHOR = ctx.message.author.name
-        feeds_core.update_feed_status(feed_name, channel_in=channel_in)
+        feeds_core.update_feed_status(feed_name, feeds_file, channel_in=channel_in)
         await ctx.send(
             _vars.RSS_CHANGED_CHANNEL.format(
                 feed_name, channel_in)
