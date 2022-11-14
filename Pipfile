@@ -22,6 +22,7 @@ astunparse = "*"
 requests-testadapter = "*"
 pytest = "*"
 pytest-mock = "*"
+autopep8 = "*"
 
 [requires]
 python_version = "3"

@@ -8,17 +8,29 @@ from sausage_bot.funcs._args import args
 from sausage_bot.funcs import _config, _vars, feeds_core
 from sausage_bot.log import log
 
+env_template = {
+    'firstteam': 'first-team',
+    'femeni': 'femení',
+    'atletic': 'atlètic',
+    'juvenil': 'juvenil',
+    'club': 'club'
+}
+_config.add_cog_envs_to_env_file('scrape_fcb_news', env_template)
+
+config = _config.config()['scrape_fcb_news']
+
 
 class scrape_and_post(commands.Cog):
     '''
     A hardcoded cog - get newsposts from https://www.fcbarcelona.com and post
     them to specific team channels
     '''
+
     def __init__(self, bot):
         self.bot = bot
 
-    #Tasks
-    @tasks.loop(minutes = 5)
+    # Tasks
+    @tasks.loop(minutes=5)
     async def post_fcb_news():
         '''
         Post news from https://www.fcbarcelona.com to specific team channels
@@ -54,9 +66,11 @@ class scrape_and_post(commands.Cog):
             for team in wanted_links:
                 for wanted_link in wanted_links[team]:
                     try:
-                        main_dev = scrape_fcb_page(wanted_link).find('div', attrs={'class': 'widget__content-wrapper'})
-                        news_dev = main_dev.find_all('div', attrs={'class': 'feed__items'})
-                    except(AttributeError) as e:
+                        main_dev = scrape_fcb_page(wanted_link).find(
+                            'div', attrs={'class': 'widget__content-wrapper'})
+                        news_dev = main_dev.find_all(
+                            'div', attrs={'class': 'feed__items'})
+                    except (AttributeError) as e:
                         log.log(f'Fikk feil ved henting av nyhetssaker: {e}')
                         return None
                     max_items = 2
@@ -88,13 +102,16 @@ class scrape_and_post(commands.Cog):
             log.log(
                 f'{feed}: `FEED_POSTS` are good:\n'
                 f'### {FEED_POSTS} ###'
-                )
+            )
             for team in FEED_POSTS:
-                CHANNEL = team.upper()
-                await feeds_core.process_links_for_posting_or_editing(
-                    feed, FEED_POSTS[team], _vars.scrape_logs_file,
-                    eval(f'_config.{CHANNEL}')
-                )
+                CHANNEL = team.lower()
+                try:
+                    await feeds_core.process_links_for_posting_or_editing(
+                        feed, FEED_POSTS[team], _vars.scrape_logs_file,
+                        _config.config()['scrape_fcb_news'][CHANNEL]
+                    )
+                except AttributeError as e:
+                    log.log(str(e))
         return
 
     @post_fcb_news.before_loop

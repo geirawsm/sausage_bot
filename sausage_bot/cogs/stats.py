@@ -8,6 +8,15 @@ from sausage_bot.funcs._args import args
 from sausage_bot.log import log
 from sausage_bot.funcs.datetimefuncs import get_dt
 
+# Prepare and load the env-file
+env_template = {
+    'stats_channel': 'stats',
+    'patreon_role_id': ''
+}
+_config.add_cog_envs_to_env_file('stats', env_template)
+
+config = _config.config()['stats']
+
 
 def get_members():
     'Get number of members and number of Patreon-members'
@@ -20,6 +29,7 @@ def get_members():
         'member_count': member_count,
         'patreon_count': patreon_count
     }
+
 
 def get_stats_codebase():
     'Get statistics for the code base'
@@ -41,11 +51,12 @@ def get_stats_codebase():
 
 class Stats(commands.Cog):
     'Get interesting stats for the discord server'
+
     def __init__(self, bot):
         self.bot = bot
 
-    #Tasks
-    @tasks.loop(minutes = 5)
+    # Tasks
+    @tasks.loop(minutes=5)
     async def update_stats():
         '''
         Update interesting stats in a channel post and write the info to
@@ -94,7 +105,6 @@ class Stats(commands.Cog):
         else:
             log.log('Did not write changes to file', color='RED')
 
-
     @update_stats.before_loop
     async def before_update_stats():
         log.log_more('`update_stats` waiting for bot to be ready...')
@@ -103,13 +113,12 @@ class Stats(commands.Cog):
     update_stats.start()
 
 
-
 async def setup(bot):
     # Starting the cog
     log.log(_vars.COG_STARTING.format('stats'))
     log.log_more(_vars.CREATING_FILES)
     check_and_create_files = [
-            (_vars.stats_logs_file, '{}')
-        ]
+        (_vars.stats_logs_file, '{}')
+    ]
     file_io.create_necessary_files(check_and_create_files)
     await bot.add_cog(Stats(bot))

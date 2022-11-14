@@ -17,7 +17,7 @@ STATIC_DIR = ROOT_DIR / 'static'
 COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Files
-env_file = ROOT_DIR / '.env'
+env_file = ROOT_DIR / 'env.json'
 rss_feeds_file = JSON_DIR / 'rss-feeds.json'
 rss_feeds_logs_file = JSON_DIR / 'rss-feeds-log.json'
 yt_feeds_file = JSON_DIR / 'yt-feeds.json'
@@ -33,22 +33,17 @@ cogs_status_file = JSON_DIR / 'cogs_status.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
 
 # Template content
-env_template = '''discord_token=
-discord_guild=
-bot_prefix=!
-locale=
-bot_dump_channel=general
-patreon_role_id=
-stats_channel=general
-bot_id=
-watching=
-youtube_api_key=
-# Scrape FCB channels
-firstteam=
-femeni=
-atletic=
-juvenil=
-club='''
+env_template = {
+    'basic': {
+        'discord_token': '',
+        'discord_guild': '',
+        'bot_prefix': '!',
+        'locale': '',
+        'bot_dump_channel': 'general',
+        'bot_id': '',
+        'watching': ''
+    }
+}
 
 ### Botlines ###
 # Generiske

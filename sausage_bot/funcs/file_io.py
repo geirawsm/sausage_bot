@@ -103,11 +103,17 @@ def ensure_file(file_path: str, file_template=False):
     # Create the file if it doesn't exist
     if not file_size(file_path):
         log.log_more('File not found, creating: {}'.format(file_path))
-        with open(file_path, 'w+') as fout:
+        if file_path.split('.')[-1] == 'json':
             if file_template:
-                fout.write(file_template)
+                write_json(file_path, file_template)
             else:
-                fout.write('')
+                write_json(file_path, '{}')
+        else:
+            with open(file_path, 'w+') as fout:
+                if file_template:
+                    fout.write(file_template)
+                else:
+                    fout.write('')
 
 
 def get_max_item_lengths(headers, dict_in):
