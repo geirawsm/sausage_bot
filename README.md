@@ -29,15 +29,15 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 - Install `pipenv` if you haven't already
 - Run `pipenv shell` to create the python environment and start the shell
 - Run `pipenv install` to install dependencies
-- Run the bot once to get the .env file: `python -m sausage_bot`
-- Open `sausage_bot/sausage_bot/.env` and add as a minimum these values:
+- Run the bot once to get the `env.json` file: `python -m sausage_bot`
+- Open `sausage_bot/sausage_bot/env.json` and add as a minimum these values under the `basic` key:
     - `discord_token`   Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN" 
     - `discord_guild`   The name of the discord server you want to connect to
     - `bot_id`          Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
 - Invite the bot to your discord server:
     - Again, go back to the [Discord Developer portal](https://discord.com/developers/applications), "OAuth2", "URL Generator".
     - Chose the scope "bot"
-    - Chose the minimum neede permission for the bot. Only chose "Administrator" if you're absolutely sure.
+    - Chose the minimum needed permission for the bot. Only chose "Administrator" if you're absolutely sure.
     - Click "Copy" on "Generated url", visit that link in a browser.
     - Make sure that the information looks correct, select the server you want it to join, and click "Continue" and confirm the permissions by clicking "Authorize". Your bot should now join the channel in a disconnected state.
 - Start the bot
@@ -225,7 +225,7 @@ them to specific team channels.
 ### stats
 
 Update interesting stats in a channel post and write the info to ../json/stats_logs.json.
-The channel is defined in the .env file (stats_channel).
+The channel is defined in the env.json file (stats_channel).
 
 ---
 
