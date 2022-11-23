@@ -18,7 +18,7 @@ def check_feed_validity(url):
     try:
         etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         return True
-    except(etree.XMLSyntaxError) as e:
+    except (etree.XMLSyntaxError) as e:
         log.log_more(_vars.ERROR_WITH_ERROR_MSG.format(e))
         return False
 
