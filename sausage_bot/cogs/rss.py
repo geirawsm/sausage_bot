@@ -10,9 +10,9 @@ class RSSfeed(commands.Cog):
     '''
     Administer RSS-feeds that will autopost to a given channel when published
     '''
+
     def __init__(self, bot):
         self.bot = bot
-
 
     @commands.group(name='rss')
     async def rss(self, ctx):
@@ -53,17 +53,17 @@ Examples:
         if feed_name is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
-                )
+            )
             return
         elif feed_link is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
-                )
+            )
             return
         elif channel is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
-                )
+            )
             return
         else:
             # Check rss validity
@@ -72,7 +72,8 @@ Examples:
             else:
                 URL_OK = False
             log.log_more(f'URL_OK is {URL_OK}')
-            log.log_more(_vars.GOT_CHANNEL_LIST.format(discord_commands.get_text_channel_list()))
+            log.log_more(_vars.GOT_CHANNEL_LIST.format(
+                discord_commands.get_text_channel_list()))
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
@@ -96,7 +97,6 @@ Examples:
                 await ctx.send(_vars.CHANNEL_NOT_FOUND)
                 return
 
-
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
@@ -113,7 +113,7 @@ Examples:
             )
             await ctx.send(
                 _vars.RSS_REMOVED.format(feed_name)
-                )
+            )
         elif removal is False:
             # Couldn't remove the feed
             await ctx.send(_vars.RSS_COULD_NOT_REMOVE.format(feed_name))
@@ -122,7 +122,6 @@ Examples:
                 _vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
-
 
     @commands.check_any(
         commands.is_owner(),
@@ -138,16 +137,16 @@ Examples:
         `feeds_file`:   The file for updating
         '''
         AUTHOR = ctx.message.author.name
-        feeds_core.update_feed_status(feed_name, feeds_file, channel_in=channel_in)
+        feeds_core.update_feed_status(
+            feed_name, feeds_file, channel_in=channel_in)
         await ctx.send(
             _vars.RSS_CHANGED_CHANNEL.format(
                 feed_name, channel_in)
-            )
+        )
         await log.log_to_bot_channel(
             _vars.RSS_FEED_CHANNEL_CHANGE.format(AUTHOR, feed_name, channel_in)
         )
         return
-
 
     @rss.group(name='list')
     async def list_rss(self, ctx, long=None):
@@ -155,7 +154,8 @@ Examples:
         if long is None:
             list_format = feeds_core.get_feed_list(_vars.rss_feeds_file)
         elif long == 'long':
-            list_format = feeds_core.get_feed_list(_vars.rss_feeds_file, long=True)
+            list_format = feeds_core.get_feed_list(
+                _vars.rss_feeds_file, long=True)
         await ctx.send(list_format)
         return
 
@@ -202,7 +202,6 @@ Examples:
                 feed, FEED_POSTS, _vars.rss_feeds_logs_file, CHANNEL
             )
         return
-
 
     @rss_parse.before_loop
     async def before_rss_parse():

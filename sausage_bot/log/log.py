@@ -15,7 +15,7 @@ init(autoreset=True)
 def log_function(log_in, color=None):
     '''
     Include the name of the function in logging.
-    
+
     If no `color` is specified, it will highlight in green.
     '''
     from ..funcs import datetimefuncs

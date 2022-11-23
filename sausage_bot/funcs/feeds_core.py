@@ -3,9 +3,8 @@
 from bs4 import BeautifulSoup
 from lxml import etree
 from sausage_bot.funcs import _vars, file_io, discord_commands
-from sausage_bot.funcs import net_io
+from sausage_bot.funcs import net_io, datetimefuncs
 
-from . import file_io, _vars, datetimefuncs
 from ..log import log
 
 
@@ -60,16 +59,16 @@ def remove_feed_from_file(name, feed_file):
         feeds_list.pop(name)
         file_io.write_json(feed_file, feeds_list)
         return True
-    except(KeyError):
+    except (KeyError):
         return False
 
 
 def update_feed_status(
     feed_name, feeds_file_in, channel_in=None, url_status=None, channel_status=None
-    ):
+):
     '''
     Update the fields for a feed in `feeds_file`
-    
+
     `feed_name`:        Identifiable name for the feed
     `feeds_file_in`:       The file in where to update feed
     `channel_in`:       The channel to receive feed updates
@@ -81,12 +80,13 @@ def update_feed_status(
     if url_status:
         feeds_file[feed_name]['status']['url'] = str(url_status).lower()
     if channel_status:
-        feeds_file[feed_name]['status']['channel'] = str(channel_status).lower()
+        feeds_file[feed_name]['status']['channel'] = str(
+            channel_status).lower()
     if channel_in:
         feeds_file[feed_name]['channel'] = str(channel_in).lower()
     file_io.write_json(feeds_file_in, feeds_file)
     return True
-    
+
 
 def get_feed_links(url):
     'Get the links from a RSS-feeds `url`'
@@ -103,8 +103,9 @@ def get_feed_links(url):
     # Try normal RSS
     if '<rss version="' in str(soup).lower():
         try:
-            feed_in = etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
-        except(etree.XMLSyntaxError):
+            feed_in = etree.fromstring(
+                req.content, parser=etree.XMLParser(encoding='utf-8'))
+        except (etree.XMLSyntaxError):
             return None
         for item in feed_in.xpath('/rss/channel/item')[0:2]:
             try:
@@ -258,13 +259,14 @@ async def process_links_for_posting_or_editing(
     FEED_LOG = file_io.read_json(feed_log_file)
     try:
         FEED_LOG[feed]
-    except(KeyError):
+    except (KeyError):
         FEED_LOG[feed] = []
     for feed_link in FEED_POSTS[0:2]:
         log.log_more(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
         if not link_is_in_log(feed_link, FEED_LOG[feed]):
-            feed_link_similar = link_similar_to_logged_post(feed_link, FEED_LOG[feed])
+            feed_link_similar = link_similar_to_logged_post(
+                feed_link, FEED_LOG[feed])
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
                 log.log_more(f'Posting link `{feed_link}`')

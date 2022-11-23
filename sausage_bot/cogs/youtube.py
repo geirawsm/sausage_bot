@@ -167,7 +167,7 @@ Examples:
             feed_name, _vars.yt_feeds_file
         )
         if removal:
-            log.log_to_bot_channel(
+            await log.log_to_bot_channel(
                 _vars.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
             )
             await ctx.send(
