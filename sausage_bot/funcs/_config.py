@@ -4,6 +4,7 @@
 
 import discord
 from discord.ext import commands
+import json
 import sys
 import os
 from . import _vars, file_io
@@ -12,7 +13,7 @@ from ..log import log
 
 # Create necessary files before starting
 if not os.path.exists(_vars.env_file):
-    file_io.write_json(_vars.env_file, file_template=_vars.env_template)
+    file_io.write_json(_vars.env_file, _vars.env_template)
     print(
         f'Created {_vars.env_file} file. Enter information for the bot. '
         'Check the README.md for more info.'
@@ -31,7 +32,14 @@ def add_cog_envs_to_env_file(cog_name, cog_envs):
 
 
 def config():
-    return file_io.read_json(_vars.env_file)
+    try:
+        with open(_vars.env_file) as f:
+            return dict(json.load(f))
+    except json.JSONDecodeError as e:
+        log.log(f"Error when reading json from {_vars.env_file}:\n{e}")
+    except OSError as e:
+        log.log(f"File can't be read {_vars.env_file}:\n{e}")
+    return None
 
 
 # Check all basic env values
