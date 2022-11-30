@@ -44,8 +44,8 @@ def add_feed_to_file(name, feed_link, channel, user_add, feeds_filename):
         'added': date_now,
         'added by': user_add,
         'status': {
-             'url': 'added',
-             'channel': 'ok'
+            'url': 'added',
+            'channel': 'ok'
         }
     }
     file_io.write_json(feeds_filename, feeds_file)
@@ -64,26 +64,43 @@ def remove_feed_from_file(name, feed_file):
 
 
 def update_feed_status(
-    feed_name, feeds_file_in, channel_in=None, url_status=None, channel_status=None
+    feed_name, feeds_file_in, channel_in=None, url_in=None,
+    url_status=None, channel_status=None, new_feed_name=None
 ):
     '''
     Update the fields for a feed in `feeds_file`
 
     `feed_name`:        Identifiable name for the feed
-    `feeds_file_in`:       The file in where to update feed
+    `feeds_file_in`:    The file in where to update feed
     `channel_in`:       The channel to receive feed updates
+    `url_in`:           The feed's url
     `url_status`:       The status of the url
     `channel_status`:   The status of the channel
     '''
     feed_name = str(feed_name)
     feeds_file = file_io.read_json(feeds_file_in)
     if url_status:
+        log.log('Update URL status')
         feeds_file[feed_name]['status']['url'] = str(url_status).lower()
     if channel_status:
+        log.log('Update channel status')
         feeds_file[feed_name]['status']['channel'] = str(
             channel_status).lower()
     if channel_in:
+        log.log('Update channel to post to')
         feeds_file[feed_name]['channel'] = str(channel_in).lower()
+    if url_in:
+        log.log('Update url to post from')
+        feeds_file[feed_name]['url'] = str(url_in).lower()
+    if new_feed_name:
+        log.log('Update feed name')
+        if feed_name in feeds_file:
+            log.log(f'Changing name from `{feed_name}` to `{new_feed_name}`')
+            feeds_file[new_feed_name] = feeds_file[feed_name]
+            feeds_file.pop(feed_name)
+        else:
+            log.log('Feed name does not exist')
+            return False
     file_io.write_json(feeds_file_in, feeds_file)
     return True
 
@@ -125,7 +142,7 @@ def get_feed_links(url):
 def get_feed_list(feeds_file, long=False):
     '''
     Get a prettified list of feeds from `feeds_file`.
-    
+
     Get some extra field if `long` is given.
     '''
     def get_feed_item_lengths(feeds_file):
@@ -188,23 +205,24 @@ def get_feed_list(feeds_file, long=False):
     return text_out
 
 
-def review_feeds_status(feeds):
+def review_feeds_status(feeds_file):
     'Get a status for a feed from `feeds` and update it in source file'
-    for feed in feeds:
-        log.log('{}: {}'.format(feed, feeds[feed]['status']))
-        URL = feeds[feed]['url']
-        URL_STATUS = feeds[feed]['status']['url']
+    feeds_file_in = file_io.read_json(feeds_file)
+    for feed in feeds_file_in:
+        log.log('{}: {}'.format(feed, feeds_file_in[feed]['status']))
+        URL = feeds_file_in[feed]['url']
+        URL_STATUS = feeds_file_in[feed]['status']['url']
         if URL_STATUS == 'stale':
             log.log('Feed url for {} is stale, checking it...'.format(feed))
             if get_feed_links(URL) is not None:
                 log.log('Feed url for {} is ok, reactivating!'.format(feed))
-                update_feed_status(feed, url_status='ok')
+                update_feed_status(feed, feeds_file, url_status='ok')
                 break
             elif get_feed_links(URL) is None:
                 log.log('Feed url for {} is still stale, skipping'.format(feed))
                 break
-        CHANNEL = feeds[feed]['channel']
-        CHANNEL_STATUS = feeds[feed]['status']['channel']
+        CHANNEL = feeds_file_in[feed]['channel']
+        CHANNEL_STATUS = feeds_file_in[feed]['status']['channel']
         if CHANNEL_STATUS == 'unlisted':
             log.log(
                 'Feed channel {} for {} is unlisted, checking it...'.format(
@@ -217,7 +235,7 @@ def review_feeds_status(feeds):
                         CHANNEL, feed
                     )
                 )
-                update_feed_status(feed, channel_status='ok')
+                update_feed_status(feed, feeds_file, channel_status='ok')
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:

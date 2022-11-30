@@ -36,7 +36,7 @@ Examples:
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @rss.group(name='add')
+    @rss.group(name='add', invoke_without_command=True)
     async def add(self, ctx, feed_name=None, feed_link=None, channel=None):
         '''
         Add an RSS feed to a specific channel
@@ -96,6 +96,82 @@ Examples:
             elif not CHANNEL_OK:
                 await ctx.send(_vars.CHANNEL_NOT_FOUND)
                 return
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @rss.group(name='edit', invoke_without_command=True)
+    async def rss_edit(self, ctx):
+        '''
+        Edit a feed listing. You can edit `channel`, `name` and `url`
+        '''
+        pass
+
+    @rss_edit.group(name='channel')
+    async def rss_edit_channel(self, ctx, feed_name=None, channel=None):
+        f'''
+        Edit a feed's channel: {_config.PREFIX}rss edit channel [feed_name] [channel_in]
+
+        `feed_name`:    The feed to change channel
+        `channel_in`:   New channel
+        '''
+        if feed_name is None:
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        elif channel is None:
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        if discord_commands.channel_exist(channel):
+            feeds_core.update_feed_status(
+                feed_name, _vars.rss_feeds_file, channel_in=channel
+            )
+        return
+
+    @rss_edit.group(name='name')
+    async def rss_edit_name(self, ctx, feed_name=None, new_feed_name=None):
+        f'''
+        Edit the name of a feed: `{_config.PREFIX}rss edit name [feed_name] [new_feed_name]`
+
+        `feed_name`:        The name of the RSS-/XML-feed
+
+        `new_feed_name`:    The new name of the feed
+        '''
+        if feed_name is None:
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        elif new_feed_name is None:
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        feeds_core.update_feed_status(
+            feed_name, _vars.rss_feeds_file, new_feed_name=new_feed_name
+        )
+        return
+
+    @rss_edit.group(name='url')
+    async def rss_edit_url(self, ctx, feed_name=None, url=None):
+        'Edit the url for a feed'
+        if feed_name is None:
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        elif url is None:
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        feeds_core.update_feed_status(
+            feed_name, _vars.rss_feeds_file, url_in=url
+        )
+        return
 
     @commands.check_any(
         commands.is_owner(),
@@ -121,31 +197,6 @@ Examples:
             await log.log_to_bot_channel(
                 _vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
-    @rss.group(name='channel')
-    async def channel(self, ctx, feed_name, channel_in, feeds_file):
-        '''
-        Edit a feed's channel: !rss channel [feed_name] [channel_in]
-
-        `feed_name`:    The feed to change channel
-        `channel_in`:   New channel
-        `feeds_file`:   The file for updating
-        '''
-        AUTHOR = ctx.message.author.name
-        feeds_core.update_feed_status(
-            feed_name, feeds_file, channel_in=channel_in)
-        await ctx.send(
-            _vars.RSS_CHANGED_CHANNEL.format(
-                feed_name, channel_in)
-        )
-        await log.log_to_bot_channel(
-            _vars.RSS_FEED_CHANNEL_CHANGE.format(AUTHOR, feed_name, channel_in)
-        )
         return
 
     @rss.group(name='list')
@@ -175,17 +226,17 @@ Examples:
             if feeds is None:
                 log.log(_vars.RSS_NO_FEEDS_FOUND)
                 return
+        # Make sure that the feed links aren't stale / 404
+        feeds_core.review_feeds_status(_vars.rss_feeds_file)
         log.log_more('Got these feeds:')
         for feed in feeds:
             log.log_more('- {}'.format(feed))
-        # Make sure that the feed links aren't stale / 404
-        feeds_core.review_feeds_status(feeds)
         # Start processing per feed settings
         for feed in feeds:
             CHANNEL = feeds[feed]['channel']
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
-                feeds_core.update_feed_status(feed, channel_status='unlisted')
+                feeds_core.update_feed_status(feed, _vars.rss_feeds_file, channel_status='unlisted')
                 msg_out = _vars.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
                 )
