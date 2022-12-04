@@ -71,20 +71,20 @@ class Youtube(commands.Cog):
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
-        '''Uses `add` and `remove` to administer what Youtube channels to post
+        f'''Uses `add` and `remove` to administer what Youtube channels to post
 to any given channels on the Discord server.
 
 `list` returns a list over the feeds that are active as of now.
 
 Examples:
 ```
-!youtube add [name of youtube feed] [youtube channel's url] [youtube feed posting channel]
+{_config.PREFIX}youtube add [name of youtube feed] [youtube channel's url] [youtube feed posting channel]
 
-!youtube remove [name of youtube feed]
+{_config.PREFIX}youtube remove [name of youtube feed]
 
-!youtube list
+{_config.PREFIX}youtube list
 
-!youtube list long
+{_config.PREFIX}youtube list long
 ```'''
         pass
 
@@ -94,8 +94,8 @@ Examples:
     )
     @youtube.group(name='add')
     async def add(self, ctx, feed_name=None, yt_link=None, channel=None):
-        '''
-        Add a Youtube feed to a specific channel: `!youtube add [feed_name] [yt_link] [channel]`
+        f'''
+        Add a Youtube feed to a specific channel: `{_config.PREFIX}youtube add [feed_name] [yt_link] [channel]`
 
         `feed_name`:    The custom name for the feed
 

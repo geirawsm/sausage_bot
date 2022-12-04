@@ -28,8 +28,8 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='add', aliases=['a'])
     async def add(self, ctx, url=None, channel=None, text=None):
-        '''
-        Add a scheduled event: `!autoevent add [url] [channel] [text]`
+        f'''
+        Add a scheduled event: `{_config.PREFIX}autoevent add [url] [channel] [text]`
 
         `channel` should be a voice channel for the event.
 
@@ -124,8 +124,8 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='remove', aliases=['r'])
     async def remove(self, ctx, event_id_in):
-        '''
-        Removes a scheduled event that has not started yet: `!autoevent remove [event_id_in]`
+        f'''
+        Removes a scheduled event that has not started yet: `{_config.PREFIX}autoevent remove [event_id_in]`
 
         You can get `event_id_in` by getting list of all events
         '''
@@ -159,8 +159,8 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='list', aliases=['l'])
     async def list_events(self, ctx):
-        '''
-        Lists all the planned events: `!autoevent list`
+        f'''
+        Lists all the planned events: `{_config.PREFIX}autoevent list`
         '''
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:
@@ -178,10 +178,10 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='sync', aliases=['s'])
     async def sync(self, ctx, start_time, countdown):
-        '''
+        f'''
         Create a timer in the active channel to make it easier for people
         attending an event to sync something that they're watching:
-        `!autoevent timesync [start_time] [countdown]`
+        `{_config.PREFIX}autoevent timesync [start_time] [countdown]`
 
         `start_time`    A start time for the timer or a command for
             deleting the timer.

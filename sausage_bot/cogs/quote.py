@@ -17,13 +17,14 @@ class Quotes(commands.Cog):
 
     @commands.group(name='quote')
     async def quote(self, ctx, number: typing.Optional[int] = None):
-        '''
+        f'''
         Post, add, edit, delete or count quotes
 
-        `!quote` posts a random quote
+        `{_config.PREFIX}quote` posts a random quote
 
-        `!quote [number]` posts a specific quote
+        `{_config.PREFIX}quote [number]` posts a specific quote
         '''
+
         def pretty_quote(number, quote_in):
             'Prettify a quote before posting'
             log.log_more(f'quote_in: {quote_in}')
@@ -72,8 +73,8 @@ class Quotes(commands.Cog):
     )
     @quote.group(name='add')
     async def add(self, ctx, quote_text, quote_date=None):
-        '''
-        Add a quote: `!quote add [quote_text] ([quote_date])`
+        f'''
+        Add a quote: `{_config.PREFIX}quote add [quote_text] ([quote_date])`
 
         `quote_text`:   The quote text. Must be enclosed in quotation marks.
 
@@ -114,8 +115,8 @@ class Quotes(commands.Cog):
     )
     @quote.group(name='edit')
     async def edit(self, ctx, quote_number=None, quote_in=None, custom_date=None):
-        '''
-        Edit an existing quote: `!quote edit [quote_number] [quote_in] [custom_date]`
+        f'''
+        Edit an existing quote: `{_config.PREFIX}quote edit [quote_number] [quote_in] [custom_date]`
 
         `quote_number`: The number of quote to edit.
 
@@ -166,8 +167,8 @@ class Quotes(commands.Cog):
     )
     @quote.group(name='del')
     async def delete(self, ctx, quote_number):
-        '''
-        Delete an existing quote: `!quote delete [quote_number]`
+        f'''
+        Delete an existing quote: `{_config.PREFIX}quote delete [quote_number]`
 
         `quote_number`: The number of quote to edit.
         '''
@@ -214,7 +215,7 @@ class Quotes(commands.Cog):
     
     @quote.group(name='count')
     async def count(self, ctx):
-        '''Count the number of quotes available: `!quote count`'''
+        f'Count the number of quotes available: `{_config.PREFIX}quote count`'
         quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
         await ctx.send(_vars.QUOTE_COUNT.format(quote_count))
         return
