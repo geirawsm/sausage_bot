@@ -138,7 +138,7 @@ Examples:
                         _vars.YOUTUBE_EMPTY_LINK.format(yt_link)
                     )
                     return
-                feeds_core.add_feed_to_file(
+                feeds_core.add_to_feed_file(
                     str(feed_name), str(yt_link), channel, AUTHOR,
                     _vars.yt_feeds_file
                 )

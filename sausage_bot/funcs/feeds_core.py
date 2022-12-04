@@ -23,7 +23,7 @@ def check_feed_validity(url):
         return False
 
 
-def add_feed_to_file(name, feed_link, channel, user_add, feeds_filename):
+def add_to_feed_file(
     '''
     Add a new feed to the feed-json.
 
@@ -52,7 +52,7 @@ def add_feed_to_file(name, feed_link, channel, user_add, feeds_filename):
 
 
 def remove_feed_from_file(name, feed_file):
-    'Remove a new from `feed file` based on `name`'
+    'Remove a feed from `feed file` based on `name`'
     name = str(name)
     feeds_list = file_io.read_json(feed_file)
     try:

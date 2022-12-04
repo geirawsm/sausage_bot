@@ -77,7 +77,7 @@ Examples:
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
-                feeds_core.add_feed_to_file(
+                feeds_core.add_to_feed_file(
                     str(feed_name), str(feed_link), channel, AUTHOR,
                     _vars.rss_feeds_file
                 )
@@ -107,6 +107,10 @@ Examples:
         '''
         pass
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss_edit.group(name='channel')
     async def rss_edit_channel(self, ctx, feed_name=None, channel=None):
         f'''
@@ -131,6 +135,10 @@ Examples:
             )
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss_edit.group(name='name')
     async def rss_edit_name(self, ctx, feed_name=None, new_feed_name=None):
         f'''
@@ -155,6 +163,10 @@ Examples:
         )
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss_edit.group(name='url')
     async def rss_edit_url(self, ctx, feed_name=None, url=None):
         'Edit the url for a feed'
@@ -214,7 +226,7 @@ Examples:
     #Tasks
     @tasks.loop(minutes = 5)
     async def rss_parse():
-        log.log('Starting `rss_parse`')
+        log.debug('Starting `rss_parse`')
         # Update the feeds
         feeds = file_io.read_json(_vars.rss_feeds_file)
         try:
@@ -245,7 +257,7 @@ Examples:
                 return
             URL = feeds[feed]['url']
             log.log('Checking {} ({})'.format(feed, CHANNEL))
-            FEED_POSTS = feeds_core.get_feed_links(URL)
+            log.debug(f'`URL`: `{URL}`')
             if FEED_POSTS is None:
                 log.log(_vars.RSS_FEED_POSTS_IS_NONE.format(feed))
                 return

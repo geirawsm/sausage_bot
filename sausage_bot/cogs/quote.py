@@ -12,6 +12,7 @@ from sausage_bot.log import log
 
 class Quotes(commands.Cog):
     'Administer or post quotes'
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -54,7 +55,11 @@ class Quotes(commands.Cog):
                 if len(recent_quotes_log[log_ctx]) == len(quotes):
                     recent_quotes_log[log_ctx] = []
                     file_io.write_json(_vars.quote_log_file, recent_quotes_log)
-                _rand = random.choice([i for i in range(0, len(quotes)) if str(i) not in recent_quotes_log[log_ctx]])
+                _rand = random.choice(
+                    [i for i in range(0, len(quotes))
+                        if str(i) not in recent_quotes_log[log_ctx]
+                     ]
+                )
                 if str(_rand) not in recent_quotes_log[log_ctx]:
                     recent_quotes_log[log_ctx].append(str(_rand))
                     file_io.write_json(_vars.quote_log_file, recent_quotes_log)
@@ -108,7 +113,6 @@ class Quotes(commands.Cog):
         new_quote_number += 1
         return
 
-
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
@@ -160,7 +164,6 @@ class Quotes(commands.Cog):
         file_io.write_json(_vars.quote_file, quotes)
         return
 
-
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
@@ -172,6 +175,7 @@ class Quotes(commands.Cog):
 
         `quote_number`: The number of quote to edit.
         '''
+
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == _config.BOT_ID:
@@ -189,6 +193,7 @@ class Quotes(commands.Cog):
                 quote_number, quotes[quote_number]['quote'],
                 quotes[quote_number]['datetime'])
         )
+
         def check(reaction, user):
             return user == ctx.author and str(reaction.emoji) == '👍'
 
@@ -212,7 +217,6 @@ class Quotes(commands.Cog):
             await ctx.message.delete()
             return
 
-    
     @quote.group(name='count')
     async def count(self, ctx):
         f'Count the number of quotes available: `{_config.PREFIX}quote count`'

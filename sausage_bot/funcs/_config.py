@@ -24,9 +24,9 @@ if not os.path.exists(_vars.env_file):
 def add_cog_envs_to_env_file(cog_name, cog_envs):
     # Check env values for cog envs and add if necessary
     cogs_status = file_io.read_json(_vars.env_file)
-    log.log_more(f'Got `cogs_status`: {cogs_status}')
+    log.debug(f'Got `cogs_status`: {cogs_status}')
     if cog_name not in cogs_status:
-        log.log_more(f'Adding `{cog_name}` with `{cog_envs}` to `cogs_status`')
+        log.log(f'Adding `{cog_name}` with `{cog_envs}` to `cogs_status`')
         cogs_status[cog_name] = cog_envs
     file_io.write_json(_vars.env_file, cogs_status)
 
