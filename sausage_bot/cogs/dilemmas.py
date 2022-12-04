@@ -66,7 +66,7 @@ class Dilemmas(commands.Cog):
     )
     @dilemmas.group(name='add')
     async def add(self, ctx, dilemmas_in):
-        f'Add a dilemma: `{_config.PREFIX}dilemmas add [dilemmas_in]`'
+        'Add a dilemma: `!dilemmas add [dilemmas_in]`'
         dilemmas = file_io.read_json(_vars.dilemmas_file)
         new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
         log.log_more(

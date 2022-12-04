@@ -18,7 +18,6 @@ class AutoEvent(commands.Cog):
         '''
         Administer match events on the discord server based on a url from a
         supported website.
-        Add, remove or list events.
         '''
         pass
 
@@ -27,18 +26,21 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='add', aliases=['a'])
-    async def add(self, ctx, url=None, channel=None, text=None):
-        f'''
-        Add a scheduled event: `{_config.PREFIX}autoevent add [url] [channel] [text]`
-
-        `channel` should be a voice channel for the event.
-
-        `url` should be a link to a specific match from an accepted site.
-        As of now only match links from nifs.no is parsed.
-
-        `text` is additional text that should be added to the description
-        of the event.
-        '''
+    async def add(
+        self, ctx, url: str = commands.param(
+            default=None,
+            description="URL to match page from nifs.no"
+        ),
+        channel: str = commands.param(
+            default=None,
+            description="Voice channel to run event on"
+        ),
+        text: str = commands.param(
+            default=None,
+            description="Additional text to the event's description"
+        )
+    ):
+        'Add a scheduled event: `!autoevent add [url] [channel] [text]`'
         # React to the command message
         await ctx.message.add_reaction('✅')
         kampchat_img = _vars.STATIC_DIR / 'kampchat.png'
@@ -122,12 +124,13 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='remove', aliases=['r'])
-    async def remove(self, ctx, event_id_in):
-        f'''
-        Removes a scheduled event that has not started yet: `{_config.PREFIX}autoevent remove [event_id_in]`
-
-        You can get `event_id_in` by getting list of all events
-        '''
+    async def remove(
+        self, ctx, event_id_in: int = commands.param(
+            default=None,
+            description="ID for the event to remove. Get ID's from `!autoevent list`"
+        )
+    ):
+        'Removes a scheduled event that has not started yet: `!autoevent remove [event_id_in]`'
         event_dict = discord_commands.get_scheduled_events()
         for event in event_dict:
             _id = event_dict[event]['id']
@@ -174,17 +177,16 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='sync', aliases=['s'])
-    async def sync(self, ctx, start_time, countdown):
-        f'''
-        Create a timer in the active channel to make it easier for people
-        attending an event to sync something that they're watching:
-        `{_config.PREFIX}autoevent timesync [start_time] [countdown]`
-
-        `start_time`    A start time for the timer or a command for
-            deleting the timer.
-        `countdown`     How many seconds should it count down before
-            hitting the `start_time`
-        '''
+    async def sync(
+            self, ctx, start_time: str = commands.param(
+                description="A start time for the timer or a command for deleting the timer"
+            ),
+            countdown: int = commands.param(
+                description="How many seconds should it count down before hitting the `start_time`"
+            )):
+        'Create a timer in the active channel to make it easier for '\
+            'people attending an event to sync something that they\'re '\
+            'watching: `!autoevent timesync [start_time] [countdown]`'
         # Check that `start_time` is a decent time
         if re.match(r'^\d{1,2}[-:.,;_]+\d{1,2}', str(start_time)):
             timer_epoch = datetimefuncs.get_dt() + int(countdown)

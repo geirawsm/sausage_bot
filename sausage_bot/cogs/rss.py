@@ -24,20 +24,7 @@ class RSSfeed(commands.Cog):
 
     @commands.group(name='rss')
     async def rss(self, ctx):
-        '''Uses `add` and `remove` to administer RSS-feeds.
-
-`list` returns a list over the feeds that are active as of now.
-
-Examples:
-```
-!rss add [name for rss] [rss url] [rss posting channel]
-
-!rss remove [name for rss]
-
-!rss list
-
-!rss list long
-```'''
+        'Administer RSS-feeds'
         pass
 
     @commands.check_any(
@@ -45,16 +32,21 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @rss.group(name='add', invoke_without_command=True)
-    async def add(self, ctx, feed_name=None, feed_link=None, channel=None):
-        '''
-        Add an RSS feed to a specific channel
-
-        `feed_name`:    The custom name for the feed
-
-        `feed_link`:    The link to the RSS-/XML-feed
-
-        `channel`:      The channel to post from the feed
-        '''
+    async def add(
+        self, ctx, feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        ),
+        feed_link: str = commands.param(
+            default=None,
+            description="Link to the RSS-/XML-feed"
+        ),
+        channel: str = commands.param(
+            default=None,
+            description="The channel to post from the feed"
+        )
+    ):
+        'Add RSS feed to a specific channel: `!rss add [feed_link] [channel]`'
         AUTHOR = ctx.message.author.name
         URL_OK = False
         CHANNEL_OK = False
@@ -121,13 +113,16 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @rss_edit.group(name='channel')
-    async def rss_edit_channel(self, ctx, feed_name=None, channel=None):
-        f'''
-        Edit a feed's channel: {_config.PREFIX}rss edit channel [feed_name] [channel_in]
-
-        `feed_name`:    The feed to change channel
-        `channel_in`:   New channel
-        '''
+    async def rss_edit_channel(
+            self, ctx, feed_name: str = commands.param(
+                default=None,
+                description="Name of feed"
+            ),
+            channel: str = commands.param(
+                default=None,
+                description="Name of channel"
+            )):
+        'Edit a feed\'s channel: `!rss edit channel [feed_name] [channel]`'
         if feed_name is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
@@ -149,14 +144,18 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @rss_edit.group(name='name')
-    async def rss_edit_name(self, ctx, feed_name=None, new_feed_name=None):
-        f'''
-        Edit the name of a feed: `{_config.PREFIX}rss edit name [feed_name] [new_feed_name]`
-
-        `feed_name`:        The name of the RSS-/XML-feed
-
-        `new_feed_name`:    The new name of the feed
-        '''
+    async def rss_edit_name(
+        self, ctx,
+        feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        ),
+        new_feed_name: str = commands.param(
+            default=None,
+            description="New name of feed"
+        )
+    ):
+        'Edit the name of a feed: `!rss edit name [feed_name] [new_feed_name]`'
         if feed_name is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
@@ -168,7 +167,7 @@ Examples:
             )
             return
         feeds_core.update_feed_status(
-            feed_name, _vars.rss_feeds_file, new_feed_name=new_feed_name
+            feed_name, _vars.rss_feeds_file, name=new_feed_name
         )
         return
 
@@ -177,8 +176,18 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @rss_edit.group(name='url')
-    async def rss_edit_url(self, ctx, feed_name=None, url=None):
-        'Edit the url for a feed'
+    async def rss_edit_url(
+        self, ctx,
+        feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        ),
+        url: str = commands.param(
+            default=None,
+            description="New url for feed"
+        )
+    ):
+        'Edit the url for a feed: `!rss edit url [feed_name] [url]`'
         if feed_name is None:
             await ctx.send(
                 _vars.TOO_FEW_ARGUMENTS
@@ -200,19 +209,25 @@ Examples:
     )
     @rss.group(name='filter')
     async def rss_filter(
-        self, ctx, feed_name=None, add_remove=None, allow_deny=None, filter_in=None
+        self, ctx,
+        feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        ),
+        add_remove: str = commands.param(
+            default=None,
+            description="`Add` or `remove`"
+        ),
+        allow_deny: str = commands.param(
+            default=None,
+            description="Specify if the filter should `allow` or `deny`"
+        ),
+        filter_in: str = commands.param(
+            default=None,
+            description="What to filter a post by"
+        )
     ):
-        f'''
-        Add/remove filter for feed (deny/allow): `{_config.PREFIX}rss filter [feed_name] [add_remove] [allow_deny] [filter_in]`
-
-        `feed_name`:    Name of feed
-
-        `add_remove`:   Add or remove a filter
-
-        `allow_deny`:   Specify if the filter is to `allow` or `deny` content
-
-        `filter_in`:    Content to filter
-        '''
+        'Add/remove filter for feed (deny/allow): `!rss filter [feed name] [add/remove] [allow/deny] [filter]`'
         # Check for empty arguments
         log.debug(f'Local arguments: {locals()}')
         if feed_name is None or add_remove is None or allow_deny is None\
@@ -249,8 +264,13 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @rss.group(name='remove')
-    async def remove(self, ctx, feed_name):
-        '''Remove a feed based on `feed_name`'''
+    async def remove(
+        self, ctx, feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        )
+    ):
+        'Remove a feed based on `feed_name`'
         AUTHOR = ctx.message.author.name
         removal = feeds_core.remove_feed_from_file(
             feed_name, _vars.rss_feeds_file)
@@ -271,13 +291,23 @@ Examples:
         return
 
     @rss.group(name='list')
-    async def list_rss(self, ctx, long=None):
-        'List all active rss feeds on the discord server'
-        if long is None:
-            list_format = feeds_core.get_feed_list(_vars.rss_feeds_file)
-        elif long == 'long':
+    async def list_rss(
+        self, ctx, list_type: str = commands.param(
+            default=None,
+            description="`long` or `filter`"
+        )
+    ):
+        'List all active rss feeds on the discord server: !rss list ([list_type])'
+        if list_type == 'long':
             list_format = feeds_core.get_feed_list(
-                _vars.rss_feeds_file, long=True)
+                _vars.rss_feeds_file, long=True
+            )
+        elif list_type == 'filters':
+            list_format = feeds_core.get_feed_list(
+                _vars.rss_feeds_file, filters=True
+            )
+        else:
+            list_format = feeds_core.get_feed_list(_vars.rss_feeds_file)
         await ctx.send(list_format)
         return
 

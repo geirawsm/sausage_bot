@@ -17,14 +17,12 @@ class Quotes(commands.Cog):
         self.bot = bot
 
     @commands.group(name='quote')
-    async def quote(self, ctx, number: typing.Optional[int] = None):
-        f'''
-        Post, add, edit, delete or count quotes
-
-        `{_config.PREFIX}quote` posts a random quote
-
-        `{_config.PREFIX}quote [number]` posts a specific quote
-        '''
+    async def quote(
+            self, ctx, number: typing.Optional[int] = commands.param(
+                default=None,
+                description="Chose a number if you want a specific quote"
+            )):
+        'Post, add, edit, delete or count quotes: `!quote ([number])`'
 
         def pretty_quote(number, quote_in):
             'Prettify a quote before posting'
@@ -77,15 +75,16 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @quote.group(name='add')
-    async def add(self, ctx, quote_text, quote_date=None):
-        f'''
-        Add a quote: `{_config.PREFIX}quote add [quote_text] ([quote_date])`
-
-        `quote_text`:   The quote text. Must be enclosed in quotation marks.
-
-        `quote_date`:   Set a custom date and time for the quote added
-            (dd.mm.yyyy, HH:MM)
-        '''
+    async def add(
+        self, ctx, quote_text: str = commands.param(
+            description="The quote text (must be enclosed in quotation marks)"
+        ),
+        quote_date: str = commands.param(
+            default=None,
+            description="Set a custom date and time for the quote added (dd.mm.yyyy, HH:MM)"
+        )
+    ):
+        'Add a quote: `!quote add [quote_text] ([quote_date])`'
         # Get file where all the quotes are stored
         quotes = file_io.read_json(_vars.quote_file)
         if quotes is None:
@@ -118,16 +117,20 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @quote.group(name='edit')
-    async def edit(self, ctx, quote_number=None, quote_in=None, custom_date=None):
-        f'''
-        Edit an existing quote: `{_config.PREFIX}quote edit [quote_number] [quote_in] [custom_date]`
-
-        `quote_number`: The number of quote to edit.
-
-        `quote_in`:     The quote text. Must be enclosed in quotation marks.
-
-        `custom_date`:  Set a different date and time.
-        '''
+    async def edit(
+            self, ctx, quote_number: int = commands.param(
+                default=None,
+                description="The number of quote to edit"
+            ),
+            quote_in: str = commands.param(
+                default=None,
+                description="The quote text (must be enclosed in quotation marks)"
+            ),
+            custom_date: str = commands.param(
+                default=None,
+                description="Set a different date and time"
+            )):
+        'Edit an existing quote: `!quote edit [quote_number] [quote_in] [custom_date]`'
         # Get the quote file
         quotes = file_io.read_json(_vars.quote_file)
         if quotes is None:
@@ -169,13 +172,11 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @quote.group(name='del')
-    async def delete(self, ctx, quote_number):
-        f'''
-        Delete an existing quote: `{_config.PREFIX}quote delete [quote_number]`
-
-        `quote_number`: The number of quote to edit.
-        '''
-
+    async def delete(
+        self, ctx, quote_number: int = commands.param(
+            description="The number of quote to edit"
+        )):
+        'Delete an existing quote: `!quote delete [quote_number]`'
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == _config.BOT_ID:
@@ -219,7 +220,7 @@ class Quotes(commands.Cog):
 
     @quote.group(name='count')
     async def count(self, ctx):
-        f'Count the number of quotes available: `{_config.PREFIX}quote count`'
+        'Count the number of quotes available: `!quote count`'
         quote_count = len(file_io.import_file_as_list(_vars.quote_file))-1
         await ctx.send(_vars.QUOTE_COUNT.format(quote_count))
         return

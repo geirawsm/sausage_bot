@@ -71,21 +71,7 @@ class Youtube(commands.Cog):
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
-        f'''Uses `add` and `remove` to administer what Youtube channels to post
-to any given channels on the Discord server.
-
-`list` returns a list over the feeds that are active as of now.
-
-Examples:
-```
-{_config.PREFIX}youtube add [name of youtube feed] [youtube channel's url] [youtube feed posting channel]
-
-{_config.PREFIX}youtube remove [name of youtube feed]
-
-{_config.PREFIX}youtube list
-
-{_config.PREFIX}youtube list long
-```'''
+        'Administer what Youtube channels to post'
         pass
 
     @commands.check_any(
@@ -93,16 +79,20 @@ Examples:
         commands.has_permissions(administrator=True)
     )
     @youtube.group(name='add')
-    async def add(self, ctx, feed_name=None, yt_link=None, channel=None):
-        f'''
-        Add a Youtube feed to a specific channel: `{_config.PREFIX}youtube add [feed_name] [yt_link] [channel]`
-
-        `feed_name`:    The custom name for the feed
-
-        `yt_link`:      The link for the youtube-channel
-
-        `channel`:      The Discord channel to post from the feed
-        '''
+    async def add(
+        self, ctx, feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        ),
+        yt_link: str = commands.param(
+            default=None,
+            description="The link for the youtube-channel"
+        ),
+        channel: str = commands.param(
+            default=None,
+            description="The Discord channel to post from the feed")
+    ):
+        'Add a Youtube feed to a specific channel: `!youtube add [feed_name] [yt_link] [channel]`'
         AUTHOR = ctx.message.author.name
         CHANNEL_OK = False
         if feed_name is None:
@@ -159,9 +149,14 @@ Examples:
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @youtube.group(name='remove')
-    async def remove(self, ctx, feed_name):
-        '''Remove a Youtube feed based on `feed_name`'''
+    @youtube.group(name='remove', aliases=['delete', 'del'])
+    async def remove(
+        self, ctx, feed_name: str = commands.param(
+            default=None,
+            description="Name of feed"
+        )
+    ):
+        'Remove a Youtube feed: `!youtube remove [feed_name]`'
         AUTHOR = ctx.message.author.name
         removal = feeds_core.remove_feed_from_file(
             feed_name, _vars.yt_feeds_file
@@ -183,13 +178,17 @@ Examples:
         return
 
     @youtube.group(name='list')
-    async def list_youtube(self, ctx, long=None):
+    async def list_youtube(
+            self, ctx, list_type: str = commands.param(
+                default=None,
+                description="`long` will give a longer list of the feed"
+            )):
         'List all active Youtube feeds'
-        if long is None:
+        if list_type is None:
             list_format = feeds_core.get_feed_list(_vars.yt_feeds_file)
-        elif long == 'long':
+        elif list_type == 'long':
             list_format = feeds_core.get_feed_list(
-                _vars.yt_feeds_file, long=True)
+                _vars.yt_feeds_file, list_type=True)
         await ctx.send(list_format)
         return
 
