@@ -6,6 +6,14 @@ from sausage_bot.funcs import discord_commands
 from sausage_bot.log import log
 
 
+env_template = {
+    'rss_loop': 5
+}
+_config.add_cog_envs_to_env_file('rss', env_template)
+
+config = _config.config()['rss']
+
+
 class RSSfeed(commands.Cog):
     '''
     Administer RSS-feeds that will autopost to a given channel when published
@@ -222,9 +230,8 @@ Examples:
         await ctx.send(list_format)
         return
 
-
-    #Tasks
-    @tasks.loop(minutes = 5)
+    # Tasks
+    @tasks.loop(minutes=config['rss_loop'])
     async def rss_parse():
         log.debug('Starting `rss_parse`')
         # Update the feeds
