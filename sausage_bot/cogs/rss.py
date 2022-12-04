@@ -104,6 +104,7 @@ Examples:
             elif not CHANNEL_OK:
                 await ctx.send(_vars.CHANNEL_NOT_FOUND)
                 return
+
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
@@ -197,6 +198,56 @@ Examples:
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
+    @rss.group(name='filter')
+    async def rss_filter(
+        self, ctx, feed_name=None, add_remove=None, allow_deny=None, filter_in=None
+    ):
+        f'''
+        Add/remove filter for feed (deny/allow): `{_config.PREFIX}rss filter [feed_name] [add_remove] [allow_deny] [filter_in]`
+
+        `feed_name`:    Name of feed
+
+        `add_remove`:   Add or remove a filter
+
+        `allow_deny`:   Specify if the filter is to `allow` or `deny` content
+
+        `filter_in`:    Content to filter
+        '''
+        # Check for empty arguments
+        log.debug(f'Local arguments: {locals()}')
+        if feed_name is None or add_remove is None or allow_deny is None\
+                or filter_in is None:
+            log.debug('Too few arguments')
+            await ctx.send(
+                _vars.TOO_FEW_ARGUMENTS
+            )
+            return
+        # Check for necessary arguments
+        if add_remove not in ['add', 'remove']:
+            if allow_deny not in ['allow', 'deny']:
+                log.debug('Wrong arguments')
+                await ctx.send(
+                    _vars.TOO_FEW_ARGUMENTS
+                )
+                return
+        feeds = file_io.read_json(_vars.rss_feeds_file)
+        if add_remove == 'remove':
+            # Check if in list, then remove
+            if filter_in in feeds[feed_name]['filter'][allow_deny]:
+                feeds[feed_name]['filter'][allow_deny].remove(filter_in)
+        elif add_remove == 'add':
+            # Check if not in list, then add
+            if filter_in not in feeds[feed_name]['filter'][allow_deny]:
+                feeds[feed_name]['filter'][allow_deny].append(filter_in)
+        log.debug(
+            f'Writing the following to the feed name:\n{feeds[feed_name]}')
+        file_io.write_json(_vars.rss_feeds_file, feeds)
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss.group(name='remove')
     async def remove(self, ctx, feed_name):
         '''Remove a feed based on `feed_name`'''
@@ -255,7 +306,8 @@ Examples:
             CHANNEL = feeds[feed]['channel']
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
-                feeds_core.update_feed_status(feed, _vars.rss_feeds_file, channel_status='unlisted')
+                feeds_core.update_feed_status(
+                    feed, _vars.rss_feeds_file, channel_status='unlisted')
                 msg_out = _vars.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
                 )
@@ -263,8 +315,12 @@ Examples:
                 await log.log_to_bot_channel(msg_out)
                 return
             URL = feeds[feed]['url']
+            FILTERS = feeds[feed]['filter']
             log.log('Checking {} ({})'.format(feed, CHANNEL))
             log.debug(f'`URL`: `{URL}`')
+            log.debug(f'`FILTERS`: `{FILTERS}`')
+            FEED_POSTS = feeds_core.get_feed_links(URL, FILTERS)
+            log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(_vars.RSS_FEED_POSTS_IS_NONE.format(feed))
                 return

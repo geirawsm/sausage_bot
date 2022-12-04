@@ -24,13 +24,18 @@ def check_feed_validity(url):
 
 
 def add_to_feed_file(
+        name, feed_link=None, channel=None, user_add=None,
+        feeds_filename=None, filter_allow=None,
+        filter_deny=None):
     '''
-    Add a new feed to the feed-json.
+    Add a an item to the feed-json.
 
     `name`:         The identifiable name of the added feed
     `feed_link`:    The link for the feed
     `channel`       The discord channel to post the feed to
     `user_add`      The user who added the feed
+    `filter_allow`  The allow-filter for the feed
+    `filter_deny`   The deny-filter for the feed
     '''
     # Test the link first
     test_link = net_io.get_link(feed_link)
@@ -41,6 +46,10 @@ def add_to_feed_file(
     feeds_file[name] = {
         'url': feed_link,
         'channel': channel,
+        'filter': {
+            'allow': [],
+            'deny': []
+        },
         'added': date_now,
         'added by': user_add,
         'status': {
@@ -64,39 +73,55 @@ def remove_feed_from_file(name, feed_file):
 
 
 def update_feed_status(
-    feed_name, feeds_file_in, channel_in=None, url_in=None,
-    url_status=None, channel_status=None, new_feed_name=None
+    feed_name, feeds_file_in, action=None, channel=None, url=None,
+    status_url=None, status_channel=None, name=None
 ):
     '''
     Update the fields for a feed in `feeds_file`
 
     `feed_name`:        Identifiable name for the feed
     `feeds_file_in`:    The file in where to update feed
-    `channel_in`:       The channel to receive feed updates
-    `url_in`:           The feed's url
-    `url_status`:       The status of the url
-    `channel_status`:   The status of the channel
+    `action`:           What action to perform on the item:
+                        Command     Alternatives
+                        'add'
+                        'edit'      'change'
+                        'remove'    'delete'
+
+    `channel`:       The channel to receive feed updates
+    `url`:           The feed's url
+    `status_url`:       The status of the url
+    `status_channel`:   The status of the channel
     '''
+    ACTION_ADD = ['add']
+    ACTION_EDIT = ['edit', 'change']
+    ACTION_REMOVE = ['remove', 'delete']
+    ACTION_ALL = ACTION_ADD + ACTION_EDIT + ACTION_REMOVE
     feed_name = str(feed_name)
     feeds_file = file_io.read_json(feeds_file_in)
-    if url_status:
-        log.log('Update URL status')
-        feeds_file[feed_name]['status']['url'] = str(url_status).lower()
-    if channel_status:
-        log.log('Update channel status')
-        feeds_file[feed_name]['status']['channel'] = str(
-            channel_status).lower()
-    if channel_in:
-        log.log('Update channel to post to')
-        feeds_file[feed_name]['channel'] = str(channel_in).lower()
-    if url_in:
-        log.log('Update url to post from')
-        feeds_file[feed_name]['url'] = str(url_in).lower()
-    if new_feed_name:
+    func_args = locals()
+    for arg_name in ['feed_name', 'feeds_file_in', 'action', 'name']:
+        func_args.pop(arg_name)
+    if not action or action not in ACTION_ALL:
+        log.log('Check your input for `action`')
+        return None
+    for arg in func_args:
+        if func_args[arg]:
+            log.log(f'Update `{arg}` status')
+            dict_item = feeds_file[feed_name]
+            if '_' in arg:
+                arg_split = arg.split('_')
+                dict_item = dict_item[arg_split[0]][arg_split[1]]
+            else:
+                dict_item = dict_item[arg]
+            if action in ACTION_ADD or action in ACTION_EDIT:
+                dict_item = str(func_args[arg]).lower()
+            elif action in ACTION_REMOVE:
+                feeds_file[feed_name]['status'][arg] = None
+    if name:
         log.log('Update feed name')
         if feed_name in feeds_file:
-            log.log(f'Changing name from `{feed_name}` to `{new_feed_name}`')
-            feeds_file[new_feed_name] = feeds_file[feed_name]
+            log.log(f'Changing name from `{feed_name}` to `{name}`')
+            feeds_file[name] = feeds_file[feed_name]
             feeds_file.pop(feed_name)
         else:
             log.log('Feed name does not exist')
@@ -105,8 +130,54 @@ def update_feed_status(
     return True
 
 
-def get_feed_links(url):
+def get_feed_links(url, filters):
     'Get the links from a RSS-feeds `url`'
+
+    def filter_link(link, filters):
+        '''
+        Check if the link is allowed first, then if it is denied
+        '''
+        log.debug('Starting `filter_link`')
+        title_in = link['title']
+        link_in = link['link']
+        desc_in = link['description']
+        log.debug(f'Got these filters: {filters}')
+        log.debug(f'Allow: {filters["allow"]}')
+        log.debug(f'Deny: {filters["deny"]}')
+        if len(filters['allow']) >= 1:
+            log.debug(f'Found allow filter: `{filters["allow"]}`')
+            if any(
+                    filter in title_in for filter in filters['allow']
+                ) or\
+                    any(filter in desc_in for filter in filters['allow']):
+                if filters['deny'] and (
+                    any(
+                        filter not in title_in for filter in filters['deny']
+                        or any(
+                        filter not in desc_in for filter in filters['deny']
+                        )
+                    )
+                ):
+                    log.debug(f'...and a deny filter: `{filters["deny"]}`')
+                    return link_in
+                else:
+                    log.debug('...but no deny filter')
+                    return
+        elif len(filters['deny']) >= 1:
+            log.debug('Found no allow filter, but deny')
+            if any(
+                filter not in title_in for filter in filters['deny']
+            ) or any(
+                    filter not in desc_in for filter in filters['deny']
+            ):
+                log.debug('Did not trigger deny filter in title, adding link')
+                return link_in
+            else:
+                log.debug('Deny-filter triggered, not posting')
+        else:
+            log.debug(f'No active filters, adding link: `{link_in}`')
+            return link_in
+
     # Get the url and make it parseable
     req = net_io.get_link(url)
     if req is None:
@@ -116,6 +187,7 @@ def get_feed_links(url):
     except Exception as e:
         log.log(_vars.RSSCORE_SOUP_ERROR.format(url, e))
         return None
+    links_filter = []
     links = []
     # Try normal RSS
     if '<rss version="' in str(soup).lower():
@@ -127,19 +199,41 @@ def get_feed_links(url):
         for item in feed_in.xpath('/rss/channel/item')[0:2]:
             try:
                 link = item.xpath("./link/text()")[0].strip()
-            except(IndexError):
+                title = item.findtext("./title")
+                description = item.findtext("./description")
+                links_filter.append(
+                    {
+                        'title': title,
+                        'description': description,
+                        'link': link
+                    }
+                )
+            except (IndexError):
                 log.log(_vars.RSSCORE_LINK_INDEX_ERROR.format(item, url))
-            # TODO Is this still necessary?
-            if 'wp.blgr.app' in link:
-                link = link.replace('wp.blgr.app', 'www.blaugrana.no')
-            links.append(link)
     elif '<feed xml' in str(soup):
         for entry in soup.findAll('entry')[0:2]:
-            links.append(entry.find('link')['href'])
+            link = entry.find('link')['href']
+            title = entry.find('title')
+            description = entry.find('description')
+            if 'wp.blgr.app' in link:
+                link = link.replace('wp.blgr.app', 'www.blaugrana.no')
+            links_filter.append(
+                {
+                    'title': title,
+                    'description': description,
+                    'link': link
+                }
+            )
+    for link in links_filter:
+        link = filter_link(link, filters)
+        if link:
+            log.debug(f'Appending link: `{link}`')
+            links.append(link)
+    log.debug(f'Returning `links`: {links}')
     return links
 
 
-def get_feed_list(feeds_file, long=False):
+def get_feed_list(feeds_file, long=False, filters=False):
     '''
     Get a prettified list of feeds from `feeds_file`.
 
@@ -149,7 +243,10 @@ def get_feed_list(feeds_file, long=False):
         'Get max lengths of items in `feeds_file`'
         feed_len = 0
         url_len = 0
-        channel_len = 0
+        channel_len = 8
+        filters_len = 7
+        filter_allow_len = 12
+        filter_deny_len = 11
         added_len = 0
         added_by_len = 0
         for feed in feeds_file:
@@ -160,45 +257,110 @@ def get_feed_list(feeds_file, long=False):
                 url_len = len(_feed['url'])
             if len(_feed['channel']) > channel_len:
                 channel_len = len(_feed['channel'])
+            if len(_feed['filter']['allow']) > 0:
+                for _allow in _feed['filter']['allow']:
+                    if len(_allow) > filter_allow_len:
+                        filter_allow_len = len(_allow)
+                        filter_allow_len += len(_feed['filter']['allow']) * 2
+            if len(_feed['filter']['deny']) > 0:
+                for _deny in _feed['filter']['deny']:
+                    if len(_deny) > filter_deny_len:
+                        filter_deny_len = len(_feed['filter']['deny'])
+                        filter_deny_len += len(_feed['filter']['deny']) * 2
             if len(_feed['added']) > added_len:
                 added_len = len(_feed['added'])
             if len(_feed['added by']) > added_by_len:
                 added_by_len = len(_feed['added by'])
         return {'feed_len': feed_len, 'url_len': url_len,
-                'channel_len': channel_len, 'added_len': added_len,
+                'channel_len': channel_len,
+                'filters_len': filters_len,
+                'filter_allow_len': filter_allow_len,
+                'filter_deny_len': filter_deny_len,
+                'added_len': added_len,
                 'added_by_len': added_by_len}
 
     feeds_file = file_io.read_json(feeds_file)
     text_out = ''
     lengths = get_feed_item_lengths(feeds_file)
     if long:
-        template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}} | {:{added_len}} | {:{added_by_len}}'
+        template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}} | {:{filters}} | {:{added_len}} | {:{added_by_len}}'
         # Add headers first
-        text_out += template_line.format('Name', 'Feed', 'Channel', 'Added',
-            'Added by', feed_len=lengths['feed_len'], url_len=lengths['url_len'],
-            channel_len=lengths['channel_len'], added_len=lengths['added_len'],
-            added_by_len=lengths['added_by_len'])
+        text_out += template_line.format(
+            'Name', 'Feed', 'Channel', 'Filters', 'Added', 'Added by',
+            feed_len=lengths['feed_len'], url_len=lengths['url_len'],
+            channel_len=lengths['channel_len'],
+            filters=lengths['filters_len'],
+            added_len=lengths['added_len'],
+            added_by_len=lengths['added_by_len']
+        )
         text_out += '\n'
         for feed in feeds_file:
             _feed = feeds_file[feed]
-            text_out += template_line.format(feed, _feed['url'], _feed['channel'],
-                _feed['added'], _feed['added by'], feed_len=lengths['feed_len'],
-                url_len=lengths['url_len'], channel_len=lengths['channel_len'],
-                added_len=lengths['added_len'], added_by_len=lengths['added_by_len'])
+            if len(_feed['filter']['allow']) > 0 or\
+                    len(_feed['filter']['deny']) > 0:
+                filter_status = 'Yes'
+            else:
+                filter_status = 'No'
+            text_out += template_line.format(
+                feed, _feed['url'], _feed['channel'],
+                filter_status, _feed['added'], _feed['added by'],
+                feed_len=lengths['feed_len'], url_len=lengths['url_len'],
+                channel_len=lengths['channel_len'],
+                filters=lengths['filters_len'],
+                added_len=lengths['added_len'],
+                added_by_len=lengths['added_by_len']
+            )
+            if feed != list(feeds_file)[-1]:
+                text_out += '\n'
+    elif filters:
+        template_line = '{:{feed_len}} | {:{filter_allow}} | {:{filter_deny}}'
+        # Add headers first
+        text_out += template_line.format(
+            'Name', 'Filter allow', 'Filter deny',
+            feed_len=lengths['feed_len'],
+            filter_allow=lengths['filter_allow_len'],
+            filter_deny=lengths['filter_deny_len']
+        )
+        text_out += '\n'
+        for feed in feeds_file:
+            _feed = feeds_file[feed]
+            if _feed['filter']['allow'] == 0:
+                _feed['filter']['allow'] = ""
+            if _feed['filter']['deny'] == 0:
+                _feed['filter']['deny'] = ""
+            allow_items = ''
+            deny_items = ''
+            for item in _feed['filter']['allow']:
+                allow_items += item
+                if item != _feed['filter']['allow'][:-1]:
+                    allow_items += ', '
+            for item in _feed['filter']['deny']:
+                deny_items += item
+                if item != _feed['filter']['deny'][:-1]:
+                    deny_items += ', '
+            text_out += template_line.format(
+                feed, allow_items, deny_items,
+                feed_len=lengths['feed_len'],
+                filter_allow=lengths['filter_allow_len'],
+                filter_deny=lengths['filter_deny_len']
+            )
             if feed != list(feeds_file)[-1]:
                 text_out += '\n'
     else:
         template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}}'
         # Add headers first
-        text_out += template_line.format('Name', 'Feed', 'Channel',
-            feed_len=lengths['feed_len'], url_len=lengths['url_len'],
-            channel_len=lengths['channel_len'])
+        text_out += template_line.format(
+            'Name', 'Feed', 'Channel', feed_len=lengths['feed_len'],
+            url_len=lengths['url_len'], channel_len=lengths['channel_len']
+        )
         text_out += '\n'
         for feed in feeds_file:
             _feed = feeds_file[feed]
-            text_out += template_line.format(feed, _feed['url'], _feed['channel'],
+            text_out += template_line.format(
+                feed, _feed['url'], _feed['channel'],
                 feed_len=lengths['feed_len'], url_len=lengths['url_len'],
-                channel_len=lengths['channel_len'])
+                channel_len=lengths['channel_len']
+            )
             if feed != list(feeds_file)[-1]:
                 text_out += '\n'
     text_out = '```{}```'.format(text_out)
@@ -216,7 +378,7 @@ def review_feeds_status(feeds_file):
             log.log('Feed url for {} is stale, checking it...'.format(feed))
             if get_feed_links(URL) is not None:
                 log.log('Feed url for {} is ok, reactivating!'.format(feed))
-                update_feed_status(feed, feeds_file, url_status='ok')
+                update_feed_status(feed, feeds_file, url='ok')
                 break
             elif get_feed_links(URL) is None:
                 log.log('Feed url for {} is still stale, skipping'.format(feed))
@@ -235,7 +397,7 @@ def review_feeds_status(feeds_file):
                         CHANNEL, feed
                     )
                 )
-                update_feed_status(feed, feeds_file, channel_status='ok')
+                update_feed_status(feed, feeds_file, channel='ok')
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:
@@ -274,13 +436,14 @@ async def process_links_for_posting_or_editing(
     `feed_log_file`:    File containing the logs of posts
     `CHANNEL`:          Discord channel to post/edit
     '''
+    log.debug(f'Here\'s the `FEED_POSTS`: {FEED_POSTS}')
     FEED_LOG = file_io.read_json(feed_log_file)
     try:
         FEED_LOG[feed]
     except (KeyError):
         FEED_LOG[feed] = []
     for feed_link in FEED_POSTS[0:2]:
-        log.log_more(f'Got feed_link `{feed_link}`')
+        log.debug(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
         if not link_is_in_log(feed_link, FEED_LOG[feed]):
             feed_link_similar = link_similar_to_logged_post(
