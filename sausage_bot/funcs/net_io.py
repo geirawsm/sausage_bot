@@ -31,7 +31,7 @@ def get_link(url, cookies=None):
             req = requests.get(url)
     else:
         if re.search(r'^http(s)?', url):
-            log.log('Found scheme in url')
+            log.debug('Found scheme in url')
         elif re.match(r'^((http:\/\/|^https:\/\/))?((www\.))?', url) is not None:
             log.debug('Did not found scheme, adding')
             url = f'https://{url}'
