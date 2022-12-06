@@ -130,7 +130,7 @@ def update_feed_status(
     return True
 
 
-def get_feed_links(url, filters):
+def get_feed_links(url, filters=None):
     'Get the links from a RSS-feeds `url`'
 
     def filter_link(link, filters):
@@ -179,6 +179,7 @@ def get_feed_links(url, filters):
             return link_in
 
     # Get the url and make it parseable
+    log.debug(f'Got these arguments: {locals()}')
     req = net_io.get_link(url)
     if req is None:
         return None
@@ -225,10 +226,13 @@ def get_feed_links(url, filters):
                 }
             )
     for link in links_filter:
-        link = filter_link(link, filters)
-        if link:
-            log.debug(f'Appending link: `{link}`')
-            links.append(link)
+        if filters:
+            link = filter_link(link, filters)
+            if link:
+                log.debug(f'Appending link: `{link}`')
+                links.append(link)
+        else:
+            links.append(link['link'])
     log.debug(f'Returning `links`: {links}')
     return links
 
@@ -271,23 +275,30 @@ def get_feed_list(feeds_file, long=False, filters=False):
                 added_len = len(_feed['added'])
             if len(_feed['added by']) > added_by_len:
                 added_by_len = len(_feed['added by'])
-        return {'feed_len': feed_len, 'url_len': url_len,
-                'channel_len': channel_len,
-                'filters_len': filters_len,
-                'filter_allow_len': filter_allow_len,
-                'filter_deny_len': filter_deny_len,
-                'added_len': added_len,
-                'added_by_len': added_by_len}
+        return {
+            'feed_len': feed_len,
+            'url_len': url_len,
+            'channel_len': channel_len,
+            'filters_len': filters_len,
+            'filter_allow_len': filter_allow_len,
+            'filter_deny_len': filter_deny_len,
+            'added_len': added_len,
+            'added_by_len': added_by_len
+        }
 
     feeds_file = file_io.read_json(feeds_file)
+    # Return None if empty file
+    if len(feeds_file) <= 0:
+        return None
     text_out = ''
     lengths = get_feed_item_lengths(feeds_file)
     if long:
-        template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}} | {:{filters}} | {:{added_len}} | {:{added_by_len}}'
+        template_line = '{:<{feed_len}} | {:<{url_len}} | {:<{channel_len}} | {:<{filters}} | {:<{added_len}} | {:<{added_by_len}}'
         # Add headers first
         text_out += template_line.format(
             'Name', 'Feed', 'Channel', 'Filters', 'Added', 'Added by',
-            feed_len=lengths['feed_len'], url_len=lengths['url_len'],
+            feed_len=lengths['feed_len'],
+            url_len=lengths['url_len'],
             channel_len=lengths['channel_len'],
             filters=lengths['filters_len'],
             added_len=lengths['added_len'],
@@ -304,7 +315,8 @@ def get_feed_list(feeds_file, long=False, filters=False):
             text_out += template_line.format(
                 feed, _feed['url'], _feed['channel'],
                 filter_status, _feed['added'], _feed['added by'],
-                feed_len=lengths['feed_len'], url_len=lengths['url_len'],
+                feed_len=lengths['feed_len'],
+                url_len=lengths['url_len'],
                 channel_len=lengths['channel_len'],
                 filters=lengths['filters_len'],
                 added_len=lengths['added_len'],
@@ -313,7 +325,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
             if feed != list(feeds_file)[-1]:
                 text_out += '\n'
     elif filters:
-        template_line = '{:{feed_len}} | {:{filter_allow}} | {:{filter_deny}}'
+        template_line = '{:<{feed_len}} | {:<{filter_allow}} | {:<{filter_deny}}'
         # Add headers first
         text_out += template_line.format(
             'Name', 'Filter allow', 'Filter deny',
@@ -347,7 +359,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
             if feed != list(feeds_file)[-1]:
                 text_out += '\n'
     else:
-        template_line = '{:{feed_len}} | {:{url_len}} | {:{channel_len}}'
+        template_line = '{:<{feed_len}} | {:<{url_len}} | {:<{channel_len}}'
         # Add headers first
         text_out += template_line.format(
             'Name', 'Feed', 'Channel', feed_len=lengths['feed_len'],
