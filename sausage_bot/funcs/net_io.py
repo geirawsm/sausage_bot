@@ -28,7 +28,10 @@ def get_link(url, cookies=None):
         else:
             req = requests.get(url)
     else:
-        if not re.match(r'(www|http:|https:)+[^\s]+[\w]', url):
+        if re.search(r'^http(s)?', url):
+            log.log('Found scheme in url')
+        elif re.match(r'^((http:\/\/|^https:\/\/))?((www\.))?', url) is not None:
+            log.debug('Did not found scheme, adding')
             url = f'https://{url}'
         try:
             if cookies:
