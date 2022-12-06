@@ -16,6 +16,8 @@ python-youtube = "*"
 tzlocal = "*"
 path = "*"
 instagramy = "*"
+bs4 = "*"
+yt-dlp = "*"
 
 [dev-packages]
 astunparse = "*"
