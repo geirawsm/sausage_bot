@@ -20,9 +20,11 @@ else:
 def get_link(url, cookies=None):
     'Get a requests object from a `url`'
     if type(url) is not str:
+        log.debug('`url` is not string')
         log.log(_vars.RSS_INVALID_URL.format(url))
         return None
     if args.local_parsing:
+        log.debug('Using local parsing')
         if cookies:
             req = requests.get(url, cookies)
         else:
@@ -34,6 +36,7 @@ def get_link(url, cookies=None):
             log.debug('Did not found scheme, adding')
             url = f'https://{url}'
         try:
+            log.debug(f'Trying `url`: {url}')
             if cookies:
                 req = requests.get(url, cookies)
             else:

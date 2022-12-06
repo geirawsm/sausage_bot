@@ -54,7 +54,7 @@ def read_json(json_file):
     Returns _file as a dict or an empty dict.
     '''
     ensure_file(json_file, '{}')
-    try: 
+    try:
         with open(json_file) as f:
             return dict(json.load(f))
     except json.JSONDecodeError as e:
@@ -131,7 +131,7 @@ def get_max_item_lengths(headers, dict_in):
 def check_similarity(text1: str, text2: str) -> bool:
     '''
     Check how similar `text1` and `text2` is. If it resembles eachother by
-    between 95 % to 99.999999995 %, it is considered "similar" and will return
+    between 95 % to 99.999999999999999999999999995 %, it is considered "similar" and will return
     True. Otherwise, return False.
 
     If neither `text1` nor `text2` is a string, it will return None.
@@ -141,7 +141,7 @@ def check_similarity(text1: str, text2: str) -> bool:
         return None
     ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
     # Our "similarity" is defined by the following equation:
-    if 0.95 <= ratio <= 0.99999999995:
+    if 0.95 <= ratio <= 0.99999999999999999999999999995:
         log.log(
             f'These texts seem similiar (ratio: {ratio}):\n'
             f'`{text1}`\n'
