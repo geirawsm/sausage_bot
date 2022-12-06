@@ -5,26 +5,27 @@ import requests
 import bs4
 from ..funcs import net_io
 
+
 def test_get_link():
-    url_ok1 = 'https://www.nifs.no/kampfakta.php?kamp_id=2133607&land=20&t=45&u=690408&lag1=835&lag2=844'
-    url_ok2 = 'www.vg.no'
-    url_ok3 = 'vg.no'
-    url_fail1 = 'htts://www.vg.no'
-    url_fail2 = 'www.vgno'
-    url_fail3 = 123
+    url_ok_full = 'https://www.digi.no'
+    url_ok_short = 'www.vg.no'
+    url_ok_shorter = 'vg.no'
+    url_fail_scheme_error = 'htts://www.vg.no'
+    url_fail_no_tld = 'www.vgno'
+    link_not_string = 123
 
     get_link = net_io.get_link
 
-    assert type(get_link(url_ok1)) == requests.models.Response
-    assert type(get_link(url_ok2)) == requests.models.Response
-    assert type(get_link(url_ok3)) == requests.models.Response
-    assert get_link(url_fail1) == None
-    assert get_link(url_fail2) == None
-    assert get_link(url_fail3) == None
+    assert type(get_link(url_ok_full)) is requests.models.Response
+    assert type(get_link(url_ok_short)) == requests.models.Response
+    assert type(get_link(url_ok_shorter)) == requests.models.Response
+    assert get_link(url_fail_scheme_error) == None
+    assert get_link(url_fail_no_tld) == None
+    assert net_io.get_link(link_not_string) is None
 
 
 def test_scrape_page():
-    url_ok1 = 'https://www.nifs.no/kampfakta.php?kamp_id=2133607&land=20&t=45&u=690408&lag1=835&lag2=844'
+    url_ok1 = 'www.digi.no'
     url_ok2 = 'www.vg.no'
     url_ok3 = 'vg.no'
     url_fail1 = 'htts://www.vg.no'
@@ -42,6 +43,8 @@ def test_scrape_page():
 
 
 def test_make_event_start_stop():
-    date, time = ('17.05.2022', '21:00')
-    
-    assert type(net_io.make_event_start_stop(date, time)) is dict
+    date_yes, time_yes = ('17.05.2022', '21:00')
+    date_yes, time_no = ('17.05.2022', '671:00')
+
+    assert type(net_io.make_event_start_stop(date_yes, time_yes)) is dict
+    assert net_io.make_event_start_stop(date_yes, time_no) is None

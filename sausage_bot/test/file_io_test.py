@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from typing_extensions import assert_type
 import pytest
 from unittest import mock
 from ..funcs import file_io
+from sausage_bot.funcs import _vars
 
 
 def test_write_file_input():
     with mock.patch('sausage_bot.funcs.file_io.open') as _file:
         # Perfect example
-        assert file_io.write_file('sausage_bot/test/out/testfile', 'test') is True
-        # No path, so no file to write to
-        assert file_io.write_file(1234, 'test') is None
+        assert file_io.write_file(
+            'sausage_bot/test/out/testfile', 'test') is True
         # Correct path, turn ints to str
-        assert file_io.write_file('sausage_bot/test/out/testfile', 1234) is True
+        assert file_io.write_file(
+            'sausage_bot/test/out/testfile', 1234) is True
 
 
 def test_import_file_as_list(mocker):
@@ -24,12 +24,12 @@ def test_import_file_as_list(mocker):
     # Valid list
     with mock.patch(
         'sausage_bot.funcs.file_io.open',
-        new=mock.mock_open(read_data="['one', 'two']")) as _file:
+            new=mock.mock_open(read_data="['one', 'two']")) as _file:
         assert file_io.import_file_as_list(_file) == ['one', 'two']
     # Invalid list
     with mock.patch(
         'sausage_bot.funcs.file_io.open',
-        new=mock.mock_open(read_data="['one', 'two")) as _file:
+            new=mock.mock_open(read_data="['one', 'two")) as _file:
         pytest.raises(SyntaxError)
 
 
@@ -60,3 +60,15 @@ def test_read_json(mocker):
         assert file_io.read_json(_file) is None
 
 
+def test_file_size():
+    actual_file = _vars.ROOT_DIR / '__main__.py'
+    non_file = _vars.ROOT_DIR / 'main.py'
+    assert type(file_io.file_size(actual_file)) is int
+    assert file_io.file_size(non_file) is False
+
+
+def test_check_similarity():
+    similar1 = ('tested1', 'tested1')
+    dissimilar1 = ('tested1', 'tested2')
+    assert file_io.check_similarity(similar1[0], similar1[1]) is True
+    assert file_io.check_similarity(dissimilar1[0], dissimilar1[1]) is False

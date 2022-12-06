@@ -2,25 +2,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 import requests
-from ..funcs import feeds_core, net_io, file_io
-
-
-def test_get_link():
-    link_not_string = 1234
-    link_correct = 'https://www.kode24.no/artikkel/ny-utviklingsavdeling-skal-revolusjonere-mattilsynet-vi-ma-torre-a-vaere-mer-risikovillige/76194994'
-    link_error_https = 'httsp://gv.on'
-    link_error_no_scheme_but_correct_address = 'vg.no'
-    link_error_no_scheme_and_wrong_address = 'gv.on'
-    assert net_io.get_link(link_not_string) is None
-    assert type(
-        net_io.get_link(link_correct)
-    ) is requests.models.Response
-    assert net_io.get_link(link_error_https) is None
-    assert type(
-        net_io.get_link(link_error_no_scheme_but_correct_address)
-    ) is requests.models.Response
-    assert net_io.get_link(link_error_no_scheme_and_wrong_address) is None
-
+from ..funcs import feeds_core, file_io
 
 
 def test_check_similarity_return_number_or_none():
