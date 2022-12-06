@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
-from sausage_bot.funcs import _config, _vars, feeds_core, file_io, net_io
+from sausage_bot.funcs import _config, _vars, feeds_core, file_io
 from sausage_bot.funcs import discord_commands
 from sausage_bot.log import log
 import re
+from yt_dlp import YoutubeDL
 
 
 class Youtube(commands.Cog):
@@ -13,61 +14,39 @@ class Youtube(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def get_yt_id(url):
+        'Use yt-dlp to get the ID of a channel'
+        # Get more yt-dlp opts here:
+        # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
+        ydl_opts = {
+            'playlistend': 0,
+            'simulate': True,
+            'quiet': True
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            return info['uploader_id']
+
     def get_videos_from_yt_link(url):
         'Get the 6 last videos from channel'
         log.debug(f'Got `url`: {url}')
-        id_in = url.split('/')[-1]
-        log.debug(f'`id_in` is `{id_in}`')
-        channel_by_username = f'https://www.youtube.com/feeds/videos.xml?user={id_in}'
-        log.debug(f'Got `channel_by_username`: `{channel_by_username}`')
+        id_in = Youtube.get_yt_id(url)
         channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
-        log.debug(f'Got `channel_by_id.items`: `{channel_by_id}`')
-        videos = None
-        # Try to get videos based on username
-        if videos is None:
-            try:
-                videos = feeds_core.get_feed_links(channel_by_username)
-            except:
-                pass
-        # Try to get videos based on ID
-        if videos is None:
-            try:
-                videos = feeds_core.get_feed_links(channel_by_id)
-            except:
-                pass
-        if videos is None:
-            return None
+        log.debug(f'Got `channel_by_id`: `{channel_by_id}`')
+        videos = feeds_core.get_feed_links(channel_by_id)
         video_log = []
-        for video in videos:
+        for video in videos[0:6]:
             video_log.append(video)
         return video_log
 
     def test_link_for_yt_compatibility(url):
         'Test a Youtube-link to make sure it can get videos'
         log.debug(f'Got `url`: {url}')
-        id_in = url.split('/')[-1]
-        log.debug(f'`id_in` is `{id_in}`')
-        channel_by_username = f'https://www.youtube.com/feeds/videos.xml?user={id_in}'
-        log.debug(f'Got `channel_by_username`: `{channel_by_username}`')
+        id_in = Youtube.get_yt_id(url)
         channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
         log.debug(f'Got `channel_by_id.items`: `{channel_by_id}`')
-        test_ok = None
-        # Try to get videos based on username
-        if test_ok is None:
-            try:
-                test_ok = feeds_core.get_feed_links(channel_by_username)
-            except:
-                pass
-        # Try to get videos based on ID
-        if test_ok is None:
-            try:
-                test_ok = feeds_core.get_feed_links(channel_by_id)
-            except:
-                pass
-        if test_ok is not None:
-            return True
-        else:
-            return False
+        videos = feeds_core.get_feed_links(channel_by_id)
+        return videos[0]
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
@@ -184,12 +163,22 @@ class Youtube(commands.Cog):
                 description="`long` will give a longer list of the feed"
             )):
         'List all active Youtube feeds'
-        if list_type is None:
-            list_format = feeds_core.get_feed_list(_vars.yt_feeds_file)
-        elif list_type == 'long':
+        if list_type == 'long':
             list_format = feeds_core.get_feed_list(
-                _vars.yt_feeds_file, list_type=True)
-        await ctx.send(list_format)
+                _vars.yt_feeds_file, long=True
+            )
+        elif list_type == 'filters':
+            list_format = feeds_core.get_feed_list(
+                _vars.yt_feeds_file, filters=True
+            )
+        else:
+            list_format = feeds_core.get_feed_list(
+                _vars.yt_feeds_file
+            )
+        if list_format is not None:
+            await ctx.send(list_format)
+        else:
+            await ctx.send('No feeds added')
         return
 
     async def process_links_for_posting_or_editing(
