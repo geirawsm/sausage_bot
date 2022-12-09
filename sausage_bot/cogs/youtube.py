@@ -8,6 +8,14 @@ import re
 from yt_dlp import YoutubeDL
 
 
+env_template = {
+    'youtube_loop': 5
+}
+_config.add_cog_envs_to_env_file('youtube', env_template)
+
+config = _config.config()['youtube']
+
+
 class Youtube(commands.Cog):
     'Autopost new videos from given Youtube channels'
 
@@ -206,7 +214,7 @@ class Youtube(commands.Cog):
 
     # Tasks
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=config['youtube_loop'])
     async def youtube_parse():
         log.log('Starting `youtube_parse`')
         # Update the feeds
