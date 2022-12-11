@@ -267,7 +267,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
 
         # Sort cogs first
         cogs_file = dict(sorted(cogs_file.items()))
-        text_out = ''
+        text_out = '```'
         lengths = get_cog_item_lengths(cogs_file)
         template_line = '{:{cog_len}} | {:{status_len}}'
         # Add headers first
@@ -282,7 +282,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
             status_len = lengths['status_len'])
             if cog != list(cogs_file)[-1]:
                 text_out += '\n'
-        text_out = '```{}```'.format(text_out)
+        text_out += '```'
         return text_out
 
     if cmd_in == 'enable':
