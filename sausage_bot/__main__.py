@@ -217,12 +217,31 @@ async def ban(ctx, member: discord.Member, *, reason=None):
 @_config.bot.command()
 @commands.check_any(
     commands.is_owner(),
-    commands.has_permissions(ban_members=True)
+    commands.has_permissions(manage_messages=True)
 )
 async def say(ctx, *, text):
     'Make the bot say something'
     await ctx.message.delete()
     await ctx.send(f"{text}")
+    return
+
+
+@_config.bot.command()
+@commands.check_any(
+    commands.is_owner(),
+    commands.has_permissions(manage_messages=True)
+)
+async def edit(ctx, *, text):
+    'Make the bot rephrase something it has said'
+    if ctx.message.reference is None:
+        await ctx.send('You have to reply to a message: `!edit [text]`')
+        return
+    elif ctx.message.reference.message_id:
+        msgid = ctx.message.reference.message_id
+        edit_msg = await ctx.fetch_message(msgid)
+        await edit_msg.edit(content=text)
+        await ctx.message.delete()
+        return
 
 
 @_config.bot.command()
