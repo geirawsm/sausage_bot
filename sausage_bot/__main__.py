@@ -267,22 +267,27 @@ async def cog(ctx, cmd_in=None, *cog_names):
 
         # Sort cogs first
         cogs_file = dict(sorted(cogs_file.items()))
+        log.debug(f'Got this from `cogs_file`:\n{cogs_file}')
         text_out = '```'
         lengths = get_cog_item_lengths(cogs_file)
         template_line = '{:{cog_len}} | {:{status_len}}'
         # Add headers first
-        text_out += template_line.format('Cog', 'Status',
-            cog_len = lengths['cog_len'],
-            status_len = lengths['status_len']
+        text_out += template_line.format(
+            'Cog', 'Status', cog_len=lengths['cog_len'],
+            status_len=lengths['status_len']
         )
+        log.debug(f'Added headers:\n{text_out}')
         text_out += '\n'
         for cog in cogs_file:
-            text_out += template_line.format(cog, cogs_file[cog],
-            cog_len = lengths['cog_len'],
-            status_len = lengths['status_len'])
+            text_out += template_line.format(
+                cog, cogs_file[cog], cog_len=lengths['cog_len'],
+                status_len=lengths['status_len']
+            )
+            log.debug(f'Added new line:\n{text_out}')
             if cog != list(cogs_file)[-1]:
                 text_out += '\n'
         text_out += '```'
+        log.debug(f'Returning:\n{text_out}')
         return text_out
 
     if cmd_in == 'enable':
