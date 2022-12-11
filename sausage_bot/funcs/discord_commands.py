@@ -135,6 +135,7 @@ def get_roles():
             'is_default': role.is_default(),
             'bot_managed': role.is_bot_managed()
         }
+    log.debug(f'Got these roles:\n{roles_dict}')
     return roles_dict
 
 

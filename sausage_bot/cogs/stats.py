@@ -2,11 +2,14 @@
 # -*- coding: UTF-8 -*-
 import os
 from discord.ext import commands, tasks
+import emoji
+
 from sausage_bot.funcs import _vars, file_io, _config
 from sausage_bot.funcs import discord_commands, datetimefuncs
 from sausage_bot.funcs._args import args
 from sausage_bot.log import log
 from sausage_bot.funcs.datetimefuncs import get_dt
+
 
 # Prepare and load the env-file
 env_template = {
@@ -68,10 +71,12 @@ class Stats(commands.Cog):
             _item_len = 0
             if isinstance(dict_in, dict):
                 for role in dict_in:
-                    if len(dict_in[role][_key]) > _key_len:
-                        _key_len = len(dict_in[role][_key])
-                    if len(str(dict_in[role][_item])) > _item_len:
-                        _item_len = len(str(dict_in[role][_item]))
+                    _key_count = len(str(dict_in[role][_key])) + 2
+                    if _key_count > _key_len:
+                        _key_len = _key_count
+                    _item_count = len(str(dict_in[role][_item])) + 2
+                    if _item_count > _item_len:
+                        _item_len = _item_count
                 for role in dict_in:
                     _k = dict_in[role][_key]
                     _i = dict_in[role][_item]
