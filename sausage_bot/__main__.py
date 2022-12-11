@@ -230,7 +230,7 @@ async def say(ctx, *, text):
     commands.is_owner(),
     commands.has_permissions(administrator=True)
 )
-async def cog(ctx, cmd_in=None, cog_name=None):
+async def cog(ctx, cmd_in=None, *cog_names):
     'Enable, disable, reload or list cogs for this bot'
 
     def get_cogs_list(cogs_file):
@@ -268,18 +268,28 @@ async def cog(ctx, cmd_in=None, cog_name=None):
 
     if cmd_in == 'enable':
         # Start Cog
-        await Cog.load_cog(cog_name)
-        Cog.change_cog_status(cog_name, 'enable')
+        names_out = ''
+        for cog_name in cog_names:
+            await Cog.load_cog(cog_name)
+            Cog.change_cog_status(cog_name, 'enable')
+            names_out += cog_name
+            if len(cog_names) > 1 and cog_name != cog_names[-1]:
+                names_out += ', '
         await ctx.send(
-            _vars.COGS_ENABLED.format(cog_name)
+            _vars.COGS_ENABLED.format(names_out)
         )
         return True
     elif cmd_in == 'disable':
         # Stop cog
-        await Cog.unload_cog(cog_name)
-        Cog.change_cog_status(cog_name, 'disable')
+        names_out = ''
+        for cog_name in cog_names:
+            await Cog.unload_cog(cog_name)
+            Cog.change_cog_status(cog_name, 'disable')
+            names_out += cog_name
+            if len(cog_names) > 1 and cog_name != cog_names[-1]:
+                names_out += ', '
         await ctx.send(
-            _vars.COGS_DISABLED.format(cog_name)
+            _vars.COGS_DISABLED.format(names_out)
         )
         return True
     elif cmd_in == 'list':
