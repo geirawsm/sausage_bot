@@ -19,7 +19,7 @@ check_and_create_folders = [
 for folder in check_and_create_folders:
     try:
         os.makedirs(folder)
-    except(FileExistsError):
+    except (FileExistsError):
         pass
 
 # Create necessary files before starting
@@ -172,15 +172,15 @@ async def ping(ctx):
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
 )
-@_config.bot.command(aliases=['cls'])
+@_config.bot.command(aliases=['del', 'cls'])
 async def delete(ctx, amount=0):
     'Delete `amount` number of messages in the chat'
     if amount == 0:
+        await ctx.message.add_reaction('❌')
         await ctx.send('Please specify the number of messages you want to delete!')
-        await ctx.message.add_reaction('❌')
     elif amount <= 0:  # lower than 0
-        await ctx.send("The number must be bigger than 0!")
         await ctx.message.add_reaction('❌')
+        await ctx.send("The number must be bigger than 0!")
     else:
         await ctx.message.add_reaction('✅')
         await ctx.channel.purge(limit=amount + 1)

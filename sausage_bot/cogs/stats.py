@@ -10,8 +10,7 @@ from sausage_bot.funcs.datetimefuncs import get_dt
 
 # Prepare and load the env-file
 env_template = {
-    'stats_channel': 'stats',
-    'patreon_role_id': ''
+    'stats_channel': 'stats'
 }
 _config.add_cog_envs_to_env_file('stats', env_template)
 
