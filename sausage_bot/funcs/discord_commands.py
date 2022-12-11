@@ -127,7 +127,14 @@ def get_roles():
     guild = get_guild()
     # Get all roles and their IDs
     for role in guild.roles:
-        roles_dict[role.name] = role.id
+        roles_dict[role.name] = {
+            'name': role.name,
+            'id': role.id,
+            'members': len(role.members),
+            'premium': role.is_premium_subscriber(),
+            'is_default': role.is_default(),
+            'bot_managed': role.is_bot_managed()
+        }
     return roles_dict
 
 
@@ -175,12 +182,15 @@ async def update_stats_post(stats_info, stats_channel):
         channel_out = _config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
+            log.debug(f'Got msg: ({msg.author.id}) {msg.content}')
             if str(msg.author.id) == _config.BOT_ID:
-                if 'Stats:' in str(msg.content):
+                if 'Serverstats' in str(msg.content):
+                    log.debug('Found post with `Serverstats:`, editing...')
                     await msg.edit(content=stats_info)
                     found_stats_msg = True
                     return
         if found_stats_msg is False:
+            log.debug('Found post with `Serverstats:`, editing...')
             await channel_out.send(stats_info)
 
 
