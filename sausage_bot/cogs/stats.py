@@ -21,13 +21,10 @@ config = _config.config()['stats']
 def get_members():
     'Get number of members and number of Patreon-members'
     guild = discord_commands.get_guild()
-#    roles = discord_commands.get_roles()
-    patreon_role = guild.get_role(int(_config.PATREON_ROLE_ID))
-    patreon_count = len(patreon_role.members)
     member_count = guild.member_count
     return {
         'member_count': member_count,
-        'patreon_count': patreon_count
+        'roles': discord_commands.get_roles()
     }
 
 
@@ -63,6 +60,28 @@ class Stats(commands.Cog):
         `_vars.stats_logs_file`.
         The channel is defined in the .env file (stats_channel).
         '''
+        def tabify(
+            dict_in: dict, _key: str, _item: str, prefix='', suffix='',
+            split=''
+        ):
+            text_out = ''
+            _key_len = 0
+            _item_len = 0
+            if isinstance(dict_in, dict):
+                for role in dict_in:
+                    if len(dict_in[role][_key]) > _key_len:
+                        _key_len = len(dict_in[role][_key])
+                    if len(str(dict_in[role][_item])) > _item_len:
+                        _item_len = len(str(dict_in[role][_item]))
+                for role in dict_in:
+                    _k = dict_in[role][_key]
+                    _i = dict_in[role][_item]
+                    text_out += f'{prefix}{_k:<{_key_len}}{split}{_i:<{_item_len}}{suffix}'
+                    if dict_in[role][_key] != dict_in.keys():
+                        text_out += '\n'
+            log.debug(f'Returning:```{text_out}```')
+            return text_out
+
         log.log('Starting `update_stats`')
         stats_log = file_io.read_json(_vars.stats_logs_file)
         # Get server members as of now
@@ -81,23 +100,32 @@ class Stats(commands.Cog):
             stats_log[_y][_m][_d] = {
                 'members': {
                     'total': members['member_count'],
-                    'patreon': members['patreon_count']
+                    'roles': members['roles']
                 },
                 'files_in_codebase': files_in_codebase,
                 'lines_in_codebase': lines_in_codebase
             }
         # Update the stats-msg
-        tot_members = members['member_count']
-        patreon_members = members['patreon_count']
+        total_members = members['member_count']
+        roles_members = tabify(
+            members['roles'], 'name', 'members', prefix='  ', split=': '
+        )
         dt_log = datetimefuncs.get_dt('datetimefull')
-        stats_msg = f'Stats:\n'\
-            f'Antall medlemmer: {tot_members}\n'\
-            f'Antall Patreon-medlemmer: {patreon_members}\n'\
+        stats_msg = f'> Medlemmer\n```'\
+            f'Antall medlemmer: {total_members}\n'\
+            f'Antall per rolle:\n{roles_members}```\n'\
+            f'> Kodebase\n```'\
             f'Antall filer med kode: {files_in_codebase}\n'\
-            f'Antall linjer med kode: {lines_in_codebase}\n'\
-            f'(Sist oppdatert: {dt_log})'
-        log.log_more('Trying to post stats...')
-        await discord_commands.update_stats_post(stats_msg, _config.STATS_CHANNEL)
+            f'Antall linjer med kode: {lines_in_codebase}```\n'\
+            f'```(Serverstats sist oppdatert: {dt_log})'\
+            f'```\n'
+        log.log_more(
+            f'Trying to post stats to `{config["stats_channel"]}`:\n'
+            '{stats_msg}'
+        )
+        await discord_commands.update_stats_post(
+            stats_msg, config['stats_channel']
+        )
 
         # Write changes to file
         if not args.maintenance:
