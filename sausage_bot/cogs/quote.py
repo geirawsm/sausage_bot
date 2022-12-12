@@ -143,10 +143,15 @@ class Quotes(commands.Cog):
         if quote_in is None:
             log.log(_vars.QUOTE_EDIT_NO_TEXT_GIVEN)
             return
-        existing_quotes_numbers = list(quotes.keys())
         # Check if the given `quote_number` even exist
-        if quote_number not in existing_quotes_numbers:
-            await ctx.message.reply('Det sitatnummeret finnes ikke.')
+        log.debug(
+            f'Checking if `quote_number` ({quote_number}) is in '
+            f'`list(quotes.keys())`:\n{list(quotes.keys())}'
+        )
+        if str(quote_number) not in list(quotes.keys()):
+            await ctx.message.reply(
+                f'Sitat nummer {quote_number} finnes ikke.'
+            )
             return
         log.log_more('Endrer sitat nummer {}'.format(quote_number))
         # If no date is specified through `custom_date`, use the existing
@@ -173,9 +178,9 @@ class Quotes(commands.Cog):
     )
     @quote.group(name='del')
     async def delete(
-        self, ctx, quote_number: int = commands.param(
-            description="The number of quote to edit"
-        )):
+            self, ctx, quote_number: int = commands.param(
+                description="The number of quote to edit"
+            )):
         'Delete an existing quote: `!quote delete [quote_number]`'
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
