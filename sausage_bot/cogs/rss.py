@@ -94,7 +94,9 @@ class RSSfeed(commands.Cog):
                 await ctx.send(_vars.RSS_URL_NOT_OK)
                 return
             elif not CHANNEL_OK:
-                await ctx.send(_vars.CHANNEL_NOT_FOUND)
+                await ctx.send(
+                    _vars.CHANNEL_NOT_FOUND.format(channel)
+                )
                 return
 
     @commands.check_any(

@@ -51,7 +51,7 @@ GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
 NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
 TOO_MANY_ARGUMENTS = 'Du har gitt for mange argumenter til kommandoen'
 TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
-CHANNEL_NOT_FOUND = 'Finner ikke kanalen du vil legge inn feeden på'
+CHANNEL_NOT_FOUND = 'Finner ikke kanalen `{}` på denne discord-serveren'
 POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
     'finnes ikke'
 UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'

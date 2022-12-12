@@ -129,7 +129,9 @@ class Youtube(commands.Cog):
                 )
                 return
             elif not CHANNEL_OK:
-                await ctx.send(_vars.CHANNEL_NOT_FOUND)
+                await ctx.send(
+                    _vars.CHANNEL_NOT_FOUND.format(channel)
+                )
                 return
 
     @commands.check_any(
