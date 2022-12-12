@@ -252,10 +252,12 @@ class RSSfeed(commands.Cog):
             # Check if in list, then remove
             if filter_in in feeds[feed_name]['filter'][allow_deny]:
                 feeds[feed_name]['filter'][allow_deny].remove(filter_in)
+                await ctx.message.reply(f'Removed filter `{filter_in}`')
         elif add_remove == 'add':
             # Check if not in list, then add
             if filter_in not in feeds[feed_name]['filter'][allow_deny]:
                 feeds[feed_name]['filter'][allow_deny].append(filter_in)
+                await ctx.message.reply(f'Added filter `{filter_in}`')
         log.debug(
             f'Writing the following to the feed name:\n{feeds[feed_name]}')
         file_io.write_json(_vars.rss_feeds_file, feeds)
