@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
-from ..funcs import datetimefuncs as dt
+from ..util import datetime_handling as dt
 
 
 def test_correct_date_converting():

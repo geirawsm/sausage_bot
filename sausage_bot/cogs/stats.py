@@ -4,20 +4,20 @@ import os
 from discord.ext import commands, tasks
 import emoji
 
-from sausage_bot.funcs import _vars, file_io, _config
-from sausage_bot.funcs import discord_commands, datetimefuncs
-from sausage_bot.funcs._args import args
+from sausage_bot.util import mod_vars, datetime_handling, file_io, config
+from sausage_bot.util import discord_commands
+from sausage_bot.util.args import args
 from sausage_bot.log import log
-from sausage_bot.funcs.datetimefuncs import get_dt
+from sausage_bot.util.datetime_handling import get_dt
 
 
 # Prepare and load the env-file
 env_template = {
     'stats_channel': 'stats'
 }
-_config.add_cog_envs_to_env_file('stats', env_template)
+config.add_cog_envs_to_env_file('stats', env_template)
 
-config = _config.config()['stats']
+env = config.config()['stats']
 
 
 def get_members():
@@ -34,7 +34,7 @@ def get_stats_codebase():
     'Get statistics for the code base'
     total_lines = 0
     total_files = 0
-    for root, dirs, files in os.walk(_vars.ROOT_DIR):
+    for root, dirs, files in os.walk(mod_vars.ROOT_DIR):
         for filename in files:
             filename_without_extension, extension = os.path.splitext(filename)
             if extension == '.py':
@@ -59,7 +59,7 @@ class Stats(commands.Cog):
     async def update_stats():
         '''
         Update interesting stats in a channel post and write the info to
-        `_vars.stats_logs_file`.
+        `mod_vars.stats_logs_file`.
         The channel is defined in the .env file (stats_channel).
         '''
         def tabify(
@@ -87,15 +87,15 @@ class Stats(commands.Cog):
             return text_out
 
         log.log('Starting `update_stats`')
-        stats_log = file_io.read_json(_vars.stats_logs_file)
+        stats_log = file_io.read_json(mod_vars.stats_logs_file)
         # Get server members as of now
         members = get_members()
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
-        _y = datetimefuncs.get_dt('year')
-        _m = datetimefuncs.get_dt('month')
-        _d = datetimefuncs.get_dt('day')
+        _y = datetime_handling.get_dt('year')
+        _m = datetime_handling.get_dt('month')
+        _d = datetime_handling.get_dt('day')
         if _y not in stats_log:
             stats_log[_y] = {}
         if _m not in stats_log[_y]:
@@ -114,7 +114,7 @@ class Stats(commands.Cog):
         roles_members = tabify(
             members['roles'], 'name', 'members', prefix='  ', split=': '
         )
-        dt_log = datetimefuncs.get_dt('datetimefull')
+        dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = f'> Medlemmer\n```'\
             f'Antall medlemmer: {total_members}\n'\
             f'Antall per rolle:\n{roles_members}```\n'\
@@ -124,33 +124,33 @@ class Stats(commands.Cog):
             f'```(Serverstats sist oppdatert: {dt_log})'\
             f'```\n'
         log.log_more(
-            f'Trying to post stats to `{config["stats_channel"]}`:\n'
+            f'Trying to post stats to `{env["stats_channel"]}`:\n'
             '{stats_msg}'
         )
         await discord_commands.update_stats_post(
-            stats_msg, config['stats_channel']
+            stats_msg, env['stats_channel']
         )
 
         # Write changes to file
         if not args.maintenance:
-            file_io.write_json(_vars.stats_logs_file, stats_log)
+            file_io.write_json(mod_vars.stats_logs_file, stats_log)
         else:
             log.log('Did not write changes to file', color='RED')
 
     @update_stats.before_loop
     async def before_update_stats():
         log.log_more('`update_stats` waiting for bot to be ready...')
-        await _config.bot.wait_until_ready()
+        await config.bot.wait_until_ready()
 
     update_stats.start()
 
 
 async def setup(bot):
     # Starting the cog
-    log.log(_vars.COG_STARTING.format('stats'))
-    log.log_more(_vars.CREATING_FILES)
+    log.log(mod_vars.COG_STARTING.format('stats'))
+    log.log_more(mod_vars.CREATING_FILES)
     check_and_create_files = [
-        (_vars.stats_logs_file, '{}')
+        (mod_vars.stats_logs_file, '{}')
     ]
     file_io.create_necessary_files(check_and_create_files)
     await bot.add_cog(Stats(bot))

@@ -4,15 +4,15 @@ import discord
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
-from sausage_bot.funcs import _vars, datetimefuncs
-from sausage_bot.funcs._args import args
+from sausage_bot.util import mod_vars, datetime_handling
+from sausage_bot.util.args import args
 from ..log import log
 import json
 
 
 if args.local_parsing:
     from ..test.modules.requests_local import requests_session as requests
-    from ..test.modules import _vars_test
+    from ..test.modules import mod_vars_test
 else:
     import requests
 
@@ -21,7 +21,7 @@ def get_link(url, cookies=None):
     'Get a requests object from a `url`'
     if type(url) is not str:
         log.debug('`url` is not string')
-        log.log(_vars.RSS_INVALID_URL.format(url))
+        log.log(mod_vars.RSS_INVALID_URL.format(url))
         return None
     if args.local_parsing:
         log.debug('Using local parsing')
@@ -42,10 +42,10 @@ def get_link(url, cookies=None):
             else:
                 req = requests.get(url)
         except(requests.exceptions.InvalidSchema):
-            log.log(_vars.RSS_INVALID_URL.format(url))
+            log.log(mod_vars.RSS_INVALID_URL.format(url))
             return None
         except(requests.exceptions.ConnectionError):
-            log.log(_vars.RSS_CONNECTION_ERROR)
+            log.log(mod_vars.RSS_CONNECTION_ERROR)
             return None
     if req is None:
         return None
@@ -66,7 +66,7 @@ def scrape_page(url, cookies=None):
         soup = BeautifulSoup(scrape.content, features='html5lib')
         return soup
     except Exception as e:
-        log.log(_vars.RSS_NOT_ABLE_TO_SCRAPE.format(url, e))
+        log.log(mod_vars.RSS_NOT_ABLE_TO_SCRAPE.format(url, e))
         return None
 
 
@@ -82,22 +82,22 @@ def make_event_start_stop(date, time=None):
     try:
         # Make the original startdate an object
         if time is None:
-            start_dt = datetimefuncs.make_dt(date)
+            start_dt = datetime_handling.make_dt(date)
         else:
-            start_dt = datetimefuncs.make_dt(f'{date} {time}')
-        start_date = datetimefuncs.get_dt('date', dt=start_dt)
-        start_time = datetimefuncs.get_dt('time', sep=':', dt=start_dt)
+            start_dt = datetime_handling.make_dt(f'{date} {time}')
+        start_date = datetime_handling.get_dt('date', dt=start_dt)
+        start_time = datetime_handling.get_dt('time', sep=':', dt=start_dt)
         # Make a startdate for the event that starts 30 minutes before
         # the match
-        start_event = datetimefuncs.change_dt(
+        start_event = datetime_handling.change_dt(
             start_dt, 'remove', 30, 'minutes'
         )
         # Make an enddate for the event that should stop approximately 
         # 30 minutes after the match is over
-        end_dt = datetimefuncs.change_dt(start_dt, 'add', 2.5, 'hours')
+        end_dt = datetime_handling.change_dt(start_dt, 'add', 2.5, 'hours')
         # Make the epochs that the event will use
-        start_epoch = datetimefuncs.get_dt(dt=start_event)
-        end_epoch = datetimefuncs.get_dt(dt=end_dt)
+        start_epoch = datetime_handling.get_dt(dt=start_event)
+        end_epoch = datetime_handling.get_dt(dt=end_dt)
         # Make a relative start object for discord
         rel_start = discord.utils.format_dt(
             datetime.fromtimestamp(start_epoch).astimezone(),
@@ -113,7 +113,7 @@ def make_event_start_stop(date, time=None):
             'end_epoch': end_epoch
         }
     except Exception as e:
-        log.log(_vars.ERROR_WITH_ERROR_MSG.format(e))
+        log.log(mod_vars.ERROR_WITH_ERROR_MSG.format(e))
         return None
 
 
@@ -218,7 +218,7 @@ def parse(url: str):
             parse = parse_nifs(soup)
             return parse
         except Exception as e:
-            error_msg = _vars.AUTOEVENT_PARSE_ERROR.format(url, e)
+            error_msg = mod_vars.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.log(error_msg)
             return None
     elif PARSER == 'vglive':
@@ -226,7 +226,7 @@ def parse(url: str):
             parse = parse_vglive(url)
             return parse
         except Exception as e:
-            error_msg = _vars.AUTOEVENT_PARSE_ERROR.format(url, e)
+            error_msg = mod_vars.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.log(error_msg)
             return None
     else:

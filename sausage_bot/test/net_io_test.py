@@ -3,7 +3,7 @@
 import pytest
 import requests
 import bs4
-from ..funcs import net_io
+from ..util import net_io
 
 
 def test_get_link():

@@ -3,7 +3,7 @@
 import pendulum
 from datetime import datetime
 import re
-from . import _vars
+from . import mod_vars
 from ..log import log
 
 # Set correct timezone and locale
@@ -182,7 +182,7 @@ def change_dt(
     `unit`: Unit to change. Accepted units are `years`, `months`, `days`,
         `hours`, `minutes` and `seconds`'''
     if change is None or unit is None or count is None:
-        log.log(_vars.TOO_FEW_ARGUMENTS)
+        log.log(mod_vars.TOO_FEW_ARGUMENTS)
         return None
     accepted_units=['years', 'months', 'days', 'hours', 'minutes', 'seconds']
     if unit not in accepted_units:

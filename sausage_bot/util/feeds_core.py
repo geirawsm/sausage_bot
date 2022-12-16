@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from lxml import etree
-from sausage_bot.funcs import _vars, file_io, discord_commands
-from sausage_bot.funcs import net_io, datetimefuncs
+from sausage_bot.util import mod_vars, datetime_handling, file_io, discord_commands
+from sausage_bot.util import net_io
 
 from ..log import log
 
@@ -19,7 +19,7 @@ def check_feed_validity(url):
         etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
         return True
     except (etree.XMLSyntaxError) as e:
-        log.log_more(_vars.ERROR_WITH_ERROR_MSG.format(e))
+        log.log_more(mod_vars.ERROR_WITH_ERROR_MSG.format(e))
         return False
 
 
@@ -41,7 +41,7 @@ def add_to_feed_file(
     test_link = net_io.get_link(feed_link)
     if test_link is None:
         return None
-    date_now = datetimefuncs.get_dt(format='datetime')
+    date_now = datetime_handling.get_dt(format='datetime')
     feeds_file = file_io.read_json(feeds_filename)
     feeds_file[name] = {
         'url': feed_link,
@@ -186,7 +186,7 @@ def get_feed_links(url, filters=None):
     try:
         soup = BeautifulSoup(req.content, features='xml')
     except Exception as e:
-        log.log(_vars.RSSCORE_SOUP_ERROR.format(url, e))
+        log.log(mod_vars.RSSCORE_SOUP_ERROR.format(url, e))
         return None
     links_filter = []
     links = []
@@ -210,7 +210,7 @@ def get_feed_links(url, filters=None):
                     }
                 )
             except (IndexError):
-                log.log(_vars.RSSCORE_LINK_INDEX_ERROR.format(item, url))
+                log.log(mod_vars.RSSCORE_LINK_INDEX_ERROR.format(item, url))
     elif '<feed xml' in str(soup):
         for entry in soup.findAll('entry')[0:2]:
             link = entry.find('link')['href']

@@ -3,8 +3,8 @@
 from nis import match
 from discord.ext import commands
 import discord
-from sausage_bot.funcs import _vars, _config, net_io, datetimefuncs
-from sausage_bot.funcs import discord_commands
+from sausage_bot.util import mod_vars, config, datetime_handling, net_io
+from sausage_bot.util import discord_commands
 from sausage_bot.log import log
 import re
 
@@ -43,14 +43,14 @@ class AutoEvent(commands.Cog):
         'Add a scheduled event: `!autoevent add [url] [channel] [text]`'
         # React to the command message
         await ctx.message.add_reaction('✅')
-        kampchat_img = _vars.STATIC_DIR / 'kampchat.png'
+        kampchat_img = mod_vars.STATIC_DIR / 'kampchat.png'
         SCRAPE_OK = False
         CHANNEL_OK = False
         if url is None or\
                 channel is None:
             # Delete command message
             await ctx.message.delete()
-            await ctx.send(_vars.TOO_FEW_ARGUMENTS, delete_after=3)
+            await ctx.send(mod_vars.TOO_FEW_ARGUMENTS, delete_after=3)
             return
         else:
             scraped_info = net_io.parse(url)
@@ -59,12 +59,12 @@ class AutoEvent(commands.Cog):
             else:
                 SCRAPE_OK = True
             voice_channels = discord_commands.get_voice_channel_list()
-            log.log_more(_vars.GOT_CHANNEL_LIST.format(voice_channels))
+            log.log_more(mod_vars.GOT_CHANNEL_LIST.format(voice_channels))
             if channel in voice_channels:
                 CHANNEL_OK = True
                 channel_id = voice_channels[channel]
                 log.log_more(
-                    _vars.GOT_SPECIFIC_CHANNEL.format(
+                    mod_vars.GOT_SPECIFIC_CHANNEL.format(
                         channel, channel_id
                     )
                 )
@@ -72,7 +72,7 @@ class AutoEvent(commands.Cog):
                 CHANNEL_OK = False
                 # Delete command message
                 await ctx.message.delete()
-                await ctx.send(_vars.CHANNEL_NOT_FOUND, delete_after=3)
+                await ctx.send(mod_vars.CHANNEL_NOT_FOUND, delete_after=3)
                 return
             if SCRAPE_OK and CHANNEL_OK:
                 scr = scraped_info
@@ -99,7 +99,7 @@ class AutoEvent(commands.Cog):
                     await guild.create_scheduled_event(
                         name=f'{home} - {away}',
                         description=description,
-                        channel=_config.bot.get_channel(channel_id),
+                        channel=config.bot.get_channel(channel_id),
                         entity_type=discord.EntityType.voice,
                         image=image_in,
                         start_time=start_dt,
@@ -135,14 +135,14 @@ class AutoEvent(commands.Cog):
         for event in event_dict:
             _id = event_dict[event]['id']
             log.log_more(
-                _vars.COMPARING_IDS.format(
+                mod_vars.COMPARING_IDS.format(
                     event_id_in, _id
                 )
             )
             event_id_in = str(event_id_in).strip()
             if event_id_in == str(event_dict[event]['id']):
                 log.log(
-                    _vars.AUTOEVENT_EVENT_FOUND.format(
+                    mod_vars.AUTOEVENT_EVENT_FOUND.format(
                         event_dict[event]['name']
                     )
                 )
@@ -151,7 +151,7 @@ class AutoEvent(commands.Cog):
                 _event = guild.get_scheduled_event(int(event_id_in))
                 await _event.delete()
                 return
-        log.log(_vars.AUTOEVENT_EVENT_NOT_FOUND)
+        log.log(mod_vars.AUTOEVENT_EVENT_NOT_FOUND)
         return
 
     @commands.check_any(
@@ -161,11 +161,11 @@ class AutoEvent(commands.Cog):
     @autoevent.group(name='list', aliases=['l'])
     async def list_events(self, ctx):
         f'''
-        Lists all the planned events: `{_config.PREFIX}autoevent list`
+        Lists all the planned events: `{config.PREFIX}autoevent list`
         '''
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:
-            msg_out = _vars.AUTOEVENT_NO_EVENTS_LISTED
+            msg_out = mod_vars.AUTOEVENT_NO_EVENTS_LISTED
         else:
             msg_out = events
         await ctx.send(
@@ -189,14 +189,14 @@ class AutoEvent(commands.Cog):
             'watching: `!autoevent timesync [start_time] [countdown]`'
         # Check that `start_time` is a decent time
         if re.match(r'^\d{1,2}[-:.,;_]+\d{1,2}', str(start_time)):
-            timer_epoch = datetimefuncs.get_dt() + int(countdown)
+            timer_epoch = datetime_handling.get_dt() + int(countdown)
             rel_start = f'<t:{timer_epoch}:R>'
             await ctx.send(
                 f'Sync til {start_time} {rel_start}', delete_after=int(countdown)
             )
         else:
             await ctx.send(
-                _vars.AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT,
+                mod_vars.AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT,
                 delete_after=3
             )
         await ctx.message.delete()
@@ -204,6 +204,6 @@ class AutoEvent(commands.Cog):
 
 
 async def setup(bot):
-    log.log(_vars.COG_STARTING.format('autoevent'))
+    log.log(mod_vars.COG_STARTING.format('autoevent'))
     # Starting the cog
     await bot.add_cog(AutoEvent(bot))

@@ -3,11 +3,10 @@
 import os
 import stat
 import json
-
+import pathlib
 from difflib import SequenceMatcher
 
 from ..log import log
-import pathlib
 
 
 def write_file(filename, content_to_write):

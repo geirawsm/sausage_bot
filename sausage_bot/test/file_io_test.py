@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 from unittest import mock
-from ..funcs import file_io
-from sausage_bot.funcs import _vars
+from ..util import file_io
+from sausage_bot.util import mod_vars
 
 
 def test_write_file_input():
@@ -61,8 +61,8 @@ def test_read_json(mocker):
 
 
 def test_file_size():
-    actual_file = _vars.ROOT_DIR / '__main__.py'
-    non_file = _vars.ROOT_DIR / 'main.py'
+    actual_file = mod_vars.ROOT_DIR / '__main__.py'
+    non_file = mod_vars.ROOT_DIR / 'main.py'
     assert type(file_io.file_size(actual_file)) is int
     assert file_io.file_size(non_file) is False
 

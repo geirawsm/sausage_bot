@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
-from sausage_bot.funcs import _config, _vars, feeds_core, file_io
-from sausage_bot.funcs import discord_commands
+from sausage_bot.util import config, mod_vars, feeds_core, file_io
+from sausage_bot.util import discord_commands
 from sausage_bot.log import log
 import re
 from yt_dlp import YoutubeDL
@@ -11,9 +11,9 @@ from yt_dlp import YoutubeDL
 env_template = {
     'youtube_loop': 5
 }
-_config.add_cog_envs_to_env_file('youtube', env_template)
+config.add_cog_envs_to_env_file('youtube', env_template)
 
-config = _config.config()['youtube']
+env = config.config()['youtube']
 
 
 class Youtube(commands.Cog):
@@ -84,17 +84,17 @@ class Youtube(commands.Cog):
         CHANNEL_OK = False
         if feed_name is None:
             await ctx.send(
-                _vars.TOO_FEW_ARGUMENTS
+                mod_vars.TOO_FEW_ARGUMENTS
             )
             return
         elif yt_link is None:
             await ctx.send(
-                _vars.TOO_FEW_ARGUMENTS
+                mod_vars.TOO_FEW_ARGUMENTS
             )
             return
         elif channel is None:
             await ctx.send(
-                _vars.TOO_FEW_ARGUMENTS
+                mod_vars.TOO_FEW_ARGUMENTS
             )
             return
         else:
@@ -112,25 +112,25 @@ class Youtube(commands.Cog):
                 # Test if the link can get videos
                 if not Youtube.test_link_for_yt_compatibility(yt_link):
                     await ctx.send(
-                        _vars.YOUTUBE_EMPTY_LINK.format(yt_link)
+                        mod_vars.YOUTUBE_EMPTY_LINK.format(yt_link)
                     )
                     return
                 feeds_core.add_to_feed_file(
                     str(feed_name), str(yt_link), channel, AUTHOR,
-                    _vars.yt_feeds_file
+                    mod_vars.yt_feeds_file
                 )
                 await log.log_to_bot_channel(
-                    _vars.YOUTUBE_ADDED_BOT.format(
+                    mod_vars.YOUTUBE_ADDED_BOT.format(
                         AUTHOR, feed_name, yt_link, channel
                     )
                 )
                 await ctx.send(
-                    _vars.YOUTUBE_ADDED.format(feed_name, channel)
+                    mod_vars.YOUTUBE_ADDED.format(feed_name, channel)
                 )
                 return
             elif not CHANNEL_OK:
                 await ctx.send(
-                    _vars.CHANNEL_NOT_FOUND.format(channel)
+                    mod_vars.CHANNEL_NOT_FOUND.format(channel)
                 )
                 return
 
@@ -148,21 +148,21 @@ class Youtube(commands.Cog):
         'Remove a Youtube feed: `!youtube remove [feed_name]`'
         AUTHOR = ctx.message.author.name
         removal = feeds_core.remove_feed_from_file(
-            feed_name, _vars.yt_feeds_file
+            feed_name, mod_vars.yt_feeds_file
         )
         if removal:
             await log.log_to_bot_channel(
-                _vars.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
+                mod_vars.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
             )
             await ctx.send(
-                _vars.RSS_REMOVED.format(feed_name)
+                mod_vars.RSS_REMOVED.format(feed_name)
             )
         elif removal is False:
             # Couldn't remove the feed
-            await ctx.send(_vars.RSS_COULD_NOT_REMOVE.format(feed_name))
+            await ctx.send(mod_vars.RSS_COULD_NOT_REMOVE.format(feed_name))
             # Also log and send error to either a bot-channel or admin
             await log.log_to_bot_channel(
-                _vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
+                mod_vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
 
@@ -175,15 +175,15 @@ class Youtube(commands.Cog):
         'List all active Youtube feeds'
         if list_type == 'long':
             list_format = feeds_core.get_feed_list(
-                _vars.yt_feeds_file, long=True
+                mod_vars.yt_feeds_file, long=True
             )
         elif list_type == 'filters':
             list_format = feeds_core.get_feed_list(
-                _vars.yt_feeds_file, filters=True
+                mod_vars.yt_feeds_file, filters=True
             )
         else:
             list_format = feeds_core.get_feed_list(
-                _vars.yt_feeds_file
+                mod_vars.yt_feeds_file
             )
         if list_format is not None:
             await ctx.send(list_format)
@@ -216,19 +216,19 @@ class Youtube(commands.Cog):
 
     # Tasks
 
-    @tasks.loop(minutes=config['youtube_loop'])
+    @tasks.loop(minutes=env['youtube_loop'])
     async def youtube_parse():
         log.log('Starting `youtube_parse`')
         # Update the feeds
-        feeds = file_io.read_json(_vars.yt_feeds_file)
+        feeds = file_io.read_json(mod_vars.yt_feeds_file)
         try:
             if len(feeds) == 0:
-                log.log(_vars.RSS_NO_FEEDS_FOUND)
+                log.log(mod_vars.RSS_NO_FEEDS_FOUND)
                 return
         except Exception as e:
             log.log(f'Got error when getting RSS feeds: {e}')
             if feeds is None:
-                log.log(_vars.RSS_NO_FEEDS_FOUND)
+                log.log(mod_vars.RSS_NO_FEEDS_FOUND)
                 return
         else:
             log.log_more('Got these feeds:')
@@ -244,26 +244,30 @@ class Youtube(commands.Cog):
                     log.log(f'{feed}: this feed returned NoneType.')
                     return
                 await Youtube.process_links_for_posting_or_editing(
-                    feed, FEED_POSTS, _vars.yt_feeds_logs_file, CHANNEL
+                    feed, FEED_POSTS, mod_vars.yt_feeds_logs_file, CHANNEL
                 )
         return
 
     @youtube_parse.before_loop
     async def before_youtube_parse():
         log.log_more('`youtube_parse` waiting for bot to be ready...')
-        await _config.bot.wait_until_ready()
+        await config.bot.wait_until_ready()
 
     youtube_parse.start()
 
 
 async def setup(bot):
-    log.log(_vars.COG_STARTING.format('youtube'))
+    log.log(mod_vars.COG_STARTING.format('youtube'))
     # Create necessary files before starting
-    log.log_more(_vars.CREATING_FILES)
+    log.log_more(mod_vars.CREATING_FILES)
     check_and_create_files = [
-        (_vars.yt_feeds_file, '{}'),
-        _vars.yt_feeds_logs_file
+        (mod_vars.yt_feeds_file, '{}'),
+        mod_vars.yt_feeds_logs_file
     ]
     file_io.create_necessary_files(check_and_create_files)
     # Starting the cog
     await bot.add_cog(Youtube(bot))
+
+
+if __name__ == "__main__":
+    print(Youtube.get_yt_id('https://www.youtube.com/@centurymedia'))

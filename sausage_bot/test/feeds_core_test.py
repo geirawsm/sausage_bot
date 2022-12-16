@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 import requests
-from ..funcs import feeds_core, file_io
+from ..util import feeds_core, file_io
 
 
 def test_check_similarity_return_number_or_none():

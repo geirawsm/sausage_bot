@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from sausage_bot.funcs import _config, _vars, file_io
+from sausage_bot.util import config, mod_vars, file_io
 
 from ..log import log
 
+#
+import sys
+#
 
 def get_guild():
     'Get the active guild object'
-    for guild in _config.bot.guilds:
-        if str(guild.name).lower() == _config.GUILD.lower():
+    for guild in config.bot.guilds:
+        if str(guild.name).lower() == config.GUILD.lower():
             log.log_more(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
-            log.log(_vars.GUILD_NOT_FOUND)
+            log.log(mod_vars.GUILD_NOT_FOUND)
             return None
 
 
@@ -50,7 +53,7 @@ def get_scheduled_events():
     guild = get_guild()
     event_dict = {}
     if guild.scheduled_events is None:
-        log.log(_vars.AUTOEVENT_NO_EVENTS_LISTED)
+        log.log(mod_vars.AUTOEVENT_NO_EVENTS_LISTED)
         return None
     for event in guild.scheduled_events:
         _event = guild.get_scheduled_event(event.id)
@@ -139,15 +142,31 @@ def get_roles():
     return roles_dict
 
 
-async def post_to_channel(content_in, channel_in):
-    'Post `content_in` in plain text to channel `channel_in`'
+async def post_to_channel(
+    channel_in, content_in=None,
+    content_embed_in=None
+):
+    'Post `content_in` in plain text or `content_embed_in` to channel `channel_in`'
     server_channels = get_text_channel_list()
     if channel_in in server_channels:
-        channel_out = _config.bot.get_channel(server_channels[channel_in])
-        await channel_out.send(content_in)
+        channel_out = config.bot.get_channel(server_channels[channel_in])
+        if content_in:
+            await channel_out.send(content_in)
+        elif content_embed_in:
+            # TODO Add embed function, should be a dict
+            embed_json = {
+                'title': 'Sample Embed',
+                'url': 'https://realdrewdata.medium.com/',
+                'description': 'This is an embed that will show how to '
+                'build an embed and the different components',
+                'color': 0xFF5733
+            }
+            await channel_out.send(
+                embed=discord.Embed.from_dict(embed_json)
+            )
     else:
         log.log(
-            _vars.POST_TO_NON_EXISTING_CHANNEL.format(
+            mod_vars.POST_TO_NON_EXISTING_CHANNEL.format(
                 channel_in
             )
         )
@@ -160,16 +179,16 @@ async def replace_post(replace_content, replace_with, channel_in):
     `channel_in` and replace it with `replace_with.`
     '''
     server_channels = get_text_channel_list()
-    channel_out = _config.bot.get_channel(server_channels[channel_in])
+    channel_out = config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
         async for msg in channel_out.history(limit=30):
-            if str(msg.author.id) == _config.BOT_ID:
+            if str(msg.author.id) == config.BOT_ID:
                 if replace_content == msg.content:
                     await msg.edit(content=replace_with)
                     return
     else:
         log.log(
-            _vars.CHANNEL_DOES_NOT_EXIST.format(
+            mod_vars.CHANNEL_DOES_NOT_EXIST.format(
                 channel_out
             )
         )
@@ -180,11 +199,11 @@ async def update_stats_post(stats_info, stats_channel):
     'Replace content in stats-post'
     server_channels = get_text_channel_list()
     if stats_channel in server_channels:
-        channel_out = _config.bot.get_channel(server_channels[stats_channel])
+        channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
             log.debug(f'Got msg: ({msg.author.id}) {msg.content}')
-            if str(msg.author.id) == _config.BOT_ID:
+            if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats' in str(msg.content):
                     log.debug('Found post with `Serverstats:`, editing...')
                     await msg.edit(content=stats_info)

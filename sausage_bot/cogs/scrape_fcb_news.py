@@ -4,9 +4,9 @@ from bs4 import BeautifulSoup
 import requests
 from time import sleep as sleep
 from discord.ext import commands, tasks
-from sausage_bot.funcs._args import args
-from sausage_bot.funcs import _config, _vars, feeds_core
-from sausage_bot.log import log
+from sausage_bot.util.args import args
+from sausage_bot.util import config, mod_vars, feeds_core
+from sausage_bot import log
 
 env_template = {
     'firstteam': 'first-team',
@@ -15,9 +15,9 @@ env_template = {
     'juvenil': 'juvenil',
     'club': 'club'
 }
-_config.add_cog_envs_to_env_file('scrape_fcb_news', env_template)
+config.add_cog_envs_to_env_file('scrape_fcb_news', env_template)
 
-config = _config.config()['scrape_fcb_news']
+env = config.config()['scrape_fcb_news']
 
 
 class scrape_and_post(commands.Cog):
@@ -107,8 +107,8 @@ class scrape_and_post(commands.Cog):
                 CHANNEL = team.lower()
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
-                        feed, FEED_POSTS[team], _vars.scrape_logs_file,
-                        _config.config()['scrape_fcb_news'][CHANNEL]
+                        feed, FEED_POSTS[team], mod_vars.scrape_logs_file,
+                        env[CHANNEL]
                     )
                 except AttributeError as e:
                     log.log(str(e))
@@ -117,11 +117,11 @@ class scrape_and_post(commands.Cog):
     @post_fcb_news.before_loop
     async def before_post_fcb_news():
         log.log_more('`post_fcb_news` waiting for bot to be ready...')
-        await _config.bot.wait_until_ready()
+        await config.bot.wait_until_ready()
 
     post_fcb_news.start()
 
 
 async def setup(bot):
-    log.log(_vars.COG_STARTING.format('scrape_fcb_news'))
+    log.log(mod_vars.COG_STARTING.format('scrape_fcb_news'))
     await bot.add_cog(scrape_and_post(bot))

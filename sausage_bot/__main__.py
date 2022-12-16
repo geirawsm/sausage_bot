@@ -4,8 +4,8 @@ import discord
 from discord.ext import commands
 import os
 import locale
-from sausage_bot.funcs._args import args
-from sausage_bot.funcs import _config, _vars, datetimefuncs, discord_commands, file_io
+from sausage_bot.util.args import args
+from sausage_bot.util import config, mod_vars, file_io
 from sausage_bot.log import log
 
 
@@ -14,7 +14,7 @@ locale.setlocale(locale.LC_ALL, _config.LOCALE)
 
 # Create necessary folders before starting
 check_and_create_folders = [
-    _vars.LOG_DIR, _vars.JSON_DIR, _vars.COGS_DIR, _vars.STATIC_DIR
+    mod_vars.LOG_DIR, mod_vars.JSON_DIR, mod_vars.COGS_DIR, mod_vars.STATIC_DIR
 ]
 for folder in check_and_create_folders:
     try:
@@ -25,8 +25,8 @@ for folder in check_and_create_folders:
 # Create necessary files before starting
 log.log_more('Creating necessary files')
 check_and_create_files = [
-    (_vars.cogs_status_file, '{}'),
-    (_vars.env_file, _vars.env_template)
+    (mod_vars.cogs_status_file, '{}'),
+    (mod_vars.env_file, mod_vars.env_template)
 ]
 for file in check_and_create_files:
     if isinstance(file, tuple):
@@ -35,29 +35,29 @@ for file in check_and_create_files:
         file_io.ensure_file(file)
 
 
-@_config.bot.event
+@config.bot.event
 async def on_ready():
     '''
     When the bot is ready, it will notify in the log.
     '''
-    for guild in _config.bot.guilds:
-        if guild.name == _config.GUILD:
+    for guild in config.bot.guilds:
+        if guild.name == config.GUILD:
             break
-    log.log('{} has connected to `{}`'.format(_config.bot.user, guild.name))
+    log.log('{} has connected to `{}`'.format(config.bot.user, guild.name))
     await Cog.load_and_clean_cogs()
     if args.maintenance:
         log.log('Maintenance mode activated', color='RED')
-        await _config.bot.change_presence(
+        await config.bot.change_presence(
             status=discord.Status.dnd)
     else:
-        if not _config.BOT_WATCHING:
+        if not config.BOT_WATCHING:
             presence_name = 'some random youtube video'
-        if _config.BOT_WATCHING:
-            presence_name = _config.BOT_WATCHING
-        await _config.bot.change_presence(
+        if config.BOT_WATCHING:
+            presence_name = config.BOT_WATCHING
+        await config.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name=_config.BOT_WATCHING
+                name=config.BOT_WATCHING
             )
         )
 
@@ -76,40 +76,40 @@ class Cog:
         if not any(status == ok_status for ok_status in accepted_status):
             log.log('This command only accept `enable` or `disable`')
             return False
-        cogs_status = file_io.read_json(_vars.cogs_status_file)
+        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
         try:
             # Change status
             cogs_status[cog_name] = status
             # Write changes
-            file_io.write_json(_vars.cogs_status_file, cogs_status)
+            file_io.write_json(mod_vars.cogs_status_file, cogs_status)
             return True
         except Exception as e:
-            log.log(_vars.COGS_CHANGE_STATUS_FAIL.format(e))
+            log.log(mod_vars.COGS_CHANGE_STATUS_FAIL.format(e))
             return False
 
     async def load_cog(cog_name):
         'Load a specific cog by `cog_name`'
-        await _config.bot.load_extension(
+        await config.bot.load_extension(
             '{}.{}'.format(
-                _vars.COGS_REL_DIR, f'{cog_name}'
+                mod_vars.COGS_REL_DIR, f'{cog_name}'
             )
         )
         return
 
     async def unload_cog(cog_name):
         'Unload a specific cog by `cog_name`'
-        await _config.bot.unload_extension(
+        await config.bot.unload_extension(
             '{}.{}'.format(
-                _vars.COGS_REL_DIR, f'{cog_name}'
+                mod_vars.COGS_REL_DIR, f'{cog_name}'
             )
         )
         return
 
     async def reload_cog(cog_name):
         'Reload a specific cog by `cog_name`'
-        await _config.bot.reload_extension(
+        await config.bot.reload_extension(
             '{}.{}'.format(
-                _vars.COGS_REL_DIR, f'{cog_name}'
+                mod_vars.COGS_REL_DIR, f'{cog_name}'
             )
         )
         return
@@ -124,8 +124,8 @@ class Cog:
         '''
         cog_files = []
         # Add cogs that are not present in the `cogs_status` file
-        cogs_status = file_io.read_json(_vars.cogs_status_file)
-        for filename in os.listdir(_vars.COGS_DIR):
+        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
+        for filename in os.listdir(mod_vars.COGS_DIR):
             if filename.endswith('.py'):
                 cog_name = filename[:-3]
                 # Add all cog names to `cog_files` for easier cleaning
@@ -149,11 +149,11 @@ class Cog:
             if cogs_status[cog_name] == 'enable':
                 log.log('Loading cog: {}'.format(cog_name))
                 await Cog.load_cog(cog_name)
-        file_io.write_json(_vars.cogs_status_file, cogs_status)
+        file_io.write_json(mod_vars.cogs_status_file, cogs_status)
 
     async def reload_all_cogs():
         'Reload all cogs which is already enabled'
-        cogs_status = file_io.read_json(_vars.cogs_status_file)
+        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
         for cog_name in cogs_status:
             if cogs_status[cog_name] == 'enable':
                 log.log('Reloading cog: {}'.format(cog_name))
@@ -161,10 +161,10 @@ class Cog:
 
 
 # Commands
-@_config.bot.command(name='ping')
+@config.bot.command(name='ping')
 async def ping(ctx):
     'Checks the bot latency'
-    await ctx.send(f'Pong! {round(_config.bot.latency * 1000)} ms')
+    await ctx.send(f'Pong! {round(config.bot.latency * 1000)} ms')
     await ctx.message.add_reaction('✅')
 
 
@@ -172,7 +172,7 @@ async def ping(ctx):
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
 )
-@_config.bot.command(aliases=['del', 'cls'])
+@config.bot.command(aliases=['del', 'cls'])
 async def delete(ctx, amount=0):
     'Delete `amount` number of messages in the chat'
     if amount == 0:
@@ -186,7 +186,7 @@ async def delete(ctx, amount=0):
         await ctx.channel.purge(limit=amount + 1)
 
 
-@_config.bot.command()
+@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(kick_members=True)
@@ -200,7 +200,7 @@ async def kick(ctx, member: discord.Member, *, reason=None):
         await ctx.send(f'Failed to kick: {failkick}', delete_after=5)
 
 
-@_config.bot.command()
+@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(ban_members=True)
@@ -214,7 +214,7 @@ async def ban(ctx, member: discord.Member, *, reason=None):
         await ctx.send(f'Failed to ban: {e}', delete_after=5)
 
 
-@_config.bot.command()
+@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
@@ -226,7 +226,7 @@ async def say(ctx, *, text):
     return
 
 
-@_config.bot.command()
+@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
@@ -234,7 +234,7 @@ async def say(ctx, *, text):
 async def edit(ctx, *, text):
     'Make the bot rephrase something it has said'
     if ctx.message.reference is None:
-        await ctx.send('You have to reply to a message: `!edit [text]`')
+        await ctx.message.reply('You have to reply to a message: `!edit [text]`')
         return
     elif ctx.message.reference.message_id:
         msgid = ctx.message.reference.message_id
@@ -244,7 +244,7 @@ async def edit(ctx, *, text):
         return
 
 
-@_config.bot.command()
+@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(administrator=True)
@@ -300,7 +300,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
             if len(cog_names) > 1 and cog_name != cog_names[-1]:
                 names_out += ', '
         await ctx.send(
-            _vars.COGS_ENABLED.format(names_out)
+            mod_vars.COGS_ENABLED.format(names_out)
         )
         return True
     elif cmd_in == 'disable':
@@ -313,12 +313,12 @@ async def cog(ctx, cmd_in=None, *cog_names):
             if len(cog_names) > 1 and cog_name != cog_names[-1]:
                 names_out += ', '
         await ctx.send(
-            _vars.COGS_DISABLED.format(names_out)
+            mod_vars.COGS_DISABLED.format(names_out)
         )
         return True
     elif cmd_in == 'list':
         # List cogs and their status
-        cogs_status = file_io.read_json(_vars.cogs_status_file)
+        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
         await ctx.send(
             get_cogs_list(cogs_status)
         )
@@ -329,7 +329,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
         await ctx.send('Cogs reloaded')
     elif cmd_in is None and cog_name is None:
         await ctx.send(
-            _vars.COGS_TOO_FEW_ARGUMENTS
+            mod_vars.COGS_TOO_FEW_ARGUMENTS
         )
         return
     else:
@@ -337,4 +337,4 @@ async def cog(ctx, cmd_in=None, *cog_names):
         return False
 
 
-_config.bot.run(_config.TOKEN)
+config.bot.run(config.TOKEN)
