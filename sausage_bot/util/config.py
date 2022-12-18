@@ -8,7 +8,7 @@ import json
 import sys
 import os
 from . import mod_vars, file_io
-from ..log import log
+from .log import log
 
 
 # Create necessary files before starting

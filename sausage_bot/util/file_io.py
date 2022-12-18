@@ -6,7 +6,7 @@ import json
 import pathlib
 from difflib import SequenceMatcher
 
-from ..log import log
+from ..util.log import log
 
 
 def write_file(filename, content_to_write):

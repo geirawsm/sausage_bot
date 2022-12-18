@@ -5,7 +5,7 @@ from lxml import etree
 from sausage_bot.util import mod_vars, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io
 
-from ..log import log
+from .log import log
 
 
 def check_feed_validity(url):

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from sausage_bot.util import config, mod_vars, file_io
+from .log import log
 
-from ..log import log
 
 #
 import sys

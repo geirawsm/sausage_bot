@@ -6,7 +6,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from sausage_bot.util import mod_vars, datetime_handling
 from sausage_bot.util.args import args
-from ..log import log
+from .log import log
 import json
 
 

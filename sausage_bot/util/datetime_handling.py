@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pendulum
-from datetime import datetime
 import re
 from . import mod_vars
-from ..log import log
+from .log import log
 
 # Set correct timezone and locale
 tz = pendulum.timezone("Europe/Oslo")

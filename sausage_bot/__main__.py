@@ -6,7 +6,7 @@ import os
 import locale
 from sausage_bot.util.args import args
 from sausage_bot.util import config, mod_vars, file_io
-from sausage_bot.log import log
+from sausage_bot.util.log import log
 
 
 # Set locale

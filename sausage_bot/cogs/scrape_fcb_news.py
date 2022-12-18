@@ -6,7 +6,7 @@ from time import sleep as sleep
 from discord.ext import commands, tasks
 from sausage_bot.util.args import args
 from sausage_bot.util import config, mod_vars, feeds_core
-from sausage_bot import log
+from sausage_bot.util.log import log
 
 env_template = {
     'firstteam': 'first-team',
