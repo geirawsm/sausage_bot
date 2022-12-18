@@ -4,8 +4,8 @@
 import sys
 from colorama import init, Fore, Style
 from pathlib import Path
-from ..util import config, mod_vars, discord_commands
-from ..util.args import args
+from .. import config, mod_vars, discord_commands
+from ..args import args
 from time import sleep
 
 # colorama specific reset routine
@@ -18,7 +18,7 @@ def log_function(log_in, color=None):
 
     If no `color` is specified, it will highlight in green.
     '''
-    from ..util import datetime_handling
+    from .. import datetime_handling
     get_dt = datetime_handling.get_dt
     log_out = '[{}] '.format(get_dt(format='datetimefull'))
     if color is None:
