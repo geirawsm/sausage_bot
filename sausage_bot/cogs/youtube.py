@@ -201,7 +201,7 @@ class Youtube(commands.Cog):
             FEED_LOG[feed]
         except (KeyError):
             FEED_LOG[feed] = []
-        for video in FEED_POSTS[0:2]:
+        for video in FEED_POSTS:
             log.log_more(f'Got video `{video}`')
             # Check if the link is in the log
             if not feeds_core.link_is_in_log(video, FEED_LOG[feed]):
@@ -209,9 +209,9 @@ class Youtube(commands.Cog):
                 log.log_more(f'Posting link `{video}`')
                 await discord_commands.post_to_channel(video, CHANNEL)
                 # Add link to log
-                FEED_LOG[feed].append(video)
+                await FEED_LOG[feed].append(video)
             elif feeds_core.link_is_in_log(video, FEED_LOG[feed]):
-                log.log_more(f'Link `{video}` already logged. Skipping.')
+                await log.log_more(f'Link `{video}` already logged. Skipping.')
             # Write to the logs-file at the end
             file_io.write_json(feed_log_file, FEED_LOG)
 
@@ -244,7 +244,7 @@ class Youtube(commands.Cog):
                 if FEED_POSTS is None:
                     log.log(f'{feed}: this feed returned NoneType.')
                     return
-                await Youtube.process_links_for_posting_or_editing(
+                Youtube.process_links_for_posting_or_editing(
                     feed, FEED_POSTS, mod_vars.yt_feeds_logs_file, CHANNEL
                 )
         return
