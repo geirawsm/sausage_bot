@@ -71,6 +71,8 @@ COGS_CHANGE_STATUS_FAIL = 'Klarte ikke å endre status. Feilmelding: {}'
 COGS_WRONG_STATUS = 'Kjente ikke igjen status `{}`'
 COGS_ENABLED = 'Aktiverte cog `{}`'
 COGS_DISABLED = 'Deaktiverte cog `{}`'
+ALL_COGS_ENABLED = 'Aktiverte alle cogs'
+ALL_COGS_DISABLED = 'Deaktiverte alle cogs'
 
 # COG - GENERIC MESSAGES
 COG_STARTING = 'Starting cog: `{}`'

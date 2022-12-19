@@ -252,6 +252,14 @@ async def edit(ctx, *, text):
 async def cog(ctx, cmd_in=None, *cog_names):
     'Enable, disable, reload or list cogs for this bot'
 
+    async def action_on_cog(cog_name, cmd_in):
+        if cmd_in == 'enable':
+            await Cog.load_cog(cog_name)
+            Cog.change_cog_status(cog_name, 'enable')
+        elif cmd_in == 'disable':
+            await Cog.unload_cog(cog_name)
+            Cog.change_cog_status(cog_name, 'disable')
+    
     def get_cogs_list(cogs_file):
         'Get a pretty list of all the cogs'
         def get_cog_item_lengths(cogs_file):
@@ -267,7 +275,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
 
         # Sort cogs first
         cogs_file = dict(sorted(cogs_file.items()))
-        log.debug(f'Got this from `cogs_file`:\n{cogs_file}')
+        log.debug(f'Got this from `cogs_file`: {cogs_file}')
         text_out = '```'
         lengths = get_cog_item_lengths(cogs_file)
         template_line = '{:{cog_len}} | {:{status_len}}'
@@ -276,45 +284,46 @@ async def cog(ctx, cmd_in=None, *cog_names):
             'Cog', 'Status', cog_len=lengths['cog_len'],
             status_len=lengths['status_len']
         )
-        log.debug(f'Added headers:\n{text_out}')
         text_out += '\n'
         for cog in cogs_file:
             text_out += template_line.format(
                 cog, cogs_file[cog], cog_len=lengths['cog_len'],
                 status_len=lengths['status_len']
             )
-            log.debug(f'Added new line:\n{text_out}')
             if cog != list(cogs_file)[-1]:
                 text_out += '\n'
         text_out += '```'
         log.debug(f'Returning:\n{text_out}')
         return text_out
 
-    if cmd_in == 'enable':
-        # Start Cog
+    if cmd_in in ['enable', 'disable']:
+        cogs_file = file_io.read_json(mod_vars.cogs_status_file)
+        cogs_file = dict(sorted(cogs_file.items()))
         names_out = ''
         for cog_name in cog_names:
-            await Cog.load_cog(cog_name)
-            Cog.change_cog_status(cog_name, 'enable')
-            names_out += cog_name
-            if len(cog_names) > 1 and cog_name != cog_names[-1]:
-                names_out += ', '
-        await ctx.send(
-            mod_vars.COGS_ENABLED.format(names_out)
-        )
-        return True
-    elif cmd_in == 'disable':
-        # Stop cog
-        names_out = ''
-        for cog_name in cog_names:
-            await Cog.unload_cog(cog_name)
-            Cog.change_cog_status(cog_name, 'disable')
-            names_out += cog_name
-            if len(cog_names) > 1 and cog_name != cog_names[-1]:
-                names_out += ', '
-        await ctx.send(
-            mod_vars.COGS_DISABLED.format(names_out)
-        )
+            if cog_name == 'all':
+                for cog_name in cogs_file:
+                    if cogs_file[cog_name] != cmd_in:
+                        await action_on_cog(cog_name, cmd_in)
+                        names_out += cog_name
+                        if len(cog_names) > 1 and cog_name != cog_names[-1]:
+                            names_out += ', '
+            else:
+                await action_on_cog(cog_name, cmd_in)
+                names_out += cog_name
+                if len(cog_names) > 1 and cog_name != cog_names[-1]:
+                    names_out += ', '
+        if cmd_in == 'enable':
+            if cog_names[0] == 'all':
+                conf_msg = mod_vars.ALL_COGS_ENABLED
+            else:
+                conf_msg = mod_vars.COGS_ENABLED.format(names_out)
+        elif cmd_in == 'disable':
+            if cog_names[0] == 'all':
+                conf_msg = mod_vars.ALL_COGS_DISABLED
+            else:
+                conf_msg = mod_vars.COGS_DISABLED.format(names_out)
+        await ctx.send(conf_msg)
         return True
     elif cmd_in == 'list':
         # List cogs and their status
@@ -327,6 +336,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
         # Reload all cogs
         await Cog.reload_all_cogs()
         await ctx.send('Cogs reloaded')
+        return
     elif cmd_in is None and cog_name is None:
         await ctx.send(
             mod_vars.COGS_TOO_FEW_ARGUMENTS
