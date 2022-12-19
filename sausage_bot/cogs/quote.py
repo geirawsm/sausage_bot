@@ -7,7 +7,7 @@ from time import sleep
 import asyncio
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util import config, mod_vars, file_io
-from sausage_bot.log import log
+from sausage_bot.util.log import log
 
 class Quotes(commands.Cog):
     'Administer or post quotes'

@@ -4,7 +4,7 @@ from discord.ext import commands
 import random
 from sausage_bot.util import config
 from sausage_bot.util import mod_vars, file_io
-from sausage_bot.log import log
+from sausage_bot.util.log import log
 
 
 class Dilemmas(commands.Cog):

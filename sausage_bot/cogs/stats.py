@@ -7,7 +7,7 @@ import emoji
 from sausage_bot.util import mod_vars, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands
 from sausage_bot.util.args import args
-from sausage_bot.log import log
+from sausage_bot.util.log import log
 from sausage_bot.util.datetime_handling import get_dt
 
 

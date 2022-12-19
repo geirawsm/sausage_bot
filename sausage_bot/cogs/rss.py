@@ -3,7 +3,7 @@
 from discord.ext import commands, tasks
 from sausage_bot.util import config, mod_vars, feeds_core, file_io
 from sausage_bot.util import discord_commands
-from sausage_bot.log import log
+from sausage_bot.util.log import log
 
 
 env_template = {
