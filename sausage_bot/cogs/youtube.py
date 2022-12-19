@@ -9,7 +9,8 @@ from yt_dlp import YoutubeDL
 
 
 env_template = {
-    'youtube_loop': 5
+    'youtube_loop': 5,
+    'filter_priority': ''   # 'allow' or 'deny'
 }
 config.add_cog_envs_to_env_file('youtube', env_template)
 

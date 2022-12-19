@@ -106,7 +106,7 @@ def ensure_file(file_path: str, file_template=False):
             if file_template:
                 write_json(file_path, file_template)
             else:
-                write_json(file_path, '{}')
+                write_json(file_path, {})
         else:
             with open(file_path, 'w+') as fout:
                 if file_template:

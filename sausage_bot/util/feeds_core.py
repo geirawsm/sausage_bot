@@ -130,53 +130,58 @@ def update_feed_status(
     return True
 
 
-def get_feed_links(url, filters=None):
+def get_feed_links(url, filters=None, filter_priority=None):
     'Get the links from a RSS-feeds `url`'
 
-    def filter_link(link, filters):
+    def filter_link(link, filters, filter_priority):
         '''
-        Check if the link is allowed first, then if it is denied
+        Filter incoming links based on active filters and settings in
+        `env.json`
         '''
+
+        def post_based_on_filter(filter_priority, filters, title_in, desc_in):
+            log.debug(f'Sjekker link ({title_in}) opp mot følgende filtere: {filters[filter_priority]}')
+            if len(filters[filter_priority]) >= 1:
+                for filter in filters[filter_priority]:
+                    log.debug(f'Is `{filter}` in `{title_in}` or `{desc_in}`?')
+                    if filter.lower() in title_in.lower():
+                        log.debug(f'Fant et filter i tittel ({title_in})')
+                        return False
+                    elif filter.lower() in desc_in.lower():
+                        log.debug(f'Fant et filter i beskrivelse ({desc_in})')
+                        return False
+                log.debug(
+                    f'Fant ikke noe filter i tittel eller beskrivelse'
+                )
+                return True
+            else:
+                log.debug(f'No {filter_priority} filters')
+                return True
+
         log.debug('Starting `filter_link`')
         title_in = link['title']
         link_in = link['link']
         desc_in = link['description']
-        log.debug(f'Got these filters: {filters}')
+        if filter_priority:
+            log.debug(
+                f'Based on settings, the `{filter_priority}` filter'
+                f' is prioritized'
+            )
+        elif filter_priority is None:
+            log.debug(
+                f'No `filter_priority` given, setting `deny` as standard'
+            )
+            if not filter_priority:
+                filter_priority = 'deny'
+        log.debug('Got these filters:')
         log.debug(f'Allow: {filters["allow"]}')
         log.debug(f'Deny: {filters["deny"]}')
-        if len(filters['allow']) >= 1:
-            log.debug(f'Found allow filter: `{filters["allow"]}`')
-            if any(
-                    filter in title_in for filter in filters['allow']
-                ) or\
-                    any(filter in desc_in for filter in filters['allow']):
-                if filters['deny'] and (
-                    any(
-                        filter not in title_in for filter in filters['deny']
-                        or any(
-                        filter not in desc_in for filter in filters['deny']
-                        )
-                    )
-                ):
-                    log.debug(f'...and a deny filter: `{filters["deny"]}`')
-                    return link_in
-                else:
-                    log.debug('...but no deny filter')
-                    return
-        elif len(filters['deny']) >= 1:
-            log.debug('Found no allow filter, but deny')
-            if any(
-                filter not in title_in for filter in filters['deny']
-            ) or any(
-                    filter not in desc_in for filter in filters['deny']
-            ):
-                log.debug('Did not trigger deny filter in title, adding link')
-                return link_in
-            else:
-                log.debug('Deny-filter triggered, not posting')
-        else:
-            log.debug(f'No active filters, adding link: `{link_in}`')
+        if post_based_on_filter(
+            filter_priority, filters, title_in, desc_in
+        ):
             return link_in
+        else:
+            return False
 
     # Get the url and make it parseable
     log.debug(f'Got these arguments: {locals()}')
@@ -227,7 +232,7 @@ def get_feed_links(url, filters=None):
             )
     for link in links_filter:
         if filters:
-            link = filter_link(link, filters)
+            link = filter_link(link, filters, filter_priority)
             if link:
                 log.debug(f'Appending link: `{link}`')
                 links.append(link)
@@ -463,7 +468,7 @@ async def process_links_for_posting_or_editing(
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
                 log.log_more(f'Posting link `{feed_link}`')
-                await discord_commands.post_to_channel(feed_link, CHANNEL)
+                await discord_commands.post_to_channel(CHANNEL, feed_link)
                 # Add link to log
                 FEED_LOG[feed].append(feed_link)
             elif feed_link_similar:

@@ -7,7 +7,8 @@ from sausage_bot.util.log import log
 
 
 env_template = {
-    'rss_loop': 5
+    'rss_loop': 5,
+    'filter_priority': ''   # 'allow' or 'deny'
 }
 config.add_cog_envs_to_env_file('rss', env_template)
 
@@ -350,10 +351,14 @@ class RSSfeed(commands.Cog):
                 return
             URL = feeds[feed]['url']
             FILTERS = feeds[feed]['filter']
+            FILTER_PRIORITY = env['filter_priority']
             log.log('Checking {} ({})'.format(feed, CHANNEL))
             log.debug(f'`URL`: `{URL}`')
             log.debug(f'`FILTERS`: `{FILTERS}`')
-            FEED_POSTS = feeds_core.get_feed_links(URL, FILTERS)
+            log.debug(f'`FILTER_PRIORITY`: `{FILTER_PRIORITY}`')
+            FEED_POSTS = feeds_core.get_feed_links(
+                URL, FILTERS, FILTER_PRIORITY
+            )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(mod_vars.RSS_FEED_POSTS_IS_NONE.format(feed))
