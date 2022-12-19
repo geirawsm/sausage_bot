@@ -202,7 +202,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
                 req.content, parser=etree.XMLParser(encoding='utf-8'))
         except (etree.XMLSyntaxError):
             return None
-        for item in feed_in.xpath('/rss/channel/item')[0:2]:
+        for item in feed_in.xpath('/rss/channel/item'):
             try:
                 link = item.xpath("./link/text()")[0].strip()
                 title = item.findtext("./title")

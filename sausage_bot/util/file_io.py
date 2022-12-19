@@ -140,7 +140,7 @@ def check_similarity(text1: str, text2: str) -> bool:
         return None
     ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
     # Our "similarity" is defined by the following equation:
-    if 0.95 <= ratio <= 0.99999999999999999999999999995:
+    if 0.98 <= ratio <= 0.99999999999999999999999999995:
         log.log(
             f'These texts seem similiar (ratio: {ratio}):\n'
             f'`{text1}`\n'

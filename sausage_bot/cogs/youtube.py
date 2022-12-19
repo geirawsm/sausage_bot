@@ -37,14 +37,14 @@ class Youtube(commands.Cog):
             return info['uploader_id']
 
     def get_videos_from_yt_link(url):
-        'Get the 6 last videos from channel'
+        'Get the 2 last videos from channel'
         log.debug(f'Got `url`: {url}')
         id_in = Youtube.get_yt_id(url)
         channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
         log.debug(f'Got `channel_by_id`: `{channel_by_id}`')
         videos = feeds_core.get_feed_links(channel_by_id)
         video_log = []
-        for video in videos[0:6]:
+        for video in videos[0:2]:
             video_log.append(video)
         return video_log
 
@@ -262,7 +262,7 @@ async def setup(bot):
     # Create necessary files before starting
     log.log_more(mod_vars.CREATING_FILES)
     check_and_create_files = [
-        (mod_vars.yt_feeds_file, '{}'),
+        (mod_vars.yt_feeds_file, {}),
         mod_vars.yt_feeds_logs_file
     ]
     file_io.create_necessary_files(check_and_create_files)

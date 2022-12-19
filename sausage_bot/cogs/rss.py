@@ -338,6 +338,8 @@ class RSSfeed(commands.Cog):
             log.log_more('- {}'.format(feed))
         # Start processing per feed settings
         for feed in feeds:
+            log.debug(
+                f'Found channel `{feeds[feed]["channel"]}` in `{feeds[feed]}`')
             CHANNEL = feeds[feed]['channel']
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
