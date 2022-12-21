@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
+import re
+from yt_dlp import YoutubeDL
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from sausage_bot.util import config, mod_vars, feeds_core, file_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
-import re
-from yt_dlp import YoutubeDL
-
 
 env_template = {
     'youtube_loop': 5,
@@ -36,17 +37,41 @@ class Youtube(commands.Cog):
             info = ydl.extract_info(url, download=False)
             return info['uploader_id']
 
-    def get_videos_from_yt_link(url):
+    def get_videos_from_yt_link(feed, feeds):
         'Get the 2 last videos from channel'
-        log.debug(f'Got `url`: {url}')
-        id_in = Youtube.get_yt_id(url)
+        FEED_POSTS = {
+            'name': feed,
+            'channel': feeds[feed]['channel'],
+            'posts': []
+        }
+        id_in = Youtube.get_yt_id(feeds[feed]['url'])
         channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
         log.debug(f'Got `channel_by_id`: `{channel_by_id}`')
         videos = feeds_core.get_feed_links(channel_by_id)
-        video_log = []
         for video in videos[0:2]:
-            video_log.append(video)
-        return video_log
+            FEED_POSTS['posts'].append(video)
+        return FEED_POSTS
+
+    def get_all_youtube_videos(feeds):
+        vids_out = []
+        with ThreadPoolExecutor(
+                max_workers=6, thread_name_prefix='Get_YT_vids'
+        ) as executor:
+            futures = [executor.submit(
+                Youtube.get_videos_from_yt_link, feed, feeds) for feed in feeds]
+            for future in as_completed(futures):
+                vids_out.append(future.result())
+        executor.shutdown()
+        return vids_out
+
+    async def post_queue_of_youtube_videos(feed_posts):
+        for feed_post in feed_posts:
+            log.debug(f'Processing: {feed_post}')
+            FEED_LOG = file_io.read_json(mod_vars.yt_feeds_logs_file)
+            await Youtube.process_links_for_posting_or_editing(
+                feed_post['name'], feed_post['posts'], FEED_LOG,
+                feed_post['channel']
+            )
 
     def test_link_for_yt_compatibility(url):
         'Test a Youtube-link to make sure it can get videos'
@@ -193,10 +218,11 @@ class Youtube(commands.Cog):
         return
 
     async def process_links_for_posting_or_editing(
-        feed, FEED_POSTS, feed_log_file, CHANNEL
+        feed, FEED_POSTS, FEED_LOG, CHANNEL
     ):
         'Check new links against the log and post them if they are brand new'
-        FEED_LOG = file_io.read_json(feed_log_file)
+        func_args = locals()
+        log.debug(f'Got these arguments: {func_args}')
         try:
             FEED_LOG[feed]
         except (KeyError):
@@ -207,16 +233,15 @@ class Youtube(commands.Cog):
             if not feeds_core.link_is_in_log(video, FEED_LOG[feed]):
                 # Consider this a whole new post and post link to channel
                 log.log_more(f'Posting link `{video}`')
-                await discord_commands.post_to_channel(video, CHANNEL)
+                await discord_commands.post_to_channel(CHANNEL, video)
                 # Add link to log
-                await FEED_LOG[feed].append(video)
+                FEED_LOG[feed].append(video)
             elif feeds_core.link_is_in_log(video, FEED_LOG[feed]):
                 await log.log_more(f'Link `{video}` already logged. Skipping.')
             # Write to the logs-file at the end
-            file_io.write_json(feed_log_file, FEED_LOG)
+            return FEED_LOG
 
     # Tasks
-
     @tasks.loop(minutes=env['youtube_loop'])
     async def youtube_parse():
         log.log('Starting `youtube_parse`')
@@ -236,17 +261,8 @@ class Youtube(commands.Cog):
             for feed in feeds:
                 log.log_more('- {}'.format(feed))
             # Start processing per feed settings
-            for feed in feeds:
-                CHANNEL = feeds[feed]['channel']
-                URL = feeds[feed]['url']
-                log.log('Checking {} ({})'.format(feed, CHANNEL))
-                FEED_POSTS = Youtube.get_videos_from_yt_link(URL)
-                if FEED_POSTS is None:
-                    log.log(f'{feed}: this feed returned NoneType.')
-                    return
-                Youtube.process_links_for_posting_or_editing(
-                    feed, FEED_POSTS, mod_vars.yt_feeds_logs_file, CHANNEL
-                )
+            videos = Youtube.get_all_youtube_videos(feeds)
+            await Youtube.post_queue_of_youtube_videos(videos)
         return
 
     @youtube_parse.before_loop

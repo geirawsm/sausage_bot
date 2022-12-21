@@ -148,6 +148,7 @@ async def post_to_channel(
 ):
     'Post `content_in` in plain text or `content_embed_in` to channel `channel_in`'
     server_channels = get_text_channel_list()
+    log.debug(f'Got these channels: {server_channels}')
     if channel_in in server_channels:
         channel_out = config.bot.get_channel(server_channels[channel_in])
         if content_in:
