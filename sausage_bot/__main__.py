@@ -72,7 +72,7 @@ class Cog:
 
         `status` should be `enable` or `disable`
         '''
-        accepted_status = ['enable', 'disable']
+        accepted_status = ['enable', 'e', 'disable', 'd']
         if not any(status == ok_status for ok_status in accepted_status):
             log.log('This command only accept `enable` or `disable`')
             return False
@@ -146,7 +146,7 @@ class Cog:
         # Start cogs based on status
         log.log('Checking `cogs_status` file for enabled cogs')
         for cog_name in cogs_status:
-            if cogs_status[cog_name] == 'enable':
+            if cogs_status[cog_name] in ['enable', 'e']:
                 log.log('Loading cog: {}'.format(cog_name))
                 await Cog.load_cog(cog_name)
         file_io.write_json(mod_vars.cogs_status_file, cogs_status)
@@ -253,10 +253,10 @@ async def cog(ctx, cmd_in=None, *cog_names):
     'Enable, disable, reload or list cogs for this bot'
 
     async def action_on_cog(cog_name, cmd_in):
-        if cmd_in == 'enable':
+        if cmd_in in ['enable', 'e']:
             await Cog.load_cog(cog_name)
             Cog.change_cog_status(cog_name, 'enable')
-        elif cmd_in == 'disable':
+        elif cmd_in in ['disable', 'd']:
             await Cog.unload_cog(cog_name)
             Cog.change_cog_status(cog_name, 'disable')
     
@@ -296,7 +296,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
         log.debug(f'Returning:\n{text_out}')
         return text_out
 
-    if cmd_in in ['enable', 'disable']:
+    if cmd_in in ['enable', 'e', 'disable', 'd']:
         cogs_file = file_io.read_json(mod_vars.cogs_status_file)
         cogs_file = dict(sorted(cogs_file.items()))
         names_out = ''
@@ -313,12 +313,12 @@ async def cog(ctx, cmd_in=None, *cog_names):
                 names_out += cog_name
                 if len(cog_names) > 1 and cog_name != cog_names[-1]:
                     names_out += ', '
-        if cmd_in == 'enable':
+        if cmd_in in ['enable', 'e']:
             if cog_names[0] == 'all':
                 conf_msg = mod_vars.ALL_COGS_ENABLED
             else:
                 conf_msg = mod_vars.COGS_ENABLED.format(names_out)
-        elif cmd_in == 'disable':
+        elif cmd_in in ['disable', 'd']:
             if cog_names[0] == 'all':
                 conf_msg = mod_vars.ALL_COGS_DISABLED
             else:
