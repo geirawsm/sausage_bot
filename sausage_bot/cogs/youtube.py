@@ -67,9 +67,8 @@ class Youtube(commands.Cog):
     async def post_queue_of_youtube_videos(feed_posts):
         for feed_post in feed_posts:
             log.debug(f'Processing: {feed_post}')
-            FEED_LOG = file_io.read_json(mod_vars.yt_feeds_logs_file)
-            await Youtube.process_links_for_posting_or_editing(
-                feed_post['name'], feed_post['posts'], FEED_LOG,
+            await feeds_core.process_links_for_posting_or_editing(
+                feed_post['name'], feed_post['posts'], mod_vars.yt_feeds_logs_file,
                 feed_post['channel']
             )
 
@@ -217,29 +216,6 @@ class Youtube(commands.Cog):
             await ctx.send('No feeds added')
         return
 
-    async def process_links_for_posting_or_editing(
-        feed, FEED_POSTS, FEED_LOG, CHANNEL
-    ):
-        'Check new links against the log and post them if they are brand new'
-        func_args = locals()
-        log.debug(f'Got these arguments: {func_args}')
-        try:
-            FEED_LOG[feed]
-        except (KeyError):
-            FEED_LOG[feed] = []
-        for video in FEED_POSTS:
-            log.log_more(f'Got video `{video}`')
-            # Check if the link is in the log
-            if not feeds_core.link_is_in_log(video, FEED_LOG[feed]):
-                # Consider this a whole new post and post link to channel
-                log.log_more(f'Posting link `{video}`')
-                await discord_commands.post_to_channel(CHANNEL, video)
-                # Add link to log
-                FEED_LOG[feed].append(video)
-            elif feeds_core.link_is_in_log(video, FEED_LOG[feed]):
-                await log.log_more(f'Link `{video}` already logged. Skipping.')
-            # Write to the logs-file at the end
-            return FEED_LOG
 
     # Tasks
     @tasks.loop(minutes=env['youtube_loop'])
