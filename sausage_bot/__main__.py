@@ -10,7 +10,7 @@ from sausage_bot.util.log import log
 
 
 # Set locale
-locale.setlocale(locale.LC_ALL, _config.LOCALE)
+locale.setlocale(locale.LC_ALL, config.LOCALE)
 
 # Create necessary folders before starting
 check_and_create_folders = [
