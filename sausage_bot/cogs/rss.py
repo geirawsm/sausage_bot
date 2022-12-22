@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
+from time import sleep
 from sausage_bot.util import config, mod_vars, feeds_core, file_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
@@ -312,8 +313,16 @@ class RSSfeed(commands.Cog):
                 mod_vars.rss_feeds_file, filters=True
             )
         else:
-            list_format = feeds_core.get_feed_list(mod_vars.rss_feeds_file)
-        await ctx.send(list_format)
+            list_format = feeds_core.get_feed_list(
+                mod_vars.rss_feeds_file
+            )
+        if list_format is not None:
+            for page in list_format:
+                log.debug(f'Sending page ({len(page)} / {len(list_format)})')
+                await ctx.send(f"```{page}```")
+                sleep(1)
+        else:
+            await ctx.send('No feeds added')
         return
 
     # Tasks

@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
 import re
+from time import sleep
 from yt_dlp import YoutubeDL
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -211,7 +212,10 @@ class Youtube(commands.Cog):
                 mod_vars.yt_feeds_file
             )
         if list_format is not None:
-            await ctx.send(list_format)
+            for page in list_format:
+                log.debug(f'Sending page ({len(page)} / {len(list_format)})')
+                await ctx.send(f"```{page}```")
+                sleep(1)
         else:
             await ctx.send('No feeds added')
         return
@@ -263,4 +267,4 @@ async def setup(bot):
 
 
 if __name__ == "__main__":
-    print(Youtube.get_yt_id('https://www.youtube.com/@centurymedia'))
+    pass
