@@ -297,6 +297,10 @@ async def cog(ctx, cmd_in=None, *cog_names):
         return text_out
 
     if cmd_in in ['enable', 'e', 'disable', 'd']:
+        if cmd_in == 'e':
+            cmd_in = 'enable'
+        if cmd_in == 'd':
+            cmd_in = 'disable'
         cogs_file = file_io.read_json(mod_vars.cogs_status_file)
         cogs_file = dict(sorted(cogs_file.items()))
         names_out = ''
