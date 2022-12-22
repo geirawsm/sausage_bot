@@ -144,15 +144,18 @@ def get_feed_links(url, filters=None, filter_priority=None):
                 log.debug(f'No {filter_priority} filters')
                 return True
             else:
-                log.debug(f'Sjekker link ({title_in}) opp mot følgende filtere: {filters[filter_priority]}')
+                log.debug(
+                    f'Sjekker link ({title_in}) opp mot følgende filtere: {filters[filter_priority]}')
                 if len(filters[filter_priority]) >= 1:
                     for filter in filters[filter_priority]:
-                        log.debug(f'Is `{filter}` in `{title_in}` or `{desc_in}`?')
+                        log.debug(
+                            f'Is `{filter}` in `{title_in}` or `{desc_in}`?')
                         if filter.lower() in title_in.lower():
                             log.debug(f'Fant et filter i tittel ({title_in})')
                             return False
                         elif filter.lower() in desc_in.lower():
-                            log.debug(f'Fant et filter i beskrivelse ({desc_in})')
+                            log.debug(
+                                f'Fant et filter i beskrivelse ({desc_in})')
                             return False
                     log.debug(
                         f'Fant ikke noe filter i tittel eller beskrivelse'

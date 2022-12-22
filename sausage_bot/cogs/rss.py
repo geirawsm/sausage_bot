@@ -48,7 +48,7 @@ class RSSfeed(commands.Cog):
             description="The channel to post from the feed"
         )
     ):
-        'Add RSS feed to a specific channel: `!rss add [feed_link] [channel]`'
+        'Add RSS feed to a specific channel: `!rss add [feed_name] [feed_link] [channel]`'
         AUTHOR = ctx.message.author.name
         URL_OK = False
         CHANNEL_OK = False
