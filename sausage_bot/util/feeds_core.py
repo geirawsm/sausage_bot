@@ -305,11 +305,11 @@ def get_feed_list(feeds_file, long=False, filters=False):
         if list_type is None:
             template_line = '{:<{feed_len}} | {:<{url_len}} | '\
                 '{:<{channel_len}}'
-        elif list_type is 'long':
+        elif list_type == 'long':
             template_line = '{:<{feed_len}} | {:<{url_len}} | '\
                 '{:<{channel_len}} | {:<{filters}} | {:<{added_len}} | '\
                 '{:<{added_by_len}}'
-        elif list_type is 'filters':
+        elif list_type == 'filters':
             template_line = '{:<{feed_len}} | {:<{filter_allow}} | '\
                 '{:<{filter_deny}}'
         # Set `header_out`
@@ -318,7 +318,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
                 'Name', 'Feed', 'Channel', feed_len=lengths['feed_len'],
                 url_len=lengths['url_len'], channel_len=lengths['channel_len']
             )
-        elif list_type is 'long':
+        elif list_type == 'long':
             header_out = template_line.format(
                 'Name', 'Feed', 'Channel', 'Filters', 'Added', 'Added by',
                 feed_len=lengths['feed_len'],
@@ -328,7 +328,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
                 added_len=lengths['added_len'],
                 added_by_len=lengths['added_by_len']
             )
-        elif list_type is 'filters':
+        elif list_type == 'filters':
             header_out = template_line.format(
                 'Name', 'Filter allow', 'Filter deny',
                 feed_len=lengths['feed_len'],
@@ -346,7 +346,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
                     feed_len=lengths['feed_len'], url_len=lengths['url_len'],
                     channel_len=lengths['channel_len']
                 )
-            elif list_type is 'long':
+            elif list_type == 'long':
                 if len(_feed['filter']['allow']) > 0 or\
                         len(_feed['filter']['deny']) > 0:
                     filter_status = 'Yes'
@@ -362,7 +362,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
                     added_len=lengths['added_len'],
                     added_by_len=lengths['added_by_len']
                 )
-            elif list_type is 'filters':
+            elif list_type == 'filters':
                 if _feed['filter']['allow'] == 0:
                     _feed['filter']['allow'] = ""
                 if _feed['filter']['deny'] == 0:
