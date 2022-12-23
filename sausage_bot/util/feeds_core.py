@@ -404,6 +404,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
         return list_paginated
 
     feeds_file = file_io.read_json(feeds_file)
+    feeds_file = dict(sorted(feeds_file.items()))
     # Return None if empty file
     if len(feeds_file) <= 0:
         return None
