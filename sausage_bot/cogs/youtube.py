@@ -49,9 +49,13 @@ class Youtube(commands.Cog):
         channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
         log.debug(f'Got `channel_by_id`: `{channel_by_id}`')
         videos = feeds_core.get_feed_links(channel_by_id)
-        for video in videos[0:2]:
-            FEED_POSTS['posts'].append(video)
-        return FEED_POSTS
+        if videos is not None:
+            for video in videos[0:2]:
+                FEED_POSTS['posts'].append(video)
+            return FEED_POSTS
+        else:
+            return None
+        
 
     def get_all_youtube_videos(feeds):
         vids_out = []
