@@ -5,7 +5,7 @@ from discord.ext import commands
 import os
 import locale
 from sausage_bot.util.args import args
-from sausage_bot.util import config, mod_vars, file_io
+from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.log import log
 
 
