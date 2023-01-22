@@ -5,7 +5,7 @@ import requests
 from time import sleep as sleep
 from discord.ext import commands, tasks
 from sausage_bot.util.args import args
-from sausage_bot.util import config, mod_vars, feeds_core
+from sausage_bot.util import config, envs, feeds_core
 from sausage_bot.util.log import log
 
 env_template = {
@@ -107,7 +107,7 @@ class scrape_and_post(commands.Cog):
                 CHANNEL = team.lower()
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
-                        feed, FEED_POSTS[team], mod_vars.scrape_logs_file,
+                        feed, FEED_POSTS[team], envs.scrape_logs_file,
                         env[CHANNEL]
                     )
                 except AttributeError as e:
@@ -123,5 +123,5 @@ class scrape_and_post(commands.Cog):
 
 
 async def setup(bot):
-    log.log(mod_vars.COG_STARTING.format('scrape_fcb_news'))
+    log.log(envs.COG_STARTING.format('scrape_fcb_news'))
     await bot.add_cog(scrape_and_post(bot))

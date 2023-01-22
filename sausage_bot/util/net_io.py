@@ -4,7 +4,7 @@ import discord
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
-from sausage_bot.util import mod_vars, datetime_handling
+from sausage_bot.util import envs, datetime_handling
 from sausage_bot.util.args import args
 from .log import log
 import json
@@ -21,7 +21,7 @@ def get_link(url, cookies=None):
     'Get a requests object from a `url`'
     if type(url) is not str:
         log.debug('`url` is not string')
-        log.log(mod_vars.RSS_INVALID_URL.format(url))
+        log.log(envs.RSS_INVALID_URL.format(url))
         return None
     if args.local_parsing:
         log.debug('Using local parsing')
@@ -42,10 +42,10 @@ def get_link(url, cookies=None):
             else:
                 req = requests.get(url)
         except(requests.exceptions.InvalidSchema):
-            log.log(mod_vars.RSS_INVALID_URL.format(url))
+            log.log(envs.RSS_INVALID_URL.format(url))
             return None
         except(requests.exceptions.ConnectionError):
-            log.log(mod_vars.RSS_CONNECTION_ERROR)
+            log.log(envs.RSS_CONNECTION_ERROR)
             return None
     if req is None:
         return None
@@ -66,7 +66,7 @@ def scrape_page(url, cookies=None):
         soup = BeautifulSoup(scrape.content, features='html5lib')
         return soup
     except Exception as e:
-        log.log(mod_vars.RSS_NOT_ABLE_TO_SCRAPE.format(url, e))
+        log.log(envs.RSS_NOT_ABLE_TO_SCRAPE.format(url, e))
         return None
 
 
@@ -113,7 +113,7 @@ def make_event_start_stop(date, time=None):
             'end_epoch': end_epoch
         }
     except Exception as e:
-        log.log(mod_vars.ERROR_WITH_ERROR_MSG.format(e))
+        log.log(envs.ERROR_WITH_ERROR_MSG.format(e))
         return None
 
 
@@ -218,7 +218,7 @@ def parse(url: str):
             parse = parse_nifs(soup)
             return parse
         except Exception as e:
-            error_msg = mod_vars.AUTOEVENT_PARSE_ERROR.format(url, e)
+            error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.log(error_msg)
             return None
     elif PARSER == 'vglive':
@@ -226,7 +226,7 @@ def parse(url: str):
             parse = parse_vglive(url)
             return parse
         except Exception as e:
-            error_msg = mod_vars.AUTOEVENT_PARSE_ERROR.format(url, e)
+            error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.log(error_msg)
             return None
     else:

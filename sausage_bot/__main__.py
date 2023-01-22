@@ -14,7 +14,7 @@ locale.setlocale(locale.LC_ALL, config.LOCALE)
 
 # Create necessary folders before starting
 check_and_create_folders = [
-    mod_vars.LOG_DIR, mod_vars.JSON_DIR, mod_vars.COGS_DIR, mod_vars.STATIC_DIR
+    envs.LOG_DIR, envs.JSON_DIR, envs.COGS_DIR, envs.STATIC_DIR
 ]
 for folder in check_and_create_folders:
     try:
@@ -25,8 +25,8 @@ for folder in check_and_create_folders:
 # Create necessary files before starting
 log.log_more('Creating necessary files')
 check_and_create_files = [
-    (mod_vars.cogs_status_file, '{}'),
-    (mod_vars.env_file, mod_vars.env_template)
+    (envs.cogs_status_file, '{}'),
+    (envs.env_file, envs.env_template)
 ]
 for file in check_and_create_files:
     if isinstance(file, tuple):
@@ -76,22 +76,22 @@ class Cog:
         if not any(status == ok_status for ok_status in accepted_status):
             log.log('This command only accept `enable` or `disable`')
             return False
-        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
+        cogs_status = file_io.read_json(envs.cogs_status_file)
         try:
             # Change status
             cogs_status[cog_name] = status
             # Write changes
-            file_io.write_json(mod_vars.cogs_status_file, cogs_status)
+            file_io.write_json(envs.cogs_status_file, cogs_status)
             return True
         except Exception as e:
-            log.log(mod_vars.COGS_CHANGE_STATUS_FAIL.format(e))
+            log.log(envs.COGS_CHANGE_STATUS_FAIL.format(e))
             return False
 
     async def load_cog(cog_name):
         'Load a specific cog by `cog_name`'
         await config.bot.load_extension(
             '{}.{}'.format(
-                mod_vars.COGS_REL_DIR, f'{cog_name}'
+                envs.COGS_REL_DIR, f'{cog_name}'
             )
         )
         return
@@ -100,7 +100,7 @@ class Cog:
         'Unload a specific cog by `cog_name`'
         await config.bot.unload_extension(
             '{}.{}'.format(
-                mod_vars.COGS_REL_DIR, f'{cog_name}'
+                envs.COGS_REL_DIR, f'{cog_name}'
             )
         )
         return
@@ -109,7 +109,7 @@ class Cog:
         'Reload a specific cog by `cog_name`'
         await config.bot.reload_extension(
             '{}.{}'.format(
-                mod_vars.COGS_REL_DIR, f'{cog_name}'
+                envs.COGS_REL_DIR, f'{cog_name}'
             )
         )
         return
@@ -124,8 +124,8 @@ class Cog:
         '''
         cog_files = []
         # Add cogs that are not present in the `cogs_status` file
-        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
-        for filename in os.listdir(mod_vars.COGS_DIR):
+        cogs_status = file_io.read_json(envs.cogs_status_file)
+        for filename in os.listdir(envs.COGS_DIR):
             if filename.endswith('.py'):
                 cog_name = filename[:-3]
                 # Add all cog names to `cog_files` for easier cleaning
@@ -149,7 +149,7 @@ class Cog:
             if cogs_status[cog_name] in ['enable', 'e']:
                 log.log('Loading cog: {}'.format(cog_name))
                 await Cog.load_cog(cog_name)
-        file_io.write_json(mod_vars.cogs_status_file, cogs_status)
+        file_io.write_json(envs.cogs_status_file, cogs_status)
 
     async def reload_all_cogs():
         'Reload all cogs which is already enabled'
@@ -301,7 +301,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
             cmd_in = 'enable'
         if cmd_in == 'd':
             cmd_in = 'disable'
-        cogs_file = file_io.read_json(mod_vars.cogs_status_file)
+        cogs_file = file_io.read_json(envs.cogs_status_file)
         cogs_file = dict(sorted(cogs_file.items()))
         names_out = ''
         for cog_name in cog_names:
@@ -319,19 +319,19 @@ async def cog(ctx, cmd_in=None, *cog_names):
                     names_out += ', '
         if cmd_in in ['enable', 'e']:
             if cog_names[0] == 'all':
-                conf_msg = mod_vars.ALL_COGS_ENABLED
+                conf_msg = envs.ALL_COGS_ENABLED
             else:
-                conf_msg = mod_vars.COGS_ENABLED.format(names_out)
+                conf_msg = envs.COGS_ENABLED.format(names_out)
         elif cmd_in in ['disable', 'd']:
             if cog_names[0] == 'all':
-                conf_msg = mod_vars.ALL_COGS_DISABLED
+                conf_msg = envs.ALL_COGS_DISABLED
             else:
-                conf_msg = mod_vars.COGS_DISABLED.format(names_out)
+                conf_msg = envs.COGS_DISABLED.format(names_out)
         await ctx.send(conf_msg)
         return True
     elif cmd_in == 'list':
         # List cogs and their status
-        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
+        cogs_status = file_io.read_json(envs.cogs_status_file)
         await ctx.send(
             get_cogs_list(cogs_status)
         )
@@ -343,7 +343,7 @@ async def cog(ctx, cmd_in=None, *cog_names):
         return
     elif cmd_in is None and cog_name is None:
         await ctx.send(
-            mod_vars.COGS_TOO_FEW_ARGUMENTS
+            envs.COGS_TOO_FEW_ARGUMENTS
         )
         return
     else:

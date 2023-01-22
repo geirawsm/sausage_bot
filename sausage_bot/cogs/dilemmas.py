@@ -2,8 +2,8 @@
 # -*- coding: UTF-8 -*-
 from discord.ext import commands
 import random
-from sausage_bot.util import config
-from sausage_bot.util import mod_vars, file_io
+from sausage_bot.util import config, envs
+from sausage_bot.util import file_io
 from sausage_bot.util.log import log
 
 
@@ -32,20 +32,20 @@ class Dilemmas(commands.Cog):
                 log_ctx = 'dm@{}'.format(ctx.message.author)
             else:
                 log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
-            recent_dilemmas_log = file_io.read_json(mod_vars.dilemmas_log_file)
+            recent_dilemmas_log = file_io.read_json(envs.dilemmas_log_file)
             if recent_dilemmas_log is None:
-                await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.dilemmas_log_file))
+                await ctx.send(envs.UNREADABLE_FILE.format(envs.dilemmas_log_file))
                 return
             if log_ctx not in recent_dilemmas_log:
                 recent_dilemmas_log[log_ctx] = []
-            dilemmas = file_io.read_json(mod_vars.dilemmas_file)
+            dilemmas = file_io.read_json(envs.dilemmas_file)
             if dilemmas is None:
-                await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.dilemmas_file))
+                await ctx.send(envs.UNREADABLE_FILE.format(envs.dilemmas_file))
                 return
             if len(recent_dilemmas_log[log_ctx]) == len(dilemmas):
                 recent_dilemmas_log[log_ctx] = []
                 file_io.write_json(
-                    mod_vars.dilemmas_log_file, recent_dilemmas_log
+                    envs.dilemmas_log_file, recent_dilemmas_log
                 )
             _rand = random.choice(
                 [i for i in range(0, len(dilemmas))
@@ -54,7 +54,7 @@ class Dilemmas(commands.Cog):
             if str(_rand) not in recent_dilemmas_log[log_ctx]:
                 recent_dilemmas_log[log_ctx].append(str(_rand))
                 file_io.write_json(
-                    mod_vars.dilemmas_log_file, recent_dilemmas_log
+                    envs.dilemmas_log_file, recent_dilemmas_log
                 )
             _dilemma = prettify(dilemmas[str(_rand)])
             await ctx.send(_dilemma)
@@ -67,7 +67,7 @@ class Dilemmas(commands.Cog):
     @dilemmas.group(name='add')
     async def add(self, ctx, dilemmas_in):
         'Add a dilemma: `!dilemmas add [dilemmas_in]`'
-        dilemmas = file_io.read_json(mod_vars.dilemmas_file)
+        dilemmas = file_io.read_json(envs.dilemmas_file)
         new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
         log.log_more(
             'Trying to add dilemma number {}'.format(
@@ -80,12 +80,12 @@ class Dilemmas(commands.Cog):
                 new_dilemmas_number, dilemmas[str(new_dilemmas_number)]
             )
         )
-        file_io.write_json(mod_vars.dilemmas_file, dilemmas)
+        file_io.write_json(envs.dilemmas_file, dilemmas)
         await ctx.message.reply('Added the following dilemma: {}'.format(dilemmas_in))
         new_dilemmas_number += 1
         return
 
 
 async def setup(bot):
-    log.log(mod_vars.COG_STARTING.format('dilemmas'))
+    log.log(envs.COG_STARTING.format('dilemmas'))
     await bot.add_cog(Dilemmas(bot))

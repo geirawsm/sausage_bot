@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 from discord.ext import commands, tasks
 from time import sleep
-from sausage_bot.util import config, mod_vars, feeds_core, file_io
+from sausage_bot.util import config, envs, feeds_core, file_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
 
@@ -54,17 +54,17 @@ class RSSfeed(commands.Cog):
         CHANNEL_OK = False
         if feed_name is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         elif feed_link is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         elif channel is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         else:
@@ -74,30 +74,30 @@ class RSSfeed(commands.Cog):
             else:
                 URL_OK = False
             log.log_more(f'URL_OK is {URL_OK}')
-            log.log_more(mod_vars.GOT_CHANNEL_LIST.format(
+            log.log_more(envs.GOT_CHANNEL_LIST.format(
                 discord_commands.get_text_channel_list()))
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
                 feeds_core.add_to_feed_file(
                     str(feed_name), str(feed_link), channel, AUTHOR,
-                    mod_vars.rss_feeds_file
+                    envs.rss_feeds_file
                 )
                 await log.log_to_bot_channel(
-                    mod_vars.RSS_ADDED_BOT.format(
+                    envs.RSS_ADDED_BOT.format(
                         AUTHOR, feed_name, feed_link, channel
                     )
                 )
                 await ctx.send(
-                    mod_vars.RSS_ADDED.format(feed_name, channel)
+                    envs.RSS_ADDED.format(feed_name, channel)
                 )
                 return
             elif not URL_OK:
-                await ctx.send(mod_vars.RSS_URL_NOT_OK)
+                await ctx.send(envs.RSS_URL_NOT_OK)
                 return
             elif not CHANNEL_OK:
                 await ctx.send(
-                    mod_vars.CHANNEL_NOT_FOUND.format(channel)
+                    envs.CHANNEL_NOT_FOUND.format(channel)
                 )
                 return
 
@@ -129,17 +129,17 @@ class RSSfeed(commands.Cog):
         'Edit a feed\'s channel: `!rss edit channel [feed_name] [channel]`'
         if feed_name is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         elif channel is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         if discord_commands.channel_exist(channel):
             feeds_core.update_feed_status(
-                feed_name, mod_vars.rss_feeds_file, channel_in=channel
+                feed_name, envs.rss_feeds_file, channel_in=channel
             )
         return
 
@@ -162,16 +162,16 @@ class RSSfeed(commands.Cog):
         'Edit the name of a feed: `!rss edit name [feed_name] [new_feed_name]`'
         if feed_name is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         elif new_feed_name is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         feeds_core.update_feed_status(
-            feed_name, mod_vars.rss_feeds_file, name=new_feed_name
+            feed_name, envs.rss_feeds_file, name=new_feed_name
         )
         return
 
@@ -194,16 +194,16 @@ class RSSfeed(commands.Cog):
         'Edit the url for a feed: `!rss edit url [feed_name] [url]`'
         if feed_name is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         elif url is None:
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         feeds_core.update_feed_status(
-            feed_name, mod_vars.rss_feeds_file, url_in=url
+            feed_name, envs.rss_feeds_file, url_in=url
         )
         return
 
@@ -238,7 +238,7 @@ class RSSfeed(commands.Cog):
                 or filter_in is None:
             log.debug('Too few arguments')
             await ctx.send(
-                mod_vars.TOO_FEW_ARGUMENTS
+                envs.TOO_FEW_ARGUMENTS
             )
             return
         # Check for necessary arguments
@@ -246,10 +246,10 @@ class RSSfeed(commands.Cog):
             if allow_deny not in ['allow', 'deny']:
                 log.debug('Wrong arguments')
                 await ctx.send(
-                    mod_vars.TOO_FEW_ARGUMENTS
+                    envs.TOO_FEW_ARGUMENTS
                 )
                 return
-        feeds = file_io.read_json(mod_vars.rss_feeds_file)
+        feeds = file_io.read_json(envs.rss_feeds_file)
         if add_remove == 'remove':
             # Check if in list, then remove
             if filter_in in feeds[feed_name]['filter'][allow_deny]:
@@ -262,7 +262,7 @@ class RSSfeed(commands.Cog):
                 await ctx.message.reply(f'Added filter `{filter_in}`')
         log.debug(
             f'Writing the following to the feed name:\n{feeds[feed_name]}')
-        file_io.write_json(mod_vars.rss_feeds_file, feeds)
+        file_io.write_json(envs.rss_feeds_file, feeds)
         return
 
     @commands.check_any(
@@ -279,20 +279,20 @@ class RSSfeed(commands.Cog):
         'Remove a feed based on `feed_name`'
         AUTHOR = ctx.message.author.name
         removal = feeds_core.remove_feed_from_file(
-            feed_name, mod_vars.rss_feeds_file)
+            feed_name, envs.rss_feeds_file)
         if removal:
             await log.log_to_bot_channel(
-                mod_vars.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
+                envs.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
             )
             await ctx.send(
-                mod_vars.RSS_REMOVED.format(feed_name)
+                envs.RSS_REMOVED.format(feed_name)
             )
         elif removal is False:
             # Couldn't remove the feed
-            await ctx.send(mod_vars.RSS_COULD_NOT_REMOVE.format(feed_name))
+            await ctx.send(envs.RSS_COULD_NOT_REMOVE.format(feed_name))
             # Also log and send error to either a bot-channel or admin
             await log.log_to_bot_channel(
-                mod_vars.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
+                envs.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
 
@@ -306,15 +306,15 @@ class RSSfeed(commands.Cog):
         'List all active rss feeds on the discord server: !rss list ([list_type])'
         if list_type == 'long':
             list_format = feeds_core.get_feed_list(
-                mod_vars.rss_feeds_file, long=True
+                envs.rss_feeds_file, long=True
             )
         elif list_type == 'filters':
             list_format = feeds_core.get_feed_list(
-                mod_vars.rss_feeds_file, filters=True
+                envs.rss_feeds_file, filters=True
             )
         else:
             list_format = feeds_core.get_feed_list(
-                mod_vars.rss_feeds_file
+                envs.rss_feeds_file
             )
         if list_format is not None:
             for page in list_format:
@@ -330,18 +330,18 @@ class RSSfeed(commands.Cog):
     async def rss_parse():
         log.debug('Starting `rss_parse`')
         # Update the feeds
-        feeds = file_io.read_json(mod_vars.rss_feeds_file)
+        feeds = file_io.read_json(envs.rss_feeds_file)
         try:
             if len(feeds) == 0:
-                log.log(mod_vars.RSS_NO_FEEDS_FOUND)
+                log.log(envs.RSS_NO_FEEDS_FOUND)
                 return
         except Exception as e:
             log.log(f'Got error when getting RSS feeds: {e}')
             if feeds is None:
-                log.log(mod_vars.RSS_NO_FEEDS_FOUND)
+                log.log(envs.RSS_NO_FEEDS_FOUND)
                 return
         # Make sure that the feed links aren't stale / 404
-        feeds_core.review_feeds_status(mod_vars.rss_feeds_file)
+        feeds_core.review_feeds_status(envs.rss_feeds_file)
         log.log_more('Got these feeds:')
         for feed in feeds:
             log.log_more('- {}'.format(feed))
@@ -353,8 +353,8 @@ class RSSfeed(commands.Cog):
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
                 feeds_core.update_feed_status(
-                    feed, mod_vars.rss_feeds_file, channel_status='unlisted')
-                msg_out = mod_vars.POST_TO_NON_EXISTING_CHANNEL.format(
+                    feed, envs.rss_feeds_file, channel_status='unlisted')
+                msg_out = envs.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
                 )
                 log.log(msg_out)
@@ -372,10 +372,10 @@ class RSSfeed(commands.Cog):
             )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
-                log.log(mod_vars.RSS_FEED_POSTS_IS_NONE.format(feed))
+                log.log(envs.RSS_FEED_POSTS_IS_NONE.format(feed))
                 return
             await feeds_core.process_links_for_posting_or_editing(
-                feed, FEED_POSTS, mod_vars.rss_feeds_logs_file, CHANNEL
+                feed, FEED_POSTS, envs.rss_feeds_logs_file, CHANNEL
             )
         return
 
@@ -389,11 +389,11 @@ class RSSfeed(commands.Cog):
 
 async def setup(bot):
     # Create necessary files before starting
-    log.log(mod_vars.COG_STARTING.format('rss'))
-    log.log_more(mod_vars.CREATING_FILES)
+    log.log(envs.COG_STARTING.format('rss'))
+    log.log_more(envs.CREATING_FILES)
     check_and_create_files = [
-        (mod_vars.rss_feeds_file, '{}'),
-        mod_vars.rss_feeds_logs_file
+        (envs.rss_feeds_file, '{}'),
+        envs.rss_feeds_logs_file
     ]
     file_io.create_necessary_files(check_and_create_files)
     # Starting the cog

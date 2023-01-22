@@ -4,7 +4,7 @@
 import sys
 from colorama import init, Fore, Style
 from pathlib import Path
-from .. import config, mod_vars, discord_commands
+from .. import config, envs, discord_commands
 from ..args import args
 from time import sleep
 
@@ -42,7 +42,8 @@ def log_function(log_in, color=None):
         print(log_out)
     else:
         log_out += '\n'
-        _logfilename = mod_vars.LOG_DIR / '{}.log'.format(get_dt('revdate', sep='-'))
+        _logfilename = envs.LOG_DIR / \
+            '{}.log'.format(get_dt('revdate', sep='-'))
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
         write_log.close()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from sausage_bot.util import config, mod_vars, file_io
+from sausage_bot.util import config, envs, file_io
 from .log import log
 
 
@@ -15,7 +15,7 @@ def get_guild():
             log.log_more(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
-            log.log(mod_vars.GUILD_NOT_FOUND)
+            log.log(envs.GUILD_NOT_FOUND)
             return None
 
 
@@ -53,7 +53,7 @@ def get_scheduled_events():
     guild = get_guild()
     event_dict = {}
     if guild.scheduled_events is None:
-        log.log(mod_vars.AUTOEVENT_NO_EVENTS_LISTED)
+        log.log(envs.AUTOEVENT_NO_EVENTS_LISTED)
         return None
     for event in guild.scheduled_events:
         _event = guild.get_scheduled_event(event.id)
@@ -167,7 +167,7 @@ async def post_to_channel(
             )
     else:
         log.log(
-            mod_vars.POST_TO_NON_EXISTING_CHANNEL.format(
+            envs.POST_TO_NON_EXISTING_CHANNEL.format(
                 channel_in
             )
         )
@@ -189,7 +189,7 @@ async def replace_post(replace_content, replace_with, channel_in):
                     return
     else:
         log.log(
-            mod_vars.CHANNEL_DOES_NOT_EXIST.format(
+            envs.CHANNEL_DOES_NOT_EXIST.format(
                 channel_out
             )
         )

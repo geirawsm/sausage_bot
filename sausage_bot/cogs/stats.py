@@ -4,7 +4,7 @@ import os
 from discord.ext import commands, tasks
 import emoji
 
-from sausage_bot.util import mod_vars, datetime_handling, file_io, config
+from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands
 from sausage_bot.util.args import args
 from sausage_bot.util.log import log
@@ -34,7 +34,7 @@ def get_stats_codebase():
     'Get statistics for the code base'
     total_lines = 0
     total_files = 0
-    for root, dirs, files in os.walk(mod_vars.ROOT_DIR):
+    for root, dirs, files in os.walk(envs.ROOT_DIR):
         for filename in files:
             filename_without_extension, extension = os.path.splitext(filename)
             if extension == '.py':
@@ -87,7 +87,7 @@ class Stats(commands.Cog):
             return text_out
 
         log.log('Starting `update_stats`')
-        stats_log = file_io.read_json(mod_vars.stats_logs_file)
+        stats_log = file_io.read_json(envs.stats_logs_file)
         # Get server members as of now
         members = get_members()
         _codebase = get_stats_codebase()
@@ -133,7 +133,7 @@ class Stats(commands.Cog):
 
         # Write changes to file
         if not args.maintenance:
-            file_io.write_json(mod_vars.stats_logs_file, stats_log)
+            file_io.write_json(envs.stats_logs_file, stats_log)
         else:
             log.log('Did not write changes to file', color='RED')
 
@@ -147,10 +147,10 @@ class Stats(commands.Cog):
 
 async def setup(bot):
     # Starting the cog
-    log.log(mod_vars.COG_STARTING.format('stats'))
-    log.log_more(mod_vars.CREATING_FILES)
+    log.log(envs.COG_STARTING.format('stats'))
+    log.log_more(envs.CREATING_FILES)
     check_and_create_files = [
-        (mod_vars.stats_logs_file, '{}')
+        (envs.stats_logs_file, '{}')
     ]
     file_io.create_necessary_files(check_and_create_files)
     await bot.add_cog(Stats(bot))

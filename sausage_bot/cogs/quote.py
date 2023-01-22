@@ -6,7 +6,7 @@ import random
 from time import sleep
 import asyncio
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util import config, mod_vars, file_io
+from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.log import log
 
 class Quotes(commands.Cog):
@@ -38,20 +38,20 @@ class Quotes(commands.Cog):
                 log_ctx = 'dm@{}'.format(ctx.message.author)
             else:
                 log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
-            recent_quotes_log = file_io.read_json(mod_vars.quote_log_file)
+            recent_quotes_log = file_io.read_json(envs.quote_log_file)
             if recent_quotes_log is None:
-                await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.quote_log_file))
+                await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_log_file))
                 return
             if log_ctx not in recent_quotes_log:
                 recent_quotes_log[log_ctx] = []
-            quotes = file_io.read_json(mod_vars.quote_file)
+            quotes = file_io.read_json(envs.quote_file)
             if quotes is None:
-                await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.quote_file))
+                await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_file))
                 return
             if number is None:
                 if len(recent_quotes_log[log_ctx]) == len(quotes):
                     recent_quotes_log[log_ctx] = []
-                    file_io.write_json(mod_vars.quote_log_file, recent_quotes_log)
+                    file_io.write_json(envs.quote_log_file, recent_quotes_log)
                 _rand = random.choice(
                     [i for i in range(0, len(quotes))
                         if str(i) not in recent_quotes_log[log_ctx]
@@ -59,7 +59,7 @@ class Quotes(commands.Cog):
                 )
                 if str(_rand) not in recent_quotes_log[log_ctx]:
                     recent_quotes_log[log_ctx].append(str(_rand))
-                    file_io.write_json(mod_vars.quote_log_file, recent_quotes_log)
+                    file_io.write_json(envs.quote_log_file, recent_quotes_log)
                 _quote = pretty_quote(_rand, quotes[str(_rand)])
                 await ctx.send(_quote)
                 return
@@ -85,9 +85,9 @@ class Quotes(commands.Cog):
     ):
         'Add a quote: `!quote add [quote_text] ([quote_date])`'
         # Get file where all the quotes are stored
-        quotes = file_io.read_json(mod_vars.quote_file)
+        quotes = file_io.read_json(envs.quote_file)
         if quotes is None:
-            await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.quote_file))
+            await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_file))
             return
         # Find the next availabel quote number
         new_quote_number = int(list(quotes.keys())[-1])+1
@@ -101,10 +101,10 @@ class Quotes(commands.Cog):
         quotes[str(new_quote_number)] = {'quote': '', 'datetime': ''}
         quotes[str(new_quote_number)]['quote'] = quote_text
         quotes[str(new_quote_number)]['datetime'] = quote_date
-        file_io.write_json(mod_vars.quote_file, quotes)
+        file_io.write_json(envs.quote_file, quotes)
         # Confirm that the quote has been saved
         await ctx.message.reply(
-            mod_vars.QUOTE_ADD_CONFIRMATION.format(
+            envs.QUOTE_ADD_CONFIRMATION.format(
                 new_quote_number, quote_text, quote_date
             )
         )
@@ -131,16 +131,16 @@ class Quotes(commands.Cog):
             )):
         'Edit an existing quote: `!quote edit [quote_number] [quote_in] [custom_date]`'
         # Get the quote file
-        quotes = file_io.read_json(mod_vars.quote_file)
+        quotes = file_io.read_json(envs.quote_file)
         if quotes is None:
-            await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.quote_file))
+            await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_file))
             return
         # Typecheck `quote_number`
         if quote_number is None or 0 >= int(quote_number):
-            log.log(mod_vars.QUOTE_EDIT_NO_NUMBER_GIVEN)
+            log.log(envs.QUOTE_EDIT_NO_NUMBER_GIVEN)
             return
         if quote_in is None:
-            log.log(mod_vars.QUOTE_EDIT_NO_TEXT_GIVEN)
+            log.log(envs.QUOTE_EDIT_NO_TEXT_GIVEN)
             return
         # Check if the given `quote_number` even exist
         log.debug(
@@ -162,13 +162,13 @@ class Quotes(commands.Cog):
         old_q = quotes[str(quote_number)]['quote']
         old_dt = quotes[str(quote_number)]['datetime']
         await ctx.message.reply(
-            mod_vars.QUOTE_EDIT_CONFIRMATION.format(
+            envs.QUOTE_EDIT_CONFIRMATION.format(
                 quote_number, old_q, old_dt, quote_in, quote_date
             )
         )
         quotes[str(quote_number)]['quote'] = quote_in
         quotes[str(quote_number)]['datetime'] = quote_date
-        file_io.write_json(mod_vars.quote_file, quotes)
+        file_io.write_json(envs.quote_file, quotes)
         return
 
     @commands.check_any(
@@ -184,17 +184,17 @@ class Quotes(commands.Cog):
         async def delete_logged_msgs(ctx):
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == config.BOT_ID:
-                    keyphrases = mod_vars.QUOTE_KEY_PHRASES
+                    keyphrases = envs.QUOTE_KEY_PHRASES
                     if any(phrase in msg.content for phrase in keyphrases):
                         await msg.delete()
 
         # Get file where all the quotes are stored
-        quotes = file_io.read_json(mod_vars.quote_file)
+        quotes = file_io.read_json(envs.quote_file)
         if quotes is None:
-            await ctx.send(mod_vars.UNREADABLE_FILE.format(mod_vars.quote_file))
+            await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_file))
             return
         await ctx.message.reply(
-            mod_vars.QUOTE_CONFIRM_DELETE.format(
+            envs.QUOTE_CONFIRM_DELETE.format(
                 quote_number, quotes[quote_number]['quote'],
                 quotes[quote_number]['datetime'])
         )
@@ -207,16 +207,16 @@ class Quotes(commands.Cog):
                 'reaction_add', timeout=10.0, check=check
             )
         except asyncio.TimeoutError:
-            await ctx.send(mod_vars.QUOTE_NO_CONFIRMATION_RECEIVED)
+            await ctx.send(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()
         else:
             # Remove the quote
             del quotes[str(quote_number)]
-            file_io.write_json(mod_vars.quote_file, quotes)
+            file_io.write_json(envs.quote_file, quotes)
             # Confirm that the quote has been deleted
-            await ctx.message.reply(mod_vars.QUOTE_DELETE_CONFIRMED.format(quote_number))
+            await ctx.message.reply(envs.QUOTE_DELETE_CONFIRMED.format(quote_number))
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()
@@ -225,11 +225,11 @@ class Quotes(commands.Cog):
     @quote.group(name='count')
     async def count(self, ctx):
         'Count the number of quotes available: `!quote count`'
-        quote_count = len(file_io.import_file_as_list(mod_vars.quote_file))-1
-        await ctx.send(mod_vars.QUOTE_COUNT.format(quote_count))
+        quote_count = len(file_io.import_file_as_list(envs.quote_file))-1
+        await ctx.send(envs.QUOTE_COUNT.format(quote_count))
         return
 
 
 async def setup(bot):
-    log.log(mod_vars.COG_STARTING.format('quote'))
+    log.log(envs.COG_STARTING.format('quote'))
     await bot.add_cog(Quotes(bot))
