@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'Arguments to use for running the autodocumentation part of the bot'
 import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--print', '-p',
-    help='Print info',
-    action='store_true',
-    default=False,
-    dest='print'
-)
-parser.add_argument('--slow', '-s',
-    help='Print info slow',
-    action='store_true',
-    default=False,
-    dest='slow'
-)
-parser.add_argument('--file', '-f',
-    help='Only check a specific file within project root',
-    action='store',
-    default=None,
-    dest='file'
-)
+autodoc_args = parser.add_argument_group('Autodocumentation')
+autodoc_args.add_argument('--file', '-f',
+                          help='Only check a specific file within '
+                          'project root',
+                          action='store',
+                          default=None,
+                          dest='file'
+                          )
+autodoc_args.add_argument('--file-out', '-fo',
+                          help='Specify name of output file (from '
+                          'docs-folder as root)',
+                          action='store',
+                          default=None,
+                          dest='file_out'
+                          )
 
 doc_args, unknown = parser.parse_known_args()
 
