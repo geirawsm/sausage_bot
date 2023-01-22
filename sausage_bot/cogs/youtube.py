@@ -25,37 +25,48 @@ class Youtube(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    def get_yt_id(url):
-        'Use yt-dlp to get the ID of a channel'
+    def get_yt_info(url):
+        'Use yt-dlp to get info about a channel'
         # Get more yt-dlp opts here:
         # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
         ydl_opts = {
-            'playlistend': 0,
             'simulate': True,
+            'download': False,
+            'playlistend': 5,
+            'ignoreerrors': True,
             'quiet': True
         }
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            return info['uploader_id']
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url)
+                return info
+        except:
+            return None
 
     def get_videos_from_yt_link(feed, feeds):
-        'Get the 2 last videos from channel'
+        'Get video links from channel'
+        log.debug(f'Getting videos from `{feed}`')
         FEED_POSTS = {
             'name': feed,
             'channel': feeds[feed]['channel'],
             'posts': []
         }
-        id_in = Youtube.get_yt_id(feeds[feed]['url'])
-        channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
-        log.debug(f'Got `channel_by_id`: `{channel_by_id}`')
-        videos = feeds_core.get_feed_links(channel_by_id)
-        if videos is not None:
-            for video in videos[0:2]:
-                FEED_POSTS['posts'].append(video)
-            return FEED_POSTS
-        else:
-            return None
-        
+        info = Youtube.get_yt_info(feeds[feed]['url'])
+        if info is None:
+            log.debug(f'`info` in `{feed}` is None')
+        elif info['entries'] is not None:
+            for item in info['entries']:
+                # If the item is a playlist/channel, it also has an
+                # 'entries' that needs to be parsed
+                if 'entries' in item:
+                    for _video in item['entries']:
+                        log.debug(f"Got video `{_video['title']}`")
+                        FEED_POSTS['posts'].append(_video['original_url'])
+                # The channel does not consist of playlists, only videos
+                else:
+                    log.debug(f"Got video `{item['title']}`")
+                    FEED_POSTS['posts'].append(item['original_url'])
+        return FEED_POSTS
 
     def get_all_youtube_videos(feeds):
         vids_out = []
@@ -65,7 +76,15 @@ class Youtube(commands.Cog):
             futures = [executor.submit(
                 Youtube.get_videos_from_yt_link, feed, feeds) for feed in feeds]
             for future in as_completed(futures):
-                vids_out.append(future.result())
+###     Keeping this here for now
+                try:
+                    vids_out.append(future.result())
+                except Exception:
+                    log.debug('Unable to get the result')
+###
+###     This was replaced by the block above
+#                vids_out.append(future.result())
+###
         executor.shutdown()
         return vids_out
 
@@ -76,15 +95,6 @@ class Youtube(commands.Cog):
                 feed_post['name'], feed_post['posts'], envs.yt_feeds_logs_file,
                 feed_post['channel']
             )
-
-    def test_link_for_yt_compatibility(url):
-        'Test a Youtube-link to make sure it can get videos'
-        log.debug(f'Got `url`: {url}')
-        id_in = Youtube.get_yt_id(url)
-        channel_by_id = f'https://www.youtube.com/feeds/videos.xml?channel_id={id_in}'
-        log.debug(f'Got `channel_by_id.items`: `{channel_by_id}`')
-        videos = feeds_core.get_feed_links(channel_by_id)
-        return videos[0]
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
@@ -140,7 +150,7 @@ class Youtube(commands.Cog):
                 except:
                     pass
                 # Test if the link can get videos
-                if not Youtube.test_link_for_yt_compatibility(yt_link):
+                if Youtube.get_yt_info(yt_link) is None:
                     await ctx.send(
                         envs.YOUTUBE_EMPTY_LINK.format(yt_link)
                     )
