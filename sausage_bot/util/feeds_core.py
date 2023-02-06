@@ -148,13 +148,15 @@ def get_feed_links(url, filters=None, filter_priority=None):
                     f'Sjekker link ({title_in}) opp mot følgende filtere: {filters[filter_priority]}')
                 if len(filters[filter_priority]) >= 1:
                     for filter in filters[filter_priority]:
-                        if filter.lower() in title_in.lower():
-                            log.debug(f'Fant filter `{filter}` i tittel ({title_in})')
-                            return False
-                        elif filter.lower() in desc_in.lower():
-                            log.debug(
-                                f'Fant filter `{filter}` i beskrivelse ({desc_in})')
-                            return False
+                        if title_in:
+                            if filter.lower() in title_in.lower():
+                                log.debug(f'Fant filter `{filter}` i tittel ({title_in})')
+                                return False
+                        if desc_in:
+                            if filter.lower() in desc_in.lower():
+                                log.debug(
+                                    f'Fant filter `{filter}` i beskrivelse ({desc_in})')
+                                return False
                     log.debug(
                         f'Fant ikke noe filter i tittel eller beskrivelse'
                     )
@@ -169,7 +171,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
                 f'Based on settings, the `{filter_priority}` filter'
                 f' is prioritized'
             )
-        elif filter_priority is None or filter_priority is '':
+        elif filter_priority is None or filter_priority == '':
             log.debug(
                 f'No `filter_priority` given, setting `deny` as standard'
             )
