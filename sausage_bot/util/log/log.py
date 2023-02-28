@@ -12,11 +12,14 @@ from time import sleep
 init(autoreset=True)
 
 
-def log_function(log_in, color=None):
+def log_function(
+    log_in: str, extra_info: str = None, color: str = None, extra_color: str = None):
     '''
     Include the name of the function in logging.
 
-    If no `color` is specified, it will highlight in green.
+    color           If no `color` is specified, it will highlight in green.
+    extra_info      Used to specify extra information in the logging (default: None)
+    extra_color     Color for the `extra_info` (default: green)
     '''
     from .. import datetime_handling
     get_dt = datetime_handling.get_dt
@@ -25,19 +28,32 @@ def log_function(log_in, color=None):
         color = Fore.GREEN
     else:
         color = eval('Fore.{}'.format(color.upper()))
+    if extra_color is None:
+        extra_color = Fore.GREEN
+    else:
+        extra_color = eval('Fore.{}'.format(extra_color.upper()))
     function_name = log_func_name()
-    if args.log_highlight is not None:
-        if str(args.log_highlight) in function_name:
-            color = Fore.RED
+    if args.log_highlight is not None and str(args.log_highlight)\
+            in function_name:
+        color = Fore.RED
     if args.log_print:
-        log_out += '{color}{style}[ {function_name} ]{reset} '.format(
-            color = color,
-            style = Style.BRIGHT,
-            reset = Style.RESET_ALL,
-            function_name = function_name)
+        log_out += '{color}{style}[ {function_name} ]'.format(
+            color=color,
+            style=Style.BRIGHT,
+            function_name=function_name)
+        if extra_info:
+            log_out += '{color}{style}[ {extra_info} ]'.format(
+                color=extra_color,
+                style=Style.BRIGHT,
+                extra_info=extra_info
+            )
+        log_out += '{reset} '.format(reset=Style.RESET_ALL)
+
     else:
         log_out += '[ {} ] '.format(log_func_name())
-    log_out += log_in
+        if extra_info:
+            log_out += '[ {} ] '.format(extra_info)
+    log_out += str(log_in)
     if args.log_print:
         print(log_out)
     else:
@@ -52,7 +68,7 @@ def log_function(log_in, color=None):
 def log(log_in, color=None):
     '''
     Log the input `log_in`
-    
+
     Optional: Specify the color for highlighting the function name.
 
     Available colors: black, red, green, yellow, blue, magenta, cyan, white.
@@ -71,15 +87,23 @@ def log_more(log_in, color=None):
         sleep(3)
 
 
-def debug(log_in):
-    '''Log the input `log_in` as debug messages.'''
+def debug(log_in, extra_info=None, extra_color=None):
+    '''
+    Log the input `log_in` as debug messages
+    
+    extra_info      Used to specify extra information in the logging
+    extra_color     Color for the `extra_info`
+    '''
     if args.debug:
-        log_function(log_in, 'yellow')
+        if extra_info:
+            log_function(log_in, extra_info=extra_info, color=extra_color)
+        else:
+            log_function(log_in, color='yellow')
     if args.log_slow:
         sleep(3)
 
 
-def log_func_name():
+def log_func_name() -> str:
     'Get the function name that the `log`-function is used within'
     frame_file = sys._getframe(2)
     frame_func = sys._getframe(3)
@@ -87,7 +111,7 @@ def log_func_name():
     func_file = frame_file.f_back.f_code.co_filename
     func_file = Path(func_file).stem
     if func_name == '<module>':
-        return func_file
+        return str(func_file)
     else:
         return '{}.{}'.format(func_file, func_name)
 

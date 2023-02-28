@@ -104,10 +104,12 @@ def make_dt(date_in):
 def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
-    - If the datetime-input `dt` is not specified, it will use
-        `pendulum.now()`.
-    - If `sep` (separator) isn't specified, it will use dots.
-    - If `format` is not specified, it will return in epoch/linux time-format
+    
+    dt              Uses `pendulum.now()` as datetime-object if nothing
+                    else is given
+    sep             Use dots as separator if nothing else is given
+    format          Returns the dt-object in epoch/linux time-format if
+                    nothing else is given
     ```
     Formats:
     (Example date: May 17th 2014; time: 14:23:39; timezone: GMT)
