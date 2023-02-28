@@ -4,7 +4,7 @@ from discord.ext import commands, tasks
 import re
 from time import sleep
 from yt_dlp import YoutubeDL
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
 
 from sausage_bot.util import config, envs, feeds_core, file_io
 from sausage_bot.util import discord_commands
@@ -24,77 +24,6 @@ class Youtube(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-
-    def get_yt_info(url):
-        'Use yt-dlp to get info about a channel'
-        # Get more yt-dlp opts here:
-        # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
-        ydl_opts = {
-            'simulate': True,
-            'download': False,
-            'playlistend': 5,
-            'ignoreerrors': True,
-            'quiet': True
-        }
-        try:
-            with YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url)
-                return info
-        except:
-            return None
-
-    def get_videos_from_yt_link(feed, feeds):
-        'Get video links from channel'
-        log.debug(f'Getting videos from `{feed}`')
-        FEED_POSTS = {
-            'name': feed,
-            'channel': feeds[feed]['channel'],
-            'posts': []
-        }
-        info = Youtube.get_yt_info(feeds[feed]['url'])
-        if info is None:
-            log.debug(f'`info` in `{feed}` is None')
-        elif info['entries'] is not None:
-            for item in info['entries']:
-                # If the item is a playlist/channel, it also has an
-                # 'entries' that needs to be parsed
-                if 'entries' in item:
-                    for _video in item['entries']:
-                        log.debug(f"Got video `{_video['title']}`")
-                        FEED_POSTS['posts'].append(_video['original_url'])
-                # The channel does not consist of playlists, only videos
-                else:
-                    log.debug(f"Got video `{item['title']}`")
-                    FEED_POSTS['posts'].append(item['original_url'])
-        return FEED_POSTS
-
-    def get_all_youtube_videos(feeds):
-        vids_out = []
-        with ThreadPoolExecutor(
-                max_workers=6, thread_name_prefix='Get_YT_vids'
-        ) as executor:
-            futures = [executor.submit(
-                Youtube.get_videos_from_yt_link, feed, feeds) for feed in feeds]
-            for future in as_completed(futures):
-###     Keeping this here for now
-                try:
-                    vids_out.append(future.result())
-                except Exception:
-                    log.debug('Unable to get the result')
-###
-###     This was replaced by the block above
-#                vids_out.append(future.result())
-###
-        executor.shutdown()
-        return vids_out
-
-    async def post_queue_of_youtube_videos(feed_posts):
-        for feed_post in feed_posts:
-            log.debug(f'Processing: {feed_post}')
-            await feeds_core.process_links_for_posting_or_editing(
-                feed_post['name'], feed_post['posts'], envs.yt_feeds_logs_file,
-                feed_post['channel']
-            )
 
     @commands.group(name='youtube', aliases=['yt'])
     async def youtube(self, ctx):
@@ -234,6 +163,90 @@ class Youtube(commands.Cog):
             await ctx.send('No feeds added')
         return
 
+    async def get_yt_info(url):
+        'Use yt-dlp to get info about a channel'
+        info = None
+        # Get more yt-dlp opts here:
+        # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
+        ydl_opts = {
+            'simulate': True,
+            'download': False,
+            'playlistend': 2,
+            'ignoreerrors': True,
+            'quiet': True
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            return ydl.extract_info(url)
+
+    async def get_videos_from_yt_link(name, feed) -> dict:
+        'Get video links from channel'
+        log.debug(f'Getting videos from `{name}` ({feed["url"]})')
+        FEED_POSTS =[]
+        info = await Youtube.get_yt_info(feed['url'])
+        if 'entries' in info:
+            for item in info['entries']:
+                # If the item is a playlist/channel, it also has an
+                # 'entries' that needs to be parsed
+                if 'entries' in item:
+                    try:
+                        for _video in item['entries']:
+                            log.debug(f"Got video `{_video['title']}`")
+                            FEED_POSTS.append(_video['original_url'])
+                    except:
+                        log.debug(f"Error when getting `item['entries']`: {item['entries']}")
+                        for _video in item['entries']:
+                            log.debug(f"Got video `{_video}`")
+                # The channel does not consist of playlists, only videos
+                else:
+                    log.debug(f"Got video `{item['title']}`")
+                    FEED_POSTS.append(item['original_url'])
+                    await asyncio.sleep(1)
+        return FEED_POSTS
+
+    async def post_queue_of_youtube_videos(feed_name, feed_info, videos):
+        log.debug(f'Processing: {feed_name}')
+        #await feeds_core.process_links_for_posting_or_editing(
+        await Youtube.process_links_for_posting_or_editing(
+            feed_name, videos, feed_info, envs.yt_feeds_logs_file
+        )
+        await asyncio.sleep(1)
+
+    async def process_links_for_posting_or_editing(
+        name, videos, feed_info, feed_log_file
+    ):
+        log.debug(f'Got `videos`: {videos}')
+        log.debug(f'Got `feed_info`: {feed_info}')
+        CHANNEL = feed_info['channel']
+        FEED_LOG = file_io.read_json(feed_log_file)
+        try:
+            FEED_LOG[name]
+        except (KeyError):
+            FEED_LOG[name] = []
+        for feed_link in videos[0:2]:
+            log.debug(f'Got feed_link `{feed_link}`')
+            # Check if the link is in the log
+            if not feeds_core.link_is_in_log(feed_link, FEED_LOG[name]):
+                feed_link_similar = feeds_core.link_similar_to_logged_post(
+                    feed_link, FEED_LOG[name])
+                if not feed_link_similar:
+                    # Consider this a whole new post and post link to channel
+                    log.log_more(f'Posting link `{feed_link}`')
+                    await discord_commands.post_to_channel(CHANNEL, feed_link)
+                    # Add link to log
+                    FEED_LOG[name].append(feed_link)
+                elif feed_link_similar:
+                    # Consider this a similar post that needs to
+                    # be edited in the channel
+                    await discord_commands.replace_post(
+                        feed_link_similar, feed_link, CHANNEL
+                    )
+                    FEED_LOG[name].remove(feed_link_similar)
+                    FEED_LOG[name].append(feed_link)
+            elif feeds_core.link_is_in_log(feed_link, FEED_LOG[name]):
+                log.log_more(f'Link `{feed_link}` already logged. Skipping.')
+            # Write to the logs-file at the end
+            file_io.write_json(feed_log_file, FEED_LOG)
+
 
     # Tasks
     @tasks.loop(minutes=env['youtube_loop'])
@@ -251,12 +264,13 @@ class Youtube(commands.Cog):
                 log.log(envs.RSS_NO_FEEDS_FOUND)
                 return
         else:
-            log.log_more('Got these feeds:')
             for feed in feeds:
-                log.log_more('- {}'.format(feed))
-            # Start processing per feed settings
-            videos = Youtube.get_all_youtube_videos(feeds)
-            await Youtube.post_queue_of_youtube_videos(videos)
+                videos_from_feed = await Youtube.get_videos_from_yt_link(
+                    feed, feeds[feed]
+                )
+                await Youtube.post_queue_of_youtube_videos(
+                    feed, feeds[feed], videos_from_feed
+                )
         return
 
     @youtube_parse.before_loop

@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from lxml import etree
+import asyncio
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io
 
 from .log import log
 
 
-def check_feed_validity(url):
+async def check_feed_validity(url):
     'Make sure that `url` is a valid link'
     log.log_more(f'Checking `{url}`')
-    req = net_io.get_link(url)
+    req = await net_io.get_link(url)
     if req is None:
         log.log_more(f'Returned None')
         return False
@@ -23,7 +24,7 @@ def check_feed_validity(url):
         return False
 
 
-def add_to_feed_file(
+async def add_to_feed_file(
         name, feed_link=None, channel=None, user_add=None,
         feeds_filename=None, filter_allow=None,
         filter_deny=None):
@@ -38,11 +39,11 @@ def add_to_feed_file(
     `filter_deny`   The deny-filter for the feed
     '''
     # Test the link first
-    test_link = net_io.get_link(feed_link)
+    test_link = await net_io.get_link(feed_link)
     if test_link is None:
         return None
     date_now = datetime_handling.get_dt(format='datetime')
-    feeds_file = file_io.read_json(feeds_filename)
+    feeds_file = await file_io.read_json(feeds_filename)
     feeds_file[name] = {
         'url': feed_link,
         'channel': channel,
@@ -57,7 +58,7 @@ def add_to_feed_file(
             'channel': 'ok'
         }
     }
-    file_io.write_json(feeds_filename, feeds_file)
+    await file_io.write_json(feeds_filename, feeds_file)
 
 
 def remove_feed_from_file(name, feed_file):
@@ -246,7 +247,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
     return links
 
 
-def get_feed_list(feeds_file, long=False, filters=False):
+async def get_feed_list(feeds_file, long=False, filters=False):
     '''
     Get a prettified list of feeds from `feeds_file`.
 
@@ -403,7 +404,7 @@ def get_feed_list(feeds_file, long=False, filters=False):
         list_paginated.append(out)
         return list_paginated
 
-    feeds_file = file_io.read_json(feeds_file)
+    feeds_file = await file_io.read_json(feeds_file)
     feeds_file = dict(sorted(feeds_file.items()))
     # Return None if empty file
     if len(feeds_file) <= 0:
@@ -423,10 +424,10 @@ def get_feed_list(feeds_file, long=False, filters=False):
         )
 
 
-def review_feeds_status(feeds_file):
+async def review_feeds_status(feeds_file):
     'Get a status for a feed from `feeds` and update it in source file'
     feeds_file_in = file_io.read_json(feeds_file)
-    for feed in feeds_file_in:
+    async for feed in feeds_file_in:
         log.log('{}: {}'.format(feed, feeds_file_in[feed]['status']))
         URL = feeds_file_in[feed]['url']
         URL_STATUS = feeds_file_in[feed]['status']['url']
@@ -434,7 +435,7 @@ def review_feeds_status(feeds_file):
             log.log('Feed url for {} is stale, checking it...'.format(feed))
             if get_feed_links(URL) is not None:
                 log.log('Feed url for {} is ok, reactivating!'.format(feed))
-                update_feed_status(feed, feeds_file, url='ok')
+                await update_feed_status(feed, feeds_file, url='ok')
                 break
             elif get_feed_links(URL) is None:
                 log.log('Feed url for {} is still stale, skipping'.format(feed))
@@ -453,7 +454,7 @@ def review_feeds_status(feeds_file):
                         CHANNEL, feed
                     )
                 )
-                update_feed_status(feed, feeds_file, channel='ok')
+                await update_feed_status(feed, feeds_file, channel='ok')
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:
