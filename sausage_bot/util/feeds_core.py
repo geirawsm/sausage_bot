@@ -427,7 +427,7 @@ async def get_feed_list(feeds_file, long=False, filters=False):
 async def review_feeds_status(feeds_file):
     'Get a status for a feed from `feeds` and update it in source file'
     feeds_file_in = file_io.read_json(feeds_file)
-    async for feed in feeds_file_in:
+    for feed in feeds_file_in:
         log.log('{}: {}'.format(feed, feeds_file_in[feed]['status']))
         URL = feeds_file_in[feed]['url']
         URL_STATUS = feeds_file_in[feed]['status']['url']
