@@ -341,7 +341,7 @@ class RSSfeed(commands.Cog):
                 log.log(envs.RSS_NO_FEEDS_FOUND)
                 return
         # Make sure that the feed links aren't stale / 404
-        feeds_core.review_feeds_status(envs.rss_feeds_file)
+        await feeds_core.review_feeds_status(envs.rss_feeds_file)
         log.log_more('Got these feeds:')
         for feed in feeds:
             log.log_more('- {}'.format(feed))
