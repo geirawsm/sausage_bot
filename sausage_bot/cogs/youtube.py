@@ -175,14 +175,20 @@ class Youtube(commands.Cog):
             'ignoreerrors': True,
             'quiet': True
         }
-        with YoutubeDL(ydl_opts) as ydl:
-            return ydl.extract_info(url)
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(url)
+        except:
+            log.debug('Could not extract youtube info')
+            return None
 
     async def get_videos_from_yt_link(name, feed) -> dict:
         'Get video links from channel'
         log.debug(f'Getting videos from `{name}` ({feed["url"]})')
         FEED_POSTS =[]
         info = await Youtube.get_yt_info(feed['url'])
+        if not info:
+            return FEED_POSTS
         if 'entries' in info:
             for item in info['entries']:
                 # If the item is a playlist/channel, it also has an
