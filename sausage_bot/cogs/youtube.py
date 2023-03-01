@@ -199,9 +199,8 @@ class Youtube(commands.Cog):
                             log.debug(f"Got video `{_video['title']}`")
                             FEED_POSTS.append(_video['original_url'])
                     except:
-                        log.debug(f"Error when getting `item['entries']`: {item['entries']}")
-                        for _video in item['entries']:
-                            log.debug(f"Got video `{_video}`")
+                        log.debug(f"Error when getting `item['entries']`. This has been logged.")
+                        dump_output(item['entries'], name='get_videos_from_yt_link')
                 # The channel does not consist of playlists, only videos
                 else:
                     log.debug(f"Got video `{item['title']}`")
