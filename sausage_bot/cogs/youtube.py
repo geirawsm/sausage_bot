@@ -9,6 +9,7 @@ import asyncio
 from sausage_bot.util import config, envs, feeds_core, file_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
+from sausage_bot.docs.autodoc import dump_output
 
 env_template = {
     'youtube_loop': 5,
