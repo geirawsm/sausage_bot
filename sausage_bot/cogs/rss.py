@@ -317,7 +317,7 @@ class RSSfeed(commands.Cog):
                 envs.rss_feeds_file
             )
         if list_format is not None:
-            for page in list_format:
+            async for page in list_format:
                 log.debug(f'Sending page ({len(page)} / {len(list_format)})')
                 await ctx.send(f"```{page}```")
                 sleep(1)

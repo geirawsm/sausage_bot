@@ -44,14 +44,14 @@ def dump(item):
 
 
 def dump_output(
-    output, timed=True, name: str=None, hard_exit=True
+    output, timed=True, name: str = None, hard_exit=False
 ) -> str:
     '''
     Write output to file and exit
 
     timed       Add date and time to the filename (on by default)
     name        Use a different name than 'dump' (None by default)
-    hard_exit   Do a `sys.exit()` at the end of the dump (on by default)
+    hard_exit   Do a `sys.exit()` at the end of the dump (off by default)
     '''
     if doc_args.file_out:
         if isinstance(output, dict):

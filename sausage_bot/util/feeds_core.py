@@ -26,8 +26,8 @@ async def check_feed_validity(url):
 
 async def add_to_feed_file(
         name, feed_link=None, channel=None, user_add=None,
-        feeds_filename=None, filter_allow=None,
-        filter_deny=None):
+        feeds_filename=None
+    ):
     '''
     Add a an item to the feed-json.
 
@@ -35,8 +35,6 @@ async def add_to_feed_file(
     `feed_link`:    The link for the feed
     `channel`       The discord channel to post the feed to
     `user_add`      The user who added the feed
-    `filter_allow`  The allow-filter for the feed
-    `filter_deny`   The deny-filter for the feed
     '''
     # Test the link first
     test_link = await net_io.get_link(feed_link)
@@ -88,8 +86,8 @@ def update_feed_status(
                         'edit'      'change'
                         'remove'    'delete'
 
-    `channel`:       The channel to receive feed updates
-    `url`:           The feed's url
+    `channel`:          The channel to receive feed updates
+    `url`:              The feed's url
     `status_url`:       The status of the url
     `status_channel`:   The status of the channel
     '''
@@ -181,12 +179,15 @@ def get_feed_links(url, filters=None, filter_priority=None):
         log.debug('Got these filters:')
         log.debug(f'Allow: {filters["allow"]}')
         log.debug(f'Deny: {filters["deny"]}')
-        if post_based_on_filter(
-            filter_priority, filters, title_in, desc_in
-        ):
-            return link_in
+        if len(filters["deny"]) > 0 and len(filters["allow"]) > 0:
+            if post_based_on_filter(
+                filter_priority, filters, title_in, desc_in
+            ):
+                return link_in
+            else:
+                return False
         else:
-            return False
+            return link_in
 
     # Get the url and make it parseable
     log.debug(f'Got these arguments: {locals()}')
@@ -404,7 +405,7 @@ async def get_feed_list(feeds_file, long=False, filters=False):
         list_paginated.append(out)
         return list_paginated
 
-    feeds_file = await file_io.read_json(feeds_file)
+    feeds_file = file_io.read_json(feeds_file)
     feeds_file = dict(sorted(feeds_file.items()))
     # Return None if empty file
     if len(feeds_file) <= 0:
