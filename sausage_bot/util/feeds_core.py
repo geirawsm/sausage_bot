@@ -130,43 +130,42 @@ def update_feed_status(
     return True
 
 
-async def get_feed_links(url, filters=None, filter_priority=None):
+async def get_feed_links(url, filter_allow, filter_deny, filter_priority=None):
     'Get the links from a RSS-feeds `url`'
 
-    def filter_link(link, filters, filter_priority):
+    def filter_link(link, filter_allow, filter_deny, filter_priority):
         '''
         Filter incoming links based on active filters and settings in
         `env.json`
         '''
 
-        def post_based_on_filter(filter_priority, filters, title_in, desc_in):
-            if filter_priority == '':
-                log.debug(f'No {filter_priority} filters')
-                return True
-            else:
+        def post_based_on_filter(
+            filter_priority, filter_allow, filter_deny, title_in, desc_in
+        ):
+            _filter_priority = eval(f'filter_{filter_priority}')
+            log.debug(
+                f'Sjekker link ({title_in}) opp mot følgende '
+                f'filtere: {_filter_priority}'
+            )
+            if len(_filter_priority) >= 1:
+                for filter in _filter_priority:
+                    if title_in:
+                        if filter.lower() in title_in.lower():
+                            log.debug(
+                                f'Fant filter `{filter}` i '
+                                f'tittel ({title_in})'
+                            )
+                            return False
+                    if desc_in:
+                        if filter.lower() in desc_in.lower():
+                            log.debug(
+                                f'Fant filter `{filter}` i '
+                                f'beskrivelse ({desc_in})')
+                            return False
                 log.debug(
-                    f'Sjekker link ({title_in}) opp mot følgende '
-                    f'filtere: {filter[filter_priority]}'
+                    'Fant ikke noe filter i tittel eller beskrivelse'
                 )
-                if len(filter[filter_priority]) >= 1:
-                    for filter in filter[filter_priority]:
-                        if title_in:
-                            if filter.lower() in title_in.lower():
-                                log.debug(
-                                    f'Fant filter `{filter}` i '
-                                    f'tittel ({title_in})'
-                                )
-                                return False
-                        if desc_in:
-                            if filter.lower() in desc_in.lower():
-                                log.debug(
-                                    f'Fant filter `{filter}` i '
-                                    f'beskrivelse ({desc_in})')
-                                return False
-                    log.debug(
-                        'Fant ikke noe filter i tittel eller beskrivelse'
-                    )
-                    return True
+                return True
 
         log.debug('Starting `filter_link`')
         title_in = link['title']
@@ -184,17 +183,14 @@ async def get_feed_links(url, filters=None, filter_priority=None):
             if not filter_priority:
                 filter_priority = 'deny'
         log.debug('Got these filters:')
-        log.debug(f'Allow: {filters["allow"]}')
-        log.debug(f'Deny: {filters["deny"]}')
-        if len(filters["deny"]) > 0 and len(filters["allow"]) > 0:
-            if post_based_on_filter(
-                filter_priority, filters, title_in, desc_in
-            ):
-                return link_in
-            else:
-                return False
-        else:
+        log.debug(f'Allow: {filter_allow}')
+        log.debug(f'Deny: {filter_deny}')
+        if post_based_on_filter(
+            filter_priority, filter_allow, filter_deny, title_in, desc_in
+        ):
             return link_in
+        else:
+            return False
 
     # Get the url and make it parseable
     log.debug(f'Got these arguments: {locals()}')
@@ -244,8 +240,10 @@ async def get_feed_links(url, filters=None, filter_priority=None):
                 }
             )
     for link in links_filter:
-        if filters:
-            link = filter_link(link, filters, filter_priority)
+        if (len(filter_allow) + len(filter_deny)) > 0:
+            link = filter_link(
+                link, filter_allow, filter_deny, filter_priority
+            )
             if link:
                 log.debug(f'Appending link: `{link}`')
                 links.append(link)
@@ -417,9 +415,8 @@ async def review_feeds_status(feeds_file):
     'Get a status for a feed from `feeds` and update it in source file'
     feeds_file_in = file_io.read_json(feeds_file)
     for feed in feeds_file_in:
-        log.log('{}: {}'.format(feed, feeds_file_in[feed]['status']))
         URL = feeds_file_in[feed]['url']
-        URL_STATUS = feeds_file_in[feed]['status']['url']
+        URL_STATUS = feeds_file_in[feed]['status_url']
         if URL_STATUS == 'stale':
             log.log('Feed url for {} is stale, checking it...'.format(feed))
             if get_feed_links(URL) is not None:
@@ -430,7 +427,7 @@ async def review_feeds_status(feeds_file):
                 log.log(f'Feed url for {feed} is still stale, skipping')
                 break
         CHANNEL = feeds_file_in[feed]['channel']
-        CHANNEL_STATUS = feeds_file_in[feed]['status']['channel']
+        CHANNEL_STATUS = feeds_file_in[feed]['status_channel']
         if CHANNEL_STATUS == 'unlisted':
             log.log(
                 'Feed channel {} for {} is unlisted, checking it...'.format(

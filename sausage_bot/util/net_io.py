@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import discord
 import re
+import httpx
 from datetime import datetime
 from bs4 import BeautifulSoup
 from sausage_bot.util import envs, datetime_handling
@@ -52,7 +53,7 @@ async def get_link(url, cookies=None):
     if req is None:
         return None
     log.log_more('Got a {} when fetching {}'.format(req.status_code, url))
-    if req.status_code not in [200, 302]:
+    if 399 < req.status_code > 599:
         return None
     else:
         return req
