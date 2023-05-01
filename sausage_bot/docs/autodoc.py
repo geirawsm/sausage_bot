@@ -96,14 +96,17 @@ def get_decorators(func):
     if len(decs_list) > 0:
         for dec in decs_list:
             if isinstance(dec, ast.Attribute):
-                return f'{dec.value.id}.{dec.attr}'
+                try:
+                    return f'{dec.value.id}.{dec.attr}'
+                except Exception as e:
+                    return f'{dec.value.value.id}.{dec.value.attr}.{dec.attr}'
             elif isinstance(dec, ast.Name):
                 return dec.id
             else:
                 return None
 
 
-def get_funcs(parsed_file, level=1):
+def get_funcs(parsed_file, level=1, filter_in=None):
     '''
     Get the functions of a file, it's arguments and docstring, and
     return them
@@ -121,9 +124,8 @@ def get_funcs(parsed_file, level=1):
                     if len(_arg) > max_len:
                         max_len = len(_arg)
             return max_len
-        except(TypeError):
+        except (TypeError):
             return 0
-
 
     func_out = ''
     docstring = None
@@ -137,10 +139,6 @@ def get_funcs(parsed_file, level=1):
         ):
             log.debug(f'Getting function `{func.name}`')
             func_type = None
-###
-#            if func.name == 'pretty_quote':
-#                dump(func)
-###
             # Get a string for the func_type
             if isinstance(func, ast.AsyncFunctionDef):
                 func_type = 'async Function'
@@ -149,97 +147,110 @@ def get_funcs(parsed_file, level=1):
             elif isinstance(func, ast.FunctionDef):
                 func_type = 'Function'
             name = func.name
-            log.debug(f'Got function: `{name}` ({func_type})')
+            log.debug(f'### Function: `{name}` ({func_type}) ###')
             docstring = ast.get_docstring(func)
             # Skip this function if it is unwanted
+            skip_because_of_keyword = False
             if name in doc_envs.skip_function:
-                log.debug(f'Skipping `{name}` because of `doc_envs.skip_function`')
+                log.debug(
+                    f'Skipping `{name}` because of `doc_envs.skip_function`')
                 continue
                 # Look for a keyword in docstring that indicates that this
                 # function should not be parsed for output
             elif docstring is not None and doc_envs.skip_keyword in docstring.lower():
-                log.debug(f'Skipping `{name}` because of `doc_envs.skip_keyword`')
-                continue
-            log.debug(f'Got level `{level}`')
-            func_out += f'#{"#"*level} {name}'
+                log.debug(
+                    f'Skipping `{name}` because of `doc_envs.skip_keyword`')
+                skip_because_of_keyword = True
+            func_out += f'#{"#"*level} {name} ({func_type})'
             # Get arguments for command
             _args = {}
             _args_func = get_args(func, _args)
-            log.debug(f'Got `_args_func`: {_args_func}')
-            if len(_args_func) > 0:
-                if len(_args_func['argdefs']) != 0 and\
-                        len(_args_func['kwargdefs']) != 0:
-                    func_out += ' ('
-                    log.debug(f'`_args_func`: {_args_func}')
-                    for arg_group in _args_func:
-                        for arg_name in _args_func[arg_group]:
+            log.debug(f'len of `_args_func`: {len(_args_func)}')
+            if not skip_because_of_keyword:
+                if len(_args_func) > 0:
+                    if (
+                        len(_args_func['argdefs']) +
+                        len(_args_func['kwargdefs'])
+                    ) != 0:
+                        func_out += ' ('
+                        log.debug(f'`_args_func`: {_args_func}')
+                        arg_names = []
+                        for arg_group in _args_func:
+                            for arg_name in _args_func[arg_group]:
+                                arg_names.append(arg_name)
+                            # Use the temp list to find the last item
+                        for arg_name in arg_names:
                             if arg_name in doc_envs.skip_variable:
                                 continue
                             else:
-                                func_out += f'{arg_name}, '
-                        func_out = re.sub(', $', '', func_out)
-                    func_out += ')\n'
-            if func_out != '':
-                func_out += '\n\n'
-            func_out += f'Type: {func_type}\n'
-            decs = get_decorators(func)
-            log.debug(f'`decs` is {decs}')
-            if decs is not None:
+                                func_out += f'{arg_name}'
+                            if arg_name != arg_names[-1]:
+                                func_out += ', '
+                        func_out += ')'
                 if func_out != '':
                     func_out += '\n'
-                func_out += f'Decorators: @{decs}\n'
-            # Find aliases for command
-            aliases = get_cmd_aliases(func)
-            log.debug(f'`aliases` is {aliases}')
-            if aliases is not None:
-                if func_out != '':
-                    func_out += '\n'
-                func_out += f'Aliases: {aliases}\n'
-            # Get permission levels
-            permissions = get_cmd_permissions(func)
-            log.debug(f'`permissions` is {permissions}')
-            if permissions is not None:
-                if func_out != '':
-                    func_out += '\n'
-                func_out += f'Permissions: {permissions}\n'
-            # Get docstring for command
-            docstring = ast.get_docstring(func)
-            log.debug(f'`docstring` is {docstring}')
-            if docstring is not None:
-                if func_out != '':
-                    func_out += '\n'
-                func_out += f'{docstring}\n'
-            # Get function variable specifications
-            if _args_func is not None:
-                arg_spec_len = 0
-                for _arg_func in _args_func:
-                    for _arg_spec in _args_func[_arg_func]:
-                        if len(_args_func[_arg_func][_arg_spec]) > arg_spec_len:
-                            arg_spec_len = len(_args_func[_arg_func][_arg_spec])
-                if arg_spec_len > 0:
-                    if func_out != '':
-                        func_out += '\n'
-                var_max_len = set_len_desc(_args_func)
-                log.debug(f'`var_max_len` is {var_max_len}')
-                for arg_group in _args_func:
-                    for arg in _args_func[arg_group]:
-                        if _args_func[arg_group][arg] != {}:
-                            _arg_out = ''
-                            _arg = _args_func[arg_group][arg]
-                            _arg_out += f'{arg:{var_max_len}}\t'
-                            if 'type_hint' in _arg:
-                                _type_hint = _arg['type_hint']
-                                _arg_out += f'({_type_hint}) '
-                            if 'description' in _arg:
-                                _desc = _arg['description']
-                                _arg_out += f'{_desc}'
-                            _arg_out += '\n'
-                            func_out += _arg_out
+                    decs = get_decorators(func)
+                    log.debug(f'`decs` is {decs}')
+                    if decs is not None:
+                        func_out += f'Decorators: @{decs}\n'
+                    # Find aliases for command
+                    aliases = get_cmd_aliases(func)
+                    log.debug(f'`aliases` is {aliases}')
+                    if aliases is not None:
+                        if func_out != '':
+                            func_out += '\n'
+                        func_out += f'Aliases: {aliases}\n'
+                    # Get permission levels
+                    permissions = get_cmd_permissions(func)
+                    log.debug(f'`permissions` is {permissions}')
+                    if permissions is not None:
+                        if func_out != '':
+                            func_out += '\n'
+                        func_out += f'Permissions: {permissions}\n'
+                    # Get docstring for command
+                    docstring = ast.get_docstring(func)
+                    log.debug(f'`docstring` is {docstring}')
+                    if docstring is not None:
+                        if func_out != '':
+                            func_out += '\n'
+                        func_out += f'{docstring}\n'
+                    # Get function variable specifications
+                    if _args_func is not None:
+                        arg_spec_len = 0
+                        for _arg_func in _args_func:
+                            for _arg_spec in _args_func[_arg_func]:
+                                if len(_args_func[_arg_func][_arg_spec]) > arg_spec_len:
+                                    arg_spec_len = len(
+                                        _args_func[_arg_func][_arg_spec])
+                        if arg_spec_len > 0:
+                            if func_out != '':
+                                func_out += '\n'
+                        var_max_len = set_len_desc(_args_func)
+                        log.debug(f'`var_max_len` is {var_max_len}')
+                        for arg_group in _args_func:
+                            for arg in _args_func[arg_group]:
+                                if _args_func[arg_group][arg] != {}:
+                                    _arg_out = ''
+                                    _arg = _args_func[arg_group][arg]
+                                    _arg_out += f'{arg:{var_max_len}}\t'
+                                    if 'type_hint' in _arg:
+                                        _type_hint = _arg['type_hint']
+                                        _arg_out += f'({_type_hint}) '
+                                    if 'description' in _arg:
+                                        _desc = _arg['description']
+                                        _arg_out += f'{_desc}'
+                                    _arg_out += '\n'
+                                    func_out += _arg_out
+            if not skip_because_of_keyword:
                 func_out += '\n'
-            func_out += f'{get_funcs(func, level+1)}'
-            if 'returns' in vars(func):
-                if func.returns is not None and 'id' in vars(func.returns):
-                    func_out += f'Returns: {func.returns.id}\n'
+            else:
+                func_out += '\n\n'
+            skip_because_of_keyword = False
+            func_out += f'{get_funcs(func, level+1, filter_in)}'
+            if not skip_because_of_keyword:
+                if 'returns' in vars(func):
+                    if func.returns is not None and 'id' in vars(func.returns):
+                        func_out += f'Returns: {func.returns.id}\n'
             func_out += '\n'
     return func_out
 
@@ -302,17 +313,22 @@ def get_args(func_in, args_in):
                         out[arg.arg]['type_hint'] += f'{_ann_s.value.id}'
                 except:
                     try:
-                        log.debug(f'Got `arg.annotation.id`: {arg.annotation.id}')
+                        log.debug(
+                            f'Got `arg.annotation.id`: {arg.annotation.id}')
                         out[arg.arg]['type_hint'] = f'{arg.annotation.id}'
                     except:
                         if 'attr' in vars(arg.annotation):
-                            log.debug(f'Got `arg.annotation.attr`: {arg.annotation.attr}')
+                            log.debug(
+                                f'Got `arg.annotation.attr`: {arg.annotation.attr}')
                         else:
-                            print(f'arg.annotation.value.attr: {arg.annotation.value.attr}')
-                            print(f'arg.annotation.slice.id: {arg.annotation.slice.id}')
+                            print(
+                                f'arg.annotation.value.attr: {arg.annotation.value.attr}')
+                            print(
+                                f'arg.annotation.slice.id: {arg.annotation.slice.id}')
                             #out[arg.arg]['type_hint'] = f'{arg.annotation.slice.id}'
                         try:
-                            log.debug(f'Got `arg.annotation.value.id`: {arg.annotation.value.id}')
+                            log.debug(
+                                f'Got `arg.annotation.value.id`: {arg.annotation.value.id}')
                             out[arg.arg]['type_hint'] = f'{arg.annotation.value.id}.{arg.annotation.attr}'
                         except:
                             log.debug('NO MORE TO DO')
@@ -383,7 +399,7 @@ def get_info_from_file(filename):
     # Get docstring from file if exist
     docstring = ast.get_docstring(parsed_file)
     if docstring is not None:
-        info_out += f'\n{docstring}\n'
+        info_out += f'\n{docstring}\n\n'
     # Get funcs
     _funcs = get_funcs(parsed_file)
     if _funcs != '':
@@ -415,7 +431,8 @@ if __name__ == "__main__":
         module_name = f'# {filelist[0].split(os.sep)[0]}\n'
     if not filelist:
         if doc_args.file:
-            print(f'Could not read input `{doc_args.file}`. Does the file exist?')
+            print(
+                f'Could not read input `{doc_args.file}`. Does the file exist?')
         else:
             print(f'Could not find any python files in `{doc_envs.ROOT_DIR}`.')
         sys.exit()
