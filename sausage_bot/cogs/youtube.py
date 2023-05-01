@@ -283,6 +283,7 @@ class Youtube(commands.Cog):
 
     @youtube_parse.before_loop
     async def before_youtube_parse():
+        '#autodoc skip#'
         log.log_more('`youtube_parse` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 

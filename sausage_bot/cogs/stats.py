@@ -139,6 +139,7 @@ class Stats(commands.Cog):
 
     @update_stats.before_loop
     async def before_update_stats():
+        '#autodoc skip#'
         log.log_more('`update_stats` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 

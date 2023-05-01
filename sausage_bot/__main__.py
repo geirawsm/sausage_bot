@@ -39,6 +39,7 @@ for file in check_and_create_files:
 async def on_ready():
     '''
     When the bot is ready, it will notify in the log.
+    #autodoc skip#
     '''
     for guild in config.bot.guilds:
         if guild.name == config.GUILD:
@@ -63,7 +64,10 @@ async def on_ready():
 
 # Cogs
 class Cog:
-    'Control the cogs for the bot'
+    '''
+    Control the cogs for the bot
+    #autodoc skip#
+    '''
     def change_cog_status(cog_name, status):
         '''
         Change a cog status in the status file
@@ -71,6 +75,7 @@ class Cog:
         `cog_name` should be name of cog
 
         `status` should be `enable` or `disable`
+        #autodoc skip#
         '''
         accepted_status = ['enable', 'e', 'disable', 'd']
         if not any(status == ok_status for ok_status in accepted_status):
@@ -88,7 +93,10 @@ class Cog:
             return False
 
     async def load_cog(cog_name):
-        'Load a specific cog by `cog_name`'
+        '''
+        Load a specific cog by `cog_name`
+        #autodoc skip#
+        '''
         await config.bot.load_extension(
             '{}.{}'.format(
                 envs.COGS_REL_DIR, f'{cog_name}'
@@ -97,7 +105,10 @@ class Cog:
         return
 
     async def unload_cog(cog_name):
-        'Unload a specific cog by `cog_name`'
+        '''
+        Unload a specific cog by `cog_name`
+        #autodoc skip#
+        '''
         await config.bot.unload_extension(
             '{}.{}'.format(
                 envs.COGS_REL_DIR, f'{cog_name}'
@@ -106,7 +117,10 @@ class Cog:
         return
 
     async def reload_cog(cog_name):
-        'Reload a specific cog by `cog_name`'
+        '''
+        Reload a specific cog by `cog_name`
+        #autodoc skip#
+        '''
         await config.bot.reload_extension(
             '{}.{}'.format(
                 envs.COGS_REL_DIR, f'{cog_name}'
@@ -121,6 +135,7 @@ class Cog:
             `cogs_status` file
         2. Removes cogs from the `cogs_status` file if a file doesn't exist
         3. Start cogs based on status in `cogs_status` file
+        #autodoc skip#
         '''
         cog_files = []
         # Add cogs that are not present in the `cogs_status` file
@@ -152,8 +167,11 @@ class Cog:
         file_io.write_json(envs.cogs_status_file, cogs_status)
 
     async def reload_all_cogs():
-        'Reload all cogs which is already enabled'
-        cogs_status = file_io.read_json(mod_vars.cogs_status_file)
+        '''
+        Reload all cogs which is already enabled
+        #autodoc skip#
+        '''
+        cogs_status = file_io.read_json(envs.cogs_status_file)
         for cog_name in cogs_status:
             if cogs_status[cog_name] == 'enable':
                 log.log('Reloading cog: {}'.format(cog_name))
@@ -253,17 +271,24 @@ async def cog(ctx, cmd_in=None, *cog_names):
     'Enable, disable, reload or list cogs for this bot'
 
     async def action_on_cog(cog_name, cmd_in):
+        '#autodoc skip#'
         if cmd_in in ['enable', 'e']:
             await Cog.load_cog(cog_name)
             Cog.change_cog_status(cog_name, 'enable')
         elif cmd_in in ['disable', 'd']:
             await Cog.unload_cog(cog_name)
             Cog.change_cog_status(cog_name, 'disable')
-    
+
     def get_cogs_list(cogs_file):
-        'Get a pretty list of all the cogs'
+        '''
+        Get a pretty list of all the cogs
+        #autodoc skip#
+        '''
         def get_cog_item_lengths(cogs_file):
-            'Find max lengths for info fields about a cog'
+            '''
+            Find max lengths for info fields about a cog
+            #autodoc skip#
+            '''
             cog_len = 0
             status_len = 0
             for cog in cogs_file:

@@ -182,6 +182,7 @@ class Quotes(commands.Cog):
             )):
         'Delete an existing quote: `!quote delete [quote_number]`'
         async def delete_logged_msgs(ctx):
+            '#autodoc skip#'
             async for msg in ctx.history(limit=20):
                 if str(msg.author.id) == config.BOT_ID:
                     keyphrases = envs.QUOTE_KEY_PHRASES
@@ -200,6 +201,7 @@ class Quotes(commands.Cog):
         )
 
         def check(reaction, user):
+            '#autodoc skip#'
             return user == ctx.author and str(reaction.emoji) == '👍'
 
         try:

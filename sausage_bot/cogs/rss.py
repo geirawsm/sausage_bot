@@ -383,6 +383,7 @@ class RSSfeed(commands.Cog):
 
     @rss_parse.before_loop
     async def before_rss_parse():
+        '#autodoc skip#'
         log.log_more('`rss_parse` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
