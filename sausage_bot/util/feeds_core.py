@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from lxml import etree
-import asyncio
+from tabulate import tabulate
+
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io
 
@@ -14,7 +15,7 @@ async def check_feed_validity(url):
     log.log_more(f'Checking `{url}`')
     req = await net_io.get_link(url)
     if req is None:
-        log.log_more(f'Returned None')
+        log.log_more('Returned None')
         return False
     try:
         etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
@@ -144,20 +145,26 @@ def get_feed_links(url, filters=None, filter_priority=None):
                 return True
             else:
                 log.debug(
-                    f'Sjekker link ({title_in}) opp mot følgende filtere: {filters[filter_priority]}')
-                if len(filters[filter_priority]) >= 1:
-                    for filter in filters[filter_priority]:
+                    f'Sjekker link ({title_in}) opp mot følgende '
+                    f'filtere: {filter[filter_priority]}'
+                )
+                if len(filter[filter_priority]) >= 1:
+                    for filter in filter[filter_priority]:
                         if title_in:
                             if filter.lower() in title_in.lower():
-                                log.debug(f'Fant filter `{filter}` i tittel ({title_in})')
+                                log.debug(
+                                    f'Fant filter `{filter}` i '
+                                    f'tittel ({title_in})'
+                                )
                                 return False
                         if desc_in:
                             if filter.lower() in desc_in.lower():
                                 log.debug(
-                                    f'Fant filter `{filter}` i beskrivelse ({desc_in})')
+                                    f'Fant filter `{filter}` i '
+                                    f'beskrivelse ({desc_in})')
                                 return False
                     log.debug(
-                        f'Fant ikke noe filter i tittel eller beskrivelse'
+                        'Fant ikke noe filter i tittel eller beskrivelse'
                     )
                     return True
 
@@ -172,7 +179,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
             )
         elif filter_priority is None or filter_priority == '':
             log.debug(
-                f'No `filter_priority` given, setting `deny` as standard'
+                'No `filter_priority` given, setting `deny` as standard'
             )
             if not filter_priority:
                 filter_priority = 'deny'
@@ -197,7 +204,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
     try:
         soup = BeautifulSoup(req.content, features='xml')
     except Exception as e:
-        log.log(envs.RSSCORE_SOUP_ERROR.format(url, e))
+        log.log(envs.FEEDS_CORE_SOUP_ERROR.format(url, e))
         return None
     links_filter = []
     links = []
@@ -221,7 +228,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
                     }
                 )
             except (IndexError):
-                log.log(envs.RSSCORE_LINK_INDEX_ERROR.format(item, url))
+                log.log(envs.FEEDS_CORE_LINK_INDEX_ERROR.format(item, url))
     elif '<feed xml' in str(soup):
         for entry in soup.findAll('entry')[0:2]:
             link = entry.find('link')['href']
@@ -248,161 +255,152 @@ def get_feed_links(url, filters=None, filter_priority=None):
     return links
 
 
-async def get_feed_list(feeds_file, long=False, filters=False):
+async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
     '''
     Get a prettified list of feeds from `feeds_file`.
 
-    Get some extra field if `long` or `filters` is given.
+    feeds_file  The file containing feeds or other things to list
+    feeds_vars  The titles and lengths of the fields to be used
+    list_type   If specified, should show that specific list_type,
+                as specified in the feeds_vars 'list_type' field
     '''
-    def get_feed_item_lengths(feeds_file):
-        'Get max lengths of items in `feeds_file`'
-        feed_len = 0
-        url_len = 0
-        channel_len = 8
-        filters_len = 7
-        filter_allow_len = 12
-        filter_deny_len = 11
-        added_len = 0
-        added_by_len = 0
-        for feed in feeds_file:
-            _feed = feeds_file[feed]
-            if len(feed) > feed_len:
-                feed_len = len(feed)
-            if len(_feed['url']) > url_len:
-                url_len = len(_feed['url'])
-            if len(_feed['channel']) > channel_len:
-                channel_len = len(_feed['channel'])
-            if len(_feed['filter']['allow']) > 0:
-                for _allow in _feed['filter']['allow']:
-                    if len(_allow) > filter_allow_len:
-                        filter_allow_len = len(_allow)
-                        filter_allow_len += len(_feed['filter']['allow']) * 2
-            if len(_feed['filter']['deny']) > 0:
-                for _deny in _feed['filter']['deny']:
-                    if len(_deny) > filter_deny_len:
-                        filter_deny_len = len(_feed['filter']['deny'])
-                        filter_deny_len += len(_feed['filter']['deny']) * 2
-            if len(_feed['added']) > added_len:
-                added_len = len(_feed['added'])
-            if len(_feed['added by']) > added_by_len:
-                added_by_len = len(_feed['added by'])
-        return {
-            'feed_len': feed_len,
-            'url_len': url_len,
-            'channel_len': channel_len,
-            'filters_len': filters_len,
-            'filter_allow_len': filter_allow_len,
-            'filter_deny_len': filter_deny_len,
-            'added_len': added_len,
-            'added_by_len': added_by_len
-        }
 
-    def split_lengthy_lists(feeds_file_in, lengths, list_type=None):
-        line_out = ''
+    def split_lengthy_lists(feeds_file_in, feeds_vars, list_type=None):
+        def wanted_fields(feeds_vars, list_type=None):
+            # Get wanted fields
+            fields = {}
+            for item in feeds_vars:
+                if list_type is None:
+                    if len(feeds_vars[item]['list_type']) == 0:
+                        if item not in fields:
+                            fields[item] = {}
+                        fields[item]['title'] = feeds_vars[item]['title']
+                        if feeds_vars[item]['max_len'] > 0:
+                            if item not in fields:
+                                fields[item] = {}
+                            fields[item]['max_len'] = feeds_vars[item][
+                                'max_len'
+                            ]
+                        else:
+                            if item not in fields:
+                                fields[item] = {}
+                            fields[item]['max_len'] = None
+                elif list_type == 'added':
+                    if len(feeds_vars[item]['list_type']) == 0 or\
+                            'added' in feeds_vars[item]['list_type']:
+                        if item not in fields:
+                            fields[item] = {}
+                        fields[item]['title'] = feeds_vars[item]['title']
+                        if feeds_vars[item]['max_len'] > 0:
+                            if item not in fields:
+                                fields[item] = {}
+                            fields[item]['max_len'] = feeds_vars[item][
+                                'max_len'
+                            ]
+                        else:
+                            if item not in fields:
+                                fields[item] = {}
+                            fields[item]['max_len'] = None
+                elif list_type == 'filter':
+                    if len(feeds_vars[item]['list_type']) == 0 or\
+                            'filter' in feeds_vars[item]['list_type']:
+                        if item not in fields:
+                            fields[item] = {}
+                        fields[item]['title'] = feeds_vars[item]['title']
+                        if feeds_vars[item]['max_len'] > 0:
+                            if item not in fields:
+                                fields[item] = {}
+                            fields[item]['max_len'] = feeds_vars[item][
+                                'max_len'
+                            ]
+                        else:
+                            if item not in fields:
+                                fields[item] = {}
+                            fields[item]['max_len'] = None
+                else:
+                    log.debug(f'Skipping `item` {item}')
+            return fields
+
+        def make_table(feeds_in, want_fields):
+            tabulatify = []
+            # Add headers
+            header_list = []
+            for header in want_fields:
+                header_list.append(want_fields[header]['title'])
+            tabulatify.append(header_list)
+            # Add rest of values
+            for feed in feeds_in:
+                temp_list = []
+                for item in want_fields:
+                    if feeds_in[feed][item] == []:
+                        temp_list.append(envs.FEEDS_CORE_NONE_VALUE_AS_TEXT)
+                    elif isinstance(feeds_in[feed][item], list):
+                        temp_out = ''
+                        for list_item in feeds_in[feed][item]:
+                            temp_out += list_item
+                            if list_item != feeds_in[feed][item][-1]:
+                                temp_out += ', '
+                        temp_list.append(temp_out)
+                    else:
+                        temp_list.append(feeds_in[feed][item])
+                tabulatify.append(temp_list)
+            # Get info about max_len
+            max_col_widths = []
+            for item in want_fields:
+                max_col_widths.append(want_fields[item]['max_len'])
+            table = tabulate(
+                tabulatify, tablefmt='plain',
+                headers="firstrow",
+                maxcolwidths=max_col_widths
+            )
+            return table
+
+        def make_pretty_header(header, max_len):
+            out = ''
+            out += header
+            out += '\n'
+            out += '-' * max_len
+            out += '\n'
+            return out
+
         out = ''
         list_paginated = []
+        table = make_table(
+            feeds_file_in, wanted_fields(feeds_vars, list_type)
+        ).split('\n')
+        # Get max len from paginated list
+        max_total_len = 0
+        for line in table:
+            if len(line) > max_total_len:
+                max_total_len = len(line)
         # Actual limit is 2000, this is just a buffer
         max_len_discord_post = 1800
-        # Set `template_line`
-        if list_type is None:
-            template_line = '{:<{feed_len}} | {:<{url_len}} | '\
-                '{:<{channel_len}}'
-        elif list_type == 'long':
-            template_line = '{:<{feed_len}} | {:<{url_len}} | '\
-                '{:<{channel_len}} | {:<{filters}} | {:<{added_len}} | '\
-                '{:<{added_by_len}}'
-        elif list_type == 'filters':
-            template_line = '{:<{feed_len}} | {:<{filter_allow}} | '\
-                '{:<{filter_deny}}'
-        # Set `header_out`
-        if list_type is None:
-            header_out = template_line.format(
-                'Name', 'Feed', 'Channel', feed_len=lengths['feed_len'],
-                url_len=lengths['url_len'], channel_len=lengths['channel_len']
-            )
-        elif list_type == 'long':
-            header_out = template_line.format(
-                'Name', 'Feed', 'Channel', 'Filters', 'Added', 'Added by',
-                feed_len=lengths['feed_len'],
-                url_len=lengths['url_len'],
-                channel_len=lengths['channel_len'],
-                filters=lengths['filters_len'],
-                added_len=lengths['added_len'],
-                added_by_len=lengths['added_by_len']
-            )
-        elif list_type == 'filters':
-            header_out = template_line.format(
-                'Name', 'Filter allow', 'Filter deny',
-                feed_len=lengths['feed_len'],
-                filter_allow=lengths['filter_allow_len'],
-                filter_deny=lengths['filter_deny_len']
-            )
-        out = header_out
-        out += '\n'
-        for feed in feeds_file_in:
-            log.debug(f'Adding `{feed}` to `line_out`')
-            _feed = feeds_file_in[feed]
-            if list_type is None:
-                line_out = template_line.format(
-                    feed, _feed['url'], _feed['channel'],
-                    feed_len=lengths['feed_len'], url_len=lengths['url_len'],
-                    channel_len=lengths['channel_len']
-                )
-            elif list_type == 'long':
-                if len(_feed['filter']['allow']) > 0 or\
-                        len(_feed['filter']['deny']) > 0:
-                    filter_status = 'Yes'
-                else:
-                    filter_status = 'No'
-                line_out = template_line.format(
-                    feed, _feed['url'], _feed['channel'],
-                    filter_status, _feed['added'], _feed['added by'],
-                    feed_len=lengths['feed_len'],
-                    url_len=lengths['url_len'],
-                    channel_len=lengths['channel_len'],
-                    filters=lengths['filters_len'],
-                    added_len=lengths['added_len'],
-                    added_by_len=lengths['added_by_len']
-                )
-            elif list_type == 'filters':
-                if _feed['filter']['allow'] == 0:
-                    _feed['filter']['allow'] = ""
-                if _feed['filter']['deny'] == 0:
-                    _feed['filter']['deny'] = ""
-                allow_items = ''
-                deny_items = ''
-                for item in _feed['filter']['allow']:
-                    allow_items += item
-                    if item != _feed['filter']['allow'][:-1]:
-                        allow_items += ', '
-                for item in _feed['filter']['deny']:
-                    deny_items += item
-                    if item != _feed['filter']['deny'][:-1]:
-                        deny_items += ', '
-                line_out = template_line.format(
-                    feed, allow_items, deny_items,
-                    feed_len=lengths['feed_len'],
-                    filter_allow=lengths['filter_allow_len'],
-                    filter_deny=lengths['filter_deny_len']
-                )
-
-            log.debug(f'`len(out)` so far: {len(out)}')
-            if (len(out) + len(line_out)) >= max_len_discord_post:
+        out += make_pretty_header(
+            table[0], max_total_len
+        )
+        # Make content from feeds
+        for line in table[1:]:
+            log.debug(f'`out` as of now is {len(out)} long')
+            if (len(out) + len(line)) >= max_len_discord_post:
                 log.debug('Reached `max_len_discord_post`')
                 list_paginated.append(out)
-                out = header_out
-                out += '\n'
-                out += line_out
+                out = make_pretty_header(
+                    table[0], max_total_len
+                )
+                out += line
                 out += '\n'
             else:
                 log.debug('No limit reached')
-                out += line_out
-                if feed != list(feeds_file_in)[-1]:
+                out += line
+                if line != table[-1]:
                     out += '\n'
             log.debug('Status:')
             log.debug(f'´list_paginated´: {len(list_paginated)}')
             log.debug(f'´out´:\n{out}')
         list_paginated.append(out)
+        log.debug(f'`len(list_paginated): `{len(list_paginated)}')
+        for page in list_paginated:
+            log.debug(f'`len(page): `{len(page)}')
         return list_paginated
 
     feeds_file = file_io.read_json(feeds_file)
@@ -410,19 +408,9 @@ async def get_feed_list(feeds_file, long=False, filters=False):
     # Return None if empty file
     if len(feeds_file) <= 0:
         return None
-    lengths = get_feed_item_lengths(feeds_file)
-    if long:
-        return split_lengthy_lists(
-            feeds_file, lengths, list_type='long'
-        )
-    elif filters:
-        return split_lengthy_lists(
-            feeds_file, lengths, list_type='filters'
-        )
-    else:
-        return split_lengthy_lists(
-            feeds_file, lengths, list_type=None
-        )
+    return split_lengthy_lists(
+        feeds_file, feeds_vars, list_type=list_type
+    )
 
 
 async def review_feeds_status(feeds_file):
@@ -439,7 +427,7 @@ async def review_feeds_status(feeds_file):
                 await update_feed_status(feed, feeds_file, url='ok')
                 break
             elif get_feed_links(URL) is None:
-                log.log('Feed url for {} is still stale, skipping'.format(feed))
+                log.log(f'Feed url for {feed} is still stale, skipping')
                 break
         CHANNEL = feeds_file_in[feed]['channel']
         CHANNEL_STATUS = feeds_file_in[feed]['status']['channel']

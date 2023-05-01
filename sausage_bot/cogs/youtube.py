@@ -80,7 +80,7 @@ class Youtube(commands.Cog):
                 except:
                     pass
                 # Test if the link can get videos
-                if Youtube.get_yt_info(yt_link) is None:
+                if await Youtube.get_yt_info(yt_link) is None:
                     await ctx.send(
                         envs.YOUTUBE_EMPTY_LINK.format(yt_link)
                     )
@@ -140,20 +140,20 @@ class Youtube(commands.Cog):
     async def list_youtube(
             self, ctx, list_type: str = commands.param(
                 default=None,
-                description="`long` will give a longer list of the feed"
+                description="`added` or `filter`"
             )):
-        'List all active Youtube feeds'
-        if list_type == 'long':
-            list_format = feeds_core.get_feed_list(
-                envs.yt_feeds_file, long=True
+        'List all active Youtube feeds: !youtube list ([list_type])'
+        if list_type == 'added':
+            list_format = await feeds_core.get_feed_list(
+                envs.yt_feeds_file, envs.YOUTUBE_VARS, list_type='added'
             )
-        elif list_type == 'filters':
-            list_format = feeds_core.get_feed_list(
-                envs.yt_feeds_file, filters=True
+        elif list_type == 'filter':
+            list_format = await feeds_core.get_feed_list(
+                envs.yt_feeds_file, envs.YOUTUBE_VARS, list_type='filter'
             )
         else:
-            list_format = feeds_core.get_feed_list(
-                envs.yt_feeds_file
+            list_format = await feeds_core.get_feed_list(
+                envs.yt_feeds_file, envs.YOUTUBE_VARS
             )
         if list_format is not None:
             for page in list_format:

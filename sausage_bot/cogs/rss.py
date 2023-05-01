@@ -304,21 +304,24 @@ class RSSfeed(commands.Cog):
         )
     ):
         'List all active rss feeds on the discord server: !rss list ([list_type])'
-        if list_type == 'long':
-            list_format = feeds_core.get_feed_list(
-                envs.rss_feeds_file, long=True
+        if list_type == 'added':
+            formatted_list = await feeds_core.get_feed_list(
+                envs.rss_feeds_file, envs.RSS_VARS, list_type='added'
             )
-        elif list_type == 'filters':
-            list_format = feeds_core.get_feed_list(
-                envs.rss_feeds_file, filters=True
+        elif list_type == 'filter':
+            formatted_list = await feeds_core.get_feed_list(
+                envs.rss_feeds_file, envs.RSS_VARS, list_type='filter'
             )
         else:
-            list_format = feeds_core.get_feed_list(
-                envs.rss_feeds_file
+            formatted_list = await feeds_core.get_feed_list(
+                envs.rss_feeds_file, envs.RSS_VARS
             )
-        if list_format is not None:
-            async for page in list_format:
-                log.debug(f'Sending page ({len(page)} / {len(list_format)})')
+        if formatted_list is not None:
+            page_counter = 0
+            for page in formatted_list:
+                page_counter += 1
+                log.debug(
+                    f'Sending page ({page_counter} / {len(formatted_list)})')
                 await ctx.send(f"```{page}```")
                 sleep(1)
         else:
@@ -361,7 +364,12 @@ class RSSfeed(commands.Cog):
                 await log.log_to_bot_channel(msg_out)
                 return
             URL = feeds[feed]['url']
-            FILTERS = feeds[feed]['filter']
+            sum_filters = len(feeds[feed]['filter_allow']) + \
+                len(feeds[feed]['filter_deny'])
+            if sum_filters > 0:
+                FILTER = True
+            else:
+                FILTER = False
             FILTER_PRIORITY = env['filter_priority']
             log.log('Checking {} ({})'.format(feed, CHANNEL))
             log.debug(f'`URL`: `{URL}`')
