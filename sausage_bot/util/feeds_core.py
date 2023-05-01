@@ -42,7 +42,7 @@ async def add_to_feed_file(
     if test_link is None:
         return None
     date_now = datetime_handling.get_dt(format='datetime')
-    feeds_file = await file_io.read_json(feeds_filename)
+    feeds_file = file_io.read_json(feeds_filename)
     feeds_file[name] = {
         'url': feed_link,
         'channel': channel,
@@ -57,7 +57,7 @@ async def add_to_feed_file(
             'channel': 'ok'
         }
     }
-    await file_io.write_json(feeds_filename, feeds_file)
+    file_io.write_json(feeds_filename, feeds_file)
 
 
 def remove_feed_from_file(name, feed_file):
@@ -130,7 +130,7 @@ def update_feed_status(
     return True
 
 
-def get_feed_links(url, filters=None, filter_priority=None):
+async def get_feed_links(url, filters=None, filter_priority=None):
     'Get the links from a RSS-feeds `url`'
 
     def filter_link(link, filters, filter_priority):
@@ -198,7 +198,7 @@ def get_feed_links(url, filters=None, filter_priority=None):
 
     # Get the url and make it parseable
     log.debug(f'Got these arguments: {locals()}')
-    req = net_io.get_link(url)
+    req = await net_io.get_link(url)
     if req is None:
         return None
     try:

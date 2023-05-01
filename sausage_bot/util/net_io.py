@@ -17,7 +17,7 @@ else:
     import requests
 
 
-def get_link(url, cookies=None):
+async def get_link(url, cookies=None):
     'Get a requests object from a `url`'
     if type(url) is not str:
         log.debug('`url` is not string')
@@ -26,9 +26,9 @@ def get_link(url, cookies=None):
     if args.local_parsing:
         log.debug('Using local parsing')
         if cookies:
-            req = requests.get(url, cookies)
+            req = await requests.get(url, cookies)
         else:
-            req = requests.get(url)
+            req = await requests.get(url)
     else:
         if re.search(r'^http(s)?', url):
             log.debug('Found scheme in url')
