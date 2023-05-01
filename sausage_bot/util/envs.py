@@ -78,10 +78,10 @@ ALL_COGS_DISABLED = 'Deaktiverte alle cogs'
 COG_STARTING = 'Starting cog: `{}`'
 
 # COG
-## RSS
+# RSS
 RSS_URL_NOT_OK = 'Linken du ga ser ikke ut til å være en ordenlig URL'
-RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal du ønsker '\
-    'den skal publiseres til.'
+RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal '\
+    'du ønsker den skal publiseres til.'
 RSS_ADDED = '{} ble lag til i kanalen {}'
 RSS_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
 RSS_REMOVED = 'RSS-feeden {} ble fjernet'
@@ -98,10 +98,34 @@ RSS_NOT_ABLE_TO_SCRAPE = 'Klarte ikke å scrape {}: {}'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
 RSS_CHANGED_CHANNEL = 'Endret kanal for feeden `{}` til `{}`'
+RSS_VARS = {
+    'title': {
+        'title': 'Name', 'max_len': 0, 'list_type': []
+    },
+    'url': {
+        'title': 'Feed', 'max_len': 0, 'list_type': []
+    },
+    'channel': {
+        'title': 'Channel', 'max_len': 0, 'list_type': []
+    },
+    'filter_allow': {
+        'title': 'Allow', 'max_len': 20, 'list_type': ['filter']
+    },
+    'filter_deny': {
+        'title': 'Deny', 'max_len': 20, 'list_type': ['filter']
+    },
+    'added': {
+        'title': 'Added', 'max_len': 0, 'list_type': ['added']
+    },
+    'added_by': {
+        'title': 'Added by', 'max_len': 0, 'list_type': ['added']
+    }
+}
 
-## CORE
-RSSCORE_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
-RSSCORE_LINK_INDEX_ERROR = 'Fikk IndexError ved henting av link til {} i {}'
+# CORE
+FEEDS_CORE_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
+FEEDS_CORE_LINK_INDEX_ERROR = 'Fikk IndexError ved henting av link til {} i {}'
+FEEDS_CORE_NONE_VALUE_AS_TEXT = 'Ingen'
 
 # COG - QUOTE
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\
@@ -128,6 +152,29 @@ YOUTUBE_ADDED_BOT = '{} la til feeden {} (`{}`) til kanalen {}'
 YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
 YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 YOUTUBE_EMPTY_LINK = 'Klarer ikke å hente linken: `{}`'
+YOUTUBE_VARS = {
+    'title': {
+        'title': 'Name', 'max_len': 0, 'list_type': []
+    },
+    'url': {
+        'title': 'Feed', 'max_len': 0, 'list_type': []
+    },
+    'channel': {
+        'title': 'Channel', 'max_len': 0, 'list_type': []
+    },
+    'filter_allow': {
+        'title': 'Allow', 'max_len': 20, 'list_type': ['filter']
+    },
+    'filter_deny': {
+        'title': 'Deny', 'max_len': 20, 'list_type': ['filter']
+    },
+    'added': {
+        'title': 'Added', 'max_len': 0, 'list_type': ['added']
+    },
+    'added_by': {
+        'title': 'Added by', 'max_len': 0, 'list_type': ['added']
+    }
+}
 
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'

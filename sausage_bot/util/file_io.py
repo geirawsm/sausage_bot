@@ -5,7 +5,7 @@ import stat
 import json
 import pathlib
 from difflib import SequenceMatcher
-
+from time import sleep
 from ..util.log import log
 
 
@@ -58,8 +58,10 @@ def read_json(json_file):
             return dict(json.load(f))
     except json.JSONDecodeError as e:
         log.log(f"Error when reading json from {json_file}:\n{e}")
+        return None
     except OSError as e:
         log.log(f"File can't be read {json_file}:\n{e}")
+        return None
     return None
 
 
@@ -113,6 +115,7 @@ def ensure_file(file_path: str, file_template=False):
                     fout.write(file_template)
                 else:
                     fout.write('')
+    sleep(1)
 
 
 def get_max_item_lengths(headers, dict_in):
@@ -141,7 +144,7 @@ def check_similarity(text1: str, text2: str) -> bool:
     ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
     # Our "similarity" is defined by the following equation:
     if 0.98 <= ratio <= 0.99999999999999999999999999995:
-        log.log(
+        log.debug(
             f'These texts seem similiar (ratio: {ratio}):\n'
             f'`{text1}`\n'
             'vs\n'
@@ -149,7 +152,7 @@ def check_similarity(text1: str, text2: str) -> bool:
         )
         return True
     else:
-        log.log(
+        log.debug(
             f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
             f'`{text1}`\n'
             'vs\n'

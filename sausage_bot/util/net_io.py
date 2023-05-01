@@ -37,20 +37,22 @@ def get_link(url, cookies=None):
             url = f'https://{url}'
         try:
             log.debug(f'Trying `url`: {url}')
-            if cookies:
-                req = requests.get(url, cookies)
-            else:
-                req = requests.get(url)
-        except(requests.exceptions.InvalidSchema):
-            log.log(envs.RSS_INVALID_URL.format(url))
-            return None
-        except(requests.exceptions.ConnectionError):
-            log.log(envs.RSS_CONNECTION_ERROR)
+            async with httpx.AsyncClient() as client:
+                try:
+                    req = await client.get(url)
+                except httpx.ReadTimeout as e:
+                    # TODO vars msg
+                    log.debug(f'Timed out when getting `{url}`')
+                    req = None
+        except httpx.HTTPStatusError as e:
+            # TODO Edit this env msg
+            #log.log(envs.RSS_CONNECTION_ERROR)
+            log.log(f'Status error when connecting: {e}')
             return None
     if req is None:
         return None
     log.log_more('Got a {} when fetching {}'.format(req.status_code, url))
-    if req.status_code != 200:
+    if req.status_code not in [200, 302]:
         return None
     else:
         return req
