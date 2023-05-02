@@ -3,9 +3,9 @@ env.json
 *.code-*
 .vscode/
 
-logs/
-json/
-lists/
-test/*/
-out
-testing
+sausage_bot/logs/
+sausage_bot/json/
+sausage_bot/lists/
+sausage_bot/test/*/
+sausage_bot/testing
+sausage_bot/docs/*.md
