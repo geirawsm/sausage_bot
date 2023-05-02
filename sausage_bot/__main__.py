@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+"Set's up the bot, have a few generic commands and controls cogs"
 import discord
 from discord.ext import commands
 import os
@@ -142,9 +143,26 @@ class Cog:
         cogs_status = file_io.read_json(envs.cogs_status_file)
         for filename in os.listdir(envs.COGS_DIR):
             if filename.endswith('.py'):
+=======
+        cogs_status = file_io.read_json(envs.cogs_status_file)
+        try:
+            log.debug(
+                f'These cogs are already registered: '
+                f'{sorted(list(file_io.read_json(envs.cogs_status_file)))}'
+            )
+        except TypeError as e:
+            log.debug(
+                f'Error when reading json file.'
+            )
+        log.debug(f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}')
+        for filename in os.listdir(envs.COGS_DIR):
+            if filename.endswith('.py') and not filename.startswith('_'):
+>>>>>>> Stashed changes
                 cog_name = filename[:-3]
+                log.debug(f'Checking `{cog_name}`')
                 # Add all cog names to `cog_files` for easier cleaning
                 cog_files.append(cog_name)
+                # Hvor er `cog_status` egentlig?
                 if cog_name not in cogs_status:
                     # Added as disable
                     log.log('Added cog {} to cogs_status file'.format(cog_name))
@@ -209,7 +227,13 @@ async def delete(ctx, amount=0):
     commands.is_owner(),
     commands.has_permissions(kick_members=True)
 )
-async def kick(ctx, member: discord.Member, *, reason=None):
+async def kick(ctx, member: discord.Member = commands.param(
+    default=None,
+    description="Name of Discord user you want to kick"
+), *, reason: str = commands.param(
+    default=None,
+    description="Reason for kicking user")
+):
     'Kick a member from the server'
     try:
         await member.kick(reason=reason)
@@ -220,10 +244,20 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 
 @config.bot.command()
 @commands.check_any(
+=======
+@ config.bot.command()
+@ commands.check_any(
+>>>>>>> Stashed changes
     commands.is_owner(),
     commands.has_permissions(ban_members=True)
 )
-async def ban(ctx, member: discord.Member, *, reason=None):
+async def ban(ctx, member: discord.Member = commands.param(
+    default=None,
+    description="Name of Discord user you want to ban"
+), *, reason: str = commands.param(
+    default=None,
+    description="Reason for banning user")
+):
     'Ban a member from the server'
     try:
         await member.ban(reason=reason)
@@ -234,6 +268,10 @@ async def ban(ctx, member: discord.Member, *, reason=None):
 
 @config.bot.command()
 @commands.check_any(
+=======
+@ config.bot.command()
+@ commands.check_any(
+>>>>>>> Stashed changes
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
 )
@@ -269,6 +307,46 @@ async def edit(ctx, *, text):
 )
 async def cog(ctx, cmd_in=None, *cog_names):
     'Enable, disable, reload or list cogs for this bot'
+=======
+@ config.bot.command()
+@ commands.check_any(
+    commands.is_owner(),
+    commands.has_permissions(manage_messages=True)
+)
+async def edit(ctx, *, text):
+    'Make the bot rephrase a previous message. Reply to it with `!edit [text]`'
+    if ctx.message.reference is None:
+        await ctx.message.reply('You have to reply to a message: `!edit [text]`')
+        return
+    elif ctx.message.reference.message_id:
+        msgid = ctx.message.reference.message_id
+        edit_msg = await ctx.fetch_message(msgid)
+        await edit_msg.edit(content=text)
+        await ctx.message.delete()
+        return
+
+
+@ config.bot.command()
+@ commands.check_any(
+    commands.is_owner(),
+    commands.has_permissions(administrator=True)
+)
+async def cog(ctx, cmd_in, *cog_names):
+    '''
+    Enable, disable, reload or list cogs for this bot
+
+    cmd_in      "enable"/"e" or "disable"/"d"
+    cog_names   Name(s) of wanted cog, or "all"
+    '''
+
+    async def action_on_cog(cog_name, cmd_in):
+        '#autodoc skip#'
+        if cmd_in in ['enable', 'e']:
+            await Cog.load_cog(cog_name)
+            Cog.change_cog_status(cog_name, 'enable')
+        elif cmd_in in ['disable', 'd']:
+            await Cog.unload_cog(cog_name)
+            Cog.change_cog_status(cog_name, 'disable')
 
     async def action_on_cog(cog_name, cmd_in):
         '#autodoc skip#'

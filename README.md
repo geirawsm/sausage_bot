@@ -45,6 +45,13 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 
 If you run `python -m sausage_bot -h` you can also see all the arguments you can add.
 
+### yt-dlp requires PhantomJS and keeps nagging about it
+
+Yep.
+
+Use the `install_phantomjs.sh` script included.
+
+
 ## Functions
 
 SausageBot has the following main functions:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands
+from discord.ext.commands.errors import InvalidEndOfQuotedStringError
 import typing
 import random
 from time import sleep
@@ -8,6 +9,7 @@ import asyncio
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.log import log
+
 
 class Quotes(commands.Cog):
     'Administer or post quotes'
@@ -21,10 +23,16 @@ class Quotes(commands.Cog):
                 default=None,
                 description="Chose a number if you want a specific quote"
             )):
-        'Post, add, edit, delete or count quotes: `!quote ([number])`'
+        '''
+        Post, add, edit, delete or count quotes
+        To post a specific quote: `!quote ([number])`
+        '''
 
-        def pretty_quote(number, quote_in):
-            'Prettify a quote before posting'
+        def pretty_quote(number: int, quote_in: str) -> str:
+            '''
+            Prettify a quote before posting
+            #autodoc skip#
+            '''
             log.log_more(f'quote_in: {quote_in}')
             quote_out = '```#{}\n{}\n({})```'.format(
                 number, quote_in['quote'], quote_in['datetime']

@@ -15,9 +15,19 @@ html5lib = "*"
 python-youtube = "*"
 tzlocal = "*"
 path = "*"
+<<<<<<< Updated upstream
+=======
 instagramy = "*"
 bs4 = "*"
+instaloader = "*"
+emoji = "*"
+wcwidth = "*"
+astunparse = "*"
+astpretty = "*"
 yt-dlp = "*"
+httpx = "*"
+tabulate = "*"
+>>>>>>> Stashed changes
 
 [dev-packages]
 astunparse = "*"

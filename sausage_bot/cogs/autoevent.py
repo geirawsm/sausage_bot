@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'''
+This cog can take links to soccer games on predefined sites, and make them
+into an event for the server.
+'''
 from nis import match
 from discord.ext import commands
 import discord

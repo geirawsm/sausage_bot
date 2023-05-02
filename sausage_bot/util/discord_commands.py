@@ -4,15 +4,14 @@ from sausage_bot.util import config, envs, file_io
 from .log import log
 
 
-#
-import sys
-#
-
 def get_guild():
-    'Get the active guild object'
+    '''
+    Get the active guild object
+    #autodoc skip#
+    '''
     for guild in config.bot.guilds:
         if str(guild.name).lower() == config.GUILD.lower():
-            log.log_more(f'Got guild {guild} ({type(guild)})')
+            log.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
             log.log(envs.GUILD_NOT_FOUND)
@@ -20,7 +19,10 @@ def get_guild():
 
 
 def get_text_channel_list():
-    'Get a dict of all text channels and their ID\'s'
+    '''
+    Get a dict of all text channels and their ID's
+    #autodoc skip#
+    '''
     channel_dict = {}
     guild = get_guild()
     # Get all channels and their IDs
@@ -30,7 +32,10 @@ def get_text_channel_list():
 
 
 def channel_exist(channel_in):
-    'Check if channel actually exist on server'
+    '''
+    Check if channel actually exist on server
+    #autodoc skip#
+    '''
     all_channels = get_text_channel_list()
     if channel_in in all_channels:
         return True
@@ -39,7 +44,10 @@ def channel_exist(channel_in):
 
 
 def get_voice_channel_list():
-    'Get a dict of all voice channels and their ID\'s'
+    '''
+    Get a dict of all voice channels and their ID's
+    #autodoc skip#
+    # '''
     channel_dict = {}
     guild = get_guild()
     # Get all channels and their IDs
@@ -49,7 +57,10 @@ def get_voice_channel_list():
 
 
 def get_scheduled_events():
-    'Get all scheduled events from server'
+    '''
+    Get all scheduled events from server
+    #autodoc skip#
+    '''
     guild = get_guild()
     event_dict = {}
     if guild.scheduled_events is None:
@@ -77,7 +88,10 @@ def get_scheduled_events():
 
 
 def get_sorted_scheduled_events():
-    'Get a sorted list of events and prettify it'
+    '''
+    Get a sorted list of events and prettify it
+    #autodoc skip#
+    '''
     # Sort the dict based on epoch
     events_in = get_scheduled_events()
     if len(events_in) == 0:
@@ -125,7 +139,10 @@ def get_sorted_scheduled_events():
 
 
 def get_roles():
-    'Get a dict of all roles on server and their ID\'s'
+    '''
+    Get a dict of all roles on server and their ID's
+    #autodoc skip#
+    '''
     roles_dict = {}
     guild = get_guild()
     # Get all roles and their IDs
@@ -178,6 +195,7 @@ async def replace_post(replace_content, replace_with, channel_in):
     '''
     Look through the bot's messages for `replace_content` in channel
     `channel_in` and replace it with `replace_with.`
+    #autodoc skip#
     '''
     server_channels = get_text_channel_list()
     channel_out = config.bot.get_channel(server_channels[channel_in])
@@ -197,7 +215,10 @@ async def replace_post(replace_content, replace_with, channel_in):
 
 
 async def update_stats_post(stats_info, stats_channel):
-    'Replace content in stats-post'
+    '''
+    Replace content in stats-post
+    #autodoc skip#
+    '''
     server_channels = get_text_channel_list()
     if stats_channel in server_channels:
         channel_out = config.bot.get_channel(server_channels[stats_channel])

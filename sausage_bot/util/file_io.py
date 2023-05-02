@@ -79,7 +79,7 @@ def file_size(filename):
     try:
         _stats = os.stat(filename, follow_symlinks=True)
         return _stats[stat.ST_SIZE]
-    except(FileNotFoundError):
+    except FileNotFoundError:
         return False
 
 
@@ -135,13 +135,17 @@ def check_similarity(text1: str, text2: str) -> bool:
     Check how similar `text1` and `text2` is. If it resembles eachother by
     between 95 % to 99.999999999999999999999999995 %, it is considered "similar" and will return
     True. Otherwise, return False.
+=======
+    between 95 % to 99.999999999999999999999999995 %, it is considered
+    "similar" and will return True. Otherwise, return False.
+>>>>>>> Stashed changes:sausage_bot/util/file_io.py
 
     If neither `text1` nor `text2` is a string, it will return None.
     '''
     # Stop function if input is not str
     if type(text1) is not str or type(text2) is not str:
         return None
-    ratio = float(SequenceMatcher(a=text1,b=text2).ratio())
+    ratio = float(SequenceMatcher(a=text1, b=text2).ratio())
     # Our "similarity" is defined by the following equation:
     if 0.98 <= ratio <= 0.99999999999999999999999999995:
         log.debug(
