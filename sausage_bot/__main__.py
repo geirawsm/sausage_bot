@@ -141,10 +141,6 @@ class Cog:
         cog_files = []
         # Add cogs that are not present in the `cogs_status` file
         cogs_status = file_io.read_json(envs.cogs_status_file)
-        for filename in os.listdir(envs.COGS_DIR):
-            if filename.endswith('.py'):
-=======
-        cogs_status = file_io.read_json(envs.cogs_status_file)
         try:
             log.debug(
                 f'These cogs are already registered: '
@@ -157,7 +153,6 @@ class Cog:
         log.debug(f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}')
         for filename in os.listdir(envs.COGS_DIR):
             if filename.endswith('.py') and not filename.startswith('_'):
->>>>>>> Stashed changes
                 cog_name = filename[:-3]
                 log.debug(f'Checking `{cog_name}`')
                 # Add all cog names to `cog_files` for easier cleaning
@@ -244,10 +239,6 @@ async def kick(ctx, member: discord.Member = commands.param(
 
 @config.bot.command()
 @commands.check_any(
-=======
-@ config.bot.command()
-@ commands.check_any(
->>>>>>> Stashed changes
     commands.is_owner(),
     commands.has_permissions(ban_members=True)
 )
@@ -268,10 +259,6 @@ async def ban(ctx, member: discord.Member = commands.param(
 
 @config.bot.command()
 @commands.check_any(
-=======
-@ config.bot.command()
-@ commands.check_any(
->>>>>>> Stashed changes
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
 )
@@ -304,14 +291,6 @@ async def edit(ctx, *, text):
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(administrator=True)
-)
-async def cog(ctx, cmd_in=None, *cog_names):
-    'Enable, disable, reload or list cogs for this bot'
-=======
-@ config.bot.command()
-@ commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(manage_messages=True)
 )
 async def edit(ctx, *, text):
     'Make the bot rephrase a previous message. Reply to it with `!edit [text]`'

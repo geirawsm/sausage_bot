@@ -187,7 +187,7 @@ class Youtube(commands.Cog):
     async def get_videos_from_yt_link(name, feed) -> dict:
         'Get video links from channel'
         log.debug(f'Getting videos from `{name}` ({feed["url"]})')
-        FEED_POSTS =[]
+        FEED_POSTS = []
         info = await Youtube.get_yt_info(feed['url'])
         if not info:
             return FEED_POSTS
@@ -207,13 +207,15 @@ class Youtube(commands.Cog):
                         FEED_POSTS.append(item['original_url'])
                         await asyncio.sleep(1)
                 except:
-                    log.debug(f"Could not find `entries` or `title` in `item`. This has been logged.")
-                    dump_output(item['entries'], name='get_videos_from_yt_link')
+                    log.debug(
+                        f"Could not find `entries` or `title` in `item`. This has been logged.")
+                    dump_output(item['entries'],
+                                name='get_videos_from_yt_link')
         return FEED_POSTS
 
     async def post_queue_of_youtube_videos(feed_name, feed_info, videos):
         log.debug(f'Processing: {feed_name}')
-        #await feeds_core.process_links_for_posting_or_editing(
+        # await feeds_core.process_links_for_posting_or_editing(
         await Youtube.process_links_for_posting_or_editing(
             feed_name, videos, feed_info, envs.yt_feeds_logs_file
         )
@@ -255,8 +257,8 @@ class Youtube(commands.Cog):
             # Write to the logs-file at the end
             file_io.write_json(feed_log_file, FEED_LOG)
 
-
     # Tasks
+
     @tasks.loop(minutes=env['youtube_loop'])
     async def youtube_parse():
         log.log('Starting `youtube_parse`')

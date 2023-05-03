@@ -133,13 +133,8 @@ def get_max_item_lengths(headers, dict_in):
 def check_similarity(text1: str, text2: str) -> bool:
     '''
     Check how similar `text1` and `text2` is. If it resembles eachother by
-    between 95 % to 99.999999999999999999999999995 %, it is considered "similar" and will return
-    True. Otherwise, return False.
-=======
     between 95 % to 99.999999999999999999999999995 %, it is considered
     "similar" and will return True. Otherwise, return False.
->>>>>>> Stashed changes:sausage_bot/util/file_io.py
-
     If neither `text1` nor `text2` is a string, it will return None.
     '''
     # Stop function if input is not str
