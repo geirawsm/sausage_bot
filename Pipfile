@@ -10,14 +10,9 @@ lxml = "*"
 requests = "*"
 pendulum = "*"
 colorama = "*"
-ratelimit = "*"
 html5lib = "*"
-python-youtube = "*"
 tzlocal = "*"
 path = "*"
-<<<<<<< Updated upstream
-=======
-instagramy = "*"
 bs4 = "*"
 instaloader = "*"
 emoji = "*"
@@ -27,7 +22,6 @@ astpretty = "*"
 yt-dlp = "*"
 httpx = "*"
 tabulate = "*"
->>>>>>> Stashed changes
 
 [dev-packages]
 astunparse = "*"
