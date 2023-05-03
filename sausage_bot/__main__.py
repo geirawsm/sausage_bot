@@ -272,24 +272,6 @@ async def say(ctx, *, text):
 @config.bot.command()
 @commands.check_any(
     commands.is_owner(),
-    commands.has_permissions(manage_messages=True)
-)
-async def edit(ctx, *, text):
-    'Make the bot rephrase something it has said'
-    if ctx.message.reference is None:
-        await ctx.message.reply('You have to reply to a message: `!edit [text]`')
-        return
-    elif ctx.message.reference.message_id:
-        msgid = ctx.message.reference.message_id
-        edit_msg = await ctx.fetch_message(msgid)
-        await edit_msg.edit(content=text)
-        await ctx.message.delete()
-        return
-
-
-@config.bot.command()
-@commands.check_any(
-    commands.is_owner(),
     commands.has_permissions(administrator=True)
 )
 async def edit(ctx, *, text):
