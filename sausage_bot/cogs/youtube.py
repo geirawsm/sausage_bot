@@ -192,7 +192,7 @@ class Youtube(commands.Cog):
         if not info:
             return FEED_POSTS
         if 'entries' in info:
-            if isinstance(info['entries'], None):
+            if isinstance(info['entries'], NoneType):
                 log.log(f'Could not get videos from {name}')
             else:
                 for item in info['entries']:
