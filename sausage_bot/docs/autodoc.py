@@ -44,23 +44,26 @@ def dump(item):
 
 
 def dump_output(
-    output, timed=True, name: str = None, hard_exit=False
+    output, timed=True, name: str = None, folder: str = 'out',
+    hard_exit=False
 ) -> str:
     '''
     Write output to file and exit
 
     timed       Add date and time to the filename (on by default)
     name        Use a different name than 'dump' (None by default)
+    folder      Name of folder that output should be written to ('out' by
+                default)
     hard_exit   Do a `sys.exit()` at the end of the dump (off by default)
     '''
     if doc_args.file_out:
         if isinstance(output, dict):
             file_io.write_json(
-                doc_envs.DOCS_DIR / doc_args.file_out, output
+                doc_envs.DOCS_DIR / folder / doc_args.file_out, output
             )
         else:
             file_io.write_file(
-                doc_envs.DOCS_DIR / doc_args.file_out, output
+                doc_envs.DOCS_DIR / folder / doc_args.file_out, output
             )
     else:
         filename = ''
@@ -80,12 +83,12 @@ def dump_output(
         if isinstance(output, dict):
             filename += '.json'
             file_io.write_json(
-                doc_envs.DOCS_DIR / filename, output
+                doc_envs.DOCS_DIR / folder / filename, output
             )
         else:
             filename += '.md'
             file_io.write_file(
-                doc_envs.DOCS_DIR / filename, output
+                doc_envs.DOCS_DIR / folder / filename, output
             )
     if hard_exit:
         sys.exit()

@@ -192,25 +192,27 @@ class Youtube(commands.Cog):
         if not info:
             return FEED_POSTS
         if 'entries' in info:
-            for item in info['entries']:
-                # If the item is a playlist/channel, it also has an
-                # 'entries' that needs to be parsed
-                try:
-                    if 'entries' in item:
-                        for _video in item['entries']:
-                            if _video is not None:
-                                log.debug(f"Got video `{_video['title']}`")
-                                FEED_POSTS.append(_video['original_url'])
-                    # The channel does not consist of playlists, only videos
-                    else:
-                        log.debug(f"Got video `{item['title']}`")
-                        FEED_POSTS.append(item['original_url'])
-                        await asyncio.sleep(1)
-                except:
-                    log.debug(
-                        f"Could not find `entries` or `title` in `item`. This has been logged.")
-                    dump_output(item['entries'],
-                                name='get_videos_from_yt_link')
+            if isinstance(info['entries'], None):
+                log.log(f'Could not get videos from {name}')
+            else:
+                for item in info['entries']:
+                    # If the item is a playlist/channel, it also has an
+                    # 'entries' that needs to be parsed
+                    try:
+                        if 'entries' in item:
+                            for _video in item['entries']:
+                                if _video is not None:
+                                    log.debug(f"Got video `{_video['title']}`")
+                                    FEED_POSTS.append(_video['original_url'])
+                        # The channel does not consist of playlists, only videos
+                        else:
+                            log.debug(f"Got video `{item['title']}`")
+                            FEED_POSTS.append(item['original_url'])
+                            await asyncio.sleep(1)
+                    except:
+                        log.debug(
+                            f"Could not find `entries` or `title` in `item`. This has been logged.")
+                        dump_output(item, name='get_videos_from_yt_link')
         return FEED_POSTS
 
     async def post_queue_of_youtube_videos(feed_name, feed_info, videos):
