@@ -62,7 +62,6 @@ def read_json(json_file):
     except OSError as e:
         log.log(f"File can't be read {json_file}:\n{e}")
         return None
-    return None
 
 
 def write_json(json_file, json_out):
