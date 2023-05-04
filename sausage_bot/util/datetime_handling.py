@@ -104,7 +104,7 @@ def make_dt(date_in):
 def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
-    
+
     dt              Uses `pendulum.now()` as datetime-object if nothing
                     else is given
     sep             Use dots as separator if nothing else is given
@@ -163,7 +163,7 @@ def get_dt(format='epoch', sep='.', dt=False):
     elif format == 'day':
         return dt.format(f'DD')
     elif format == 'epoch':
-       return dt.int_timestamp
+        return dt.int_timestamp
     else:
         return None
 
