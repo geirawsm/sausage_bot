@@ -99,9 +99,6 @@ RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
 RSS_CHANGED_CHANNEL = 'Endret kanal for feeden `{}` til `{}`'
 RSS_VARS = {
-    'title': {
-        'title': 'Name', 'max_len': 0, 'list_type': []
-    },
     'url': {
         'title': 'Feed', 'max_len': 0, 'list_type': []
     },
@@ -109,10 +106,10 @@ RSS_VARS = {
         'title': 'Channel', 'max_len': 0, 'list_type': []
     },
     'filter_allow': {
-        'title': 'Allow', 'max_len': 20, 'list_type': ['filter']
+        'title': 'Allow', 'max_len': 30, 'list_type': ['filter']
     },
     'filter_deny': {
-        'title': 'Deny', 'max_len': 20, 'list_type': ['filter']
+        'title': 'Deny', 'max_len': 30, 'list_type': ['filter']
     },
     'added': {
         'title': 'Added', 'max_len': 0, 'list_type': ['added']
@@ -153,9 +150,6 @@ YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
 YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 YOUTUBE_EMPTY_LINK = 'Klarer ikke å hente linken: `{}`'
 YOUTUBE_VARS = {
-    'title': {
-        'title': 'Name', 'max_len': 0, 'list_type': []
-    },
     'url': {
         'title': 'Feed', 'max_len': 0, 'list_type': []
     },
@@ -163,10 +157,10 @@ YOUTUBE_VARS = {
         'title': 'Channel', 'max_len': 0, 'list_type': []
     },
     'filter_allow': {
-        'title': 'Allow', 'max_len': 20, 'list_type': ['filter']
+        'title': 'Allow', 'max_len': 30, 'list_type': ['filter']
     },
     'filter_deny': {
-        'title': 'Deny', 'max_len': 20, 'list_type': ['filter']
+        'title': 'Deny', 'max_len': 30, 'list_type': ['filter']
     },
     'added': {
         'title': 'Added', 'max_len': 0, 'list_type': ['added']

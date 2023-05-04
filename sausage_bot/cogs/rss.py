@@ -138,8 +138,8 @@ class RSSfeed(commands.Cog):
             )
             return
         if discord_commands.channel_exist(channel):
-            feeds_core.update_feed_status(
-                feed_name, envs.rss_feeds_file, channel_in=channel
+            feeds_core.update_feed(
+                feed_name, envs.rss_feeds_file, action="edit", item=channel
             )
         return
 
@@ -170,8 +170,9 @@ class RSSfeed(commands.Cog):
                 envs.TOO_FEW_ARGUMENTS
             )
             return
-        feeds_core.update_feed_status(
-            feed_name, envs.rss_feeds_file, name=new_feed_name
+        feeds_core.update_feed(
+            feed_name, envs.rss_feeds_file, action="edit", item="name",
+            value_in=new_feed_name
         )
         return
 
@@ -202,8 +203,8 @@ class RSSfeed(commands.Cog):
                 envs.TOO_FEW_ARGUMENTS
             )
             return
-        feeds_core.update_feed_status(
-            feed_name, envs.rss_feeds_file, url_in=url
+        feeds_core.update_feed(
+            feed_name, envs.rss_feeds_file, action="edit", item=url
         )
         return
 
@@ -231,7 +232,8 @@ class RSSfeed(commands.Cog):
             description="What to filter a post by"
         )
     ):
-        'Add/remove filter for feed (deny/allow): `!rss filter [feed name] [add/remove] [allow/deny] [filter]`'
+        'Add/remove filter for feed (deny/allow): `!rss filter '\
+            '[feed name] [add/remove] [allow/deny] [filter]`'
         # Check for empty arguments
         log.debug(f'Local arguments: {locals()}')
         if feed_name is None or add_remove is None or allow_deny is None\
@@ -252,13 +254,13 @@ class RSSfeed(commands.Cog):
         feeds = file_io.read_json(envs.rss_feeds_file)
         if add_remove == 'remove':
             # Check if in list, then remove
-            if filter_in in feeds[feed_name]['filter'][allow_deny]:
-                feeds[feed_name]['filter'][allow_deny].remove(filter_in)
+            if filter_in in feeds[feed_name][eval(f'filter{allow_deny}')]:
+                feeds[feed_name][eval(f'filter{allow_deny}')].remove(filter_in)
                 await ctx.message.reply(f'Removed filter `{filter_in}`')
         elif add_remove == 'add':
             # Check if not in list, then add
-            if filter_in not in feeds[feed_name]['filter'][allow_deny]:
-                feeds[feed_name]['filter'][allow_deny].append(filter_in)
+            if filter_in not in feeds[feed_name][eval(f'filter{allow_deny}')]:
+                feeds[feed_name][eval(f'filter{allow_deny}')].append(filter_in)
                 await ctx.message.reply(f'Added filter `{filter_in}`')
         log.debug(
             f'Writing the following to the feed name:\n{feeds[feed_name]}')
@@ -355,8 +357,10 @@ class RSSfeed(commands.Cog):
             CHANNEL = feeds[feed]['channel']
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
-                feeds_core.update_feed_status(
-                    feed, envs.rss_feeds_file, status_channel='unlisted')
+                feeds_core.update_feed(
+                    feed, envs.rss_feeds_file, action= 'edit',
+                    item='status_channel', 
+                )
                 msg_out = envs.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
                 )

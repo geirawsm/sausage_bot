@@ -26,9 +26,9 @@ async def check_feed_validity(url):
 
 
 async def add_to_feed_file(
-        name, feed_link=None, channel=None, user_add=None,
-        feeds_filename=None
-    ):
+    name, feed_link=None, channel=None, user_add=None,
+    feeds_filename=None
+):
     '''
     Add a an item to the feed-json.
 
@@ -72,9 +72,8 @@ def remove_feed_from_file(name, feed_file):
         return False
 
 
-def update_feed_status(
-    feed_name, feeds_file_in, action=None, channel=None, url=None,
-    status_url=None, status_channel=None, name=None
+def update_feed(
+    feed_name, feeds_file_in, action=None, item=None, value_in=None
 ):
     '''
     Update the fields for a feed in `feeds_file`
@@ -87,10 +86,9 @@ def update_feed_status(
                         'edit'      'change'
                         'remove'    'delete'
 
-    `channel`:          The channel to receive feed updates
-    `url`:              The feed's url
-    `status_url`:       The status of the url
-    `status_channel`:   The status of the channel
+    `item`:             What item you want to change: name, channel, url,
+                        status_url or status_channel
+    `value_in`:         Value to change/replace `item`
     '''
     ACTION_ADD = ['add']
     ACTION_EDIT = ['edit', 'change']
@@ -98,34 +96,24 @@ def update_feed_status(
     ACTION_ALL = ACTION_ADD + ACTION_EDIT + ACTION_REMOVE
     feed_name = str(feed_name)
     feeds_file = file_io.read_json(feeds_file_in)
-    func_args = locals()
-    for arg_name in ['feed_name', 'feeds_file_in', 'action', 'name']:
-        func_args.pop(arg_name)
     if not action or action not in ACTION_ALL:
         log.log('Check your input for `action`')
         return None
-    for arg in func_args:
-        if func_args[arg]:
-            log.log(f'Update `{arg}` status')
-            dict_item = feeds_file[feed_name]
-            if '_' in arg:
-                arg_split = arg.split('_')
-                dict_item = dict_item[arg_split[0]][arg_split[1]]
-            else:
-                dict_item = dict_item[arg]
-            if action in ACTION_ADD or action in ACTION_EDIT:
-                dict_item = str(func_args[arg]).lower()
-            elif action in ACTION_REMOVE:
-                feeds_file[feed_name]['status'][arg] = None
-    if name:
+    if item == 'name':
         log.log('Update feed name')
         if feed_name in feeds_file:
-            log.log(f'Changing name from `{feed_name}` to `{name}`')
-            feeds_file[name] = feeds_file[feed_name]
+            log.log(f'Changing name from `{feed_name}` to `{value_in}`')
+            feeds_file[value_in] = feeds_file[feed_name]
             feeds_file.pop(feed_name)
         else:
             log.log('Feed name does not exist')
             return False
+    elif item:
+        log.log(f'Update `{item}` status')
+        if action in ACTION_ADD or action in ACTION_EDIT:
+            feeds_file[feed_name][item] = str(value_in).lower()
+        elif action in ACTION_REMOVE:
+            feeds_file[feed_name][item] = ''
     file_io.write_json(feeds_file_in, feeds_file)
     return True
 
@@ -322,13 +310,14 @@ async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
         def make_table(feeds_in, want_fields):
             tabulatify = []
             # Add headers
-            header_list = []
+            header_list = ['Name']
             for header in want_fields:
                 header_list.append(want_fields[header]['title'])
             tabulatify.append(header_list)
             # Add rest of values
             for feed in feeds_in:
                 temp_list = []
+                temp_list.append(feed)
                 for item in want_fields:
                     if feeds_in[feed][item] == []:
                         temp_list.append(envs.FEEDS_CORE_NONE_VALUE_AS_TEXT)
@@ -343,9 +332,10 @@ async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
                         temp_list.append(feeds_in[feed][item])
                 tabulatify.append(temp_list)
             # Get info about max_len
-            max_col_widths = []
+            max_col_widths = [None]
             for item in want_fields:
                 max_col_widths.append(want_fields[item]['max_len'])
+            print(max_col_widths)
             table = tabulate(
                 tabulatify, tablefmt='plain',
                 headers="firstrow",
@@ -402,7 +392,9 @@ async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
         return list_paginated
 
     feeds_file = file_io.read_json(feeds_file)
-    feeds_file = dict(sorted(feeds_file.items()))
+    feeds_file = dict(sorted(
+        feeds_file.items(), key=lambda x: x[0].lower()
+    ))
     # Return None if empty file
     if len(feeds_file) <= 0:
         return None
@@ -421,7 +413,7 @@ async def review_feeds_status(feeds_file):
             log.log('Feed url for {} is stale, checking it...'.format(feed))
             if get_feed_links(URL) is not None:
                 log.log('Feed url for {} is ok, reactivating!'.format(feed))
-                await update_feed_status(feed, feeds_file, url='ok')
+                await update_feed(feed, feeds_file, url='ok')
                 break
             elif get_feed_links(URL) is None:
                 log.log(f'Feed url for {feed} is still stale, skipping')
@@ -440,7 +432,7 @@ async def review_feeds_status(feeds_file):
                         CHANNEL, feed
                     )
                 )
-                await update_feed_status(feed, feeds_file, channel='ok')
+                await update_feed(feed, feeds_file, channel='ok')
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:
