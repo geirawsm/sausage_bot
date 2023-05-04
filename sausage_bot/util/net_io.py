@@ -43,17 +43,29 @@ async def get_link(url, cookies=None):
                     req = await client.get(url)
                 except httpx.ReadTimeout as e:
                     # TODO vars msg
-                    log.debug(f'Timed out when getting `{url}`')
+                    log.log(
+                        envs.NET_IO_TIMEOUT.format(url, e),
+                        color='red'
+                    )
+                    req = None
+                except httpx.ConnectError as e:
+                    # TODO vars msg
+                    log.log(
+                        envs.NET_IO_CONNECTION_ERROR.format(url, e),
+                        color='red'
+                    )
                     req = None
         except httpx.HTTPStatusError as e:
-            # TODO Edit this env msg
-            #log.log(envs.RSS_CONNECTION_ERROR)
-            log.log(f'Status error when connecting: {e}')
-            return None
+            log.log(
+                envs.NET_IO_CONNECTION_ERROR.format(url, e),
+                color='red'
+            )
+            req = None
     if req is None:
         return None
     log.log_more('Got a {} when fetching {}'.format(req.status_code, url))
     if 399 < req.status_code > 599:
+        log.log_to_bot_channel('Got a {} when fetching {}'.format(req.status_code, url))
         return None
     else:
         return req
@@ -95,7 +107,7 @@ def make_event_start_stop(date, time=None):
         start_event = datetime_handling.change_dt(
             start_dt, 'remove', 30, 'minutes'
         )
-        # Make an enddate for the event that should stop approximately 
+        # Make an enddate for the event that should stop approximately
         # 30 minutes after the match is over
         end_dt = datetime_handling.change_dt(start_dt, 'add', 2.5, 'hours')
         # Make the epochs that the event will use
@@ -156,7 +168,7 @@ def parse(url: str):
                 'date': date,
                 'time': time,
                 'start_dt': start_dt,
-                'start_epoch' : start_epoch,
+                'start_epoch': start_epoch,
                 'end_dt': end_dt,
                 'rel_start': rel_start
             },
@@ -199,13 +211,12 @@ def parse(url: str):
                 'date': date,
                 'time': time,
                 'start_dt': start_dt,
-                'start_epoch' : start_epoch,
+                'start_epoch': start_epoch,
                 'end_dt': end_dt,
                 'rel_start': rel_start
             },
             'stadium': stadium
         }
-
 
     PARSER = None
     if 'nifs.no' in url:
@@ -235,6 +246,7 @@ def parse(url: str):
     else:
         log.log('Linken er ikke kjent')
         return None
+
 
 if __name__ == "__main__":
     pass

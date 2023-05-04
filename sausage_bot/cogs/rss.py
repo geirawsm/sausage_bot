@@ -139,7 +139,8 @@ class RSSfeed(commands.Cog):
             return
         if discord_commands.channel_exist(channel):
             feeds_core.update_feed(
-                feed_name, envs.rss_feeds_file, action="edit", item=channel
+                feed_name, envs.rss_feeds_file, action="edit",
+                item=channel, value_in=channel
             )
         return
 
@@ -204,7 +205,8 @@ class RSSfeed(commands.Cog):
             )
             return
         feeds_core.update_feed(
-            feed_name, envs.rss_feeds_file, action="edit", item=url
+            feed_name, envs.rss_feeds_file, action="edit", item='url',
+            value_in=url
         )
         return
 
@@ -359,7 +361,7 @@ class RSSfeed(commands.Cog):
             if not discord_commands.channel_exist(CHANNEL):
                 feeds_core.update_feed(
                     feed, envs.rss_feeds_file, action= 'edit',
-                    item='status_channel', 
+                    item='status_channel', value_in='Does not exist'
                 )
                 msg_out = envs.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
@@ -379,10 +381,10 @@ class RSSfeed(commands.Cog):
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(feed))
-                return
-            await feeds_core.process_links_for_posting_or_editing(
-                feed, FEED_POSTS, envs.rss_feeds_logs_file, CHANNEL
-            )
+            else:
+                await feeds_core.process_links_for_posting_or_editing(
+                    feed, FEED_POSTS, envs.rss_feeds_logs_file, CHANNEL
+                )
         return
 
     @rss_parse.before_loop

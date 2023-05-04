@@ -93,7 +93,7 @@ RSS_LIST_ARG_WRONG = 'Kjenner ikke til kommandoen {}'
 RSS_INVALID_URL = 'Inputen `{}` er ikke en ordentlig URL. Dobbelsjekk staving.'
 RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
     'prøver igjen...'
-RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen'
+RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen: {}'
 RSS_NOT_ABLE_TO_SCRAPE = 'Klarte ikke å scrape {}: {}'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
@@ -123,6 +123,8 @@ RSS_VARS = {
 FEEDS_CORE_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
 FEEDS_CORE_LINK_INDEX_ERROR = 'Fikk IndexError ved henting av link til {} i {}'
 FEEDS_CORE_NONE_VALUE_AS_TEXT = 'Ingen'
+NET_IO_CONNECTION_ERROR = 'Feil ved oppkobling til `{}`: {}'
+NET_IO_TIMEOUT = 'Oppkobling til `{}` gikk ut på tid: {}'
 
 # COG - QUOTE
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\

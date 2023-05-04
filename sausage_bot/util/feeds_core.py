@@ -184,6 +184,7 @@ async def get_feed_links(url, filter_allow, filter_deny, filter_priority=None):
     log.debug(f'Got these arguments: {locals()}')
     req = await net_io.get_link(url)
     if req is None:
+        await log.log_to_bot_channel(f'RSS: Klarte ikke å hente sida `{url}`')
         return None
     try:
         soup = BeautifulSoup(req.content, features='xml')
