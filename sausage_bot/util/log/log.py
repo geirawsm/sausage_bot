@@ -14,8 +14,9 @@ init(autoreset=True)
 
 
 def log_function(
-        log_in, color: str = None, extra_info: str = None,
-        extra_color: str = None, milliseconds=False, pretty=False):
+        log_in: str, color: str = None, extra_info: str = None,
+        extra_color: str = None, pretty: bool = False
+):
     '''
     Include the name of the function in logging.
 
@@ -25,12 +26,11 @@ def log_function(
                     If `color` is not specified, it will highlight in green.
     extra_info      Used to specify extra information in the logging (default: None)
     extra_color     Color for the `extra_info` (default: green)
-    milliseconds    Add milliseconds to the timing of a log event
     pretty          Prettify the output. Works on dict and list
     '''
     from .. import datetime_handling
     get_dt = datetime_handling.get_dt
-    log_out = '[{}] '.format(get_dt(format='datetimefull'))
+    log_out = '[{}] '.format(get_dt(format = 'datetimefull'))
     if color is None:
         color = Fore.GREEN
     else:
@@ -45,13 +45,12 @@ def log_function(
         color = Fore.RED
     if args.log_print:
         log_out += '{color}{style}[ {function_name} ]'.format(
-            color=color,
-            style=Style.BRIGHT,
-            function_name=function_name)
+            color=color, style=Style.BRIGHT,
+            function_name=function_name
+        )
         if extra_info:
             log_out += '{color}{style}[ {extra_info} ]'.format(
-                color=extra_color,
-                style=Style.BRIGHT,
+                color=extra_color, style=Style.BRIGHT,
                 extra_info=extra_info
             )
         log_out += '{reset} '.format(reset=Style.RESET_ALL)
@@ -80,7 +79,9 @@ def log_function(
         write_log.close()
 
 
-def log(log_in, color=None, milliseconds=False, pretty=False):
+def log(
+    log_in: str, color: str = None, pretty: bool = False
+):
     '''
     Log the input `log_in`
 
@@ -88,21 +89,15 @@ def log(log_in, color=None, milliseconds=False, pretty=False):
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in green.
-    milliseconds    Add milliseconds to the timing of a log event
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log:
-        log_function(
-            log_in, color=color, milliseconds=milliseconds,
-            pretty=pretty
-        )
+        log_function(log_in, color=color, pretty=pretty)
     if args.log_slow:
         sleep(3)
 
 
-def log_more(
-        log_in, color=None, milliseconds=False, pretty=False
-):
+def log_more(log_in: str, color: str = None, pretty: bool = False):
     '''
     Log the input `log_in`. Used as more verbose than `log`
 
@@ -110,41 +105,36 @@ def log_more(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in green.
-    milliseconds    Add milliseconds to the timing of a log event
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log_more:
-        log_function(
-            log_in, color=color, milliseconds=milliseconds,
-            pretty=pretty
-        )
+        log_function(log_in, color=color, pretty=pretty)
     if args.log_slow:
         sleep(3)
 
 
 def debug(
-        log_in, extra_info=False, extra_color=None, milliseconds=False,
-        pretty=False
+        log_in: str, color: str = None, extra_info: str = False,
+        extra_color: str = None, pretty: bool = False
 ):
     '''
     Log the input `log_in` as debug messages
-    
+
+    color           Specify the color for highlighting the function name:
+                    black, red, green, yellow, blue, magenta, cyan, white.
+                    If `color` is not specified, it will highlight in gre
     extra_info      Used to specify extra information in the logging
     extra_color     Color for the `extra_info`
-    milliseconds    Show milliseconds in the log event
     pretty          Prettify the output. Works on dict and list
     '''
     if args.debug:
         if extra_info is not None:
             log_function(
-                log_in, extra_info=extra_info, color=extra_color,
-                milliseconds=milliseconds, pretty=pretty
+                log_in, color=color, extra_info=extra_info,
+                extra_color=extra_color, pretty=pretty
             )
         else:
-            log_function(
-                log_in, color='yellow', milliseconds=milliseconds,
-                pretty=pretty
-            )
+            log_function(log_in, color='yellow', pretty=pretty)
     if args.log_slow:
         sleep(3)
 
