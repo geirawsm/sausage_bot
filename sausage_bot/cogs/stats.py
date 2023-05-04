@@ -13,7 +13,8 @@ from sausage_bot.util.datetime_handling import get_dt
 
 # Prepare and load the env-file
 env_template = {
-    'stats_channel': 'stats'
+    'stats_channel': 'stats',
+    'hide_these_roles': []
 }
 config.add_cog_envs_to_env_file('stats', env_template)
 
@@ -64,7 +65,7 @@ class Stats(commands.Cog):
         '''
         def tabify(
             dict_in: dict, _key: str, _item: str, prefix='', suffix='',
-            split=''
+            split='', filter_away: bool = False
         ):
             text_out = ''
             _key_len = 0
@@ -78,11 +79,12 @@ class Stats(commands.Cog):
                     if _item_count > _item_len:
                         _item_len = _item_count
                 for role in dict_in:
-                    _k = dict_in[role][_key]
-                    _i = dict_in[role][_item]
-                    text_out += f'{prefix}{_k:<{_key_len}}{split}{_i:<{_item_len}}{suffix}'
-                    if dict_in[role][_key] != dict_in.keys():
-                        text_out += '\n'
+                    if role not in filter_away:
+                        _k = dict_in[role][_key]
+                        _i = dict_in[role][_item]
+                        text_out += f'{prefix}{_k:<{_key_len}}{split}{_i:<{_item_len}}{suffix}'
+                        if dict_in[role][_key] != dict_in.keys():
+                            text_out += '\n'
             log.debug(f'Returning:```{text_out}```')
             return text_out
 
@@ -112,7 +114,8 @@ class Stats(commands.Cog):
         # Update the stats-msg
         total_members = members['member_count']
         roles_members = tabify(
-            members['roles'], 'name', 'members', prefix='  ', split=': '
+            members['roles'], 'name', 'members', prefix='  ', split=': ',
+            filter_away = env["hide_these_roles"]
         )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = f'> Medlemmer\n```'\
