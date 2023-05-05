@@ -79,7 +79,7 @@ class RSSfeed(commands.Cog):
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
-                feeds_core.add_to_feed_file(
+                await feeds_core.add_to_feed_file(
                     str(feed_name), str(feed_link), channel, AUTHOR,
                     envs.rss_feeds_file
                 )
