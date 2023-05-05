@@ -58,6 +58,7 @@ def log_function(
         log_out += '[ {} ] '.format(log_func_name())
         if extra_info:
             log_out += '[ {} ] '.format(extra_info)
+        log_out += str(log_in)
     if args.log_print:
         if pretty:
             log_out += 'Prettifying...'
