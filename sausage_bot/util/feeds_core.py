@@ -46,16 +46,12 @@ async def add_to_feed_file(
     feeds_file[name] = {
         'url': feed_link,
         'channel': channel,
-        'filter': {
-            'allow': [],
-            'deny': []
-        },
+        'filter_allow': [],
+        'filter_deny': [],
         'added': date_now,
         'added by': user_add,
-        'status': {
-            'url': 'added',
-            'channel': 'ok'
-        }
+        'status_url': 'added',
+        'status_channel': 'ok'
     }
     file_io.write_json(feeds_filename, feeds_file)
 
