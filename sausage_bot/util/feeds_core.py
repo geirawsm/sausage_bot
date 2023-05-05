@@ -177,7 +177,6 @@ async def get_feed_links(url, filter_allow, filter_deny, filter_priority=None):
             return False
 
     # Get the url and make it parseable
-    log.debug(f'Got these arguments: {locals()}')
     req = await net_io.get_link(url)
     if req is None:
         await log.log_to_bot_channel(f'RSS: Klarte ikke å hente sida `{url}`')
@@ -226,12 +225,12 @@ async def get_feed_links(url, filter_allow, filter_deny, filter_priority=None):
             )
     for link in links_filter:
         if (len(filter_allow) + len(filter_deny)) > 0:
-            link = filter_link(
+            _link = filter_link(
                 link, filter_allow, filter_deny, filter_priority
             )
-            if link:
-                log.debug(f'Appending link: `{link}`')
-                links.append(link)
+            if _link:
+                log.debug(f'Appending link: `{_link}`')
+                links.append(_link)
         else:
             links.append(link['link'])
     log.debug(f'Returning `links`: {links}')
