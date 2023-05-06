@@ -38,23 +38,21 @@ async def get_link(url, cookies=None):
             url = f'https://{url}'
         try:
             log.debug(f'Trying `url`: {url}')
-            async with httpx.AsyncClient() as client:
-                try:
-                    req = await client.get(url)
-                except httpx.ReadTimeout as e:
-                    # TODO vars msg
-                    log.log(
-                        envs.NET_IO_TIMEOUT.format(url, e),
-                        color='red'
-                    )
-                    req = None
-                except httpx.ConnectError as e:
-                    # TODO vars msg
-                    log.log(
-                        envs.NET_IO_CONNECTION_ERROR.format(url, e),
-                        color='red'
-                    )
-                    req = None
+            try:
+                async with httpx.AsyncClient() as client:
+                    req = await client.get(url, timeout=10.0)
+            except httpx.ReadTimeout as e:
+                log.log(
+                    envs.NET_IO_TIMEOUT.format(url, e),
+                    color='red'
+                )
+                req = None
+            except httpx.ConnectError as e:
+                log.log(
+                    envs.NET_IO_CONNECTION_ERROR.format(url, e),
+                    color='red'
+                )
+                req = None
         except httpx.HTTPStatusError as e:
             log.log(
                 envs.NET_IO_CONNECTION_ERROR.format(url, e),

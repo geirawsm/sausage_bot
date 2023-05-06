@@ -123,8 +123,14 @@ RSS_VARS = {
 FEEDS_CORE_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
 FEEDS_CORE_LINK_INDEX_ERROR = 'Fikk IndexError ved henting av link til {} i {}'
 FEEDS_CORE_NONE_VALUE_AS_TEXT = 'Ingen'
+FEEDS_CORE_STATUS_URL_ERROR = 'failed'
+FEEDS_CORE_STATUS_URL_ERROR_LIMIT = 3
+FEEDS_CORE_STATUS_URL_SUCCESS = 'ok'
 NET_IO_CONNECTION_ERROR = 'Feil ved oppkobling til `{}`: {}'
 NET_IO_TIMEOUT = 'Oppkobling til `{}` gikk ut på tid: {}'
+NET_IO_ERROR_RESPONSE = 'Got a {type} response (HTTP {response_code}) '\
+    'when fetching {url}. If this causes problems, you need to check '\
+    'the link.'
 
 # COG - QUOTE
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\

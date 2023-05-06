@@ -376,7 +376,7 @@ class RSSfeed(commands.Cog):
             log.debug(f'`URL`: `{URL}`')
             log.debug(f'`FILTER_PRIORITY`: `{FILTER_PRIORITY}`')
             FEED_POSTS = await feeds_core.get_feed_links(
-                URL, filter_allow, filter_deny, FILTER_PRIORITY
+                feed, URL, filter_allow, filter_deny, FILTER_PRIORITY
             )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:

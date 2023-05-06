@@ -51,6 +51,7 @@ async def add_to_feed_file(
         'added': date_now,
         'added by': user_add,
         'status_url': 'added',
+        "status_url_counter": 0,
         'status_channel': 'ok'
     }
     file_io.write_json(feeds_filename, feeds_file)
@@ -69,52 +70,87 @@ def remove_feed_from_file(name, feed_file):
 
 
 def update_feed(
-    feed_name, feeds_file_in, action=None, item=None, value_in=None
+    feed_name, feeds_file_in, actions=None, items=None, values_in=None
 ):
     '''
     Update the fields for a feed in `feeds_file`
 
     `feed_name`:        Identifiable name for the feed
     `feeds_file_in`:    The file in where to update feed
-    `action`:           What action to perform on the item:
+    `actions`:          What actions to perform on the item:
                         Command     Alternatives
                         'add'
                         'edit'      'change'
+                        'increment'
                         'remove'    'delete'
 
-    `item`:             What item you want to change: name, channel, url,
-                        status_url or status_channel
-    `value_in`:         Value to change/replace `item`
+    `items`:            What items you want to change: name, channel, url,
+                        status_url, status_url_counter or status_channel
+    `values_in`:        Value to change/replace `item`
     '''
     ACTION_ADD = ['add']
-    ACTION_EDIT = ['edit', 'change']
+    ACTION_EDIT = ['edit', 'change', 'increment']
     ACTION_REMOVE = ['remove', 'delete']
     ACTION_ALL = ACTION_ADD + ACTION_EDIT + ACTION_REMOVE
     feed_name = str(feed_name)
     feeds_file = file_io.read_json(feeds_file_in)
-    if not action or action not in ACTION_ALL:
-        log.log('Check your input for `action`')
-        return None
-    if item == 'name':
-        log.log('Update feed name')
-        if feed_name in feeds_file:
-            log.log(f'Changing name from `{feed_name}` to `{value_in}`')
-            feeds_file[value_in] = feeds_file[feed_name]
-            feeds_file.pop(feed_name)
+    # Make standard input to list format
+    try:
+        if isinstance(actions, str):
+            action = list(actions)
+        if isinstance(items, str):
+            items = list(items)
+        if isinstance(values_in, str):
+            values_in = list(values_in)
+    except:
+        log.log('Error when making input to list')
+        return
+    # Check if all relevant lists are the same length
+    if any(len(actions) != length for lst in [items, values_in]):
+        log.log('Not all list inputs have the same length')
+        return
+    # Check correct actions
+    action_errors = []
+    for action in actions:
+        if action not in ACTION_ALL:
+            action_errors.append(action)
+        if len(action_errors) > 0:
+            log.log(f'Got these action errors: {action_errors}')
+            return None
+    counter = 0
+    while counter < len(actions):
+        action = actions[counter]
+        item = items[counter]
+        value_in = values_in[counter]
+        # Treat name specifically
+        if item == 'name':
+            log.log('Update feed name')
+            if feed_name in feeds_file:
+                log.log(f'Changing name from `{feed_name}` to `{value_in}`')
+                feeds_file[value_in] = feeds_file[feed_name]
+                feeds_file.pop(feed_name)
+            else:
+                log.log('Feed name does not exist')
+                return False
+        elif action == 'increment':
+            if value_in is None:
+                value_in = 1
+            log.log(f'Incrementing `{item}` with {value_in}')
+            feeds_file[feed_name][item] += value_in
         else:
-            log.log('Feed name does not exist')
-            return False
-    elif item:
-        log.log(f'Update `{item}` status')
-        if action in ACTION_ADD or action in ACTION_EDIT:
-            feeds_file[feed_name][item] = str(value_in).lower()
-        elif action in ACTION_REMOVE:
-            feeds_file[feed_name][item] = ''
+            log.log(f'Update `{item}` status')
+            if action in ACTION_ADD or action in ACTION_EDIT:
+                feeds_file[feed_name][item] = value_in
+            elif action in ACTION_REMOVE:
+                feeds_file[feed_name][item] = ''
+        counter += 1
     file_io.write_json(feeds_file_in, feeds_file)
     return True
 
 
-async def get_feed_links(url, filter_allow, filter_deny, filter_priority=None):
+async def get_feed_links(
+        feed_name, url, filter_allow, filter_deny, filter_priority=None
+):
     'Get the links from a RSS-feeds `url`'
 
     def filter_link(link, filter_allow, filter_deny, filter_priority):
@@ -179,8 +215,36 @@ async def get_feed_links(url, filter_allow, filter_deny, filter_priority=None):
     # Get the url and make it parseable
     req = await net_io.get_link(url)
     if req is None:
-        await log.log_to_bot_channel(f'RSS: Klarte ikke å hente sida `{url}`')
-        return None
+        # Each time this happens, increment a counter and change url_status.
+        # If the counter is more than x, post a message to bot channel.
+        # When successfull, set the counter to 0 and reset status to OK
+        feeds_file_in = file_io.read_json(envs.rss_feeds_file)
+        _status_url = feeds_file_in[feed_name]['status_url']
+        _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
+        if _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR and\
+                _status_url_counter == envs.FEEDS_CORE_STATUS_URL_ERROR_LIMIT:
+            log.debug('Changing url status after error')
+            await log.log_to_bot_channel(f'Problemer med å hente `{url}`')
+            return None
+        else:
+            update_feed(
+                feed_name, envs.rss_feeds_file, actions=['edit', 'increment'],
+                items=['status_url', 'status_url_counter'],
+                values_in=[envs.FEEDS_CORE_STATUS_URL_ERROR, 1]
+            )
+    elif req is not None:
+        # Clear the counter
+        feeds_file_in = file_io.read_json(envs.rss_feeds_file)
+        _status_url = feeds_file_in[feed_name]['status_url']
+        _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
+        if _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR and\
+                _status_url_counter > 0:
+            log.debug('Changing url status after success')
+            update_feed(
+                feed_name, envs.rss_feeds_file, actions=['edit', 'edit'],
+                items=['status_url', 'status_url_counter'],
+                values_in=[envs.FEEDS_CORE_STATUS_URL_SUCCESS, 0]
+            )
     try:
         soup = BeautifulSoup(req.content, features='xml')
     except Exception as e:
@@ -409,7 +473,10 @@ async def review_feeds_status(feeds_file):
             log.log('Feed url for {} is stale, checking it...'.format(feed))
             if get_feed_links(URL) is not None:
                 log.log('Feed url for {} is ok, reactivating!'.format(feed))
-                await update_feed(feed, feeds_file, url='ok')
+                update_feed(
+                    feed, feeds_file, actions='edit', items='status_url',
+                    url='ok'
+                )
                 break
             elif get_feed_links(URL) is None:
                 log.log(f'Feed url for {feed} is still stale, skipping')
@@ -428,7 +495,10 @@ async def review_feeds_status(feeds_file):
                         CHANNEL, feed
                     )
                 )
-                await update_feed(feed, feeds_file, channel='ok')
+                update_feed(
+                    feed, feeds_file, actions='edit',
+                    items='status_channel', values_in='ok'
+                )
 
 
 def link_is_in_log(link: str, feed_log: list) -> bool:
