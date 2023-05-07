@@ -29,12 +29,13 @@ for file in check_and_create_files:
     else:
         file_io.ensure_file(file)
 
+
 class loading:
     '''
     Control the cogs for the bot
     #autodoc skip#
     '''
-    def change_cog_status(cog_name, status):
+    async def change_cog_status(cog_name, status):
         '''
         Change a cog status in the status file
 
@@ -45,7 +46,9 @@ class loading:
         '''
         accepted_status = ['enable', 'e', 'disable', 'd']
         if not any(status == ok_status for ok_status in accepted_status):
-            log.log('This command only accept `enable` (e) or `disable` (d)')
+            log.log(
+                'This command only accept `enable` (e) or `disable` (d)'
+            )
             return False
         cogs_status = file_io.read_json(envs.cogs_status_file)
         try:
@@ -75,12 +78,15 @@ class loading:
         Unload a specific cog by `cog_name`
         #autodoc skip#
         '''
-        await config.bot.unload_extension(
-            '{}.{}'.format(
-                envs.COGS_REL_DIR, f'{cog_name}'
+        try:
+            await config.bot.unload_extension(
+                '{}.{}'.format(
+                    envs.COGS_REL_DIR, f'{cog_name}'
+                )
             )
-        )
-        return
+            return True
+        except commands.ExtensionNotLoaded:
+            return False
 
     async def reload_cog(cog_name):
         '''
@@ -115,7 +121,9 @@ class loading:
             log.debug(
                 f'Error when reading json file.'
             )
-        log.debug(f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}')
+        log.debug(
+            f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
+        )
         for filename in os.listdir(envs.COGS_DIR):
             if filename.endswith('.py') and not filename.startswith('_'):
                 cog_name = filename[:-3]
@@ -124,7 +132,9 @@ class loading:
                 cog_files.append(cog_name)
                 if cog_name not in cogs_status:
                     # Added as disable
-                    log.log('Added cog {} to cogs_status file'.format(cog_name))
+                    log.log(
+                        'Added cog {} to cogs_status file'.format(cog_name)
+                    )
                     cogs_status[cog_name] = 'disable'
         # Clean out cogs that no longer has a file
         log.log('Checking `cogs_status` file for non-existing cogs')
@@ -155,7 +165,6 @@ class loading:
                 await loading.reload_cog(cog_name)
 
 
-
 @config.bot.command()
 @commands.check_any(
     commands.is_owner(),
@@ -169,14 +178,18 @@ async def cog(ctx, cmd_in, *cog_names):
     cog_names   Name(s) of wanted cog, or "all"
     '''
 
-    async def action_on_cog(cog_name, cmd_in):
+    async def action_on_cog(cmd_in, cog_names):
         '#autodoc skip#'
         if cmd_in in ['enable', 'e']:
-            await loading.load_cog(cog_name)
-            loading.change_cog_status(cog_name, 'enable')
+            for cog_name in cog_names:
+                _loading = await loading.load_cog(cog_name)
+                if _loading:
+                    await loading.change_cog_status(cog_name, 'enable')
         elif cmd_in in ['disable', 'd']:
-            await loading.unload_cog(cog_name)
-            loading.change_cog_status(cog_name, 'disable')
+            for cog_name in cog_names:
+                _unloading = await loading.unload_cog(cog_name)
+                if _unloading:
+                    await loading.change_cog_status(cog_name, 'disable')
 
 
     if cmd_in in ['enable', 'e', 'disable', 'd']:
@@ -184,32 +197,24 @@ async def cog(ctx, cmd_in, *cog_names):
             cmd_in = 'enable'
         if cmd_in == 'd':
             cmd_in = 'disable'
-        cogs_file = file_io.read_json(envs.cogs_status_file)
-        cogs_file = dict(sorted(cogs_file.items()))
-        names_out = ''
-        for cog_name in cog_names:
-            if cog_name == 'all':
-                for cog_name in cogs_file:
-                    if cogs_file[cog_name] != cmd_in:
-                        await action_on_cog(cog_name, cmd_in)
-                        names_out += cog_name
-                        if len(cog_names) > 1 and cog_name != cog_names[-1]:
-                            names_out += ', '
-            else:
-                await action_on_cog(cog_name, cmd_in)
-                names_out += cog_name
-                if len(cog_names) > 1 and cog_name != cog_names[-1]:
-                    names_out += ', '
         if cmd_in in ['enable', 'e']:
             if cog_names[0] == 'all':
                 conf_msg = envs.ALL_COGS_ENABLED
             else:
-                conf_msg = envs.COGS_ENABLED.format(names_out)
+                conf_msg = envs.COGS_ENABLED.format(', '.join(cog_names))
         elif cmd_in in ['disable', 'd']:
             if cog_names[0] == 'all':
                 conf_msg = envs.ALL_COGS_DISABLED
             else:
-                conf_msg = envs.COGS_DISABLED.format(names_out)
+                conf_msg = envs.COGS_DISABLED.format(', '.join(cog_names))
+        cogs_file = file_io.read_json(envs.cogs_status_file)
+        cogs_file = dict(sorted(cogs_file.items()))
+        if cog_names[0] == 'all':
+            # Use all names from cogs_file
+            await action_on_cog(cmd_in, list(cogs_file))
+        else:
+            # Only use given names in function
+            await action_on_cog(cmd_in, list(cog_names))
         await ctx.send(conf_msg)
         return True
     elif cmd_in == 'list':
@@ -222,9 +227,9 @@ async def cog(ctx, cmd_in, *cog_names):
     elif cmd_in == 'reload':
         # Reload all cogs
         await loading.reload_all_cogs()
-        await ctx.send('Cogs reloaded')
+        await ctx.send(envs.ALL_COGS_RELOADED)
         return
-    elif cmd_in is None and cog_name is None:
+    elif cmd_in is None and cog_names is None:
         await ctx.send(
             envs.COGS_TOO_FEW_ARGUMENTS
         )
@@ -232,6 +237,7 @@ async def cog(ctx, cmd_in, *cog_names):
     else:
         log.log('Something else happened?')
         return False
+
 
 def get_cogs_list(cogs_file):
     '''

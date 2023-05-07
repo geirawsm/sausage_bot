@@ -106,7 +106,7 @@ def update_feed(
         log.log('Error when making input to list')
         return
     # Check if all relevant lists are the same length
-    if any(len(actions) != length for lst in [items, values_in]):
+    if len(actions) == len(items) == len(values_in):
         log.log('Not all list inputs have the same length')
         return
     # Check correct actions

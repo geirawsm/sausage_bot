@@ -73,6 +73,7 @@ COGS_ENABLED = 'Aktiverte cog `{}`'
 COGS_DISABLED = 'Deaktiverte cog `{}`'
 ALL_COGS_ENABLED = 'Aktiverte alle cogs'
 ALL_COGS_DISABLED = 'Deaktiverte alle cogs'
+ALL_COGS_RELOADED = 'Startet alle aktive cogs på nytt'
 
 # COG - GENERIC MESSAGES
 COG_STARTING = 'Starting cog: `{}`'
