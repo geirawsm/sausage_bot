@@ -154,7 +154,7 @@ async def setup(bot):
     log.log(envs.COG_STARTING.format('stats'))
     log.log_more(envs.CREATING_FILES)
     check_and_create_files = [
-        (envs.stats_logs_file, '{}')
+        (envs.stats_logs_file, {})
     ]
     file_io.create_necessary_files(check_and_create_files)
     await bot.add_cog(Stats(bot))
