@@ -122,7 +122,6 @@ class loading:
                 log.debug(f'Checking `{cog_name}`')
                 # Add all cog names to `cog_files` for easier cleaning
                 cog_files.append(cog_name)
-                # Hvor er `cog_status` egentlig?
                 if cog_name not in cogs_status:
                     # Added as disable
                     log.log('Added cog {} to cogs_status file'.format(cog_name))
@@ -240,13 +239,10 @@ def get_cogs_list(cogs_file):
     #autodoc skip#
     '''
     # Sort cogs first
-    cogs_file = dict(sorted(cogs_file.items()))
+    cogs_file = sorted(cogs_file.items())
     log.debug(f'Got this from `cogs_file`: {cogs_file}')
-    _list = []
-    for item in cogs_file:
-        _list.append([item, cogs_file[item]])
     text_out = '```{}```'.format(
-        tabulate(_list, headers=['Cog', 'Status'])
+        tabulate(cogs_file, headers=['Cog', 'Status'])
     )
     log.debug(f'Returning:\n{text_out}')
     return text_out
