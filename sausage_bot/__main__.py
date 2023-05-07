@@ -166,5 +166,5 @@ def setup(bot):
     @bot.event
     async def on_command_error(ctx, exception):
         # if the exception is of any of selected classes redirect to discord
-        if isinstance(exception, InvalidEndOfQuotedStringError):
+        if isinstance(exception, commands.InvalidEndOfQuotedStringError):
             await ctx.message.reply('Sjekk bruken av anførselstegn')
