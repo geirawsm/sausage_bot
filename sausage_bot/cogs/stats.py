@@ -128,7 +128,7 @@ class Stats(commands.Cog):
             f'```\n'
         log.log_more(
             f'Trying to post stats to `{env["stats_channel"]}`:\n'
-            '{stats_msg}'
+            f'{stats_msg}'
         )
         await discord_commands.update_stats_post(
             stats_msg, env['stats_channel']
