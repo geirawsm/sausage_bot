@@ -162,6 +162,7 @@ async def edit(ctx, *, text):
 
 config.bot.run(config.TOKEN)
 
+
 def setup(bot):
     @bot.event
     async def on_command_error(ctx, exception):
