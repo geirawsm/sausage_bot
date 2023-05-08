@@ -223,10 +223,13 @@ async def get_feed_links(
         _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
         if _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR and\
                 _status_url_counter == envs.FEEDS_CORE_STATUS_URL_ERROR_LIMIT:
-            log.debug('Changing url status after error')
+            log.debug(f'Changing url status after error with url  ({url})')
             await log.log_to_bot_channel(f'Problemer med å hente `{url}`')
             return None
-        else:
+        elif _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR:
+            log.debug(
+                f'Incrementing error counter after error with url ({url})'
+            )
             update_feed(
                 feed_name, envs.rss_feeds_file, actions=['edit', 'increment'],
                 items=['status_url', 'status_url_counter'],
