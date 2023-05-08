@@ -221,37 +221,37 @@ async def get_feed_links(
         feeds_file_in = file_io.read_json(envs.rss_feeds_file)
         _status_url = feeds_file_in[feed_name]['status_url']
         _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
-        if _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR and\
-                _status_url_counter == envs.FEEDS_CORE_STATUS_URL_ERROR_LIMIT:
+        if _status_url == envs.FEEDS_URL_ERROR and\
+                _status_url_counter == envs.FEEDS_URL_ERROR_LIMIT:
             log.debug(f'Changing url status after error with url  ({url})')
             await log.log_to_bot_channel(f'Problemer med å hente `{url}`')
             return None
-        elif _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR:
+        elif _status_url == envs.FEEDS_URL_ERROR:
             log.debug(
                 f'Incrementing error counter after error with url ({url})'
             )
             update_feed(
                 feed_name, envs.rss_feeds_file, actions=['edit', 'increment'],
                 items=['status_url', 'status_url_counter'],
-                values_in=[envs.FEEDS_CORE_STATUS_URL_ERROR, 1]
+                values_in=[envs.FEEDS_URL_ERROR, 1]
             )
     elif req is not None:
         # Clear the counter
         feeds_file_in = file_io.read_json(envs.rss_feeds_file)
         _status_url = feeds_file_in[feed_name]['status_url']
         _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
-        if _status_url == envs.FEEDS_CORE_STATUS_URL_ERROR and\
+        if _status_url == envs.FEEDS_URL_ERROR and\
                 _status_url_counter > 0:
             log.debug('Changing url status after success')
             update_feed(
                 feed_name, envs.rss_feeds_file, actions=['edit', 'edit'],
                 items=['status_url', 'status_url_counter'],
-                values_in=[envs.FEEDS_CORE_STATUS_URL_SUCCESS, 0]
+                values_in=[envs.FEEDS_URL_SUCCESS, 0]
             )
     try:
         soup = BeautifulSoup(req.content, features='xml')
     except Exception as e:
-        log.log(envs.FEEDS_CORE_SOUP_ERROR.format(url, e))
+        log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
         return None
     links_filter = []
     links = []
@@ -275,7 +275,7 @@ async def get_feed_links(
                     }
                 )
             except (IndexError):
-                log.log(envs.FEEDS_CORE_LINK_INDEX_ERROR.format(item, url))
+                log.log(envs.FEEDS_LINK_INDEX_ERROR.format(item, url))
     elif '<feed xml' in str(soup):
         for entry in soup.findAll('entry')[0:2]:
             link = entry.find('link')['href']
@@ -383,7 +383,7 @@ async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
                 temp_list.append(feed)
                 for item in want_fields:
                     if feeds_in[feed][item] == []:
-                        temp_list.append(envs.FEEDS_CORE_NONE_VALUE_AS_TEXT)
+                        temp_list.append(envs.FEEDS_NONE_VALUE_AS_TEXT)
                     elif isinstance(feeds_in[feed][item], list):
                         temp_out = ''
                         for list_item in feeds_in[feed][item]:

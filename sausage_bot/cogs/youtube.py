@@ -167,7 +167,6 @@ class Youtube(commands.Cog):
 
     async def get_yt_info(url):
         'Use yt-dlp to get info about a channel'
-        info = None
         # Get more yt-dlp opts here:
         # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
         ydl_opts = {
@@ -180,20 +179,67 @@ class Youtube(commands.Cog):
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(url)
-        except:
-            log.debug('Could not extract youtube info')
+        except Exception as _error:
+            log.debug(f'Could not extract youtube info: {_error}')
             return None
 
-    async def get_videos_from_yt_link(name, feed) -> dict:
+    async def get_videos_from_yt_link(feed_name, feed) -> dict:
         'Get video links from channel'
-        log.debug(f'Getting videos from `{name}` ({feed["url"]})')
+        log.debug(f'Getting videos from `{feed_name}` ({feed["url"]})')
         FEED_POSTS = []
         info = await Youtube.get_yt_info(feed['url'])
-        if not info:
+        ###
+
+        if info is None:
+            # Each time this happens, increment a counter and change
+            # url_status. If the counter is more than x, post a message to
+            # bot channel. When successfull, set the counter to 0 and reset
+            # status to OK
+            feeds_file_in = file_io.read_json(envs.yt_feeds_file)
+            _status_url = feeds_file_in[feed_name]['status_url']
+            _status_url_counter = feeds_file_in[feed_name][
+                'status_url_counter'
+            ]
+            if _status_url == envs.FEEDS_URL_ERROR and\
+                    _status_url_counter == envs.FEEDS_URL_ERROR_LIMIT:
+                log.debug(
+                    "Changing url status after error with url "
+                    f"({feed['url']})"
+                )
+                await log.log_to_bot_channel(
+                    f"Problemer med å hente `{feed['url']}`"
+                )
+                return None
+            elif _status_url == envs.FEEDS_URL_ERROR:
+                log.debug(
+                    "Incrementing error counter after error with url "
+                    f"({feed['url']})"
+                )
+                feeds_core.update_feed(
+                    feed_name, envs.yt_feeds_file,
+                    actions=['edit', 'increment'],
+                    items=['status_url', 'status_url_counter'],
+                    values_in=[envs.FEEDS_URL_ERROR, 1]
+                )
+        elif info is not None:
+            # Clear the counter
+            feeds_file_in = file_io.read_json(envs.yt_feeds_file)
+            _status_url = feeds_file_in[feed_name]['status_url']
+            _status_url_counter = feeds_file_in[feed_name][
+                'status_url_counter'
+            ]
+            if _status_url == envs.FEEDS_URL_ERROR and\
+                    _status_url_counter > 0:
+                log.debug('Changing url status after success')
+                feeds_core.update_feed(
+                    feed_name, envs.yt_feeds_file, actions=['edit', 'edit'],
+                    items=['status_url', 'status_url_counter'],
+                    values_in=[envs.FEEDS_URL_SUCCESS, 0]
+                )
             return FEED_POSTS
         if 'entries' in info:
             if info['entries'] is None:
-                log.log(f'Could not get videos from {name}')
+                log.log(f'Could not get videos from {feed_name}')
             else:
                 for item in info['entries']:
                     # If the item is a playlist/channel, it also has an
