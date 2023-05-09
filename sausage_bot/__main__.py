@@ -81,7 +81,9 @@ async def delete(ctx, amount=0):
     'Delete `amount` number of messages in the chat'
     if amount == 0:
         await ctx.message.add_reaction('❌')
-        await ctx.send('Please specify the number of messages you want to delete!')
+        await ctx.send(
+            'Please specify the number of messages you want to delete!'
+        )
     elif amount <= 0:  # lower than 0
         await ctx.message.add_reaction('❌')
         await ctx.send("The number must be bigger than 0!")
@@ -150,7 +152,9 @@ async def say(ctx, *, text):
 async def edit(ctx, *, text):
     'Make the bot rephrase a previous message. Reply to it with `!edit [text]`'
     if ctx.message.reference is None:
-        await ctx.message.reply('You have to reply to a message: `!edit [text]`')
+        await ctx.message.reply(
+            'You have to reply to a message: `!edit [text]`'
+        )
         return
     elif ctx.message.reference.message_id:
         msgid = ctx.message.reference.message_id

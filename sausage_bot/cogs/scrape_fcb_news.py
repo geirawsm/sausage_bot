@@ -43,23 +43,16 @@ class scrape_and_post(commands.Cog):
 
         def scrape_fcb_news_links():
             'Find links for specific team news and return it as a dict'
+            root_url = 'https://www.fcbarcelona.com/en/football/'
             wanted_links = {
-                'firstteam': [
-                    'https://www.fcbarcelona.com/en/football/first-team/news'
-                ],
-                'femeni': [
-                    'https://www.fcbarcelona.com/en/football/womens-football/news'
-                ],
-                'atletic': [
-                    'https://www.fcbarcelona.com/en/football/barca-atletic/news'
-                ],
+                'firstteam': [f'{root_url}first-team/news'],
+                'femeni': [f'{root_url}womens-football/news'],
+                'atletic': [f'{root_url}barca-atletic/news'],
                 'juvenil': [
-                    'https://www.fcbarcelona.com/en/football/fc-barcelona-u19a/news',
-                    'https://www.fcbarcelona.com/en/football/barca-youth/news'
+                    f'{root_url}fc-barcelona-u19a/news',
+                    f'{root_url}barca-youth/news'
                 ],
-                'club': [
-                    'https://www.fcbarcelona.com/en/club/news'
-                ]
+                'club': ['https://www.fcbarcelona.com/en/club/news']
             }
             links = {}
             root_url = 'https://www.fcbarcelona.com'

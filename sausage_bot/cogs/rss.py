@@ -341,12 +341,10 @@ class RSSfeed(commands.Cog):
         try:
             if len(feeds) == 0:
                 log.log(envs.RSS_NO_FEEDS_FOUND)
-                return
         except Exception as e:
             log.log(f'Got error when getting RSS feeds: {e}')
             if feeds is None:
                 log.log(envs.RSS_NO_FEEDS_FOUND)
-                return
         # Make sure that the feed links aren't stale / 404
         await feeds_core.review_feeds_status(envs.rss_feeds_file)
         log.log_more('Got these feeds:')

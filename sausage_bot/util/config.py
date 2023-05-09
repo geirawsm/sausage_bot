@@ -54,7 +54,10 @@ try:
     BOT_ID = config()['basic']['bot_id']
     BOT_WATCHING = config()['basic']['watching']
     intents = discord.Intents.all()
-    bot = commands.Bot(command_prefix=PREFIX, intents=intents)
+    bot = commands.Bot(
+        command_prefix=PREFIX,
+        intents=intents
+    )
 except KeyError as e:
     log.log(f'Couldn\'t load basic env: {e}')
     sys.exit()

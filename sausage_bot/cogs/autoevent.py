@@ -4,7 +4,6 @@
 This cog can take links to soccer games on predefined sites, and make them
 into an event for the server.
 '''
-from nis import match
 from discord.ext import commands
 import discord
 from sausage_bot.util import envs, config, datetime_handling, net_io

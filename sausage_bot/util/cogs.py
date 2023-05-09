@@ -21,7 +21,7 @@ for folder in check_and_create_folders:
 # Create necessary files before starting
 log.log_more('Creating necessary files')
 check_and_create_files = [
-    (envs.cogs_status_file, '{}')
+    (envs.cogs_status_file, {})
 ]
 for file in check_and_create_files:
     if isinstance(file, tuple):
