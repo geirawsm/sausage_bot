@@ -6,29 +6,13 @@ import discord
 from discord.ext import commands
 import json
 import sys
-import os
-from . import envs, file_io
+from . import envs
+from environs import Env, EnvError
 from .log import log
+from sausage_bot.util.args import args
 
-
-# Create necessary files before starting
-if not os.path.exists(envs.env_file):
-    file_io.write_json(envs.env_file, envs.env_template)
-    print(
-        f'Created {envs.env_file} file. Enter information for the bot. '
-        'Check the README.md for more info.'
-    )
-    sys.exit()
-
-
-def add_cog_envs_to_env_file(cog_name, cog_envs):
-    # Check env values for cog envs and add if necessary
-    cogs_status = file_io.read_json(envs.env_file)
-    log.debug(f'Got `cogs_status`: {cogs_status}')
-    if cog_name not in cogs_status:
-        log.log(f'Adding `{cog_name}` with `{cog_envs}` to `cogs_status`')
-        cogs_status[cog_name] = cog_envs
-    file_io.write_json(envs.env_file, cogs_status)
+env = Env()
+env.read_env(path=envs.env_file)
 
 
 def config():
@@ -42,17 +26,18 @@ def config():
     return None
 
 
-# Check all basic env values
+# Set basic env values
+PREFIX = env('PREFIX', default='!')
+BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='general')
+DISCORD_TOKEN = env('DISCORD_TOKEN')
+
 try:
-    TOKEN = config()['basic']['discord_token']
-    if TOKEN == '':
-        log.log(envs.BOT_NOT_SET_UP)
-    GUILD = config()['basic']['discord_guild']
-    PREFIX = config()['basic']['bot_prefix']
-    LOCALE = config()['basic']['locale']
-    BOT_CHANNEL = config()['basic']['bot_dump_channel']
-    BOT_ID = config()['basic']['bot_id']
-    BOT_WATCHING = config()['basic']['watching']
+    BOT_ID = env('BOT_ID')
+except EnvError:
+    print('You need to set `BOT_ID` in .env for this to work')
+
+
+try:
     intents = discord.Intents.all()
     bot = commands.Bot(
         command_prefix=PREFIX,

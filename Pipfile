@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 "discord.py" = "*"
-python-dotenv = "*"
 lxml = "*"
 requests = "*"
 pendulum = "*"
@@ -21,6 +20,7 @@ astpretty = "*"
 yt-dlp = "*"
 httpx = "*"
 tabulate = "*"
+environs = "*"
 
 [dev-packages]
 astunparse = "*"

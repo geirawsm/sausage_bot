@@ -4,7 +4,7 @@
 import discord
 from discord.ext import commands
 import os
-import locale
+#import locale
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs
@@ -12,11 +12,11 @@ from sausage_bot.util.log import log
 
 
 # Set locale
-#locale.setlocale(locale.LC_ALL, config.LOCALE)
+#locale.setlocale(locale.LC_ALL, config.env('LOCALE', default='nb_NO.UTF-8'))
 
 # Create necessary folders before starting
 check_and_create_folders = [
-    envs.LOG_DIR, envs.JSON_DIR, envs.COGS_DIR, envs.STATIC_DIR
+    envs.LOG_DIR, envs.JSON_DIR
 ]
 for folder in check_and_create_folders:
     try:
@@ -43,7 +43,7 @@ async def on_ready():
     #autodoc skip#
     '''
     for guild in config.bot.guilds:
-        if guild.name == config.GUILD:
+        if guild.name == config.env('DISCORD_GUILD'):
             break
     log.log('{} has connected to `{}`'.format(config.bot.user, guild.name))
     await cogs.loading.load_and_clean_cogs()
@@ -52,14 +52,13 @@ async def on_ready():
         await config.bot.change_presence(
             status=discord.Status.dnd)
     else:
-        if not config.BOT_WATCHING:
-            presence_name = 'some random youtube video'
-        if config.BOT_WATCHING:
-            presence_name = config.BOT_WATCHING
         await config.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name=config.BOT_WATCHING
+                name=config.env(
+                    'BOT_WATCHING',
+                    default='some random youtube video'
+                )
             )
         )
 
@@ -164,7 +163,7 @@ async def edit(ctx, *, text):
         return
 
 
-config.bot.run(config.TOKEN)
+config.bot.run(config.DISCORD_TOKEN)
 
 
 def setup(bot):

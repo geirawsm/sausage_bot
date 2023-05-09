@@ -7,15 +7,6 @@ from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
 
 
-env_template = {
-    'rss_loop': 5,
-    'filter_priority': ''   # 'allow' or 'deny'
-}
-config.add_cog_envs_to_env_file('rss', env_template)
-
-env = config.config()['rss']
-
-
 class RSSfeed(commands.Cog):
     '''
     Administer RSS-feeds that will autopost to a given channel when published
@@ -333,7 +324,7 @@ class RSSfeed(commands.Cog):
         return
 
     # Tasks
-    @tasks.loop(minutes=env['rss_loop'])
+    @tasks.loop(minutes=config.env.int('RSS_LOOP', default=5))
     async def rss_parse():
         log.debug('Starting `rss_parse`')
         # Update the feeds
@@ -369,12 +360,9 @@ class RSSfeed(commands.Cog):
             URL = feeds[feed]['url']
             filter_allow = feeds[feed]['filter_allow']
             filter_deny = feeds[feed]['filter_deny']
-            FILTER_PRIORITY = env['filter_priority']
-            log.log('Checking {} ({})'.format(feed, CHANNEL))
-            log.debug(f'`URL`: `{URL}`')
-            log.debug(f'`FILTER_PRIORITY`: `{FILTER_PRIORITY}`')
             FEED_POSTS = await feeds_core.get_feed_links(
-                feed, URL, filter_allow, filter_deny, FILTER_PRIORITY
+                URL, filter_allow, filter_deny,
+                config.env('RSS_FILTER_PRIORITY', default='deny')
             )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:

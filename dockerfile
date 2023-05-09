@@ -1,14 +1,15 @@
-FROM python:latest
+FROM python:3.9-alpine
 LABEL Maintainer="geirawsm"
 
 WORKDIR /
 
-RUN pip install --upgrade pip
 COPY . ./app/
-WORKDIR /app
+WORKDIR /app/
+
+RUN pip install --upgrade pip
 RUN pip3 install -r requirements.txt
 
-VOLUME [ "/app/json", "/app/logs" , "/app/static"]
+VOLUME [ "/data" ]
 
 # Run bot
-ENTRYPOINT ["python", "-m", "sausage_bot", "-l", "-lp", "-lm", "-d"]
+ENTRYPOINT ["python", "-m", "sausage_bot", "-l", "-lm", "-d", "--data-dir", "/data"]

@@ -5,6 +5,13 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
+settings_args = parser.add_argument_group('Settings')
+settings_args.add_argument('--data-dir',
+                           help='Set custom data dir',
+                           action='store',
+                           default=False,
+                           dest='data_dir')
+
 logging_args = parser.add_argument_group('Logging')
 logging_args.add_argument('--log', '-l',
                           help='Log important messages',

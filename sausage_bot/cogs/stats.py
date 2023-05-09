@@ -7,17 +7,6 @@ from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands
 from sausage_bot.util.args import args
 from sausage_bot.util.log import log
-from sausage_bot.util.datetime_handling import get_dt
-
-
-# Prepare and load the env-file
-env_template = {
-    'stats_channel': 'stats',
-    'hide_these_roles': []
-}
-config.add_cog_envs_to_env_file('stats', env_template)
-
-env = config.config()['stats']
 
 
 def get_members():
@@ -88,6 +77,7 @@ class Stats(commands.Cog):
             return text_out
 
         log.log('Starting `update_stats`')
+        stats_channel = config.env('STATS_CHANNEL', default='stats')
         stats_log = file_io.read_json(envs.stats_logs_file)
         # Get server members as of now
         members = get_members()
@@ -126,11 +116,11 @@ class Stats(commands.Cog):
             f'```(Serverstats sist oppdatert: {dt_log})'\
             f'```\n'
         log.log_more(
-            f'Trying to post stats to `{env["stats_channel"]}`:\n'
-            f'{stats_msg}'
+            f'Trying to post stats to `{stats_channel}`:\n'
+            '{stats_msg}'
         )
         await discord_commands.update_stats_post(
-            stats_msg, env['stats_channel']
+            stats_msg, stats_channel
         )
 
         # Write changes to file

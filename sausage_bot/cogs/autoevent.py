@@ -6,11 +6,22 @@ into an event for the server.
 '''
 from discord.ext import commands
 import discord
+import os
 from sausage_bot.util import envs, config, datetime_handling, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
 import re
 
+
+# Create necessary folders before starting
+check_and_create_folders = [
+    envs.STATIC_DIR
+]
+for folder in check_and_create_folders:
+    try:
+        os.makedirs(folder)
+    except (FileExistsError):
+        pass
 
 class AutoEvent(commands.Cog):
     '#autodoc skip#'

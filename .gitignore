@@ -1,11 +1,10 @@
 __pycache__/
-env.json
 *.code-*
 .vscode/
 
-sausage_bot/logs/
-sausage_bot/json/
-sausage_bot/lists/
-sausage_bot/test/*/
+sausage_bot/data/json
+sausage_bot/data/logs
+sausage_bot/data/.env
 sausage_bot/testing
-sausage_bot/docs/*.md
+
+out

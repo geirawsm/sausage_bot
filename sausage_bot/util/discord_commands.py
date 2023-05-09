@@ -10,7 +10,7 @@ def get_guild():
     #autodoc skip#
     '''
     for guild in config.bot.guilds:
-        if str(guild.name).lower() == config.GUILD.lower():
+        if str(guild.name).lower() == config.env('DISCORD_GUILD').lower():
             log.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:

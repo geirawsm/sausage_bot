@@ -11,14 +11,6 @@ from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
 from sausage_bot.docs.autodoc import dump_output
 
-env_template = {
-    'youtube_loop': 5,
-    'filter_priority': ''   # 'allow' or 'deny'
-}
-config.add_cog_envs_to_env_file('youtube', env_template)
-
-env = config.config()['youtube']
-
 
 class Youtube(commands.Cog):
     'Autopost new videos from given Youtube channels'
@@ -306,8 +298,7 @@ class Youtube(commands.Cog):
             file_io.write_json(feed_log_file, FEED_LOG)
 
     # Tasks
-
-    @tasks.loop(minutes=env['youtube_loop'])
+    @tasks.loop(minutes=config.env('YT_LOOP', default=5))
     async def youtube_parse():
         log.log('Starting `youtube_parse`')
         # Update the feeds

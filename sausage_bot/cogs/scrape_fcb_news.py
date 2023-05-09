@@ -8,16 +8,13 @@ from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, feeds_core
 from sausage_bot.util.log import log
 
-env_template = {
-    'firstteam': 'first-team',
-    'femeni': 'femení',
-    'atletic': 'atlètic',
-    'juvenil': 'juvenil',
-    'club': 'club'
+team_channel_defaults = {
+    'FIRSTTEAM': 'first-team',
+    'FEMENI': 'femení',
+    'ATLETIC': 'atlètic',
+    'JUVENIL': 'juvenil',
+    'CLUB': 'club'
 }
-config.add_cog_envs_to_env_file('scrape_fcb_news', env_template)
-
-env = config.config()['scrape_fcb_news']
 
 
 class scrape_and_post(commands.Cog):
@@ -30,7 +27,7 @@ class scrape_and_post(commands.Cog):
         self.bot = bot
 
     # Tasks
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=config.env('FCB_LOOP', default=5))
     async def post_fcb_news():
         '''
         Post news from https://www.fcbarcelona.com to specific team channels
@@ -97,11 +94,13 @@ class scrape_and_post(commands.Cog):
                 f'### {FEED_POSTS} ###'
             )
             for team in FEED_POSTS:
-                CHANNEL = team.lower()
+                CHANNEL = config.env(
+                    'FCB_{}'.format(team.upper()),
+                    default=team_channel_defaults[team.upper()])
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
                         feed, FEED_POSTS[team], envs.scrape_logs_file,
-                        env[CHANNEL]
+                        CHANNEL
                     )
                 except AttributeError as e:
                     log.log(str(e))

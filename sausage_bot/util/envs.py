@@ -4,20 +4,24 @@
 
 from pathlib import Path
 
+from sausage_bot.util.args import args
+
 # Folders
 ROOT_DIR = Path(__file__).resolve().parent.parent
-JSON_DIR = ROOT_DIR / 'json'
-LIST_DIR = ROOT_DIR / 'lists'
-LOG_DIR = ROOT_DIR / 'logs'
 COGS_DIR = ROOT_DIR / 'cogs'
-IMG_DIR = ROOT_DIR / 'img'
-STATIC_DIR = ROOT_DIR / 'static'
+if args.data_dir:
+    DATA_DIR = Path(args.data_dir).resolve()
+else:
+    DATA_DIR = ROOT_DIR / 'data'
+JSON_DIR = DATA_DIR / 'json'
+LOG_DIR = DATA_DIR / 'logs'
+STATIC_DIR = DATA_DIR / 'static'
 
 # Relative paths
 COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Files
-env_file = ROOT_DIR / 'env.json'
+env_file = DATA_DIR / '.env'
 rss_feeds_file = JSON_DIR / 'rss-feeds.json'
 rss_feeds_logs_file = JSON_DIR / 'rss-feeds-log.json'
 yt_feeds_file = JSON_DIR / 'yt-feeds.json'
@@ -27,23 +31,20 @@ quote_file = JSON_DIR / 'quotes.json'
 quote_log_file = JSON_DIR / 'quotes-log.json'
 dilemmas_file = JSON_DIR / 'dilemmas.json'
 dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
-ps_sale_file = JSON_DIR / 'ps_sales.json'
-ps_sale_log_file = LIST_DIR / 'ps_sales-log.list'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
 
 # Template content
-env_template = {
-    'basic': {
-        'discord_token': '',
-        'discord_guild': '',
-        'bot_prefix': '!',
-        'locale': '',
-        'bot_dump_channel': 'general',
-        'bot_id': '',
-        'watching': ''
-    }
-}
+env_template = '''
+# Basic settings
+DISCORD_TOKEN=
+DISCORD_GUILD=
+PREFIX=
+LOCALE=
+BOT_DUMP_CHANNEL=general
+BOT_ID=
+WATCHING=
+'''
 
 ### Botlines ###
 # Generiske
