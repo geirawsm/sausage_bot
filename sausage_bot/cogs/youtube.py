@@ -244,7 +244,6 @@ class Youtube(commands.Cog):
                         else:
                             log.debug(f"Got video `{item['title']}`")
                             FEED_POSTS.append(item['original_url'])
-                            await asyncio.sleep(1)
                     except:
                         log.debug(
                             "Could not find `entries` or `title` in "
@@ -259,7 +258,6 @@ class Youtube(commands.Cog):
         await Youtube.process_links_for_posting_or_editing(
             feed_name, videos, feed_info, envs.yt_feeds_logs_file
         )
-        await asyncio.sleep(1)
 
     async def process_links_for_posting_or_editing(
         name, videos, feed_info, feed_log_file
