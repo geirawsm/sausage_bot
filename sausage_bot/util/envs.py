@@ -130,9 +130,8 @@ FEEDS_URL_ERROR_LIMIT = 3
 FEEDS_URL_SUCCESS = 'ok'
 NET_IO_CONNECTION_ERROR = 'Feil ved oppkobling til `{}`: {}'
 NET_IO_TIMEOUT = 'Oppkobling til `{}` gikk ut på tid: {}'
-NET_IO_ERROR_RESPONSE = 'Got a {type} response (HTTP {response_code}) '\
-    'when fetching {url}. If this causes problems, you need to check '\
-    'the link.'
+NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\
+    'If this causes problems, you need to check the link.'
 
 # COG - QUOTE
 QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\
