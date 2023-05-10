@@ -39,10 +39,10 @@ env_template = '''
 # Basic settings
 DISCORD_TOKEN=
 DISCORD_GUILD=
+BOT_ID=
 PREFIX=
 LOCALE=
 BOT_DUMP_CHANNEL=general
-BOT_ID=
 WATCHING=
 '''
 
