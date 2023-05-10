@@ -298,7 +298,7 @@ class Youtube(commands.Cog):
             file_io.write_json(feed_log_file, FEED_LOG)
 
     # Tasks
-    @tasks.loop(minutes=config.env('YT_LOOP', default=5))
+    @tasks.loop(minutes=config.env.int('YT_LOOP', default=5))
     async def youtube_parse():
         log.log('Starting `youtube_parse`')
         # Update the feeds
