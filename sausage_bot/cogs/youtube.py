@@ -180,8 +180,6 @@ class Youtube(commands.Cog):
         log.debug(f'Getting videos from `{feed_name}` ({feed["url"]})')
         FEED_POSTS = []
         info = await Youtube.get_yt_info(feed['url'])
-        ###
-
         if info is None:
             # Each time this happens, increment a counter and change
             # url_status. If the counter is more than x, post a message to
@@ -228,7 +226,6 @@ class Youtube(commands.Cog):
                     items=['status_url', 'status_url_counter'],
                     values_in=[envs.FEEDS_URL_SUCCESS, 0]
                 )
-            return FEED_POSTS
         if 'entries' in info:
             if info['entries'] is None:
                 log.log(f'Could not get videos from {feed_name}')
@@ -242,14 +239,17 @@ class Youtube(commands.Cog):
                                 if _video is not None:
                                     log.debug(f"Got video `{_video['title']}`")
                                     FEED_POSTS.append(_video['original_url'])
-                        # The channel does not consist of playlists, only videos
+                        # The channel does not consist of playlists, only
+                        # videos
                         else:
                             log.debug(f"Got video `{item['title']}`")
                             FEED_POSTS.append(item['original_url'])
                             await asyncio.sleep(1)
                     except:
                         log.debug(
-                            f"Could not find `entries` or `title` in `item`. This has been logged.")
+                            "Could not find `entries` or `title` in "
+                            "`item`. This has been logged."
+                        )
                         dump_output(item, name='get_videos_from_yt_link')
         return FEED_POSTS
 

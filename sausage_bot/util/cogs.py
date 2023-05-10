@@ -52,6 +52,7 @@ class loading:
             return False
         cogs_status = file_io.read_json(envs.cogs_status_file)
         try:
+            log.debug('Change cog `{cog_name}` status')
             # Change status
             cogs_status[cog_name] = status
             # Write changes
@@ -119,7 +120,7 @@ class loading:
             )
         except TypeError as e:
             log.debug(
-                f'Error when reading json file.'
+                f'Error when reading json file: {e}'
             )
         log.debug(
             f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
@@ -183,14 +184,11 @@ async def cog(ctx, cmd_in, *cog_names):
         if cmd_in in ['enable', 'e']:
             for cog_name in cog_names:
                 _loading = await loading.load_cog(cog_name)
-                if _loading:
-                    await loading.change_cog_status(cog_name, 'enable')
+                await loading.change_cog_status(cog_name, 'enable')
         elif cmd_in in ['disable', 'd']:
             for cog_name in cog_names:
                 _unloading = await loading.unload_cog(cog_name)
-                if _unloading:
-                    await loading.change_cog_status(cog_name, 'disable')
-
+                await loading.change_cog_status(cog_name, 'disable')
 
     if cmd_in in ['enable', 'e', 'disable', 'd']:
         if cmd_in == 'e':
