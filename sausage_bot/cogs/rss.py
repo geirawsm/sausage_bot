@@ -349,7 +349,7 @@ class RSSfeed(commands.Cog):
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
                 feeds_core.update_feed(
-                    feed, envs.rss_feeds_file, action= 'edit',
+                    feed, envs.rss_feeds_file, action='edit',
                     item='status_channel', value_in='Does not exist'
                 )
                 msg_out = envs.POST_TO_NON_EXISTING_CHANNEL.format(
@@ -361,7 +361,7 @@ class RSSfeed(commands.Cog):
             filter_allow = feeds[feed]['filter_allow']
             filter_deny = feeds[feed]['filter_deny']
             FEED_POSTS = await feeds_core.get_feed_links(
-                URL, filter_allow, filter_deny,
+                feed, URL, filter_allow, filter_deny,
                 config.env('RSS_FILTER_PRIORITY', default='deny')
             )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
