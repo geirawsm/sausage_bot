@@ -46,13 +46,6 @@ logging_args.add_argument('--highlight', '-hl',
                           dest='log_highlight')
 
 testing_args = parser.add_argument_group('Testing')
-testing_args.add_argument('--local-parsing',
-                          help='Use requests-testadapter instead '
-                          'of requests',
-                          action='store_true',
-                          default=False,
-                          dest='local_parsing')
-
 testing_args.add_argument('--force-parser',
                           help='Force what parser to use in `autoevent`',
                           action='store',

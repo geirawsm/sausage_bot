@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 import discord
 import re
-import httpx
+#import httpx
+import aiohttp
 from datetime import datetime
 from bs4 import BeautifulSoup
 from sausage_bot.util import envs, datetime_handling
@@ -11,54 +12,45 @@ from .log import log
 import json
 
 
-if args.local_parsing:
-    from ..test.modules.requests_local import requests_session as requests
-    from ..test.modules import mod_vars_test
-else:
-    import requests
-
-
-async def get_link(url, cookies=None):
+async def get_link(url):
     'Get a requests object from a `url`'
     if type(url) is not str:
         log.debug('`url` is not string')
         log.log(envs.RSS_INVALID_URL.format(url))
         return None
-    if args.local_parsing:
-        log.debug('Using local parsing')
-        if cookies:
-            req = await requests.get(url, cookies)
-        else:
-            req = await requests.get(url)
-    else:
-        if re.search(r'^http(s)?', url):
-            log.debug('Found scheme in url')
-        elif re.match(r'^((http:\/\/|^https:\/\/))?((www\.))?', url) is not None:
-            log.debug('Did not found scheme, adding')
-            url = f'https://{url}'
-        try:
-            log.debug(f'Trying `url`: {url}')
-            try:
-                async with httpx.AsyncClient() as client:
-                    req = await client.get(url, timeout=10.0)
-            except httpx.ReadTimeout as e:
-                log.log(
-                    envs.NET_IO_TIMEOUT.format(url, e),
-                    color='red'
-                )
-                req = None
-            except httpx.ConnectError as e:
-                log.log(
-                    envs.NET_IO_CONNECTION_ERROR.format(url, e),
-                    color='red'
-                )
-                req = None
-        except httpx.HTTPStatusError as e:
-            log.log(
-                envs.NET_IO_CONNECTION_ERROR.format(url, e),
-                color='red'
-            )
-            req = None
+    if re.search(r'^http(s)?', url):
+        log.debug('Found scheme in url')
+    elif re.match(r'^((http:\/\/|^https:\/\/))?((www\.))?', url) is not None:
+        log.debug('Did not found scheme, adding')
+        url = f'https://{url}'
+    try:
+        log.debug(f'Trying `url`: {url}')
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                req = await resp
+    except Exception as e:
+        log.debug(f'Error when getting `url`: {e}')
+#        try:
+#            async with httpx.AsyncClient() as client:
+#                req = await client.get(url, timeout=10.0)
+#        except httpx.ReadTimeout as e:
+#            log.log(
+#                envs.NET_IO_TIMEOUT.format(url, e),
+#                color='red'
+#            )
+#            req = None
+#        except httpx.ConnectError as e:
+#            log.log(
+#                envs.NET_IO_CONNECTION_ERROR.format(url, e),
+#                color='red'
+#            )
+#            req = None
+#    except httpx.HTTPStatusError as e:
+#        log.log(
+#            envs.NET_IO_CONNECTION_ERROR.format(url, e),
+#            color='red'
+#        )
+#        req = None
     if req is None:
         return None
     else:
@@ -86,12 +78,9 @@ async def get_link(url, cookies=None):
         return req
 
 
-def scrape_page(url, cookies=None):
+def scrape_page(url):
     'Get a bs4 object from `url`'
-    if cookies:
-        scrape = get_link(url, cookies)
-    else:
-        scrape = get_link(url)
+    scrape = get_link(url)
     try:
         soup = BeautifulSoup(scrape.content, features='html5lib')
         return soup
