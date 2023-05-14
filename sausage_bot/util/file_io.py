@@ -5,7 +5,6 @@ import stat
 import json
 import pathlib
 from difflib import SequenceMatcher
-from time import sleep
 from ..util.log import log
 
 
@@ -114,7 +113,6 @@ def ensure_file(file_path: str, file_template=False):
                     fout.write(file_template)
                 else:
                     fout.write('')
-    sleep(1)
 
 
 def get_max_item_lengths(headers, dict_in):

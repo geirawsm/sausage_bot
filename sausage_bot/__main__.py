@@ -163,7 +163,10 @@ async def edit(ctx, *, text):
         return
 
 
-config.bot.run(config.DISCORD_TOKEN)
+try:
+    config.bot.run(config.DISCORD_TOKEN)
+except Exception as e:
+    log.log(e)
 
 
 def setup(bot):

@@ -254,7 +254,6 @@ class Youtube(commands.Cog):
 
     async def post_queue_of_youtube_videos(feed_name, feed_info, videos):
         log.debug(f'Processing: {feed_name}')
-        # await feeds_core.process_links_for_posting_or_editing(
         await Youtube.process_links_for_posting_or_editing(
             feed_name, videos, feed_info, envs.yt_feeds_logs_file
         )
@@ -318,6 +317,7 @@ class Youtube(commands.Cog):
                 await Youtube.post_queue_of_youtube_videos(
                     feed, feeds[feed], videos_from_feed
                 )
+            return
         return
 
     @youtube_parse.before_loop

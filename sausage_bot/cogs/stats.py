@@ -104,7 +104,7 @@ class Stats(commands.Cog):
         total_members = members['member_count']
         roles_members = tabify(
             members['roles'], 'name', 'members', prefix='  ', split=': ',
-            filter_away = env["hide_these_roles"]
+            filter_away=config.env('STATS_HIDE_ROLES')
         )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = f'> Medlemmer\n```'\

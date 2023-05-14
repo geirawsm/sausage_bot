@@ -69,7 +69,7 @@ def remove_feed_from_file(name, feed_file):
         return False
 
 
-def update_feed(
+async def update_feed(
     feed_name, feeds_file_in, actions=None, items=None, values_in=None
 ):
     '''
@@ -144,7 +144,7 @@ def update_feed(
             elif action in ACTION_REMOVE:
                 feeds_file[feed_name][item] = ''
         counter += 1
-    file_io.write_json(feeds_file_in, feeds_file)
+    await file_io.write_json(feeds_file_in, feeds_file)
     return True
 
 
