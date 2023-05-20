@@ -52,7 +52,7 @@ class loading:
             return False
         cogs_status = file_io.read_json(envs.cogs_status_file)
         try:
-            log.debug('Change cog `{cog_name}` status')
+            log.debug(f'Change cog `{cog_name}` status')
             # Change status
             cogs_status[cog_name] = status
             # Write changes
