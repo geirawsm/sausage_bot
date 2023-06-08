@@ -81,34 +81,44 @@ def file_size(filename):
         return False
 
 
-def ensure_file(file_path: str, file_template=False):
+def ensure_folder(folder_path: str):
     '''
-    Create file `file_path` if it doesn't exist and include the
+    Create folders in `folder_path` if it doesn't exist
+    '''
+    folder_path = str(folder_path)
+    # Make the folders if necessary
+    if not os.path.exists(folder_path):
+        _dirs = str(folder_path).split(os.sep)
+        _path = ''
+        for _dir in _dirs:
+            _path += '{}/'.format(_dir)
+        pathlib.Path(_path).mkdir(parents=True, exist_ok=True)
+
+
+def ensure_file(file_path_in: str, file_template=False):
+    '''
+    Create file `file_path_in` if it doesn't exist and include the
     `file_template` if provided.
     '''
-    file_path = str(file_path)
+    full_file_path = str(file_path_in).split(os.sep)
+    folder_path = '/'.join(full_file_path[0:-1])
+    folder_path += '/'
+    file_name = full_file_path[-1]
     # Make the folders if necessary
-    if not os.path.exists(file_path):
-        try:
-            _dirs = str(file_path).split(os.sep)[0:-1]
-            _path = ''
-            for _dir in _dirs:
-                _path += '{}/'.format(_dir)
-            pathlib.Path(_path).mkdir(parents=True, exist_ok=True)
-        except:
-            pass
+    if not os.path.exists(file_path_in):
+        ensure_folder(folder_path)
     # Ooooh, this is a scary one. Don't overwrite the file unless it's empty
-    log.log_more('{} size: {}'.format(file_path, file_size(file_path)))
+    log.log_more('{} size: {}'.format(file_name, file_size(file_path_in)))
     # Create the file if it doesn't exist
-    if not file_size(file_path):
-        log.log_more('File not found, creating: {}'.format(file_path))
-        if file_path.split('.')[-1] == 'json':
+    if not file_size(file_path_in):
+        log.log_more('File not found, creating: {}'.format(file_path_in))
+        if file_name.split('.')[-1] == 'json':
             if file_template:
-                write_json(file_path, file_template)
+                write_json(file_path_in, file_template)
             else:
-                write_json(file_path, {})
+                write_json(file_path_in, {})
         else:
-            with open(file_path, 'w+') as fout:
+            with open(file_path_in, 'w+') as fout:
                 if file_template:
                     fout.write(file_template)
                 else:
