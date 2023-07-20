@@ -171,7 +171,7 @@ class loading:
     commands.is_owner(),
     commands.has_permissions(administrator=True)
 )
-async def cog(ctx, cmd_in, *cog_names):
+async def cog(ctx, cmd_in=None, *cog_names):
     '''
     Enable, disable, reload or list cogs for this bot
 
@@ -189,6 +189,11 @@ async def cog(ctx, cmd_in, *cog_names):
             for cog_name in cog_names:
                 _unloading = await loading.unload_cog(cog_name)
                 await loading.change_cog_status(cog_name, 'disable')
+        elif not cmd_in:
+            await ctx.send(
+                envs.COGS_TOO_FEW_ARGUMENTS
+            )
+            return
 
     if cmd_in in ['enable', 'e', 'disable', 'd']:
         if cmd_in == 'e':
@@ -227,14 +232,11 @@ async def cog(ctx, cmd_in, *cog_names):
         await loading.reload_all_cogs()
         await ctx.send(envs.ALL_COGS_RELOADED)
         return
-    elif cmd_in is None and cog_names is None:
+    elif cmd_in is None:
         await ctx.send(
             envs.COGS_TOO_FEW_ARGUMENTS
         )
         return
-    else:
-        log.log('Something else happened?')
-        return False
 
 
 def get_cogs_list(cogs_file):
