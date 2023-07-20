@@ -179,6 +179,92 @@ class Youtube(commands.Cog):
             log.debug(f'Could not extract youtube info: {_error}')
             return None
 
+    async def get_videos_from_yt_link(feed_name, feed) -> dict:
+        'Get video links from channel'
+        log.debug(f'Getting videos from `{feed_name}` ({feed["url"]})')
+        FEED_POSTS = []
+        info = await Youtube.get_yt_info(feed['url'])
+        if info is None:
+            # Each time this happens, increment a counter and change
+            # url_status. If the counter is more than x, post a message to
+            # bot channel. When successfull, set the counter to 0 and reset
+            # status to OK
+            feeds_file_in = file_io.read_json(envs.yt_feeds_file)
+            _status_url = feeds_file_in[feed_name]['status_url']
+            _status_url_counter = feeds_file_in[feed_name][
+                'status_url_counter'
+            ]
+            if _status_url == envs.FEEDS_URL_ERROR and\
+                    _status_url_counter == envs.FEEDS_URL_ERROR_LIMIT:
+                log.debug(
+                    "Changing url status after error with url "
+                    f"({feed['url']})"
+                )
+                await log.log_to_bot_channel(
+                    f"Problemer med å hente `{feed['url']}`"
+                )
+                return None
+            elif _status_url == envs.FEEDS_URL_ERROR:
+                log.debug(
+                    "Incrementing error counter after error with url "
+                    f"({feed['url']})"
+                )
+                feeds_core.update_feed(
+                    feed_name, envs.yt_feeds_file,
+                    actions=['edit', 'increment'],
+                    items=['status_url', 'status_url_counter'],
+                    values_in=[envs.FEEDS_URL_ERROR, 1]
+                )
+        elif info is not None:
+            # Clear the counter
+            feeds_file_in = file_io.read_json(envs.yt_feeds_file)
+            _status_url = feeds_file_in[feed_name]['status_url']
+            _status_url_counter = feeds_file_in[feed_name][
+                'status_url_counter'
+            ]
+            if _status_url == envs.FEEDS_URL_ERROR and\
+                    _status_url_counter > 0:
+                log.debug('Changing url status after success')
+                feeds_core.update_feed(
+                    feed_name, envs.yt_feeds_file, actions=['edit', 'edit'],
+                    items=['status_url', 'status_url_counter'],
+                    values_in=[envs.FEEDS_URL_SUCCESS, 0]
+                )
+        if 'entries' in info:
+            if info['entries'] is None:
+                log.log(f'Could not get videos from {feed_name}')
+            else:
+                for item in info['entries']:
+                    # If the item is a playlist/channel, it also has an
+                    # 'entries' that needs to be parsed
+                    try:
+                        if 'entries' in item:
+                            for _video in item['entries']:
+                                if _video is not None:
+                                    log.debug(f"Got video `{_video['title']}`")
+                                    FEED_POSTS.append(_video['original_url'])
+                        # The channel does not consist of playlists, only
+                        # videos
+                        else:
+                            log.debug(f"Got video `{item['title']}`")
+                            FEED_POSTS.append(item['original_url'])
+                            await asyncio.sleep(1)
+                    except:
+                        log.debug(
+                            "Could not find `entries` or `title` in "
+                            "`item`. This has been logged."
+                        )
+                        dump_output(item, name='get_videos_from_yt_link')
+        return FEED_POSTS
+
+    async def post_queue_of_youtube_videos(feed_name, feed_info, videos):
+        log.debug(f'Processing: {feed_name}')
+        # await feeds_core.process_links_for_posting_or_editing(
+        await Youtube.process_links_for_posting_or_editing(
+            feed_name, videos, feed_info, envs.yt_feeds_logs_file
+        )
+        await asyncio.sleep(1)
+
     async def process_links_for_posting_or_editing(
         name, videos, feed_info, feed_log_file
     ):
