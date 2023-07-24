@@ -61,4 +61,4 @@ wcwidth==0.2.6
 webencodings==0.5.1
 websockets==11.0.3
 yarl==1.9.2
-yt-dlp==2023.3.4
+yt-dlp==2023.7.6
