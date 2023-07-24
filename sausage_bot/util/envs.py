@@ -153,10 +153,14 @@ QUOTE_DELETE_CONFIRMED = 'Slettet sitat #{}'
 QUOTE_COUNT = 'Jeg har {} sitater på lager'
 
 # COG - YOUTUBE
+YOUTUBE_NO_FEEDS_FOUND = 'Fant ingen Youtube-feeds'
+YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
 YOUTUBE_ADDED = '{} ble lag til i kanalen {}'
 YOUTUBE_ADDED_BOT = '{} la til feeden {} (`{}`) til kanalen {}'
 YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
 YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
+RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne Youtube-feeden {}'
+YOUTUBE_COULD_NOT_REMOVE = 'Klarte ikke å fjerne Youtube-feeden {}'
 YOUTUBE_EMPTY_LINK = 'Klarer ikke å hente linken: `{}`'
 YOUTUBE_VARS = {
     'url': {

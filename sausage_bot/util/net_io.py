@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import discord
 import re
-#import httpx
 import aiohttp
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -14,6 +13,7 @@ import json
 
 async def get_link(url):
     'Get a requests object from a `url`'
+    req = None
     if type(url) is not str:
         log.debug('`url` is not string')
         log.log(envs.RSS_INVALID_URL.format(url))
@@ -25,57 +25,43 @@ async def get_link(url):
         url = f'https://{url}'
     try:
         log.debug(f'Trying `url`: {url}')
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                req = await resp
+        session = aiohttp.ClientSession()
+        async with session.get(url) as resp:
+            content_out = await resp.text()
+        await session.close()
     except Exception as e:
         log.debug(f'Error when getting `url`: {e}')
-#        try:
-#            async with httpx.AsyncClient() as client:
-#                req = await client.get(url, timeout=10.0)
-#        except httpx.ReadTimeout as e:
-#            log.log(
-#                envs.NET_IO_TIMEOUT.format(url, e),
-#                color='red'
-#            )
-#            req = None
-#        except httpx.ConnectError as e:
-#            log.log(
-#                envs.NET_IO_CONNECTION_ERROR.format(url, e),
-#                color='red'
-#            )
-#            req = None
-#    except httpx.HTTPStatusError as e:
-#        log.log(
-#            envs.NET_IO_CONNECTION_ERROR.format(url, e),
-#            color='red'
-#        )
-#        req = None
-    if req is None:
+    if content_out is None:
         return None
     else:
-        if 299 < req.status_code > 400:
-            log.debug(
-                envs.NET_IO_ERROR_RESPONSE.format(
-                    'redirect', req.status_code, url
-                ),
-                color='yellow'
-            )
-        elif 399 < req.status_code > 500:
-            log.debug(
-                envs.NET_IO_ERROR_RESPONSE.format(
-                    'client error', req.status_code, url
-                ),
-                color='yellow'
-            )
-        elif 499 < req.status_code > 600:
-            log.debug(
-                envs.NET_IO_ERROR_RESPONSE.format(
-                    'server error', req.status_code, url
-                ),
-                color='yellow'
-            )
-        return req
+        return content_out
+#    else:
+#        if req.status == 200:
+#            return req
+#        elif 299 < req.status > 400:
+#            log.debug(
+#                envs.NET_IO_ERROR_RESPONSE.format(
+#                    'redirect', req.status, url
+#                ),
+#                color='yellow'
+#            )
+#            return None
+#        elif 399 < req.status > 500:
+#            log.debug(
+#                envs.NET_IO_ERROR_RESPONSE.format(
+#                    'client error', req.status, url
+#                ),
+#                color='yellow'
+#            )
+#            return None
+#        elif 499 < req.status > 600:
+#            log.debug(
+#                envs.NET_IO_ERROR_RESPONSE.format(
+#                    'server error', req.status, url
+#                ),
+#                color='yellow'
+#            )
+#            return None
 
 
 def scrape_page(url):

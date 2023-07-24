@@ -39,7 +39,9 @@ class RSSfeed(commands.Cog):
             description="The channel to post from the feed"
         )
     ):
-        'Add RSS feed to a specific channel: `!rss add [feed_name] [feed_link] [channel]`'
+        '''Add RSS feed to a specific channel:
+        `!rss add [feed_name] [feed_link] [channel]`
+        '''
         AUTHOR = ctx.message.author.name
         URL_OK = False
         CHANNEL_OK = False
@@ -82,6 +84,9 @@ class RSSfeed(commands.Cog):
                 await ctx.send(
                     envs.RSS_ADDED.format(feed_name, channel)
                 )
+                # Restart task to kickstart the new RSS-feed
+                if not RSSfeed.rss_parse.is_running():
+                    RSSfeed.rss_parse.start()
                 return
             elif not URL_OK:
                 await ctx.send(envs.RSS_URL_NOT_OK)
@@ -130,8 +135,8 @@ class RSSfeed(commands.Cog):
             return
         if discord_commands.channel_exist(channel):
             feeds_core.update_feed(
-                feed_name, envs.rss_feeds_file, action="edit",
-                item=channel, value_in=channel
+                feed_name, envs.rss_feeds_file, actions="edit",
+                items=channel, values_in=channel
             )
         return
 
@@ -163,8 +168,8 @@ class RSSfeed(commands.Cog):
             )
             return
         feeds_core.update_feed(
-            feed_name, envs.rss_feeds_file, action="edit", item="name",
-            value_in=new_feed_name
+            feed_name, envs.rss_feeds_file, actions="edit", items="name",
+            values_in=new_feed_name
         )
         return
 
@@ -196,8 +201,8 @@ class RSSfeed(commands.Cog):
             )
             return
         feeds_core.update_feed(
-            feed_name, envs.rss_feeds_file, action="edit", item='url',
-            value_in=url
+            feed_name, envs.rss_feeds_file, actions="edit", items='url',
+            values_in=url
         )
         return
 
@@ -298,7 +303,10 @@ class RSSfeed(commands.Cog):
             description="`long` or `filter`"
         )
     ):
-        'List all active rss feeds on the discord server: !rss list ([list_type])'
+        '''
+        List all active rss feeds on the discord server:
+        !rss list ([list_type])
+        '''
         if list_type == 'added':
             formatted_list = await feeds_core.get_feed_list(
                 envs.rss_feeds_file, envs.RSS_VARS, list_type='added'
@@ -349,8 +357,8 @@ class RSSfeed(commands.Cog):
             # Make a check to see if the channel exist
             if not discord_commands.channel_exist(CHANNEL):
                 feeds_core.update_feed(
-                    feed, envs.rss_feeds_file, action='edit',
-                    item='status_channel', value_in='Does not exist'
+                    feed, envs.rss_feeds_file, actions='edit',
+                    items='status_channel', values_in='Does not exist'
                 )
                 msg_out = envs.POST_TO_NON_EXISTING_CHANNEL.format(
                     CHANNEL
@@ -361,7 +369,7 @@ class RSSfeed(commands.Cog):
             filter_allow = feeds[feed]['filter_allow']
             filter_deny = feeds[feed]['filter_deny']
             FEED_POSTS = await feeds_core.get_feed_links(
-                feed, URL, filter_allow, filter_deny,
+                feed, URL, filter_allow, filter_deny, 'rss',
                 config.env('RSS_FILTER_PRIORITY', default='deny')
             )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')

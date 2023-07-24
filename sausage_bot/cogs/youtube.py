@@ -4,12 +4,10 @@ from discord.ext import commands, tasks
 import re
 from time import sleep
 from yt_dlp import YoutubeDL
-import asyncio
 
 from sausage_bot.util import config, envs, feeds_core, file_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
-from sausage_bot.docs.autodoc import dump_output
 
 
 class Youtube(commands.Cog):
@@ -41,7 +39,8 @@ class Youtube(commands.Cog):
             default=None,
             description="The Discord channel to post from the feed")
     ):
-        'Add a Youtube feed to a specific channel: `!youtube add [feed_name] [yt_link] [channel]`'
+        'Add a Youtube feed to a specific channel: `!youtube add '\
+            '[feed_name] [yt_link] [channel]`'
         AUTHOR = ctx.message.author.name
         CHANNEL_OK = False
         if feed_name is None:
@@ -71,7 +70,7 @@ class Youtube(commands.Cog):
                         yt_link = slash_filter
                 except:
                     pass
-                # Test if the link can get videos
+                # Get yt-id
                 yt_info = await Youtube.get_yt_info(yt_link)
                 if yt_info is None:
                     await ctx.send(
@@ -79,8 +78,10 @@ class Youtube(commands.Cog):
                     )
                     return
                 await feeds_core.add_to_feed_file(
-                    str(feed_name), str(yt_link), channel, AUTHOR,
-                    envs.yt_feeds_file
+                    name=str(feed_name), feed_link=str(yt_link),
+                    channel=channel, user_add=AUTHOR,
+                    feeds_filename=envs.yt_feeds_file,
+                    yt_id=yt_info['channel_id']
                 )
                 await log.log_to_bot_channel(
                     envs.YOUTUBE_ADDED_BOT.format(
@@ -90,6 +91,9 @@ class Youtube(commands.Cog):
                 await ctx.send(
                     envs.YOUTUBE_ADDED.format(feed_name, channel)
                 )
+                # Restart task to kickstart the new YT-channel
+                if not Youtube.post_videos.is_running():
+                    Youtube.post_videos.start()
                 return
             elif not CHANNEL_OK:
                 await ctx.send(
@@ -115,14 +119,14 @@ class Youtube(commands.Cog):
         )
         if removal:
             await log.log_to_bot_channel(
-                envs.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
+                envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
             )
             await ctx.send(
-                envs.RSS_REMOVED.format(feed_name)
+                envs.YOUTUBE_REMOVED.format(feed_name)
             )
         elif removal is False:
             # Couldn't remove the feed
-            await ctx.send(envs.RSS_COULD_NOT_REMOVE.format(feed_name))
+            await ctx.send(envs.YOUTUBE_COULD_NOT_REMOVE.format(feed_name))
             # Also log and send error to either a bot-channel or admin
             await log.log_to_bot_channel(
                 envs.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
@@ -175,89 +179,6 @@ class Youtube(commands.Cog):
             log.debug(f'Could not extract youtube info: {_error}')
             return None
 
-    async def get_videos_from_yt_link(feed_name, feed) -> dict:
-        'Get video links from channel'
-        log.debug(f'Getting videos from `{feed_name}` ({feed["url"]})')
-        FEED_POSTS = []
-        info = await Youtube.get_yt_info(feed['url'])
-        if info is None:
-            # Each time this happens, increment a counter and change
-            # url_status. If the counter is more than x, post a message to
-            # bot channel. When successfull, set the counter to 0 and reset
-            # status to OK
-            feeds_file_in = file_io.read_json(envs.yt_feeds_file)
-            _status_url = feeds_file_in[feed_name]['status_url']
-            _status_url_counter = feeds_file_in[feed_name][
-                'status_url_counter'
-            ]
-            if _status_url == envs.FEEDS_URL_ERROR and\
-                    _status_url_counter == envs.FEEDS_URL_ERROR_LIMIT:
-                log.debug(
-                    "Changing url status after error with url "
-                    f"({feed['url']})"
-                )
-                await log.log_to_bot_channel(
-                    f"Problemer med å hente `{feed['url']}`"
-                )
-                return None
-            elif _status_url == envs.FEEDS_URL_ERROR:
-                log.debug(
-                    "Incrementing error counter after error with url "
-                    f"({feed['url']})"
-                )
-                feeds_core.update_feed(
-                    feed_name, envs.yt_feeds_file,
-                    actions=['edit', 'increment'],
-                    items=['status_url', 'status_url_counter'],
-                    values_in=[envs.FEEDS_URL_ERROR, 1]
-                )
-        elif info is not None:
-            # Clear the counter
-            feeds_file_in = file_io.read_json(envs.yt_feeds_file)
-            _status_url = feeds_file_in[feed_name]['status_url']
-            _status_url_counter = feeds_file_in[feed_name][
-                'status_url_counter'
-            ]
-            if _status_url == envs.FEEDS_URL_ERROR and\
-                    _status_url_counter > 0:
-                log.debug('Changing url status after success')
-                feeds_core.update_feed(
-                    feed_name, envs.yt_feeds_file, actions=['edit', 'edit'],
-                    items=['status_url', 'status_url_counter'],
-                    values_in=[envs.FEEDS_URL_SUCCESS, 0]
-                )
-        if 'entries' in info:
-            if info['entries'] is None:
-                log.log(f'Could not get videos from {feed_name}')
-            else:
-                for item in info['entries']:
-                    # If the item is a playlist/channel, it also has an
-                    # 'entries' that needs to be parsed
-                    try:
-                        if 'entries' in item:
-                            for _video in item['entries']:
-                                if _video is not None:
-                                    log.debug(f"Got video `{_video['title']}`")
-                                    FEED_POSTS.append(_video['original_url'])
-                        # The channel does not consist of playlists, only
-                        # videos
-                        else:
-                            log.debug(f"Got video `{item['title']}`")
-                            FEED_POSTS.append(item['original_url'])
-                    except:
-                        log.debug(
-                            "Could not find `entries` or `title` in "
-                            "`item`. This has been logged."
-                        )
-                        dump_output(item, name='get_videos_from_yt_link')
-        return FEED_POSTS
-
-    async def post_queue_of_youtube_videos(feed_name, feed_info, videos):
-        log.debug(f'Processing: {feed_name}')
-        await Youtube.process_links_for_posting_or_editing(
-            feed_name, videos, feed_info, envs.yt_feeds_logs_file
-        )
-
     async def process_links_for_posting_or_editing(
         name, videos, feed_info, feed_log_file
     ):
@@ -295,38 +216,77 @@ class Youtube(commands.Cog):
             file_io.write_json(feed_log_file, FEED_LOG)
 
     # Tasks
-    @tasks.loop(minutes=config.env.int('YT_LOOP', default=5))
-    async def youtube_parse():
-        log.log('Starting `youtube_parse`')
+    @tasks.loop(
+            minutes=config.env.int('YT_LOOP', default=5),
+            reconnect=True
+    )
+    async def post_videos():
+        log.log('Starting `post_videos`')
+        video_queue = {}
         # Update the feeds
         feeds = file_io.read_json(envs.yt_feeds_file)
+        feed_log = file_io.read_json(envs.yt_feeds_logs_file)
         try:
             if len(feeds) == 0:
-                log.log(envs.RSS_NO_FEEDS_FOUND)
+                log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
                 return
         except Exception as e:
             log.log(f'Got error when getting RSS feeds: {e}')
             if feeds is None:
-                log.log(envs.RSS_NO_FEEDS_FOUND)
+                log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
                 return
-        else:
-            for feed in feeds:
-                videos_from_feed = await Youtube.get_videos_from_yt_link(
-                    feed, feeds[feed]
-                )
-                await Youtube.post_queue_of_youtube_videos(
-                    feed, feeds[feed], videos_from_feed
-                )
-            return
+        for feed in feeds:
+            _links = await feeds_core.get_feed_links(
+                feed, envs.YOUTUBE_RSS_LINK.format(feeds[feed]['yt_id']),
+                feeds[feed]['filter_allow'],
+                feeds[feed]['filter_deny'], 'youtube'
+            )
+            if not _links:
+                continue
+            for video_link in _links:
+                if feeds_core.link_is_in_log(
+                    video_link, feed, feed_log
+                ) is False:
+                    if feeds[feed]['channel'] not in video_queue:
+                        log.debug(
+                            'Channel `{}` not in queue, adding...'.format(
+                                feeds[feed]['channel']
+                            )
+                        )
+                        video_queue[feeds[feed]['channel']] = {
+                            'feed_name': feed,
+                            'videos': []
+                        }
+                    log.debug(
+                            'Adding `{}` to channel `{}`'.format(
+                                video_link,
+                                feeds[feed]['channel']
+                            )
+                        )
+                    video_queue[feeds[feed]['channel']]['videos']\
+                        .append(video_link)
+        for CHANNEL in video_queue:
+            for video in video_queue[CHANNEL]['videos']:
+                # post to channel
+                log.debug('Posting `{}` to `{}`'.format(video, CHANNEL))
+                await discord_commands.post_to_channel(CHANNEL, video)
+                # Write to log
+                if feed not in feed_log:
+                    feed_log[feed] = []
+                feed_log[feed].append(video)
+        # Write to the logs-file at the end
+        file_io.write_json(envs.yt_feeds_logs_file, feed_log)
+        log.debug('Done with posting')
+
         return
 
-    @youtube_parse.before_loop
-    async def before_youtube_parse():
+    @post_videos.before_loop
+    async def before_post_new_videos():
         '#autodoc skip#'
-        log.log_more('`youtube_parse` waiting for bot to be ready...')
+        log.log_more('`post_videos` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
-    youtube_parse.start()
+    post_videos.start()
 
 
 async def setup(bot):

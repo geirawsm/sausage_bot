@@ -9,7 +9,6 @@ from sausage_bot.util import net_io
 
 from .log import log
 
-
 async def check_feed_validity(url):
     'Make sure that `url` is a valid link'
     log.log_more(f'Checking `{url}`')
@@ -18,7 +17,7 @@ async def check_feed_validity(url):
         log.log_more('Returned None')
         return False
     try:
-        etree.fromstring(req.content, parser=etree.XMLParser(encoding='utf-8'))
+        etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
         return True
     except (etree.XMLSyntaxError) as e:
         log.log_more(envs.ERROR_WITH_ERROR_MSG.format(e))
@@ -27,7 +26,7 @@ async def check_feed_validity(url):
 
 async def add_to_feed_file(
     name, feed_link=None, channel=None, user_add=None,
-    feeds_filename=None
+    feeds_filename=None, yt_id=None
 ):
     '''
     Add a an item to the feed-json.
@@ -51,8 +50,9 @@ async def add_to_feed_file(
         'added': date_now,
         'added by': user_add,
         'status_url': 'added',
-        "status_url_counter": 0,
-        'status_channel': 'ok'
+        'status_url_counter': 0,
+        'status_channel': 'ok',
+        'yt_id': yt_id
     }
     file_io.write_json(feeds_filename, feeds_file)
 
@@ -149,7 +149,8 @@ async def update_feed(
 
 
 async def get_feed_links(
-        feed_name, url, filter_allow, filter_deny, filter_priority=None
+        feed_name, url, filter_allow, filter_deny, cog_mode,
+        filter_priority=None
 ):
     'Get the links from a RSS-feeds `url`'
 
@@ -212,13 +213,65 @@ async def get_feed_links(
         else:
             return False
 
+    async def get_items_from_rss(req_content, url):
+        try:
+            soup = BeautifulSoup(req_content, features='xml')
+        except Exception as e:
+            log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
+            return None
+        links_out = []
+        # Try normal RSS
+        if '<rss"' in str(soup).lower():
+            try:
+                feed_in = etree.fromstring(
+                    req_content, parser=etree.XMLParser(encoding='utf-8'))
+            except etree.XMLSyntaxError as e:
+                log.log(
+                    'Tried reading XML with etree, but parser gave an error: '
+                    f'{e}'
+                )
+                return None
+            for item in feed_in.xpath('/rss/channel/item'):
+                try:
+                    link = item.xpath("./link/text()")[0].strip()
+                    title = item.findtext("./title")
+                    description = item.findtext("./description")
+                    links_out.append(
+                        {
+                            'title': title,
+                            'description': description,
+                            'link': link
+                        }
+                    )
+                except (IndexError):
+                    log.log(envs.FEEDS_LINK_INDEX_ERROR.format(item, url))
+        elif '<feed xml' in str(soup):
+            for entry in soup.findAll('entry')[0:2]:
+                link = entry.find('link')['href']
+                title = entry.find('title')
+                description = entry.find('description')
+                if 'wp.blgr.app' in link:
+                    link = link.replace('wp.blgr.app', 'www.blaugrana.no')
+                links_out.append(
+                    {
+                        'title': title,
+                        'description': description,
+                        'link': link
+                    }
+                )
+        return links_out
+
+    if cog_mode == 'rss':
+        FEEDS_FILE = envs.rss_feeds_file
+    elif cog_mode == 'youtube':
+        FEEDS_FILE = envs.yt_feeds_file
     # Get the url and make it parseable
     req = await net_io.get_link(url)
     if req is None:
         # Each time this happens, increment a counter and change url_status.
         # If the counter is more than x, post a message to bot channel.
         # When successfull, set the counter to 0 and reset status to OK
-        feeds_file_in = file_io.read_json(envs.rss_feeds_file)
+        feeds_file_in = file_io.read_json(FEEDS_FILE)
         _status_url = feeds_file_in[feed_name]['status_url']
         _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
         if _status_url == envs.FEEDS_URL_ERROR and\
@@ -235,9 +288,10 @@ async def get_feed_links(
                 items=['status_url', 'status_url_counter'],
                 values_in=[envs.FEEDS_URL_ERROR, 1]
             )
+        return None
     elif req is not None:
         # Clear the counter
-        feeds_file_in = file_io.read_json(envs.rss_feeds_file)
+        feeds_file_in = file_io.read_json(FEEDS_FILE)
         _status_url = feeds_file_in[feed_name]['status_url']
         _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
         if _status_url == envs.FEEDS_URL_ERROR and\
@@ -248,60 +302,20 @@ async def get_feed_links(
                 items=['status_url', 'status_url_counter'],
                 values_in=[envs.FEEDS_URL_SUCCESS, 0]
             )
-    try:
-        soup = BeautifulSoup(req.content, features='xml')
-    except Exception as e:
-        log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
-        return None
-    links_filter = []
-    links = []
-    # Try normal RSS
-    if '<rss version="' in str(soup).lower():
-        try:
-            feed_in = etree.fromstring(
-                req.content, parser=etree.XMLParser(encoding='utf-8'))
-        except (etree.XMLSyntaxError):
-            return None
-        for item in feed_in.xpath('/rss/channel/item'):
-            try:
-                link = item.xpath("./link/text()")[0].strip()
-                title = item.findtext("./title")
-                description = item.findtext("./description")
-                links_filter.append(
-                    {
-                        'title': title,
-                        'description': description,
-                        'link': link
-                    }
+        links_out = await get_items_from_rss(req, url)
+        links = []
+        for link in links_out:
+            if (len(filter_allow) + len(filter_deny)) > 0:
+                _link = filter_link(
+                    link, filter_allow, filter_deny, filter_priority
                 )
-            except (IndexError):
-                log.log(envs.FEEDS_LINK_INDEX_ERROR.format(item, url))
-    elif '<feed xml' in str(soup):
-        for entry in soup.findAll('entry')[0:2]:
-            link = entry.find('link')['href']
-            title = entry.find('title')
-            description = entry.find('description')
-            if 'wp.blgr.app' in link:
-                link = link.replace('wp.blgr.app', 'www.blaugrana.no')
-            links_filter.append(
-                {
-                    'title': title,
-                    'description': description,
-                    'link': link
-                }
-            )
-    for link in links_filter:
-        if (len(filter_allow) + len(filter_deny)) > 0:
-            _link = filter_link(
-                link, filter_allow, filter_deny, filter_priority
-            )
-            if _link:
-                log.debug(f'Appending link: `{_link}`')
-                links.append(_link)
-        else:
-            links.append(link['link'])
-    log.debug(f'Returning `links`: {links}')
-    return links
+                if _link:
+                    log.debug(f'Appending link: `{_link}`')
+                    links.append(_link)
+            else:
+                links.append(link['link'])
+        log.debug(f'Returning `links`: {links}')
+        return links
 
 
 async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
@@ -504,10 +518,13 @@ async def review_feeds_status(feeds_file):
                 )
 
 
-def link_is_in_log(link: str, feed_log: list) -> bool:
+def link_is_in_log(link: str, feed_name: str, feed_log: list) -> bool:
     'Checks if `link` is in the `feed_log`'
-    if link in feed_log:
-        return True
+    if feed_name in feed_log:
+        if link in feed_log[feed_name]:
+            return True
+        else:
+            return False
     else:
         return False
 
@@ -515,7 +532,7 @@ def link_is_in_log(link: str, feed_log: list) -> bool:
 def link_similar_to_logged_post(link: str, feed_log: list):
     '''
     Checks if `link` is similar to any other logged link in `feed_log`.
-    If simliar, return the similar link from log.
+    If similiar, return the similar link from log.
     If no links are found to be similar, return None.
     '''
     for log_item in feed_log:
@@ -529,8 +546,8 @@ async def process_links_for_posting_or_editing(
     '''
     Compare `FEED_POSTS` to posts belonging to `feed` in `feed_log_file`
     to see if they already have been posted or not.
-    If not posted, post to `CHANNEL`
-    If posted, make a similarity check just to make sure we are not posting
+    - If not posted, post to `CHANNEL`
+    - If posted, make a similarity check just to make sure we are not posting
     duplicate links because someone's aggregation systems can't handle
     editing urls with spelling mistakes. If it is simliar, but not identical,
     replace the logged link and edit the previous post with the new link.
@@ -549,7 +566,7 @@ async def process_links_for_posting_or_editing(
     for feed_link in FEED_POSTS[0:2]:
         log.debug(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
-        if not link_is_in_log(feed_link, FEED_LOG[feed]):
+        if not link_is_in_log(feed_link, feed, FEED_LOG):
             feed_link_similar = link_similar_to_logged_post(
                 feed_link, FEED_LOG[feed])
             if not feed_link_similar:
