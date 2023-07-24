@@ -70,7 +70,8 @@ class Stats(commands.Cog):
                     if role not in filter_away:
                         _k = dict_in[role][_key]
                         _i = dict_in[role][_item]
-                        text_out += f'{prefix}{_k:<{_key_len}}{split}{_i:<{_item_len}}{suffix}'
+                        text_out += f'{prefix}{_k:<{_key_len}}{split}'\
+                            f'{_i:<{_item_len}}{suffix}'
                         if dict_in[role][_key] != dict_in.keys():
                             text_out += '\n'
             log.debug(f'Returning:```{text_out}```')

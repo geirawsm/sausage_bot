@@ -18,9 +18,10 @@ wcwidth = "*"
 astunparse = "*"
 astpretty = "*"
 yt-dlp = "*"
-httpx = "*"
 tabulate = "*"
 environs = "*"
+discord = "*"
+aiohttp = "*"
 
 [dev-packages]
 astunparse = "*"
@@ -28,6 +29,7 @@ requests-testadapter = "*"
 pytest = "*"
 pytest-mock = "*"
 autopep8 = "*"
+vulture = "*"
 
 [requires]
 python_version = "3"

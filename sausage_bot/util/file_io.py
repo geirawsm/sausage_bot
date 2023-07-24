@@ -66,7 +66,7 @@ def read_json(json_file):
 def write_json(json_file, json_out):
     'Write `json_out` to `json file`'
     with open(json_file, 'w') as write_file:
-        json.dump(json_out, write_file)
+        json.dump(json_out, write_file, indent=4, sort_keys=True)
 
 
 def file_size(filename):

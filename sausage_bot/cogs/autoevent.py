@@ -23,6 +23,7 @@ for folder in check_and_create_folders:
     except (FileExistsError):
         pass
 
+
 class AutoEvent(commands.Cog):
     '#autodoc skip#'
     def __init__(self, bot):
@@ -142,10 +143,14 @@ class AutoEvent(commands.Cog):
     async def remove(
         self, ctx, event_id_in: int = commands.param(
             default=None,
-            description="ID for the event to remove. Get ID's from `!autoevent list`"
+            description="ID for the event to remove. Get ID's from "
+                        "`!autoevent list`"
         )
     ):
-        'Removes a scheduled event that has not started yet: `!autoevent remove [event_id_in]`'
+        '''
+        Removes a scheduled event that has not started yet:
+        `!autoevent remove [event_id_in]`
+        '''
         event_dict = discord_commands.get_scheduled_events()
         for event in event_dict:
             _id = event_dict[event]['id']
@@ -194,10 +199,12 @@ class AutoEvent(commands.Cog):
     @autoevent.group(name='sync', aliases=['s'])
     async def sync(
             self, ctx, start_time: str = commands.param(
-                description="A start time for the timer or a command for deleting the timer"
+                description="A start time for the timer or a command "
+                            "for deleting the timer"
             ),
             countdown: int = commands.param(
-                description="How many seconds should it count down before hitting the `start_time`"
+                description="How many seconds should it count down "
+                            "before hitting the `start_time`"
             )):
         'Create a timer in the active channel to make it easier for '\
             'people attending an event to sync something that they\'re '\
@@ -207,7 +214,8 @@ class AutoEvent(commands.Cog):
             timer_epoch = datetime_handling.get_dt() + int(countdown)
             rel_start = f'<t:{timer_epoch}:R>'
             await ctx.send(
-                f'Sync til {start_time} {rel_start}', delete_after=int(countdown)
+                f'Sync til {start_time} {rel_start}',
+                delete_after=int(countdown)
             )
         else:
             await ctx.send(

@@ -8,6 +8,7 @@ from .. import config, envs, discord_commands
 from ..args import args
 from time import sleep
 import json
+import asyncio
 
 # colorama specific reset routine
 init(autoreset=True)

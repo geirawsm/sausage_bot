@@ -46,7 +46,7 @@ def dump(item):
 def dump_output(
     output, timed=True, name: str = None, folder: str = 'out',
     hard_exit=False
-) -> str:
+):
     '''
     Write output to file and exit
 

@@ -48,7 +48,9 @@ class Quotes(commands.Cog):
                 log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
             recent_quotes_log = file_io.read_json(envs.quote_log_file)
             if recent_quotes_log is None:
-                await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_log_file))
+                await ctx.send(
+                    envs.UNREADABLE_FILE.format(envs.quote_log_file)
+                )
                 return
             if log_ctx not in recent_quotes_log:
                 recent_quotes_log[log_ctx] = []
@@ -88,7 +90,8 @@ class Quotes(commands.Cog):
         ),
         quote_date: str = commands.param(
             default=None,
-            description="Set a custom date and time for the quote added (dd.mm.yyyy, HH:MM)"
+            description="Set a custom date and time for the quote added "
+                        "(dd.mm.yyyy, HH:MM)"
         )
     ):
         'Add a quote: `!quote add [quote_text] ([quote_date])`'
@@ -131,13 +134,17 @@ class Quotes(commands.Cog):
             ),
             quote_in: str = commands.param(
                 default=None,
-                description="The quote text (must be enclosed in quotation marks)"
+                description="The quote text (must be enclosed in "
+                            "quotation marks)"
             ),
             custom_date: str = commands.param(
                 default=None,
                 description="Set a different date and time"
             )):
-        'Edit an existing quote: `!quote edit [quote_number] [quote_in] [custom_date]`'
+        '''
+        Edit an existing quote:
+        `!quote edit [quote_number] [quote_in] [custom_date]`
+        '''
         # Get the quote file
         quotes = file_io.read_json(envs.quote_file)
         if quotes is None:
@@ -226,7 +233,9 @@ class Quotes(commands.Cog):
             del quotes[str(quote_number)]
             file_io.write_json(envs.quote_file, quotes)
             # Confirm that the quote has been deleted
-            await ctx.message.reply(envs.QUOTE_DELETE_CONFIRMED.format(quote_number))
+            await ctx.message.reply(
+                envs.QUOTE_DELETE_CONFIRMED.format(quote_number)
+            )
             sleep(3)
             await delete_logged_msgs(ctx)
             await ctx.message.delete()

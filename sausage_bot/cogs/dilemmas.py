@@ -34,7 +34,9 @@ class Dilemmas(commands.Cog):
                 log_ctx = '#{}@{}'.format(ctx.channel, ctx.guild)
             recent_dilemmas_log = file_io.read_json(envs.dilemmas_log_file)
             if recent_dilemmas_log is None:
-                await ctx.send(envs.UNREADABLE_FILE.format(envs.dilemmas_log_file))
+                await ctx.send(
+                    envs.UNREADABLE_FILE.format(envs.dilemmas_log_file)
+                )
                 return
             if log_ctx not in recent_dilemmas_log:
                 recent_dilemmas_log[log_ctx] = []
@@ -81,7 +83,9 @@ class Dilemmas(commands.Cog):
             )
         )
         file_io.write_json(envs.dilemmas_file, dilemmas)
-        await ctx.message.reply('Added the following dilemma: {}'.format(dilemmas_in))
+        await ctx.message.reply(
+            'Added the following dilemma: {}'.format(dilemmas_in)
+        )
         new_dilemmas_number += 1
         return
 

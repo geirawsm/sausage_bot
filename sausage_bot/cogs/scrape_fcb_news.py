@@ -2,9 +2,7 @@
 # -*- coding: UTF-8 -*-
 from bs4 import BeautifulSoup
 import requests
-from time import sleep as sleep
 from discord.ext import commands, tasks
-from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, feeds_core
 from sausage_bot.util.log import log
 
