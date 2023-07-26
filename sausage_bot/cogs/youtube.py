@@ -268,15 +268,16 @@ class Youtube(commands.Cog):
                         .append(video_link)
         for CHANNEL in video_queue:
             for video in video_queue[CHANNEL]['videos']:
-                # post to channel
-                log.debug('Posting `{}` to `{}`'.format(video, CHANNEL))
-                await discord_commands.post_to_channel(CHANNEL, video)
                 # Write to log
                 if feed not in feed_log:
                     feed_log[feed] = []
                 feed_log[feed].append(video)
-        # Write to the logs-file at the end
-        file_io.write_json(envs.yt_feeds_logs_file, feed_log)
+                # Post to channel
+                log.debug('Posting `{}` to `{}`'.format(video, CHANNEL))
+                await discord_commands.post_to_channel(CHANNEL, video)
+            # Write to the logs-file at the end
+            log.debug('Writing video to log')
+            file_io.write_json(envs.yt_feeds_logs_file, feed_log)
         log.debug('Done with posting')
 
         return

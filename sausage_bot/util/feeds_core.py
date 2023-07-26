@@ -505,7 +505,7 @@ async def review_feeds_status(feeds_file):
 def link_is_in_log(link: str, feed_name: str, feed_log: list) -> bool:
     'Checks if `link` is in the `feed_log`'
     log.debug(
-        f'Checking if `{link}` is in `{feed_name}` in {feed_log}'
+        f'Checking if `{link}` is in `{feed_name}` in feed_log'
     )
     if feed_name in feed_log:
         log.debug(f'Found `{feed_name}`')
@@ -517,6 +517,7 @@ def link_is_in_log(link: str, feed_name: str, feed_log: list) -> bool:
             return False
     else:
         log.debug(f'{feed_name} not in `feed_log`')
+        return False
 
 
 def link_similar_to_logged_post(link: str, feed_log: list):
@@ -571,6 +572,7 @@ async def process_links_for_posting_or_editing(
                 await discord_commands.replace_post(
                     feed_link_similar, feed_link, CHANNEL
                 )
+                # Replace original link with new
                 FEED_LOG[feed].remove(feed_link_similar)
                 FEED_LOG[feed].append(feed_link)
         elif link_is_in_log(feed_link, feed, FEED_LOG):
