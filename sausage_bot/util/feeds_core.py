@@ -504,13 +504,19 @@ async def review_feeds_status(feeds_file):
 
 def link_is_in_log(link: str, feed_name: str, feed_log: list) -> bool:
     'Checks if `link` is in the `feed_log`'
+    log.debug(
+        f'Checking if `{link}` is in `{feed_name}` in {feed_log}'
+    )
     if feed_name in feed_log:
+        log.debug(f'Found `{feed_name}`')
         if link in feed_log[feed_name]:
+            log.debug('Found link in log')
             return True
         else:
+            log.debug('Found NOT link in log')
             return False
     else:
-        return False
+        log.debug(f'{feed_name} not in `feed_log`')
 
 
 def link_similar_to_logged_post(link: str, feed_log: list):
