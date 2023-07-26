@@ -44,17 +44,19 @@ def dump(item):
 
 
 def dump_output(
-    output, timed=True, name: str = None, folder: str = 'out',
-    hard_exit=False
+    output, dated=True, timed=True, name: str = None, folder: str = 'out',
+    hard_exit=False, append=False
 ):
     '''
-    Write output to file and exit
+    Write or append output to file and exit
 
-    timed       Add date and time to the filename (on by default)
+    dated       Add date to the filename (on by default)
+    timed       Add time to the filename (on by default)
     name        Use a different name than 'dump' (None by default)
     folder      Name of folder that output should be written to ('out' by
                 default)
     hard_exit   Do a `sys.exit()` at the end of the dump (off by default)
+    append      Append to the file instead of overwriting (off by default)
     '''
     if doc_args.file_out:
         if isinstance(output, dict):
@@ -71,25 +73,41 @@ def dump_output(
             filename += name
         else:
             filename += 'dump'
-        if timed:
-            filename += '-{}_{}'.format(
+        if dated:
+            filename += '-{}'.format(
                 datetime_handling.get_dt(
                     format='revdate', sep='-'
-                ),
-                datetime_handling.get_dt(
-                    format='timefull', sep='-'
                 )
             )
+        if timed:
+            if dated:
+                filename += '_'
+            else:
+                filename += '-'
+            filename += datetime_handling.get_dt(
+                format='timefull', sep='-'
+                )
         if isinstance(output, dict):
             filename += '.json'
-            file_io.write_json(
-                doc_envs.DOCS_DIR / folder / filename, output
-            )
+            filepath = doc_envs.DOCS_DIR / folder / filename
+            if append:
+                _json_in = file_io.read_json(filepath)
+                _json_in.update(output)
+            else:
+                _json_in = output
+            file_io.write_json(filepath, _json_in)
         else:
             filename += '.md'
-            file_io.write_file(
-                doc_envs.DOCS_DIR / folder / filename, output
-            )
+            if append:
+                output = '\n{}'.format(output)
+                file_io.write_file(
+                    doc_envs.DOCS_DIR / folder / filename, output,
+                    append=True
+                )
+            else:
+                file_io.write_file(
+                    doc_envs.DOCS_DIR / folder / filename, output,
+                )
     if hard_exit:
         sys.exit()
 

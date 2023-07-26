@@ -8,14 +8,22 @@ from difflib import SequenceMatcher
 from ..util.log import log
 
 
-def write_file(filename, content_to_write):
-    'Write `content_to_write` to the file `filename`'
+def write_file(filename, content_to_write, append=False):
+    '''
+    Write `content_to_write` to the file `filename`
+    Appends instead if set to True
+    '''
     if not isinstance(filename, str):
         filename = str(filename)
     ensure_file(filename)
-    with open(filename, 'w') as fout:
-        fout.write(str(content_to_write))
-        return True
+    if append:
+        with open(filename, 'a') as fout:
+            fout.write(str(content_to_write))
+            return True
+    else:
+        with open(filename, 'w') as fout:
+            fout.write(str(content_to_write))
+            return True
 
 
 def import_file_as_list(file_in):
@@ -51,7 +59,7 @@ def read_json(json_file):
     Open `json_file` as a JSON and convert to as a dict.
     Returns _file as a dict or an empty dict.
     '''
-    ensure_file(json_file, '{}')
+    ensure_file(json_file, {})
     try:
         with open(json_file) as f:
             return dict(json.load(f))
