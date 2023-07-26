@@ -222,10 +222,13 @@ async def get_feed_links(
         links_out = []
         # Gets podcast urls
         if soup.find('enclosure'):
+            channel_link = soup.find('channel').find('link')
             log.debug('Found podcast feed')
             all_items = soup.find_all('item')
             for item in all_items[0:3]:
-                link = item.find('enclosure')['url']
+                link = item.find('link').text
+                if link == channel_link:
+                    link = item.find('enclosure')['url']
                 links_out.append(link)
         # Gets Youtube urls
         elif soup.find('yt:channelId'):
