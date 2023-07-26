@@ -240,6 +240,7 @@ async def get_feed_links(
             for item in all_items[0:3]:
                 link = item.find('link').text
                 links_out.append(link)
+        links_out.reverse()
         return links_out
 
     if cog_mode == 'rss':
