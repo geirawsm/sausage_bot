@@ -194,7 +194,7 @@ class Youtube(commands.Cog):
         for feed_link in videos[0:2]:
             log.debug(f'Got feed_link `{feed_link}`')
             # Check if the link is in the log
-            if not feeds_core.link_is_in_log(feed_link, FEED_LOG[name]):
+            if not feeds_core.link_is_in_log(feed_link, name, FEED_LOG):
                 feed_link_similar = feeds_core.link_similar_to_logged_post(
                     feed_link, FEED_LOG[name])
                 if not feed_link_similar:
@@ -211,7 +211,7 @@ class Youtube(commands.Cog):
                     )
                     FEED_LOG[name].remove(feed_link_similar)
                     FEED_LOG[name].append(feed_link)
-            elif feeds_core.link_is_in_log(feed_link, FEED_LOG[name]):
+            elif feeds_core.link_is_in_log(feed_link, name, FEED_LOG):
                 log.log_more(f'Link `{feed_link}` already logged. Skipping.')
             # Write to the logs-file at the end
             file_io.write_json(feed_log_file, FEED_LOG)
