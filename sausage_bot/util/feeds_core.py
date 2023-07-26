@@ -213,52 +213,33 @@ async def get_feed_links(
         else:
             return False
 
-    async def get_items_from_rss(req_content, url):
+    async def get_items_from_rss(req, url):
         try:
-            soup = BeautifulSoup(req_content, features='xml')
+            soup = BeautifulSoup(req, features='xml')
         except Exception as e:
             log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
             return None
         links_out = []
-        # Try normal RSS
-        if '<rss"' in str(soup).lower():
-            try:
-                feed_in = etree.fromstring(
-                    req_content, parser=etree.XMLParser(encoding='utf-8'))
-            except etree.XMLSyntaxError as e:
-                log.log(
-                    'Tried reading XML with etree, but parser gave an error: '
-                    f'{e}'
-                )
-                return None
-            for item in feed_in.xpath('/rss/channel/item'):
-                try:
-                    link = item.xpath("./link/text()")[0].strip()
-                    title = item.findtext("./title")
-                    description = item.findtext("./description")
-                    links_out.append(
-                        {
-                            'title': title,
-                            'description': description,
-                            'link': link
-                        }
-                    )
-                except (IndexError):
-                    log.log(envs.FEEDS_LINK_INDEX_ERROR.format(item, url))
-        elif '<feed xml' in str(soup):
-            for entry in soup.findAll('entry')[0:2]:
+        # Gets podcast urls
+        if soup.find('enclosure'):
+            log.debug('Found podcast feed')
+            all_items = soup.find_all('item')
+            for item in all_items[0:3]:
+                link = item.find('enclosure')['url']
+                links_out.append(link)
+        # Gets Youtube urls
+        elif soup.find('yt:channelId'):
+            log.debug('Found Youtube feed')
+            all_entries = soup.find_all('entry')
+            for entry in all_entries[0:3]:
                 link = entry.find('link')['href']
-                title = entry.find('title')
-                description = entry.find('description')
-                if 'wp.blgr.app' in link:
-                    link = link.replace('wp.blgr.app', 'www.blaugrana.no')
-                links_out.append(
-                    {
-                        'title': title,
-                        'description': description,
-                        'link': link
-                    }
-                )
+                links_out.append(link)
+        # Gets plain articles
+        else:
+            all_items = soup.find_all('item')
+            for item in all_items[0:3]:
+                link = item.find('link').text
+                links_out.append(link)
         return links_out
 
     if cog_mode == 'rss':
@@ -278,7 +259,6 @@ async def get_feed_links(
                 _status_url_counter == envs.FEEDS_URL_ERROR_LIMIT:
             log.debug(f'Changing url status after error with url  ({url})')
             await log.log_to_bot_channel(f'Problemer med å hente `{url}`')
-            return None
         elif _status_url == envs.FEEDS_URL_ERROR:
             log.debug(
                 f'Incrementing error counter after error with url ({url})'
@@ -288,7 +268,6 @@ async def get_feed_links(
                 items=['status_url', 'status_url_counter'],
                 values_in=[envs.FEEDS_URL_ERROR, 1]
             )
-        return None
     elif req is not None:
         # Clear the counter
         feeds_file_in = file_io.read_json(FEEDS_FILE)
@@ -305,6 +284,7 @@ async def get_feed_links(
         links_out = await get_items_from_rss(req, url)
         links = []
         for link in links_out:
+            log.debug(f'Checking link: {link}', color='red')
             if (len(filter_allow) + len(filter_deny)) > 0:
                 _link = filter_link(
                     link, filter_allow, filter_deny, filter_priority
@@ -313,7 +293,7 @@ async def get_feed_links(
                     log.debug(f'Appending link: `{_link}`')
                     links.append(_link)
             else:
-                links.append(link['link'])
+                links.append(link)
         log.debug(f'Returning `links`: {links}')
         return links
 
@@ -583,7 +563,7 @@ async def process_links_for_posting_or_editing(
                 )
                 FEED_LOG[feed].remove(feed_link_similar)
                 FEED_LOG[feed].append(feed_link)
-        elif link_is_in_log(feed_link, FEED_LOG[feed]):
+        elif link_is_in_log(feed_link, feed, FEED_LOG):
             log.log_more(f'Link `{feed_link}` already logged. Skipping.')
         # Write to the logs-file at the end
         file_io.write_json(feed_log_file, FEED_LOG)

@@ -12,8 +12,8 @@ import json
 
 
 async def get_link(url):
-    'Get a requests object from a `url`'
-    req = None
+    'Get contents of requests object from a `url`'
+    content_out = None
     if type(url) is not str:
         log.debug('`url` is not string')
         log.log(envs.RSS_INVALID_URL.format(url))
@@ -35,33 +35,6 @@ async def get_link(url):
         return None
     else:
         return content_out
-#    else:
-#        if req.status == 200:
-#            return req
-#        elif 299 < req.status > 400:
-#            log.debug(
-#                envs.NET_IO_ERROR_RESPONSE.format(
-#                    'redirect', req.status, url
-#                ),
-#                color='yellow'
-#            )
-#            return None
-#        elif 399 < req.status > 500:
-#            log.debug(
-#                envs.NET_IO_ERROR_RESPONSE.format(
-#                    'client error', req.status, url
-#                ),
-#                color='yellow'
-#            )
-#            return None
-#        elif 499 < req.status > 600:
-#            log.debug(
-#                envs.NET_IO_ERROR_RESPONSE.format(
-#                    'server error', req.status, url
-#                ),
-#                color='yellow'
-#            )
-#            return None
 
 
 def scrape_page(url):
