@@ -86,6 +86,7 @@ class RSSfeed(commands.Cog):
                 )
                 # Restart task to kickstart the new RSS-feed
                 if not RSSfeed.rss_parse.is_running():
+                    log.debug('Restarted the `rss_parse` task')
                     RSSfeed.rss_parse.start()
                 return
             elif not URL_OK:

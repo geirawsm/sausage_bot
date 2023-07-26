@@ -93,6 +93,7 @@ class Youtube(commands.Cog):
                 )
                 # Restart task to kickstart the new YT-channel
                 if not Youtube.post_videos.is_running():
+                    log.debug('Restarted the `post_videos` task')
                     Youtube.post_videos.start()
                 return
             elif not CHANNEL_OK:
