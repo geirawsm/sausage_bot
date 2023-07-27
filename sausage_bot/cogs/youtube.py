@@ -130,7 +130,7 @@ class Youtube(commands.Cog):
             await ctx.send(envs.YOUTUBE_COULD_NOT_REMOVE.format(feed_name))
             # Also log and send error to either a bot-channel or admin
             await log.log_to_bot_channel(
-                envs.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
+                envs.YOUTUBE_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
 
