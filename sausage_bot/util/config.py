@@ -9,7 +9,6 @@ import sys
 from . import envs
 from environs import Env, EnvError
 from .log import log
-from sausage_bot.util.args import args
 
 env = Env()
 env.read_env(path=envs.env_file)

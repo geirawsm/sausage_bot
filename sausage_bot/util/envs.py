@@ -161,6 +161,7 @@ YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
 YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
 YOUTUBE_TRIED_REMOVED_BOT = '{} forsøkte å fjerne Youtube-feeden {}'
 YOUTUBE_COULD_NOT_REMOVE = 'Klarte ikke å fjerne Youtube-feeden {}'
+YOUTUBE_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
 YOUTUBE_EMPTY_LINK = 'Klarer ikke å hente linken: `{}`'
 YOUTUBE_VARS = {
     'url': {
