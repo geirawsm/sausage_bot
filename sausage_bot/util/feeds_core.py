@@ -150,7 +150,7 @@ async def update_feed(
 
 async def get_feed_links(
         feed_name, url, filter_allow, filter_deny, cog_mode,
-        filter_priority=None
+        include_shorts, filter_priority=None
 ):
     'Get the links from a RSS-feeds `url`'
 
@@ -213,7 +213,7 @@ async def get_feed_links(
         else:
             return False
 
-    async def get_items_from_rss(req, url):
+    async def get_items_from_rss(req, url, include_shorts):
         try:
             soup = BeautifulSoup(req, features='xml')
         except Exception as e:
@@ -233,10 +233,28 @@ async def get_feed_links(
         # Gets Youtube urls
         elif soup.find('yt:channelId'):
             log.debug('Found Youtube feed')
+            log.debug(f'`include_shorts` is {include_shorts}')
             all_entries = soup.find_all('entry')
-            for entry in all_entries[0:3]:
-                link = entry.find('link')['href']
-                links_out.append(link)
+            max_no_of_entries = 5
+            entry_counter = 0
+            for entry in all_entries:
+                if entry_counter < max_no_of_entries:
+                    link = entry.find('link')['href']
+                    if include_shorts is False:
+                        title = entry.find('title')
+                        media_title = entry.find('media:title')
+                        shorts_keyword = '#shorts'
+                        if shorts_keyword in str(title).lower() or\
+                                shorts_keyword in str(media_title).lower():
+                            log.debug(f'Skipped {link} because of #Shorts')
+                            pass
+                        else:
+                            links_out.append(link)
+                            entry_counter += 1
+                    elif include_shorts is True:
+                        links_out.append(link)
+                        entry_counter += 1
+            print(len(links_out))
         # Gets plain articles
         else:
             all_items = soup.find_all('item')
@@ -285,10 +303,9 @@ async def get_feed_links(
                 items=['status_url', 'status_url_counter'],
                 values_in=[envs.FEEDS_URL_SUCCESS, 0]
             )
-        links_out = await get_items_from_rss(req, url)
+        links_out = await get_items_from_rss(req, url, include_shorts)
         links = []
         for link in links_out:
-            log.debug(f'Checking link: {link}', color='red')
             if (len(filter_allow) + len(filter_deny)) > 0:
                 _link = filter_link(
                     link, filter_allow, filter_deny, filter_priority

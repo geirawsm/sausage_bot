@@ -237,47 +237,22 @@ class Youtube(commands.Cog):
                 log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
                 return
         for feed in feeds:
-            _links = await feeds_core.get_feed_links(
+            FEED_POSTS = await feeds_core.get_feed_links(
                 feed, envs.YOUTUBE_RSS_LINK.format(feeds[feed]['yt_id']),
                 feeds[feed]['filter_allow'],
-                feeds[feed]['filter_deny'], 'youtube'
+                feeds[feed]['filter_deny'], 'youtube',
+                include_shorts=config.env.bool(
+                    'YT_INCLUDE_SHORTS', default=True
+                )
             )
-            if not _links:
-                continue
-            for video_link in _links:
-                if feeds_core.link_is_in_log(
-                    video_link, feed, feed_log
-                ) is False:
-                    if feeds[feed]['channel'] not in video_queue:
-                        log.debug(
-                            'Channel `{}` not in queue, adding...'.format(
-                                feeds[feed]['channel']
-                            )
-                        )
-                        video_queue[feeds[feed]['channel']] = {
-                            'feed_name': feed,
-                            'videos': []
-                        }
-                    log.debug(
-                            'Adding `{}` to channel `{}`'.format(
-                                video_link,
-                                feeds[feed]['channel']
-                            )
-                        )
-                    video_queue[feeds[feed]['channel']]['videos']\
-                        .append(video_link)
-        for CHANNEL in video_queue:
-            for video in video_queue[CHANNEL]['videos']:
-                # Write to log
-                if feed not in feed_log:
-                    feed_log[feed] = []
-                feed_log[feed].append(video)
-                # Post to channel
-                log.debug('Posting `{}` to `{}`'.format(video, CHANNEL))
-                await discord_commands.post_to_channel(CHANNEL, video)
-            # Write to the logs-file at the end
-            log.debug('Writing video to log')
-            file_io.write_json(envs.yt_feeds_logs_file, feed_log)
+            CHANNEL = feeds[feed]['channel']
+            log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
+            if FEED_POSTS is None:
+                log.log(envs.YOUTUBE_FEED_POSTS_IS_NONE.format(feed))
+            else:
+                await feeds_core.process_links_for_posting_or_editing(
+                    feed, FEED_POSTS, envs.yt_feeds_logs_file, CHANNEL
+                )
         log.debug('Done with posting')
 
         return
