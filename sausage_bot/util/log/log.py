@@ -7,6 +7,7 @@ from pathlib import Path
 from .. import config, envs, discord_commands
 from ..args import args
 from time import sleep
+import os
 import json
 import asyncio
 
@@ -16,7 +17,8 @@ init(autoreset=True)
 
 def log_function(
         log_in: str, color: str = None, extra_info: str = None,
-        extra_color: str = None, pretty: bool = False
+        extra_color: str = None, pretty: bool = False,
+        sameline: bool = False
 ):
     '''
     Include the name of the function in logging.
@@ -71,7 +73,18 @@ def log_function(
                 )
         else:
             log_out += str(log_in)
-            print(log_out)
+            if sameline:
+                try:
+                    max_cols, max_rows = os.get_terminal_size(0)
+                except (OSError):
+                    max_cols = 0
+                msg_len = len(str(log_out))
+                rem_len = max_cols - msg_len - 2
+                print('{}{}'.format(
+                    log_out, ' ' * rem_len
+                ), end='\r')
+            else:
+                print(log_out)
     else:
         log_out += '\n'
         _logfilename = envs.LOG_DIR / \
@@ -82,7 +95,8 @@ def log_function(
 
 
 def log(
-    log_in: str, color: str = None, pretty: bool = False
+    log_in: str, color: str = None, pretty: bool = False,
+    sameline: bool = False
 ):
     '''
     Log the input `log_in`
@@ -94,12 +108,15 @@ def log(
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log:
-        log_function(log_in, color=color, pretty=pretty)
+        log_function(log_in, color=color, pretty=pretty, sameline=sameline)
     if args.log_slow:
         sleep(3)
 
 
-def log_more(log_in: str, color: str = None, pretty: bool = False):
+def log_more(
+        log_in: str, color: str = None, pretty: bool = False,
+        sameline: bool = False
+):
     '''
     Log the input `log_in`. Used as more verbose than `log`
 
@@ -110,14 +127,15 @@ def log_more(log_in: str, color: str = None, pretty: bool = False):
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log_more:
-        log_function(log_in, color=color, pretty=pretty)
+        log_function(log_in, color=color, pretty=pretty, sameline=sameline)
     if args.log_slow:
         sleep(3)
 
 
 def debug(
         log_in: str, color: str = None, extra_info: str = False,
-        extra_color: str = None, pretty: bool = False
+        extra_color: str = None, pretty: bool = False,
+        sameline: bool = False
 ):
     '''
     Log the input `log_in` as debug messages
@@ -133,10 +151,12 @@ def debug(
         if extra_info is not None:
             log_function(
                 log_in, color=color, extra_info=extra_info,
-                extra_color=extra_color, pretty=pretty
+                extra_color=extra_color, pretty=pretty, sameline=sameline
             )
         else:
-            log_function(log_in, color='yellow', pretty=pretty)
+            log_function(
+                log_in, color='yellow', pretty=pretty, sameline=sameline
+            )
     if args.log_slow:
         sleep(3)
 
