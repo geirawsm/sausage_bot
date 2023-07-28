@@ -235,6 +235,7 @@ class Youtube(commands.Cog):
                 log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
                 return
         for feed in feeds:
+            log.log(f'Checking {feed}', sameline=True)
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed, envs.YOUTUBE_RSS_LINK.format(feeds[feed]['yt_id']),
                 feeds[feed]['filter_allow'],

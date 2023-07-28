@@ -564,6 +564,10 @@ async def process_links_for_posting_or_editing(
     `feed_log_file`:    File containing the logs of posts
     `CHANNEL`:          Discord channel to post/edit
     '''
+    log.log_more(
+        'Starting `process_links_for_posting_or_editing`',
+        sameline=True
+    )
     log.debug(f'Here\'s the `FEED_POSTS`: {FEED_POSTS}')
     FEED_LOG = file_io.read_json(feed_log_file)
     try:
@@ -595,6 +599,10 @@ async def process_links_for_posting_or_editing(
             log.log_more(f'Link `{feed_link}` already logged. Skipping.')
         # Write to the logs-file at the end
         file_io.write_json(feed_log_file, FEED_LOG)
+    log.log_more(
+        'Stopping `process_links_for_posting_or_editing`',
+        sameline=True
+    )
 
 
 if __name__ == "__main__":
