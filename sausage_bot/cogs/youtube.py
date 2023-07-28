@@ -223,10 +223,8 @@ class Youtube(commands.Cog):
     )
     async def post_videos():
         log.log('Starting `post_videos`')
-        video_queue = {}
         # Update the feeds
         feeds = file_io.read_json(envs.yt_feeds_file)
-        feed_log = file_io.read_json(envs.yt_feeds_logs_file)
         try:
             if len(feeds) == 0:
                 log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
@@ -253,7 +251,7 @@ class Youtube(commands.Cog):
                 await feeds_core.process_links_for_posting_or_editing(
                     feed, FEED_POSTS, envs.yt_feeds_logs_file, CHANNEL
                 )
-        log.debug('Done with posting')
+        log.log('Done with posting')
 
         return
 
