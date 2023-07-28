@@ -254,7 +254,6 @@ async def get_feed_links(
                     elif include_shorts is True:
                         links_out.append(link)
                         entry_counter += 1
-            print(len(links_out))
         # Gets plain articles
         else:
             all_items = soup.find_all('item')

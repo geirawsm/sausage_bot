@@ -187,12 +187,13 @@ YOUTUBE_VARS = {
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
 AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
-AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
 AUTOEVENT_EVENT_FOUND = 'Fant event: {}'
 AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\
     'liste på nytt med `!autoevent list`'
 AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT = '`start_time` ser ikke ut til å '\
     'være i riktig format'
+AUTOEVENT_EVENT_START_IN_PAST = 'Kan ikke lage en event med starttid i fortida'
+AUTOEVENT_HTTP_EXCEPTION_ERROR = 'Got an error when posting event: {}'
 
 
 if __name__ == "__main__":
