@@ -112,6 +112,11 @@ class scrape_and_post(commands.Cog):
 
     post_fcb_news.start()
 
+    def cog_unload():
+        'Cancel task if unloaded'
+        log.log('Unloaded, cancelling tasks...')
+        scrape_and_post.post_fcb_news.cancel()
+
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('scrape_fcb_news'))

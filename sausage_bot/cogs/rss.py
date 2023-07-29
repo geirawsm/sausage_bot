@@ -390,6 +390,11 @@ class RSSfeed(commands.Cog):
 
     rss_parse.start()
 
+    def cog_unload():
+        'Cancel task if unloaded'
+        log.log('Unloaded, cancelling tasks...')
+        RSSfeed.rss_parse.cancel()
+
 
 async def setup(bot):
     # Create necessary files before starting

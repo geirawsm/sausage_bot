@@ -138,6 +138,11 @@ class Stats(commands.Cog):
 
     update_stats.start()
 
+    def cog_unload():
+        'Cancel task if unloaded'
+        log.log('Unloaded, cancelling tasks...')
+        Stats.update_stats.cancel()
+
 
 async def setup(bot):
     # Starting the cog

@@ -264,6 +264,11 @@ class Youtube(commands.Cog):
 
     post_videos.start()
 
+    def cog_unload():
+        'Cancel task if unloaded'
+        log.log('Unloaded, cancelling tasks...')
+        Youtube.post_videos.cancel()
+
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('youtube'))
