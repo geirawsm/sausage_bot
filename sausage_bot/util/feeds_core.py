@@ -243,10 +243,12 @@ async def get_feed_links(
                     if include_shorts is False:
                         title = entry.find('title')
                         media_title = entry.find('media:title')
-                        shorts_keyword = '#shorts'
-                        if shorts_keyword in str(title).lower() or\
-                                shorts_keyword in str(media_title).lower():
-                            log.debug(f'Skipped {link} because of #Shorts')
+                        shorts_keywords = ['#shorts', '(shorts)']
+                        if any(kw in str(title).lower()
+                               for kw in shorts_keywords) or\
+                                any(kw in str(media_title).lower()
+                                    for kw in shorts_keywords):
+                            log.debug(f'Skipped {link} because of `#Shorts` or `(shorts)`')
                             pass
                         else:
                             links_out.append(link)
