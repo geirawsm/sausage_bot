@@ -253,7 +253,6 @@ class Youtube(commands.Cog):
                     feed, FEED_POSTS, envs.yt_feeds_logs_file, CHANNEL
                 )
         log.log('Done with posting')
-
         return
 
     @post_videos.before_loop

@@ -248,7 +248,10 @@ async def get_feed_links(
                                for kw in shorts_keywords) or\
                                 any(kw in str(media_title).lower()
                                     for kw in shorts_keywords):
-                            log.debug(f'Skipped {link} because of `#Shorts` or `(shorts)`')
+                            log.debug(
+                                f'Skipped {link} because of `#Shorts` '
+                                'or `(shorts)`'
+                            )
                             pass
                         else:
                             links_out.append(link)
@@ -601,10 +604,7 @@ async def process_links_for_posting_or_editing(
             log.log_more(f'Link `{feed_link}` already logged. Skipping.')
         # Write to the logs-file at the end
         file_io.write_json(feed_log_file, FEED_LOG)
-    log.log_more(
-        'Stopping `process_links_for_posting_or_editing`',
-        sameline=True
-    )
+    log.log_more('Stopping `process_links_for_posting_or_editing`')
 
 
 if __name__ == "__main__":
