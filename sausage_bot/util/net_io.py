@@ -37,17 +37,6 @@ async def get_link(url):
         return content_out
 
 
-def scrape_page(url):
-    'Get a bs4 object from `url`'
-    scrape = get_link(url)
-    try:
-        soup = BeautifulSoup(scrape.content, features='html5lib')
-        return soup
-    except Exception as e:
-        log.log(envs.RSS_NOT_ABLE_TO_SCRAPE.format(url, e))
-        return None
-
-
 def make_event_start_stop(date, time=None):
     '''
     Make datetime objects for the event based on the start date and time.
@@ -57,12 +46,18 @@ def make_event_start_stop(date, time=None):
     `date`: The match date or a datetime-object
     `time`: The match start time (optional)
     '''
+    log.debug(f'Got `date`: {date}')
     try:
         # Make the original startdate an object
         if time is None:
             start_dt = datetime_handling.make_dt(date)
         else:
             start_dt = datetime_handling.make_dt(f'{date} {time}')
+        log.debug(f'`start_dt` is {start_dt}')
+    except Exception as e:
+        print(e)
+        sys.exit()
+    try:
         start_date = datetime_handling.get_dt('date', dt=start_dt)
         start_time = datetime_handling.get_dt('time', sep=':', dt=start_dt)
         # Make a startdate for the event that starts 30 minutes before
@@ -95,88 +90,70 @@ def make_event_start_stop(date, time=None):
         return None
 
 
-def parse(url: str):
+async def parse(url: str):
     '''
     Parse `url` to get info about a football match.
 
     Returns a dict with information about the match given.
     '''
-    def parse_nifs(soup):
-        'Parse content from matchpages from nifs.no'
-        info_tbl = soup.find('table', attrs={'class': 'nifs_table_l_nb'})
-        rows = info_tbl.find_all('tr')
+    def parse_nifs(json_in):
+        '''
+        Parse match ID from matchpage from nifs.no, then use that in an
+        api call
+        '''
         # Get info relevant for the event
-        info0 = rows[0].find_all('a', attrs={'class': 'nifs_link_style'})
-        team_home = info0[0].text.strip()
-        team_away = info0[1].text.strip()
-        info1 = rows[1].find_all('td')
-        tournament = info1[1].text.strip().replace('\t', '').replace('\n', ' ')
-        date = info1[3].text.strip()
-        time = rows[2].find_all('td')[3].text.strip()
-        dt_in = make_event_start_stop(date, time)
+        date_in = json_in['timestamp']
+        _date_obj = datetime_handling.make_dt(date_in)
+        dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
             return None
-        start_dt = dt_in['start_dt']
-        end_dt = dt_in['end_dt']
-        start_epoch = dt_in['start_epoch']
-        rel_start = f'<t:{start_epoch}:R>'
-        stadium = rows[3].find_all('td')[3].text.strip()
         return {
             'teams': {
-                'home': team_home,
-                'away': team_away
+                'home': json_in['homeTeam']['name'],
+                'away': json_in['awayTeam']['name']
             },
-            'tournament': tournament,
+            'tournament': json_in['stage']['fullName'],
             'datetime': {
-                'date': date,
-                'time': time,
-                'start_dt': start_dt,
-                'start_epoch': start_epoch,
-                'end_dt': end_dt,
-                'rel_start': rel_start
+                'date': dt_in['start_date'],
+                'time': dt_in['start_time'],
+                'start_dt': dt_in['start_dt'],
+                'end_dt': dt_in['end_dt'],
+                'start_epoch': dt_in['start_epoch'],
+                'rel_start': '<t:{}:R>'.format(dt_in['start_epoch'])
             },
-            'stadium': stadium
+            'stadium': json_in['stadium']['name']
         }
 
-    def parse_vglive(url):
-        'Parse content from matchpages from vglive.no'
-        # https://vglive.no/kamp/v%C3%A5lerenga-str%C3%B8msgodset/528898/rapport
-        match_id = re.search(r'.*/(\d+)/rapport', url)
-        # https://vglive.no/api/vg/events/528898
-        json_url = 'https://vglive.no/api/vg/events/{}'.format(
-            match_id.group(1)
-        )
-        match_json = json.loads(get_link(json_url).content)
+    def parse_vglive(json_in):
+        '''
+        Parse match ID from matchpage from vglive.no, then use that in an
+        api call
+        '''
         # Get info relevant for the event
-        home_id = match_json['event']['participantIds'][0]
-        away_id = match_json['event']['participantIds'][1]
-        team_home = match_json['participants'][home_id]['name']
-        team_away = match_json['participants'][away_id]['name']
-        tournament = match_json['tournamentSeason']['name']
-        datetime = match_json['event']['startDate']
-        dt_in = make_event_start_stop(datetime)
+        teams = json_in['event']['participantIds']
+        if 'venue' in json_in['event']['details']:
+            stadium = json_in['event']['details']['venue']['name']
+        else:
+            stadium = None
+        date_in = json_in['event']['startDate']
+        _date_obj = datetime_handling.make_dt(date_in)
+        dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
+            log.debug('Error with `dt_in`')
             return None
-        date = dt_in['start_date']
-        time = dt_in['start_time']
-        start_dt = dt_in['start_dt']
-        end_dt = dt_in['end_dt']
-        start_epoch = dt_in['start_epoch']
-        rel_start = dt_in['rel_start']
-        stadium = match_json['event']['details']['venue']['name']
         return {
             'teams': {
-                'home': team_home,
-                'away': team_away
+                'home': json_in['participants'][teams[0]]['name'],
+                'away': json_in['participants'][teams[1]]['name']
             },
-            'tournament': tournament,
+            'tournament': json_in['event']['tournament']['stageName'],
             'datetime': {
-                'date': date,
-                'time': time,
-                'start_dt': start_dt,
-                'start_epoch': start_epoch,
-                'end_dt': end_dt,
-                'rel_start': rel_start
+                'date': dt_in['start_date'],
+                'time': dt_in['start_time'],
+                'start_dt': dt_in['start_dt'],
+                'end_dt': dt_in['end_dt'],
+                'start_epoch': dt_in['start_epoch'],
+                'rel_start': '<t:{}:R>'.format(dt_in['start_epoch'])
             },
             'stadium': stadium
         }
@@ -190,17 +167,32 @@ def parse(url: str):
         PARSER = args.force_parser
     log.log_more(f'Got parser `{PARSER}`')
     if PARSER == 'nifs':
-        soup = scrape_page(url)
+        if 'matchId=' not in url:
+            # todo var msg
+            log.log('The NISO url is not from a match page')
+            return None
+        _id = re.match(r'.*matchId=(\d+)\b', url).group(1)
+        base_url = 'https://api.nifs.no/matches/{}'
         try:
-            parse = parse_nifs(soup)
+            json_in = await get_link(base_url.format(_id))
+            json_out = json.loads(json_in)
+            parse = parse_nifs(json_out)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.log(error_msg)
             return None
     elif PARSER == 'vglive':
+        if '/kamp/' not in url:
+            # todo var msg
+            log.log('The vglive url is not from a match page')
+            return None
+        _id = re.match(r'.*/kamp/.*/(\d+)/rapport', url).group(1)
+        base_url = 'https://vglive.no/api/vg/events/{}'
         try:
-            parse = parse_vglive(url)
+            json_in = await get_link(base_url.format(_id))
+            json_out = json.loads(json_in)
+            parse = parse_vglive(json_out)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
@@ -209,7 +201,6 @@ def parse(url: str):
     else:
         log.log('Linken er ikke kjent')
         return None
-
 
 if __name__ == "__main__":
     pass

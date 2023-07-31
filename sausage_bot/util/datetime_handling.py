@@ -24,8 +24,13 @@ def make_dt(date_in):
     - 17.05.2022, 1122
     - 17.05.20 22, 11.22
     - 2022-05-17T11:22:00Z
+    - 2023-08-05T10:00:00+02:00
     '''
     if 'T' in str(date_in):
+        log.debug('Found T in `date_in`')
+        if '+' in str(date_in):
+            log.debug('...and found a + as well')
+            date_in = str(date_in).split('+')[0]
         return pendulum.parse(date_in)
     else:
         # Remove all special characters from input
