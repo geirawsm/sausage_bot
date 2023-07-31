@@ -106,7 +106,7 @@ class Youtube(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @youtube.group(name='remove', aliases=['delete', 'del'])
+    @youtube.group(name='remove', aliases=['r', 'delete', 'del'])
     async def remove(
         self, ctx, feed_name: str = commands.param(
             default=None,
