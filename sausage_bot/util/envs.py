@@ -33,6 +33,7 @@ dilemmas_file = JSON_DIR / 'dilemmas.json'
 dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
+role_settings_file = JSON_DIR / 'role_settings.json'
 
 # Template content
 env_template = '''
