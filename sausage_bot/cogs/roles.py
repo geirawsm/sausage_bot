@@ -83,16 +83,21 @@ class Autoroles(commands.Cog):
             log.debug(f'Fant ikke rollen `{role_name}`')
         elif role_name is None:
             # TODO var msg
-            header = 'Brukere uten roller:'
-            out = ''
+            no_roles = []
             for member in _guild.members:
+                print(member.name, member.roles)
                 if len(member.roles) == 1:
-                    if (len(out) + len(member.name)) > 1800:
-                        ctx.send(out)
-                        out = ''
-                    if out == '':
-                        out += header
-                    out += f'\n- {member.name}'
+                    if member.roles[0].name == '@everyone':
+                        no_roles.append(member.name)
+            header = f'Brukere uten roller ({len(no_roles)}):'
+            out = ''
+            for _member in no_roles:
+                if (len(out) + len(_member)) > 1800:
+                    ctx.send(out)
+                    out = ''
+                if out == '':
+                    out += header
+                out += f'\n- {_member}'
             await ctx.send(out)
         return
 
