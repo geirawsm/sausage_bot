@@ -26,7 +26,7 @@ class Autoroles(commands.Cog):
     ):
         'Get info about a role'
         _guild = discord_commands.get_guild()
-        if role_name is not None and len(role_name)>0:
+        if role_name is not None and len(role_name) > 0:
             _roles = _guild.roles
             for _role in _roles:
                 log.debug(f'Sjekker `_role`: {_role}')
@@ -38,10 +38,12 @@ class Autoroles(commands.Cog):
                     embed.add_field(name="ID", value=_role.id, inline=True)
                     embed.add_field(name="Farge", value=_role.color, inline=True)
                     if _role.is_bot_managed() or _role.is_integration:
+                        _value = "Ja"
                         if _role.tags.bot_id:
                             _manager = _guild.get_member(_role.tags.bot_id).name
+                            _value += f', av {_manager}'
                         embed.add_field(
-                            name="Autohåndteres", value=f"Ja, av '{_manager}'",
+                            name="Autohåndteres", value=_value,
                             inline=False
                         )
                     else:
