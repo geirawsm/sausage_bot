@@ -85,7 +85,6 @@ class Autoroles(commands.Cog):
             # TODO var msg
             no_roles = []
             for member in _guild.members:
-                print(member.name, member.roles)
                 if len(member.roles) == 1:
                     if member.roles[0].name == '@everyone':
                         no_roles.append(member.name)
