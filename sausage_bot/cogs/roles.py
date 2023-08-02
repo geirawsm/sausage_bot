@@ -229,6 +229,8 @@ async def setup(bot):
 
 _unique_role = config.env.int('ROLES_UNIQUE', default=None)
 if _unique_role is not None:
+    # TODO var msg
+    log.debug('`ROLES_UNIQUE` oppdaget i innstillinger')
     @config.bot.event
     async def on_member_update(before, after):
         '''
@@ -240,6 +242,8 @@ if _unique_role is not None:
         role to make sure the total number will be correct
         '''
         if len(after.roles) > len(before.roles):
+            # TODO var msg
+            log.debug('Flere nye roller etter endring')
             for _role in before.roles:
                 if _role.id == _unique_role:
                     for __role in after.roles:
@@ -254,12 +258,20 @@ if _unique_role is not None:
                     log.debug('Unique role not in `after.roles`')
                     if len(after.roles) > len(before.roles):
                         log.debug('...and ')
-        elif len(after.roles) == (0 + len(config.env.list(
-            'ROLES_UNIQUE_NOT_INCLUDE_IN_TOTAL', default=[]
-        ))):
-            log.debug('Add unique role again')
-            await after.add_roles(
-                discord_commands.get_guild().get_role(
-                    _unique_role
+        else:
+            # TODO var msg
+            log.debug('Færre nye roller etter endring')
+            # Exclude roles in .env, as well as @everyone
+            excluded_roles = len(
+                config.env.list(
+                    'ROLES_UNIQUE_NOT_INCLUDE_IN_TOTAL',
+                    default=[]
                 )
-            )
+            )+1
+            if (len(after.roles) - excluded_roles) == 0:
+                log.debug('Add unique role again')
+                await after.add_roles(
+                    discord_commands.get_guild().get_role(
+                        _unique_role
+                    )
+                )
