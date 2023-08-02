@@ -16,6 +16,84 @@ class Autoroles(commands.Cog):
         'Control roles on the server'
         return
 
+    @guildrole.group(name='info', aliases=['i'])
+    async def info(
+        self, ctx,
+        role_name: str = commands.param(
+            default=None,
+            description="Role name"
+        )
+    ):
+        'Get info about a role'
+        _guild = discord_commands.get_guild()
+        if role_name is not None and len(role_name)>0:
+            _roles = _guild.roles
+            for _role in _roles:
+                log.debug(f'Sjekker `_role`: {_role}')
+                if str(_role.name).lower() == role_name.lower():
+                    log.debug(f'Fant `{role_name}`')
+                    embed = discord.Embed(color=_role.color)
+                    #embed.description()     # string
+                    #embed.set_thumbnail(url=_role.icon)
+                    embed.add_field(name="ID", value=_role.id, inline=True)
+                    embed.add_field(name="Farge", value=_role.color, inline=True)
+                    if _role.is_bot_managed() or _role.is_integration:
+                        if _role.tags.bot_id:
+                            _manager = _guild.get_member(_role.tags.bot_id).name
+                        embed.add_field(
+                            name="Autohåndteres", value=f"Ja, av '{_manager}'",
+                            inline=False
+                        )
+                    else:
+                        embed.add_field(
+                            name="Autohåndteres", value="Nei", inline=True
+                        )
+                    permissions = ", ".join(
+                        [permission for permission, value in
+                            iter(_role.permissions) if value is True]
+                    )
+                    if permissions:
+                        embed.add_field(
+                            name="Tillatelser", value=permissions,
+                            inline=True
+                        )
+                    else:
+                        embed.add_field(
+                            name="Tillatelser", value='Ingen',
+                            inline=True
+                        )
+                    if _role.hoist:
+                        embed.add_field(
+                            name="Spesielt synlig",
+                            value='Ja'
+                        )
+                    else:
+                        embed.add_field(
+                            name="Spesielt synlig",
+                            value='Nei'
+                        )
+                    embed.add_field(
+                        name="Brukere med rollen",
+                        value=len(_role.members), inline=False
+                    )
+                    await ctx.reply(embed=embed)
+                    return
+            log.debug(f'Fant ikke rollen `{role_name}`')
+        elif role_name is None:
+            # TODO var msg
+            header = 'Brukere uten roller:'
+            out = ''
+            for member in _guild.members:
+                if len(member.roles) == 1:
+                    if (len(out) + len(member.name)) > 1800:
+                        ctx.send(out)
+                        out = ''
+                    if out == '':
+                        out += header
+                    out += f'\n- {member.name}'
+            await ctx.send(out)
+        return
+
     @guildrole.group(name='manage', aliases=['m'])
     async def manage(self, ctx):
         'Manage specific roles on the server'
