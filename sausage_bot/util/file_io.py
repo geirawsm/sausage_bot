@@ -145,34 +145,60 @@ def get_max_item_lengths(headers, dict_in):
     return lengths
 
 
-def check_similarity(text1: str, text2: str) -> bool:
+def check_similarity(
+        input1: str, input2: (str, list) = None,
+        ratio_floor: float = None, ratio_roof: float = None
+):
     '''
-    Check how similar `text1` and `text2` is. If it resembles eachother by
-    between 95 % to 99.999999999999999999999999995 %, it is considered
-    "similar" and will return True. Otherwise, return False.
-    If neither `text1` nor `text2` is a string, it will return None.
+    Check similarities between `input1` and `input2` (str), or `input1` and
+    items in `input2` (list). As standard it will check if the similarity
+    has a ratio between 98 % and 99.999999999999999999999999995 %. If that
+    ratio hits, it will return the object it is similar with.
+    Otherwise, return False.
+
+    If `input1` is not a string, it will return None.
+    If `input2` is None, or not a string or list, it will return None.
+
     '''
-    # Stop function if input is not str
-    if type(text1) is not str or type(text2) is not str:
+
+    def similarity_helper(input1, input2, ratio_floor, ratio_roof):
+        ratio = float(SequenceMatcher(a=input1, b=input2).ratio())
+        # Our "similarity" is defined by the following equation:
+        if ratio_floor is None:
+            ratio_floor = 0.98
+        if ratio_roof is None:
+            ratio_roof = 0.99999999999999999999999999995
+        if ratio_floor <= ratio <= ratio_roof:
+            log.debug(
+                f'These inputs seem similiar (ratio: {ratio}):\n'
+                f'`{input1}` vs `{input2}`'
+            )
+            return input2
+        else:
+            log.debug(
+                f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
+                f'`{input1}` vs `{input2}`'
+            )
+            return False
+
+    # Stop function if not correct input
+    if type(input1) is not str:
+        log.debug('`input1` is not string')
         return None
-    ratio = float(SequenceMatcher(a=text1, b=text2).ratio())
-    # Our "similarity" is defined by the following equation:
-    if 0.98 <= ratio <= 0.99999999999999999999999999995:
-        log.debug(
-            f'These texts seem similiar (ratio: {ratio}):\n'
-            f'`{text1}`\n'
-            'vs\n'
-            f'`{text2}`'
-        )
-        return True
-    else:
-        log.debug(
-            f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
-            f'`{text1}`\n'
-            'vs\n'
-            f'`{text2}`'
-        )
+    elif input2 is None or not isinstance(input2, (str, list)):
+        log.debug(f'Incorrect input given to `input2`: {input2}')
+        return None
+    elif isinstance(input2, list):
+        for list_item in input2:
+            log.debug(list_item)
+            _check = similarity_helper(
+                input1, list_item, ratio_floor, ratio_roof
+            )
+            if _check is not False:
+                return _check
         return False
+    elif isinstance(input2, str):
+        return similarity_helper(input1, input2, ratio_floor, ratio_roof)
 
 
 def create_necessary_files(file_list):
