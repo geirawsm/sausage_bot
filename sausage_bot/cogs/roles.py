@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 from discord.ext import commands
 import discord
+
 from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
 
@@ -17,17 +18,21 @@ class Autoroles(commands.Cog):
         return
 
     @guildrole.group(name='info', aliases=['i'])
-    async def info(
-        self, ctx,
-        role_name: str = commands.param(
-            default=None,
-            description="Role name"
-        )
-    ):
-        'Get info about a role'
+    async def role_info(self, ctx, role_name):
+        '''
+        Get info about a role
+
+        Parameters
+        ------------
+        role_name: str
+            The role name to get info about (default: None)
+        '''
+
         _guild = discord_commands.get_guild()
         if role_name is not None and len(role_name) > 0:
             _roles = _guild.roles
+            _var_roles = ';'.join([role.name for role in _roles])
+            print(_var_roles)
             for _role in _roles:
                 log.debug(f'Sjekker `_role`: {_role}')
                 if str(_role.name).lower() == role_name.lower():
@@ -36,11 +41,15 @@ class Autoroles(commands.Cog):
                     #embed.description()     # string
                     #embed.set_thumbnail(url=_role.icon)
                     embed.add_field(name="ID", value=_role.id, inline=True)
-                    embed.add_field(name="Farge", value=_role.color, inline=True)
+                    embed.add_field(
+                        name="Farge", value=_role.color, inline=True
+                    )
                     if _role.is_bot_managed() or _role.is_integration:
                         _value = "Ja"
                         if _role.tags.bot_id:
-                            _manager = _guild.get_member(_role.tags.bot_id).name
+                            _manager = _guild.get_member(
+                                _role.tags.bot_id
+                            ).name
                             _value += f', av {_manager}'
                         embed.add_field(
                             name="Autohåndteres", value=_value,
@@ -101,35 +110,30 @@ class Autoroles(commands.Cog):
         return
 
     @guildrole.group(name='manage', aliases=['m'])
-    async def manage(self, ctx):
+    async def role_manage(self):
         'Manage specific roles on the server'
         return
 
-    @manage.group(name='add', aliases=['a'])
+    @role_manage.group(name='add', aliases=['a'])
     async def add_role(
-        self, ctx,
-        role_name: str = commands.param(
-            default=None,
-            description="Role name"
-        ),
-        permissions: str = commands.param(
-            default=discord.Permissions.none(),
-            description="Set permissions for the role"
-        ),
-        color: str = commands.param(
-            default='',
-            description="Set color for the role"
-        ),
-        hoist: str = commands.param(
-            default=False,
-            description="Set if the role should be mentionable or not"
-        ),
-        mentionable: str = commands.param(
-            default=False,
-            description="Set if the role should be mentionable or not"
-        )
+        self, ctx, role_name: str, permissions: str,
+        color: str, hoist: bool, mentionable: bool
     ):
-        'Add role to the server'
+        '''
+        Add role to the server
+
+        Parameters
+        ------------
+        role_name: str
+            The names of the role to add (default: None)
+        color: str
+            Set color for the role
+        hoist: bool
+            Set if the role should be mentionable or not
+        mentionable: bool
+            Set if the role should be mentionable or not
+        '''
+
         if role_name is None:
             # todo var msg
             log.log('Role has no name')
@@ -146,15 +150,17 @@ class Autoroles(commands.Cog):
         await ctx.message.reply('Role is created')
         return
 
-    @manage.group(name='remove', aliases=['delete', 'r', 'd'])
-    async def remove_role(
-        self, ctx,
-        role_name: str = commands.param(
-            default=None,
-            description="Role name"
-        )
-    ):
-        'Remove a role from the server'
+    @role_manage.group(name='remove', aliases=['delete', 'r', 'd'])
+    async def remove_role(self, ctx, role_name):
+        '''
+        Remove a role from the server
+
+        Parameters
+        ------------
+        role_name: str
+            The name of the role to remove (default: None)
+        '''
+
         if role_name is None:
             # todo var msg
             log.log('Give a role name or ID')
@@ -172,73 +178,98 @@ class Autoroles(commands.Cog):
         log.log(f'Fant ikke `{role_name}`')
         return
 
-    @manage.group(name='edit', aliases=['e'])
+    @role_manage.group(name='edit', aliases=['e'])
     async def edit_role(
-        self, ctx,
-        role_name: str = commands.param(
-            default=None,
-            description="Role name"
-        ),
-        new_role_name: str = commands.param(
-            default=None,
-            description="Role name to change to"
-        ),
-        permissions: str = commands.param(
-            default=discord.Permissions.none(),
-            description="Set permissions for the role"
-        ),
-        color: str = commands.param(
-            default='',
-            description="Set color for the role"
-        ),
-        hoist: str = commands.param(
-            default=False,
-            description="Set if the role should be mentionable or not"
-        ),
-        mentionable: str = commands.param(
-            default=False,
-            description="Set if the role should be mentionable or not"
-        )
+        self, ctx, role_name: str = None,
+        setting: str = None,
+        value: str = None
     ):
-        'Add role to the server'
-        if role_name is None:
-            # todo var msg
-            log.log('Role has no name')
-            await ctx.message.reply('Role has no name')
-            return
-        _guild = discord_commands.get_guild()
-        _roles = _guild.roles
-        for _role in _roles:
-            log.debug(f'Sjekker `_role`: {_role}')
-            if _role.name == role_name:
-                log.debug(f'Fant {role_name}, sletter...')
-                await _guild.get_role(int(_role.id)).edit(
-                    role_name=new_role_name,
-                    permissions=permissions,
-                    color=color,
-                    hoist=hoist,
-                    mentionable=mentionable
-                )
-                await ctx.message.reply('Role has been changed')
+        '''
+        Edit a role on the server
+
+        Parameters
+        ------------
+        role_name: str
+            The name of the role to edit (default: None)
+        setting: str
+            The setting to change (default: None)
+            Available settings:
+                new_name (str)
+                color (hex)
+                hoist (Bool)
+                mentionable (Bool)
+        value: str
+            The new value (default: None)
+        '''
+        if role_name is not None and len(role_name) > 0:
+            _guild = discord_commands.get_guild()
+            _roles = _guild.roles
+            _role_edit = None
+            for _role in _roles:
+                log.debug(f'role_name.lower(): {role_name.lower()}')
+                log.debug(f'_role: {_role}')
+                if role_name.lower() == str(_role).lower():
+                    _role_edit = _guild.get_role(_role.id)
+                    continue
+            if _role_edit is None:
+                # TODO var msg
+                log.debug(f'role_name `{role_name}` is not found')
                 return
-        log.log(f'Fant ikke `{role_name}`')
+            if setting == 'new_name':
+                await _role_edit.edit(name=value)
+                # TODO var msg
+                log.debug('Changed name')
+                await ctx.reply(
+                    f'Changed name on role `{role_name}` -> `{value}`'
+                )
+                return
+            elif setting == 'color':
+                await _role_edit.edit(color=discord.Colour.from_str(value))
+                # TODO var msg
+                log.debug('Changed color')
+                await ctx.reply(
+                    f'Changed color on role `{role_name}` to `{value}`'
+                )
+                return
+            elif setting == 'hoist':
+                await _role_edit.edit(hoist=value)
+                # TODO var msg
+                log.debug('Changed hoist')
+                await ctx.reply(
+                    f'Set hoist on role `{role_name}` to `{value}`'
+                )
+                return
+            elif setting == 'mentionable':
+                await _role_edit.edit(mentionable=value)
+                # TODO var msg
+                log.debug('Changed hoist')
+                await ctx.reply(
+                    f'Set hoist on role `{role_name}` to `{value}`'
+                )
+                return
+            else:
+                # TODO var msg
+                log.debug('`setting` not recognized')
+                await ctx.reply(f'setting `{value}` not recognized')
         return
 
     @guildrole.group(name='user')
-    async def user(self, ctx):
+    async def user(self):
         'Manage a user\'s roles'
         return
 
     @user.group(name='add', aliases=['a'])
-    async def user_add(
-        self, ctx,
-        user_name: str = commands.param(
-            default=None,
-            description="User name"
-        ),
-        *role_names
-    ):
-        'Add role(s) to a user'
+    async def user_add(self, ctx, user_name: str, *role_names):
+        '''
+        Add role(s) to a user
+
+        Parameters
+        ------------
+        user_name: str
+            Username to be given role(s)
+        *role_names: str
+            The names of the role to add (default: None)
+        '''
         if role_names is None or user_name is None:
             # todo var msg
             var_msg = '`Role names` and `User name` is mandatory'
@@ -247,34 +278,69 @@ class Autoroles(commands.Cog):
             return
         _guild = discord_commands.get_guild()
         _roles = _guild.roles
-        _temp_roles = []
-        for _role in _roles:
-            log.debug(f'Sjekker `_role`: {_role}')
-            if _role.name in role_names:
-                _temp_roles.append(_role)
-        _member = _guild.get_member_named(user_name)
-        if _member is None:
-            log.log(f'Could not find user {user_name}')
-            return
-        for role in _temp_roles:
-            await _member.add_roles(role)
-        await ctx.message.reply(
-            'User {} has been given these roles: {}'.format(
-                user_name, ', '.join(role_names)
+        log.debug(f'_roles: {_roles}')
+        _var_roles = []
+        _var_roles.extend([str(_role.name).lower() for _role in _roles])
+        ok_roles = []
+        similar_roles = []
+        not_found_roles = []
+        log.debug(f'_var_roles: {_var_roles}')
+        for chosen_role in role_names:
+            if chosen_role.lower() in _var_roles:
+                ok_roles.append(chosen_role)
+                log.debug('Found role')
+            else:
+                # Check for typos
+                typo_check = file_io.check_similarity(
+                    chosen_role, _var_roles, ratio_floor=0.8
+                )
+                if typo_check is False or typo_check is None:
+                    not_found_roles.append(chosen_role)
+                else:
+                    not_found_roles.append(chosen_role)
+                    similar_roles.append(typo_check)
+        log.debug(f'ok_roles: {ok_roles}')
+        log.debug(f'not_found_roles: {not_found_roles}')
+        log.debug(f'similar_roles: {similar_roles}')
+        out_msg = ''
+        if len(ok_roles) > 0:
+            # TODO var msg
+            out_msg += 'Legger til {}'.format(', '.join(
+                ['`{}`'.format(_role) for _role in ok_roles])
             )
-        )
+            for _role in ok_roles:
+                for __role in ctx.guild.roles:
+                    print(__role.name, _role)
+                    if __role.name.lower() == _role.lower():
+                        await _guild.get_member_named(user_name).add_roles(
+                            __role
+                        )
+                        break
+        if len(not_found_roles) > 0:
+            # TODO var msg
+            out_msg += ', men disse finnes ikke: {}'.format(', '.join(
+                ['`{}`'.format(_role) for _role in not_found_roles])
+            )
+        if len(similar_roles) > 0:
+            # TODO var msg
+            out_msg += '\nMente du egentlig {}?'.format(', '.join(
+                ['`{}`'.format(_role) for _role in similar_roles]
+            ))
+        await ctx.message.reply(out_msg)
         return
 
     @user.group(name='remove', aliases=['delete', 'r', 'd'])
-    async def user_remove(
-        self, ctx,
-        user_name: str = commands.param(
-            default=None,
-            description="User name"
-        ),
-        *role_names
-    ):
-        'Remove roles from a user'
+    async def user_remove(self, ctx, user_name, *role_names):
+        '''
+        Remove roles from a user
+
+        Parameters
+        ------------
+        user_name: str
+            Username to remove role(s) from
+        *role_names: str
+            The names of the role to remove (default: None)
+        '''
         if role_names is None or user_name is None:
             # todo var msg
             var_msg = '`Role names` and `User name` is mandatory'
@@ -282,19 +348,16 @@ class Autoroles(commands.Cog):
             await ctx.message.reply(var_msg)
             return
         _guild = discord_commands.get_guild()
-        _roles = _guild.roles
-        _temp_roles = []
-        for _role in _roles:
-            log.debug(f'Sjekker `_role`: {_role}')
-            if _role.name in role_names:
-                _temp_roles.append(_role)
         _member = _guild.get_member_named(user_name)
         if _member is None:
             log.log(f'Could not find user {user_name}')
             return
-        for role in _temp_roles:
-            await _member.remove_roles(role)
-        var_msg = 'User {} has been removed from these roles: {}'.format(
+        for _role in role_names:
+            for __role in _member.roles:
+                if __role.name.lower() == _role.lower():
+                    await _member.remove_roles(__role)
+        # TODO var msg
+        var_msg = 'Fjernet `{}` fra følgende roller: {}'.format(
             user_name, ', '.join(role_names)
         )
         await ctx.message.reply(var_msg)
