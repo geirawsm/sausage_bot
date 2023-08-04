@@ -42,7 +42,7 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='add', aliases=['a'])
-    async def add(
+    async def event_add(
         self, ctx, url: str = commands.param(
             default=None,
             description="URL to match page from nifs.no"
@@ -148,7 +148,7 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='remove', aliases=['r', 'delete', 'del'])
-    async def remove(
+    async def event_remove(
         self, ctx, event_id_in: int = commands.param(
             default=None,
             description="ID for the event to remove. Get ID's from "
@@ -205,7 +205,7 @@ class AutoEvent(commands.Cog):
         commands.has_permissions(manage_events=True)
     )
     @autoevent.group(name='sync', aliases=['s'])
-    async def sync(
+    async def event_sync(
             self, ctx, start_time: str = commands.param(
                 description="A start time for the timer or a command "
                             "for deleting the timer"

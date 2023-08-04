@@ -84,7 +84,7 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @quote.group(name='add')
-    async def add(
+    async def quote_add(
         self, ctx, quote_text: str = commands.param(
             description="The quote text (must be enclosed in quotation marks)"
         ),
@@ -127,7 +127,7 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @quote.group(name='edit')
-    async def edit(
+    async def quote_edit(
             self, ctx, quote_number: int = commands.param(
                 default=None,
                 description="The number of quote to edit"
@@ -191,7 +191,7 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @quote.group(name='del')
-    async def delete(
+    async def quote_delete(
             self, ctx, quote_number: int = commands.param(
                 description="The number of quote to edit"
             )):
@@ -242,7 +242,7 @@ class Quotes(commands.Cog):
             return
 
     @quote.group(name='count')
-    async def count(self, ctx):
+    async def quote_count(self, ctx):
         'Count the number of quotes available: `!quote count`'
         quote_count = len(file_io.import_file_as_list(envs.quote_file))-1
         await ctx.send(envs.QUOTE_COUNT.format(quote_count))

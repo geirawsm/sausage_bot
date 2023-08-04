@@ -26,7 +26,7 @@ class Youtube(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @youtube.group(name='add')
-    async def add(
+    async def youtube_add(
         self, ctx, feed_name: str = commands.param(
             default=None,
             description="Name of feed"
@@ -107,7 +107,7 @@ class Youtube(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @youtube.group(name='remove', aliases=['r', 'delete', 'del'])
-    async def remove(
+    async def youtube_remove(
         self, ctx, feed_name: str = commands.param(
             default=None,
             description="Name of feed"
@@ -135,7 +135,7 @@ class Youtube(commands.Cog):
         return
 
     @youtube.group(name='list')
-    async def list_youtube(
+    async def youtube_list(
             self, ctx, list_type: str = commands.param(
                 default=None,
                 description="`added` or `filter`"

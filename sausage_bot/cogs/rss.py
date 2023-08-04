@@ -25,7 +25,7 @@ class RSSfeed(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @rss.group(name='add', invoke_without_command=True)
-    async def add(
+    async def rss_add(
         self, ctx, feed_name: str = commands.param(
             default=None,
             description="Name of feed"
@@ -271,7 +271,7 @@ class RSSfeed(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @rss.group(name='remove')
-    async def remove(
+    async def rss_remove(
         self, ctx, feed_name: str = commands.param(
             default=None,
             description="Name of feed"

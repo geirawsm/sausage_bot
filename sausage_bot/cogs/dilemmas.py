@@ -67,7 +67,7 @@ class Dilemmas(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @dilemmas.group(name='add')
-    async def add(self, ctx, dilemmas_in):
+    async def dilemmas_add(self, ctx, dilemmas_in):
         'Add a dilemma: `!dilemmas add [dilemmas_in]`'
         dilemmas = file_io.read_json(envs.dilemmas_file)
         new_dilemmas_number = int(list(dilemmas.keys())[-1]) + 1
