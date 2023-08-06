@@ -12,12 +12,12 @@ class Autoroles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(name='role')
-    async def guildrole(self, ctx):
+    @commands.group(name='roles')
+    async def guildroles(self, ctx):
         'Control roles on the server'
         return
 
-    @guildrole.group(name='info', aliases=['i'])
+    @guildroles.group(name='info', aliases=['i'])
     async def role_info(self, ctx, role_name):
         '''
         Get info about a role
@@ -109,8 +109,8 @@ class Autoroles(commands.Cog):
             await ctx.send(out)
         return
 
-    @guildrole.group(name='manage', aliases=['m'])
-    async def role_manage(self):
+    @guildroles.group(name='manage', aliases=['m'])
+    async def role_manage(self, ctx):
         'Manage specific roles on the server'
         return
 
@@ -253,8 +253,8 @@ class Autoroles(commands.Cog):
                 await ctx.reply(f'setting `{value}` not recognized')
         return
 
-    @guildrole.group(name='user')
-    async def user(self):
+    @guildroles.group(name='user')
+    async def user(self, ctx):
         'Manage a user\'s roles'
         return
 
