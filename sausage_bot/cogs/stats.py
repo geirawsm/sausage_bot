@@ -9,8 +9,8 @@ from sausage_bot.util.args import args
 from sausage_bot.util.log import log
 
 
-def get_members():
-    'Get number of members and number of Patreon-members'
+def get_role_numbers():
+    'Get roles and number of members'
     guild = discord_commands.get_guild()
     member_count = guild.member_count
     return {
@@ -53,8 +53,9 @@ class Stats(commands.Cog):
         '''
         def tabify(
             dict_in: dict, _key: str, _item: str, prefix='', suffix='',
-            split='', filter_away: bool = False
+            split='', filter_away: bool = False, sort: bool = False
         ):
+            filter_away_lower = [x.lower() for x in filter_away]
             text_out = ''
             _key_len = 0
             _item_len = 0
@@ -66,14 +67,13 @@ class Stats(commands.Cog):
                     _item_count = len(str(dict_in[role][_item])) + 2
                     if _item_count > _item_len:
                         _item_len = _item_count
-                for role in dict_in:
-                    if role not in filter_away:
-                        _k = dict_in[role][_key]
-                        _i = dict_in[role][_item]
-                        text_out += f'{prefix}{_k:<{_key_len}}{split}'\
-                            f'{_i:<{_item_len}}{suffix}'
-                        if dict_in[role][_key] != dict_in.keys():
-                            text_out += '\n'
+                if role.lower() not in filter_away_lower:
+                    _k = dict_in[role][_key]
+                    _i = dict_in[role][_item]
+                    text_out += f'{prefix}{_k:<{_key_len}}{split}'\
+                        f'{_i:<{_item_len}}{suffix}'
+                    if dict_in[role][_key] != dict_in.keys():
+                        text_out += '\n'
             log.debug(f'Returning:```{text_out}```')
             return text_out
 
@@ -81,7 +81,7 @@ class Stats(commands.Cog):
         stats_channel = config.env('STATS_CHANNEL', default='stats')
         stats_log = file_io.read_json(envs.stats_logs_file)
         # Get server members as of now
-        members = get_members()
+        members = get_role_numbers()
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
@@ -105,7 +105,7 @@ class Stats(commands.Cog):
         total_members = members['member_count']
         roles_members = tabify(
             members['roles'], 'name', 'members', prefix='  ', split=': ',
-            filter_away=config.env('STATS_HIDE_ROLES')
+            filter_away=config.env.list('STATS_HIDE_ROLES')
         )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = f'> Medlemmer\n```'\
