@@ -227,6 +227,7 @@ async def get_feed_links(
             all_items = soup.find_all('item')
             for item in all_items[0:3]:
                 link = item.find('link').text
+                log.debug(f'Got episode link: {link}')
                 if link == channel_link:
                     link = item.find('enclosure')['url']
                 links_out.append(link)
@@ -308,6 +309,7 @@ async def get_feed_links(
                 values_in=[envs.FEEDS_URL_SUCCESS, 0]
             )
         links_out = await get_items_from_rss(req, url, include_shorts)
+        log.debug(f'Got this from `get_items_from_rss`: {links_out}')
         links = []
         for link in links_out:
             if (len(filter_allow) + len(filter_deny)) > 0:
@@ -579,7 +581,7 @@ async def process_links_for_posting_or_editing(
         FEED_LOG[feed]
     except (KeyError):
         FEED_LOG[feed] = []
-    for feed_link in FEED_POSTS[0:2]:
+    for feed_link in FEED_POSTS:
         log.debug(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
         if not link_is_in_log(feed_link, feed, FEED_LOG):
