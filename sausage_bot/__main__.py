@@ -44,8 +44,8 @@ async def on_ready():
     '''
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
+            log.log('{} has connected to `{}`'.format(config.bot.user, guild.name))
             break
-    log.log('{} has connected to `{}`'.format(config.bot.user, guild.name))
     await cogs.loading.load_and_clean_cogs()
     if args.maintenance:
         log.log('Maintenance mode activated', color='RED')
