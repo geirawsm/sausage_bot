@@ -65,6 +65,7 @@ class Stats(commands.Cog):
             )
         ):
             filter_away_lower = [x.lower() for x in filter_away]
+            # TODO var msg
             log.debug(f'Using this for filter:\n{filter_away_lower}')
             text_out = ''
             if isinstance(dict_in, dict):
