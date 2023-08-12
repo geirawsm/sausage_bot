@@ -131,7 +131,7 @@ class Stats(commands.Cog):
         if config.env.bool('STATS_ROLES', default=True):
             total_members = members['member_count']
             roles_members = tabify(
-                members['roles'], 'name', 'members', prefix='  ', split=': ',
+                members['roles'], 'name', 'members'
             )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
