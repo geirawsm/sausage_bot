@@ -54,6 +54,7 @@ class Stats(commands.Cog):
         '''
         def tabify(
             dict_in: dict,
+            headers: list,
             filter_away: list = config.env.list(
                 'STATS_HIDE_ROLES', default=[]
             ),
@@ -69,16 +70,17 @@ class Stats(commands.Cog):
             log.debug(f'Using this for filter:\n{filter_away_lower}')
             text_out = ''
             if isinstance(dict_in, dict):
+                log.debug(f'Checking `sort_abc` ({sort_abc}), and `sort_321` ({sort_321})')
                 if sort_abc:
-                    dict_in = dict(sorted(dict_in.items(), key=str.lower))
-                    log.debug(f'Sorting roles alphabetically: {list(dict_in)}')
+                    dict_in = dict(sorted(dict_in.items(), key=lambda x: x[1]['name']))
+                    log.debug(f'Sorting roles alphabetically: {list(dict_in)[0:4]}')
                 if sort_321:
                     dict_in = dict(sorted(
                         dict_in.items(), key=lambda x: x[1]['members'],
                         reverse=True
                     ))
                     log.debug(
-                        f'Sorting roles by number of members: {dict_in}'
+                        f'Sorting roles by number of members: {list(dict_in)[0:4]}'
                     )
                 # Tabulate the output
                 dict_out = {
@@ -86,13 +88,12 @@ class Stats(commands.Cog):
                     'members': []
                 }
                 for role in dict_in:
-                    if role.lower() not in filter_away_lower and\
-                            role.lower() != '@everyone':
+                    if role.lower() not in filter_away_lower:
                         dict_out['name'].append(dict_in[role]['name'])
-                        dict_out['members'].append(dict_in[role]['members'])
+                        dict_out['members'].append(dict_in[role]['members'])                
                 text_out = '{}'.format(
                     tabulate(
-                        dict_out, headers=['Rolle', 'Bruker'], numalign='center'
+                        dict_out, headers=headers, numalign='center'
                     )
                 )
                 log.debug(f'Returning: {text_out}')
@@ -132,7 +133,7 @@ class Stats(commands.Cog):
         if config.env.bool('STATS_ROLES', default=True):
             total_members = members['member_count']
             roles_members = tabify(
-                members['roles'], 'name', 'members'
+                dict_in=members['roles'], headers=['Rolle', 'Brukere']
             )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
