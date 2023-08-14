@@ -32,6 +32,7 @@ quote_log_file = JSON_DIR / 'quotes-log.json'
 dilemmas_file = JSON_DIR / 'dilemmas.json'
 dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
+stats_file = JSON_DIR / 'stats.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
 role_settings_file = JSON_DIR / 'role_settings.json'
 
@@ -46,6 +47,17 @@ LOCALE=
 BOT_DUMP_CHANNEL=general
 WATCHING=
 '''
+# Stats
+stats_template = {
+    'channel': 'stats',
+    'show_role_stats': true,
+    'hide_roles': '',
+    'hide_bot_roles': false,
+    'sort_roles_abc': true,
+    'sort_roles_321': false,
+    'show_code_stats': true
+}
+
 
 ### Botlines ###
 # Generiske

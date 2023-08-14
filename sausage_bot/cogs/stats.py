@@ -55,32 +55,35 @@ class Stats(commands.Cog):
         def tabify(
             dict_in: dict,
             headers: list,
-            filter_away: list = config.env.list(
-                'STATS_HIDE_ROLES', default=[]
-            ),
-            sort_abc: bool = config.env.bool(
-                'STATS_SORT_ROLES_ABC', default=False
-            ),
-            sort_321: bool = config.env.bool(
-                'STATS_SORT_ROLES_321', default=False
-            )
         ):
-            filter_away_lower = [x.lower() for x in filter_away]
+            
+            hide_roles = stats_settings['hide_roles']
+            hide_roles_lower = [x.lower() for x in hide_roles]
             # TODO var msg
-            log.debug(f'Using this for filter:\n{filter_away_lower}')
+            log.debug(f'Using this for filter:\n{hide_roles_lower}')
             text_out = ''
             if isinstance(dict_in, dict):
-                log.debug(f'Checking `sort_abc` ({sort_abc}), and `sort_321` ({sort_321})')
-                if sort_abc:
-                    dict_in = dict(sorted(dict_in.items(), key=lambda x: x[1]['name']))
-                    log.debug(f'Sorting roles alphabetically: {list(dict_in)[0:4]}')
-                if sort_321:
+                log.debug(
+                    'Checking `sort_abc` ({}) and `sort_321` ({})'.format(
+                        stats_settings['sort_roles_abc'],
+                        stats_settings['sort_roles_321']
+                    )
+                )
+                if stats_settings['sort_roles_abc']:
+                    dict_in = dict(sorted(
+                        dict_in.items(), key=lambda x: x[1]['name']
+                    ))
+                    log.debug(
+                        f'Sorting roles alphabetically: {list(dict_in)[0:4]}'
+                    )
+                if stats_settings['sort_roles_321']:
                     dict_in = dict(sorted(
                         dict_in.items(), key=lambda x: x[1]['members'],
                         reverse=True
                     ))
                     log.debug(
-                        f'Sorting roles by number of members: {list(dict_in)[0:4]}'
+                        f'Sorting roles by number of members: '
+                        f'{list(dict_in)[0:4]}'
                     )
                 # Tabulate the output
                 dict_out = {
@@ -88,9 +91,13 @@ class Stats(commands.Cog):
                     'members': []
                 }
                 for role in dict_in:
-                    if role.lower() not in filter_away_lower:
-                        dict_out['name'].append(dict_in[role]['name'])
-                        dict_out['members'].append(dict_in[role]['members'])                
+                    if role.lower() not in hide_roles_lower:
+                        if role != '@everyone':
+                            if 
+                            dict_out['name'].append(dict_in[role]['name'])
+                            dict_out['members'].append(
+                                dict_in[role]['members']
+                            )
                 text_out = '{}'.format(
                     tabulate(
                         dict_out, headers=headers, numalign='center'
@@ -102,9 +109,13 @@ class Stats(commands.Cog):
                 log.more('`dict_in` is not a dict. Check the input.')
 
         log.log('Starting `update_stats`')
-        stats_channel = config.env('STATS_CHANNEL', default='stats')
+        stats_settings = file_io.read_json(envs.stats_file)
         stats_log = file_io.read_json(envs.stats_logs_file)
-        if config.env('STATS_CODE', default=True):
+        if stats_settings['channel']:
+            stats_channel = stats_settings['channel']
+        else:
+            stats_channel = 'stats'
+        if stats_settings['show_code_stats']:
             # Get stats about the code
             _codebase = get_stats_codebase()
             lines_in_codebase = _codebase['total_lines']
@@ -118,30 +129,30 @@ class Stats(commands.Cog):
             stats_log[_y][_m] = {}
         if _d not in stats_log[_y][_m]:
             stats_log[_y][_m][_d] = {}
-        if config.env('STATS_ROLES', default=True):
+        if stats_settings['show_role_stats']:
             # Get server members
             members = get_role_numbers()
             stats_log[_y][_m][_d]['members'] = {
                 'total': members['member_count'],
                 'roles': members['roles']
             }
-        if config.env.bool('STATS_CODE', default=True):
+        if stats_settings['show_code_stats']:
             # Get info about the codebase
             stats_log[_y][_m][_d]['files_in_codebase'] = files_in_codebase
             stats_log[_y][_m][_d]['lines_in_codebase'] = lines_in_codebase
         # Update the stats-msg
-        if config.env.bool('STATS_ROLES', default=True):
+        if stats_settings['show_role_stats']:
             total_members = members['member_count']
             roles_members = tabify(
                 dict_in=members['roles'], headers=['Rolle', 'Brukere']
             )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
-        if config.env.bool('STATS_ROLES', default=True):
+        if stats_settings['show_role_stats']:
             stats_msg += f'> Medlemmer\n```'\
                 f'Antall medlemmer: {total_members}\n\n'\
                 f'{roles_members}```\n'
-        if config.env.bool('STATS_CODE', default=True):
+        if stats_settings['show_code_stats']:
             stats_msg += f'> Kodebase\n```'\
                 f'Antall filer med kode: {files_in_codebase}\n'\
                 f'Antall linjer med kode: {lines_in_codebase}```\n'
@@ -179,7 +190,8 @@ async def setup(bot):
     log.log(envs.COG_STARTING.format('stats'))
     log.log_more(envs.CREATING_FILES)
     check_and_create_files = [
-        (envs.stats_logs_file, {})
+        (envs.stats_logs_file, {}),
+        (envs.stats_file, envs.stats_template)
     ]
     file_io.create_necessary_files(check_and_create_files)
     await bot.add_cog(Stats(bot))
