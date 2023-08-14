@@ -208,6 +208,12 @@ def create_necessary_files(file_list):
     for file in file_list:
         if isinstance(file, tuple):
             ensure_file(file[0], file_template=file[1])
+            if isinstance(file[1], dict):
+                file_out = read_json(file[0])
+                for item in file[1]:
+                    if item not in file_out:
+                        file_out[item] = file[1][item]
+                write_json(file[0], file_out)
         else:
             ensure_file(file)
 
