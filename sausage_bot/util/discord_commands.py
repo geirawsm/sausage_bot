@@ -155,7 +155,7 @@ def get_roles():
             'is_default': role.is_default(),
             'bot_managed': role.is_bot_managed()
         }
-    log.log_more(f'Got these roles:\n{roles_dict}')
+    log.debug(f'Got these roles:\n{roles_dict}')
     return roles_dict
 
 
@@ -227,15 +227,15 @@ async def update_stats_post(stats_info, stats_channel):
             # TODO var msg
             log.debug(f'Got msg: ({msg.author.id}) {msg.content}[0:50]')
             if str(msg.author.id) == config.BOT_ID:
-                if '(Serverstats ' in str(msg.content):
+                if 'Serverstats sist' in str(msg.content):
                     #TODO var msg
-                    log.debug('Found post with `(Serverstats `:, editing...')
+                    log.debug('Found post with `Serverstats sist`, editing...')
                     await msg.edit(content=stats_info)
                     found_stats_msg = True
                     return
         if found_stats_msg is False:
             # TODO var msg
-            log.debug('No active stats post found, posting...')
+            log.debug('Found post with `Serverstats:`, editing...')
             await channel_out.send(stats_info)
 
 

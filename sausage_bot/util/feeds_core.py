@@ -422,7 +422,6 @@ async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
             print(max_col_widths)
             table = tabulate(
                 tabulatify, tablefmt='plain',
-                headers="firstrow",
                 maxcolwidths=max_col_widths
             )
             return table

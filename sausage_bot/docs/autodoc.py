@@ -19,10 +19,10 @@ from pprint import pprint
 from .modules import doc_envs
 from .modules.doc_args import doc_args
 from ..util import envs, file_io, datetime_handling
-from ..util.args import args
+#from ..util.args import args
 from ..util.log import log
-from time import sleep
-import re
+#from time import sleep
+#import re
 
 
 def dump(item):
@@ -86,7 +86,7 @@ def dump_output(
                 filename += '-'
             filename += datetime_handling.get_dt(
                 format='timefull', sep='-'
-                )
+            )
         if isinstance(output, dict):
             filename += '.json'
             filepath = doc_envs.DOCS_DIR / folder / filename
@@ -178,7 +178,8 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                 continue
                 # Look for a keyword in docstring that indicates that this
                 # function should not be parsed for output
-            elif docstring is not None and doc_envs.skip_keyword in docstring.lower():
+            elif docstring is not None and\
+                    doc_envs.skip_keyword in docstring.lower():
                 log.debug(
                     f'Skipping `{name}` because of `doc_envs.skip_keyword`')
                 skip_because_of_keyword = True
@@ -188,6 +189,7 @@ def get_funcs(parsed_file, level=1, filter_in=None):
             _args_func = get_args(func, _args)
             log.debug(f'len of `_args_func`: {len(_args_func)}')
             if not skip_because_of_keyword:
+                # Add keyword variables to the title line
                 if len(_args_func) > 0:
                     if (
                         len(_args_func['argdefs']) +
@@ -199,7 +201,6 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                         for arg_group in _args_func:
                             for arg_name in _args_func[arg_group]:
                                 arg_names.append(arg_name)
-                            # Use the temp list to find the last item
                         for arg_name in arg_names:
                             if arg_name in doc_envs.skip_variable:
                                 continue
@@ -227,7 +228,7 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                     if permissions is not None:
                         if func_out != '':
                             func_out += '\n'
-                        func_out += f'Permissions: {permissions}\n'
+                        func_out += f'*Permissions: {permissions}*\n'
                     # Get docstring for command
                     docstring = ast.get_docstring(func)
                     log.debug(f'`docstring` is {docstring}')
@@ -346,7 +347,7 @@ def get_args(func_in, args_in):
                                 f'arg.annotation.value.attr: {arg.annotation.value.attr}')
                             print(
                                 f'arg.annotation.slice.id: {arg.annotation.slice.id}')
-                            #out[arg.arg]['type_hint'] = f'{arg.annotation.slice.id}'
+                            out[arg.arg]['type_hint'] = f'{arg.annotation.slice.id}'
                         try:
                             log.debug(
                                 f'Got `arg.annotation.value.id`: {arg.annotation.value.id}')
@@ -368,8 +369,17 @@ def get_args(func_in, args_in):
                             pprint(_defs[def_index])
                         for _kw in _defs[def_index].keywords:
                             pprint(f'_kw.arg: {_kw.arg}')
-                            pprint(f'_kw.value.value: {_kw.value.value}')
-                            out[arg.arg][_kw.arg] = _kw.value.value
+                            try:
+                                pprint(f'_kw.value.value: {_kw.value.value}')
+                                out[arg.arg][_kw.arg] = _kw.value.value
+                            except:
+                                _out = '{}.{}.{}()'.format(
+                                    _kw.value.func.value.value.id,
+                                    _kw.value.func.value.attr,
+                                    _kw.value.func.attr
+                                )
+                                pprint(f'_kw.value.func(...): {_out}')
+                                out[arg.arg][_kw.arg] = _out
                         pprint(out)
                 else:
                     pass
@@ -401,6 +411,7 @@ def get_args(func_in, args_in):
             log.debug('Only printing from `base`?', extra_color='red')
             try:
                 pprint(f'{base.attr}.{base.value.id}')
+                dump_output(f'{base.attr}.{base.value.id}', name='bases')
             except:
                 pprint(base.id)
         return args_in

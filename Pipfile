@@ -15,8 +15,8 @@ astpretty = "*"
 yt-dlp = "*"
 tabulate = "*"
 environs = "*"
-discord = "*"
 aiohttp = "*"
+discord = "*"
 
 [dev-packages]
 requests-testadapter = "*"

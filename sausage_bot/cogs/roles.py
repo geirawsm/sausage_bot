@@ -6,6 +6,13 @@ import discord
 from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
 
+'''
+Things this script should be able to do:
+- Command to make post with Reactionroles
+    - random emojis or custom
+'''
+
+
 class Autoroles(commands.Cog):
     'Manage roles and settings'
 
@@ -18,9 +25,9 @@ class Autoroles(commands.Cog):
         return
 
     @guildroles.group(name='info', aliases=['i'])
-    async def role_info(self, ctx, role_name):
+    async def role_info(self, ctx, role_name: str = None):
         '''
-        Get info about a role
+        Get info about a specific role
 
         Parameters
         ------------
@@ -38,8 +45,8 @@ class Autoroles(commands.Cog):
                 if str(_role.name).lower() == role_name.lower():
                     log.debug(f'Fant `{role_name}`')
                     embed = discord.Embed(color=_role.color)
-                    #embed.description()     # string
-                    #embed.set_thumbnail(url=_role.icon)
+                    # embed.description()     # string
+                    # embed.set_thumbnail(url=_role.icon)
                     embed.add_field(name="ID", value=_role.id, inline=True)
                     embed.add_field(
                         name="Farge", value=_role.color, inline=True
@@ -89,7 +96,10 @@ class Autoroles(commands.Cog):
                     )
                     await ctx.reply(embed=embed)
                     return
-            log.debug(f'Fant ikke rollen `{role_name}`')
+            # TODO var msg
+            _var_msg = f'Fant ikke rollen `{role_name}`'
+            log.debug(_var_msg)
+            await ctx.reply(_var_msg)
         elif role_name is None:
             # TODO var msg
             no_roles = []
@@ -374,6 +384,20 @@ async def setup(bot):
     await bot.add_cog(Autoroles(bot))
 
 
+# Reaction roles
+'''
+Command for making reaction role post
+- Set roles
+- Set emojis
+
+Post can be created based on json-settings or commands:
+'''
+_reaction_roles = config.env.bool('ROLES_REACTION', default=False)
+if _reaction_roles:
+    settings = file_io.read_json(envs.role_settings_file)
+
+
+# Maintain unique roles
 _unique_role = config.env.int('ROLES_UNIQUE', default=None)
 if _unique_role is not None:
     # TODO var msg
