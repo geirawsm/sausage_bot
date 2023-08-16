@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 from discord.ext import commands
 import discord
+from tabulate import tabulate
 
 from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
@@ -21,25 +22,52 @@ class Autoroles(commands.Cog):
 
     @commands.group(name='roles')
     async def guildroles(self, ctx):
-        'Control roles on the server'
+        '''
+        Control roles on the server
+        If no subcommand is given, list all roles
+        '''
+        if ctx.invoked_subcommand is None:
+            out = {
+                'name': [],
+                'members': [],
+                'bot_managed': []
+            }
+            for role in discord_commands.get_guild().roles:
+                if role.name == '@everyone':
+                    continue
+                out['name'].append(role.name)
+                out['members'].append(len(role.members))
+                _bot_rolle = role.is_bot_managed()
+                if _bot_rolle:
+                    _bot_rolle = 'Ja'
+                else:
+                    _bot_rolle = 'Nei'
+                out['bot_managed'].append(_bot_rolle)
+            _tab = '```{}```'.format(
+                tabulate(
+                    # TODO How to i18n headers?
+                    out, headers=['Rolle', 'Ant.medl.', 'Bot-rolle'],
+                    numalign='center'
+                )
+            )
+            await ctx.reply(_tab)
+            return
         return
 
     @guildroles.group(name='info', aliases=['i'])
     async def role_info(self, ctx, role_name: str = None):
         '''
-        Get info about a specific role
+        Get info about a specific role (`role_name`)
+        If no `role_name` is given, return all users with no roles
 
         Parameters
         ------------
         role_name: str
             The role name to get info about (default: None)
         '''
-
         _guild = discord_commands.get_guild()
         if role_name is not None and len(role_name) > 0:
             _roles = _guild.roles
-            _var_roles = ';'.join([role.name for role in _roles])
-            print(_var_roles)
             for _role in _roles:
                 log.debug(f'Sjekker `_role`: {_role}')
                 if str(_role.name).lower() == role_name.lower():
@@ -51,15 +79,20 @@ class Autoroles(commands.Cog):
                     embed.add_field(
                         name="Farge", value=_role.color, inline=True
                     )
-                    if _role.is_bot_managed() or _role.is_integration:
-                        _value = "Ja"
-                        if _role.tags.bot_id:
-                            _manager = _guild.get_member(
-                                _role.tags.bot_id
-                            ).name
-                            _value += f', av {_manager}'
+                    if _role.is_bot_managed():
                         embed.add_field(
-                            name="Autohåndteres", value=_value,
+                            name="Autohåndteres",
+                            value='Ja, av {}'.format(
+                                _guild.get_member(_role.tags.integration_id).name
+                            ),
+                            inline=False
+                        )
+                    elif _role.is_integration():
+                        embed.add_field(
+                            name="Autohåndteres",
+                            value='Ja, av {}'.format(
+                                _guild.get_member(_role.tags.bot_id).name
+                            ),
                             inline=False
                         )
                     else:
@@ -127,7 +160,7 @@ class Autoroles(commands.Cog):
     @role_manage.group(name='add', aliases=['a'])
     async def add_role(
         self, ctx, role_name: str, permissions: str,
-        color: str, hoist: bool, mentionable: bool
+        color: str, hoist: str, mentionable: str
     ):
         '''
         Add role to the server
@@ -138,9 +171,9 @@ class Autoroles(commands.Cog):
             The names of the role to add (default: None)
         color: str
             Set color for the role
-        hoist: bool
+        hoist: str (yes/no)
             Set if the role should be mentionable or not
-        mentionable: bool
+        mentionable: str (yes/no)
             Set if the role should be mentionable or not
         '''
 
@@ -149,11 +182,33 @@ class Autoroles(commands.Cog):
             log.log('Role has no name')
             await ctx.message.reply('Role has no name')
             return
+        if permissions.lower() == 'ingen':
+            permissions = discord.Permissions(permissions=0)
+        _yes = ['yes', 'y']
+        _no = ['no', 'n']
+        if hoist in _yes:
+            hoist = True
+        elif hoist in _no:
+            hoist = False
+        else:
+            await ctx.message.reply(
+                'Parameter `hoist` needs a `yes` or a `no`'
+            )
+            return
+        if mentionable in _yes:
+            mentionable = True
+        elif mentionable in _no:
+            mentionable = False
+        else:
+            await ctx.message.reply(
+                'Parameter `mentionable` needs a `yes` or a `no`'
+                )
+            return
         guild = discord_commands.get_guild()
         await guild.create_role(
             name=role_name,
             permissions=permissions,
-            color=color,
+            color=discord.Color.from_str(color),
             hoist=hoist,
             mentionable=mentionable,
         )
@@ -264,12 +319,15 @@ class Autoroles(commands.Cog):
         return
 
     @guildroles.group(name='user')
-    async def user(self, ctx):
-        'Manage a user\'s roles'
+    async def user_role(self, ctx):
+        '''
+        Manage a user\'s roles
+        If no subcommand is given, list all users
+        '''
         return
 
-    @user.group(name='add', aliases=['a'])
-    async def user_add(self, ctx, user_name: str, *role_names):
+    @user_role.group(name='add', aliases=['a'])
+    async def user_add_role(self, ctx, user_name: str, *role_names):
         '''
         Add role(s) to a user
 
@@ -339,8 +397,8 @@ class Autoroles(commands.Cog):
         await ctx.message.reply(out_msg)
         return
 
-    @user.group(name='remove', aliases=['delete', 'r', 'd'])
-    async def user_remove(self, ctx, user_name, *role_names):
+    @user_role.group(name='remove', aliases=['delete', 'r', 'd'])
+    async def user_remove_role(self, ctx, user_name, *role_names):
         '''
         Remove roles from a user
 
