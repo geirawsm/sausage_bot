@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+import discord
+
 from sausage_bot.util import config, envs, file_io
 from .log import log
 

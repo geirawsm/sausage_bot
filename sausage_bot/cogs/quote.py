@@ -5,9 +5,9 @@ from discord.ext.commands.errors import InvalidEndOfQuotedStringError
 import typing
 import random
 from time import sleep
-import asyncio
+from asyncio import TimeoutError
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util import config, envs, file_io
+from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
 
 
@@ -196,13 +196,6 @@ class Quotes(commands.Cog):
                 description="The number of quote to edit"
             )):
         'Delete an existing quote: `!quote delete [quote_number]`'
-        async def delete_logged_msgs(ctx):
-            '#autodoc skip#'
-            async for msg in ctx.history(limit=20):
-                if str(msg.author.id) == config.BOT_ID:
-                    keyphrases = envs.QUOTE_KEY_PHRASES
-                    if any(phrase in msg.content for phrase in keyphrases):
-                        await msg.delete()
 
         # Get file where all the quotes are stored
         quotes = file_io.read_json(envs.quote_file)
@@ -221,12 +214,12 @@ class Quotes(commands.Cog):
 
         try:
             reaction, user = await config.bot.wait_for(
-                'reaction_add', timeout=10.0, check=check
+                'reaction_add', timeout=15.0, check=check
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await ctx.send(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
             sleep(3)
-            await delete_logged_msgs(ctx)
+            await discord_commands.delete_bot_msgs(ctx, envs.QUOTE_KEY_PHRASES)
             await ctx.message.delete()
         else:
             # Remove the quote
@@ -237,7 +230,7 @@ class Quotes(commands.Cog):
                 envs.QUOTE_DELETE_CONFIRMED.format(quote_number)
             )
             sleep(3)
-            await delete_logged_msgs(ctx)
+            await discord_commands.delete_bot_msgs(ctx, envs.QUOTE_KEY_PHRASES)
             await ctx.message.delete()
             return
 
