@@ -4,15 +4,11 @@
 import discord
 from discord.ext import commands
 import os
-#import locale
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs
 from sausage_bot.util.log import log
 
-
-# Set locale
-#locale.setlocale(locale.LC_ALL, config.env('LOCALE', default='nb_NO.UTF-8'))
 
 # Create necessary folders before starting
 check_and_create_folders = [

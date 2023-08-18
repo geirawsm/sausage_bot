@@ -153,16 +153,16 @@ QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
 QUOTE_EDIT_CONFIRMATION = 'Endret sitat #{} fra:\n```\n{}\n({})```\n...til:\n'\
     '```\n{}\n({})```'
 QUOTE_ADD_CONFIRMATION = 'La til følgende sitat: ```#{}\n{}\n({})```'
-QUOTE_KEY_PHRASES = [
-    'Er du sikker på at du vil slette følgende sitat',
-    'Ikke fått svar på 60 sekunder',
-    'Slettet sitat #'
-]
 QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat '\
     '(Svar med reaksjon 👍 eller 👎):\n```#{}\n{}\n({})```\n'
-QUOTE_NO_CONFIRMATION_RECEIVED = 'Ikke fått svar på 30 sekunder, stopper '\
+QUOTE_NO_CONFIRMATION_RECEIVED = 'Ikke fått svar på 15 sekunder, stopper '\
     'sletting'
 QUOTE_DELETE_CONFIRMED = 'Slettet sitat #{}'
+QUOTE_KEY_PHRASES = [
+    QUOTE_CONFIRM_DELETE[0:46],     # Er du sikker på at du vil slette følgende sitat
+    QUOTE_NO_CONFIRMATION_RECEIVED,
+    QUOTE_DELETE_CONFIRMED[0:14]
+]
 QUOTE_COUNT = 'Jeg har {} sitater på lager'
 
 # COG - YOUTUBE

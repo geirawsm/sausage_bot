@@ -147,7 +147,7 @@ def get_roles():
     guild = get_guild()
     # Get all roles and their IDs
     for role in guild.roles:
-        roles_dict[role.name] = {
+        roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
             'members': len(role.members),
@@ -162,26 +162,19 @@ def get_roles():
 async def post_to_channel(
     channel_in, content_in=None,
     content_embed_in=None
-):
+) -> discord.message.Message:
     'Post `content_in` in plain text or `content_embed_in` to channel `channel_in`'
     server_channels = get_text_channel_list()
     log.debug(f'Got these channels: {server_channels}')
     if channel_in in server_channels:
         channel_out = config.bot.get_channel(server_channels[channel_in])
         if content_in:
-            await channel_out.send(content_in)
+            msg_out = await channel_out.send(content_in)
         elif content_embed_in:
-            # TODO Add embed function, should be a dict
-            embed_json = {
-                'title': 'Sample Embed',
-                'url': 'https://realdrewdata.medium.com/',
-                'description': 'This is an embed that will show how to '
-                'build an embed and the different components',
-                'color': 0xFF5733
-            }
-            await channel_out.send(
-                embed=discord.Embed.from_dict(embed_json)
+            msg_out = await channel_out.send(
+                embed=discord.Embed.from_dict(content_embed_in)
             )
+        return msg_out
     else:
         log.log(
             envs.POST_TO_NON_EXISTING_CHANNEL.format(
@@ -225,7 +218,7 @@ async def update_stats_post(stats_info, stats_channel):
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
             # TODO var msg
-            log.debug(f'Got msg: ({msg.author.id}) {msg.content}[0:50]')
+            log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
                     #TODO var msg
@@ -237,6 +230,19 @@ async def update_stats_post(stats_info, stats_channel):
             # TODO var msg
             log.debug('Found post with `Serverstats:`, editing...')
             await channel_out.send(stats_info)
+
+
+async def delete_bot_msgs(ctx, keyphrases=None):
+    '#autodoc skip#'
+    async for msg in ctx.history(limit=20):
+        if str(msg.author.id) == config.BOT_ID:
+            if keyphrases is not None:
+                if any(phrase in msg.content for phrase in keyphrases):
+                    await msg.delete()
+            else:
+                # TODO var msg
+                await ctx.reply('Ingen nøkkelfraser oppgitt')
+    return
 
 
 if __name__ == "__main__":
