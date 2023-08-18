@@ -56,7 +56,6 @@ class Stats(commands.Cog):
             dict_in: dict,
             headers: list,
         ):
-            
             hide_roles = stats_settings['hide_roles']
             hide_roles_lower = [x.lower() for x in hide_roles]
             # TODO var msg
@@ -93,7 +92,7 @@ class Stats(commands.Cog):
                 for role in dict_in:
                     if role.lower() not in hide_roles_lower:
                         if role != '@everyone':
-                            if 
+                            # Add an if to check for filter bot roles
                             dict_out['name'].append(dict_in[role]['name'])
                             dict_out['members'].append(
                                 dict_in[role]['members']
