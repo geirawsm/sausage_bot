@@ -50,12 +50,12 @@ WATCHING=
 # Stats
 stats_template = {
     'channel': 'stats',
-    'show_role_stats': true,
+    'show_role_stats': True,
     'hide_roles': '',
-    'hide_bot_roles': false,
-    'sort_roles_abc': true,
-    'sort_roles_321': false,
-    'show_code_stats': true
+    'hide_bot_roles': False,
+    'sort_roles_abc': True,
+    'sort_roles_321': False,
+    'show_code_stats': True
 }
 
 
