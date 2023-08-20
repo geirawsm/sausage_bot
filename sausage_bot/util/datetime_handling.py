@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import pendulum
 import re
+import datetime
+
 from . import envs
 from .log import log
 
@@ -26,11 +28,9 @@ def make_dt(date_in):
     - 2022-05-17T11:22:00Z
     - 2023-08-05T10:00:00+02:00
     '''
-    if 'T' in str(date_in):
-        log.debug('Found T in `date_in`')
-        if '+' in str(date_in):
-            log.debug('...and found a + as well')
-            date_in = str(date_in).split('+')[0]
+    if '+' in str(date_in):
+        log.debug('Found a + in `date_in`')
+        date_in = str(date_in).split('+')[0]
         return pendulum.parse(date_in)
     else:
         # Remove all special characters from input
@@ -46,12 +46,18 @@ def make_dt(date_in):
             if d_len == 3:
                 # Expecting `DD MM YYYY`, `YYY MM DD` or `DD MM YY`
                 if len(d_split[2]) == 4:
-                    return pendulum.from_format(date_in, 'DD MM YYYY', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'DD MM YYYY', tz=tz
+                    )
                 elif len(d_split[0]) == 4:
-                    return pendulum.from_format(date_in, 'YYYY MM DD', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'YYYY MM DD', tz=tz
+                    )
                 elif all(len(timeunit) == 2 for timeunit in d_split):
                     # We have to assume that this is DD MM YY
-                    return pendulum.from_format(date_in, 'DD MM YY', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'DD MM YY', tz=tz
+                    )
             elif d_len == 4:
                 # Expecting a wrong space or separator somewhere
                 # If all units have 2 in len, then it could be a split in YYYY,
@@ -82,13 +88,21 @@ def make_dt(date_in):
                     )
             elif d_len == 5:
                 if len(d_split[2]) == 4:
-                    return pendulum.from_format(date_in, 'DD MM YYYY HH mm', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'DD MM YYYY HH mm', tz=tz
+                    )
                 elif len(d_split[0]) == 4:
-                    return pendulum.from_format(date_in, 'YYYY MM DD HH mm', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'YYYY MM DD HH mm', tz=tz
+                    )
                 elif len(d_split[2]) == 2:
-                    return pendulum.from_format(date_in, 'DD MM YY HH mm', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'DD MM YY HH mm', tz=tz
+                    )
                 elif len(d_split[0]) == 2:
-                    return pendulum.from_format(date_in, 'YY MM DD HH mm', tz=tz)
+                    return pendulum.from_format(
+                        date_in, 'YY MM DD HH mm', tz=tz
+                    )
             elif d_len == 6:
                 # A split of 6 is most likely a split in YYYY
                 if all(len(timeunit) == 2 for timeunit in d_split):
@@ -121,6 +135,7 @@ def get_dt(format='epoch', sep='.', dt=False):
     `date`:             17.05.2014
     `datetext`:         17 May 2014
     `datetextfull`:     17 May 2014, 14.23
+    `datetimetextday`:  Monday, 17. May, 14.23
     `revdate`:          2014.05.17
     `datetime`:         17.05.2014 14.23
     `datetimefull`:     17.05.2014 14.23.39
@@ -134,7 +149,9 @@ def get_dt(format='epoch', sep='.', dt=False):
     `epoch`:            1400336619
     ```
     '''
-    if type(dt) == str:
+    if isinstance(dt, datetime.datetime):
+        dt = make_dt(str(dt))
+    elif isinstance(dt, str):
         dt = make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
@@ -147,6 +164,8 @@ def get_dt(format='epoch', sep='.', dt=False):
         return dt.format(f'DD{sep} MMMM YYYY', locale=locale)
     elif format == 'datetextfull':
         return dt.format(f'DD{sep} MMMM YYYY, HH{sep}mm', locale=locale)
+    elif format == 'datetimetextday':
+        return dt.format(f'dddd, DD{sep} MMMM, HH{sep}mm', locale=locale)
     elif format == 'revdate':
         return dt.format(f'YYYY{sep}MM{sep}DD')
     elif format == 'datetime':

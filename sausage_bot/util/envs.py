@@ -72,7 +72,7 @@ UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
 GOT_CHANNEL_LIST = 'Henter kanalliste:\n{}'
 GOT_SPECIFIC_CHANNEL = 'Fant kanal `{}` med id `{}`'
-COMPARING_IDS = 'Sammenligner med `{}` to `{}`'
+COMPARING_IDS = 'Sammenligner med `{}` ({}) med `{}` ({})'
 CREATING_FILES = 'Lager nødvendige filer'
 BOT_NOT_SET_UP = 'The bot is not properly set up'
 

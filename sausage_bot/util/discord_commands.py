@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import discord
+from tabulate import tabulate
 
-from sausage_bot.util import config, envs, file_io
+from sausage_bot.util import config, envs
+from sausage_bot.util.datetime_handling import get_dt
 from .log import log
 
 
@@ -68,21 +70,24 @@ def get_scheduled_events():
     if guild.scheduled_events is None:
         log.log(envs.AUTOEVENT_NO_EVENTS_LISTED)
         return None
+    log.debug(f'`guild.scheduled_events`: {guild.scheduled_events}')
+    _epochs = {}
     for event in guild.scheduled_events:
         _event = guild.get_scheduled_event(event.id)
-        epoch = _event.start_time.astimezone().timestamp()
-        # Maintain a counter for the epoch in case of duplicates
-        epoch_dup = {}
-        if epoch in epoch_dup:
-            epoch_dup[epoch] += 1
-            epoch = f'{epoch}_{epoch_str}'
-        else:
-            epoch_str = str(epoch).zfill(2)
-            epoch_dup[epoch] = 1
-        epoch = f'{epoch_str}'
-        event_dict[epoch] = {
+        log.debug(f'`_event`: {_event}')
+        _dt = _event.start_time.astimezone()
+        _dt_pend = get_dt(format='datetimetextday', dt=_dt)
+        epoch = int(_event.start_time.astimezone().timestamp())
+        if epoch not in _epochs:
+            _epochs[epoch] = 1
+        elif epoch in _epochs:
+            _epochs[epoch] += 1
+        epoch_id = '{}-{}'.format(epoch, _epochs[epoch])
+        log.debug(f'`epoch_id`: {epoch_id}')
+        event_dict[epoch_id] = {
             'name': _event.name,
-            'start': _event.start_time.astimezone(),
+            'epoch': epoch,
+            'start': _dt_pend,
             'id': _event.id,
             'users': _event.user_count
         }
@@ -96,48 +101,34 @@ def get_sorted_scheduled_events():
     '''
     # Sort the dict based on epoch
     events_in = get_scheduled_events()
+    log.debug(f'`events_in`: {events_in}')
     if len(events_in) == 0:
         return None
-    else:
-        headers = {
-            'name': 'KAMP',
-            'start': 'DATO',
-            'users': 'INTR.',
-            'id': 'ID'
-        }
-        try:
-            event_dict = dict(sorted(events_in.items()))
-        except Exception as e:
-            # events_in/get_scheduled_events() already describes the error
-            log.log(str(e))
-            return None
-        lengths = file_io.get_max_item_lengths(headers, event_dict)
-        temp_line = '{name:{name_len}} | {start:{start_len}} | '\
-            '{users:{users_len}} | {id:{id_len}} '
-        # Add headers
-        _h = headers
-        _l = lengths
-        out = temp_line.format(
-            name=_h['name'], start=_h['start'], users=_h['users'],
-            id=_h['id'], name_len=_l['name'], start_len=_l['start'],
-            users_len=_l['users'], id_len=_l['id']
-        )
-        out += '\n'
-        for item in event_dict:
-            _e = event_dict[item]
-            _id = _e['id']
-            _name = _e['name']
-            _start = _e['start'].strftime('%-d. %B, kl. %H:%M')
-            _users = _e['users']
-            out += temp_line.format(
-                name=_name, start=_start, users=_users, id=_id,
-                id_len=lengths['id'], name_len=lengths['name'],
-                start_len=lengths['start'], users_len=lengths['users']
-            )
-            if item != list(event_dict)[-1]:
-                out += '\n'
-        out = '```{}```'.format(out)
-        return out
+    try:
+        event_dict = dict(sorted(events_in.items()))
+        log.debug(f'`event_dict` is sorted: {event_dict}')
+    except Exception as e:
+        # events_in/get_scheduled_events() already describes the error
+        log.log(str(e))
+        return None
+    sched_dict = {
+        'match': [],
+        'start': [],
+        'interest': [],
+        'id': []
+    }
+    for event in event_dict:
+        sched_dict['match'].append(event_dict[event]['name'])
+        sched_dict['start'].append(event_dict[event]['start'])
+        sched_dict['interest'].append(event_dict[event]['users'])
+        sched_dict['id'].append(event_dict[event]['id'])
+    out = tabulate(
+        sched_dict,
+        headers=['Kamp', 'Dato', 'Intr.', 'ID'],
+        numalign='center'
+    )
+    out = '```{}```'.format(out)
+    return out
 
 
 def get_roles():
