@@ -879,8 +879,7 @@ if len(_reaction_roles) > 0:
 
 # Maintain unique roles
 _unique_role_settings = settings['unique_role']
-if isinstance(_unique_role_settings['role'], int) and\
-        len(_unique_role_settings['role']) > 15:
+if isinstance(_unique_role_settings['role'], int):
     # TODO var msg
     log.debug('Check for unique role')
 
@@ -905,7 +904,9 @@ if isinstance(_unique_role_settings['role'], int) and\
                     for __role in after.roles:
                         if __role.id == _unique_role:
                             log.debug('Unique role still in `after.roles`')
-                            await after.remove_roles(_guild.get_role(_unique_role))
+                            await after.remove_roles(
+                                _guild.get_role(_unique_role)
+                            )
                             return
                     log.debug('Unique role not in `after.roles`')
                     if len(after.roles) > len(before.roles):
