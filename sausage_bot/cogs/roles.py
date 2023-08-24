@@ -879,8 +879,8 @@ if len(_reaction_roles) > 0:
 
 # Maintain unique roles
 _unique_role_settings = settings['unique_role']
-if isinstance(_unique_role_settings['role'], str) and\
-        len(_unique_role_settings['role']) > 0:
+if isinstance(_unique_role_settings, str) and\
+        len(_unique_role_settings) > 0:
     # TODO var msg
     log.debug('Check for unique role')
 
