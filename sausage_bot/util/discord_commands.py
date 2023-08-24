@@ -137,9 +137,8 @@ def get_roles():
     #autodoc skip#
     '''
     roles_dict = {}
-    guild = get_guild()
     # Get all roles and their IDs
-    for role in guild.roles:
+    for role in get_guild().roles:
         roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
@@ -156,17 +155,18 @@ async def post_to_channel(
     channel_in, content_in=None,
     content_embed_in=None
 ) -> discord.message.Message:
-    'Post `content_in` in plain text or `content_embed_in` to channel `channel_in`'
+    '''
+    Post `content_in` in plain text or `content_embed_in` to channel
+    `channel_in`
+    '''
     server_channels = get_text_channel_list()
     log.debug(f'Got these channels: {server_channels}')
     if channel_in in server_channels:
         channel_out = config.bot.get_channel(server_channels[channel_in])
-        if content_in:
-            msg_out = await channel_out.send(content_in)
-        elif content_embed_in:
-            msg_out = await channel_out.send(
-                embed=discord.Embed.from_dict(content_embed_in)
-            )
+        msg_out = await channel_out.send(
+            content=content_in,
+            embed=discord.Embed.from_dict(content_embed_in) or None
+        )
         return msg_out
     else:
         log.log(

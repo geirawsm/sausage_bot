@@ -34,7 +34,7 @@ dilemmas_log_file = JSON_DIR / 'dilemmas-log.json'
 cogs_status_file = JSON_DIR / 'cogs_status.json'
 stats_file = JSON_DIR / 'stats.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
-role_settings_file = JSON_DIR / 'role_settings.json'
+roles_settings_file = JSON_DIR / 'roles_settings.json'
 
 # Template content
 env_template = '''
@@ -58,6 +58,12 @@ stats_template = {
     'show_code_stats': True
 }
 
+# Roles
+roles_template = {
+    'channel': 'roles',
+    "unique_role": "",
+    'reaction_messages': {}
+}
 
 ### Botlines ###
 # Generiske
@@ -207,6 +213,12 @@ AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT = '`start_time` ser ikke ut til å '\
     'være i riktig format'
 AUTOEVENT_EVENT_START_IN_PAST = 'Kan ikke lage en event med starttid i fortida'
 AUTOEVENT_HTTP_EXCEPTION_ERROR = 'Got an error when posting event: {}'
+
+# COG - ROLES
+ROLES_KEY_PHRASES = [
+    'Svar på denne meldingen med navnet på en rolle',
+    'Timed out'
+]
 
 
 if __name__ == "__main__":
