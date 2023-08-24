@@ -879,8 +879,8 @@ if len(_reaction_roles) > 0:
 
 # Maintain unique roles
 _unique_role_settings = settings['unique_role']
-if isinstance(_unique_role_settings, str) and\
-        len(_unique_role_settings) > 0:
+if isinstance(_unique_role_settings['role'], int) and\
+        len(_unique_role_settings['role']) > 15:
     # TODO var msg
     log.debug('Check for unique role')
 
@@ -895,20 +895,17 @@ if isinstance(_unique_role_settings, str) and\
         these will not be counted in the total of a users role to make
         sure the total number will be correct
         '''
+        _guild = discord_commands.get_guild()
+        _unique_role = _unique_role_settings['role']
         if len(after.roles) > len(before.roles):
             # TODO var msg
             log.debug('Flere nye roller etter endring')
-            _unique_role = _unique_role_settings['role']
             for _role in before.roles:
                 if _role.id == _unique_role:
                     for __role in after.roles:
                         if __role.id == _unique_role:
                             log.debug('Unique role still in `after.roles`')
-                            await after.remove_roles(
-                                discord_commands.get_guild().get_role(
-                                    _unique_role
-                                )
-                            )
+                            await after.remove_roles(_guild.get_role(_unique_role))
                             return
                     log.debug('Unique role not in `after.roles`')
                     if len(after.roles) > len(before.roles):
@@ -922,8 +919,4 @@ if isinstance(_unique_role_settings, str) and\
             )+1
             if (len(after.roles) - excluded_roles) == 0:
                 log.debug('Add unique role again')
-                await after.add_roles(
-                    discord_commands.get_guild().get_role(
-                        _unique_role
-                    )
-                )
+                await after.add_roles(_guild.get_role(_unique_role))

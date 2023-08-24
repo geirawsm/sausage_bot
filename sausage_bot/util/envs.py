@@ -61,8 +61,11 @@ stats_template = {
 # Roles
 roles_template = {
     'channel': 'roles',
-    "unique_role": "",
-    'reaction_messages': {}
+    'reaction_messages': {},
+    'unique_role': {
+        'not_include_in_total': [],
+        'role': 0
+    }
 }
 
 ### Botlines ###
