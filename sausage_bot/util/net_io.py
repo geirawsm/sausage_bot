@@ -55,8 +55,8 @@ def make_event_start_stop(date, time=None):
             start_dt = datetime_handling.make_dt(f'{date} {time}')
         log.debug(f'`start_dt` is {start_dt}')
     except Exception as e:
-        print(e)
-        sys.exit()
+        log.log(f'Got an error: {e}')
+        return None
     try:
         start_date = datetime_handling.get_dt('date', dt=start_dt)
         start_time = datetime_handling.get_dt('time', sep=':', dt=start_dt)

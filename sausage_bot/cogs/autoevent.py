@@ -7,7 +7,6 @@ into an event for the server.
 from discord.ext import commands
 import discord
 import os
-from tabulate import tabulate
 import re
 
 from sausage_bot.util import envs, config, datetime_handling, net_io
@@ -93,7 +92,6 @@ class AutoEvent(commands.Cog):
                 CHANNEL_OK = False
                 log.debug('channel is NOT ok')
                 # Delete command message
-                await ctx.message.delete()
                 await ctx.send(envs.CHANNEL_NOT_FOUND, delete_after=5)
                 return
             if SCRAPE_OK and CHANNEL_OK:
@@ -141,7 +139,6 @@ class AutoEvent(commands.Cog):
                             envs.AUTOEVENT_EVENT_START_IN_PAST,
                             delete_after=5
                         )
-                        await ctx.message.delete()
                         return
 
     @commands.check_any(
@@ -159,6 +156,7 @@ class AutoEvent(commands.Cog):
         event_id_in:
             ID for the event to remove (default: None)
             Get ID's from `!autoevent list`
+            Also accept 'all' to remove all events
         '''
 
         event_dict = discord_commands.get_scheduled_events()
@@ -250,7 +248,6 @@ class AutoEvent(commands.Cog):
                 envs.AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT,
                 delete_after=3
             )
-        await ctx.message.delete()
         return
 
 

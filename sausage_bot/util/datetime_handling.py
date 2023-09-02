@@ -28,8 +28,12 @@ def make_dt(date_in):
     - 2022-05-17T11:22:00Z
     - 2023-08-05T10:00:00+02:00
     '''
-    if '+' in str(date_in):
-        log.debug('Found a + in `date_in`')
+    if str(date_in)[-1] == 'Z':
+        log.debug('Found a `T` in `date_in`')
+        date_in = str(date_in).split('Z')[0]
+        return pendulum.parse(date_in)
+    elif '+' in str(date_in):
+        log.debug('Found a `+` in `date_in`')
         date_in = str(date_in).split('+')[0]
         return pendulum.parse(date_in)
     else:
