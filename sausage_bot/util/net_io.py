@@ -4,7 +4,6 @@ import discord
 import re
 import aiohttp
 from datetime import datetime
-from bs4 import BeautifulSoup
 from sausage_bot.util import envs, datetime_handling
 from sausage_bot.util.args import args
 from .log import log

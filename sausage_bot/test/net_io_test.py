@@ -14,14 +14,12 @@ def test_get_link():
     url_fail_no_tld = 'www.vgno'
     link_not_string = 123
 
-    get_link = net_io.get_link
-
-    assert type(get_link(url_ok_full)) is requests.models.Response
-    assert type(get_link(url_ok_short)) == requests.models.Response
-    assert type(get_link(url_ok_shorter)) == requests.models.Response
-    assert get_link(url_fail_scheme_error) == None
-    assert get_link(url_fail_no_tld) == None
-    assert net_io.get_link(link_not_string) is None
+    assert type(net_io.get_link(url_ok_full)) is requests.models.Response
+    assert type(net_io.get_link(url_ok_short)) == requests.models.Response
+    assert type(net_io.get_link(url_ok_shorter)) == requests.models.Response
+    assert net_io.get_link(url_fail_scheme_error) is None
+    assert net_io.get_link(url_fail_no_tld) is None
+    assert net_io.net_io.get_link(link_not_string) is None
 
 
 def test_scrape_page():
@@ -32,14 +30,14 @@ def test_scrape_page():
     url_fail2 = 'www.vgno'
     url_fail3 = 123
 
-    scrape_page = net_io.scrape_page
+    scrape_page = net_io.parse()
 
     assert type(scrape_page(url_ok1)) == bs4.BeautifulSoup
     assert type(scrape_page(url_ok2)) == bs4.BeautifulSoup
     assert type(scrape_page(url_ok3)) == bs4.BeautifulSoup
-    assert scrape_page(url_fail1) == None
-    assert scrape_page(url_fail2) == None
-    assert scrape_page(url_fail3) == None
+    assert scrape_page(url_fail1) is None
+    assert scrape_page(url_fail2) is None
+    assert scrape_page(url_fail3) is None
 
 
 def test_make_event_start_stop():
