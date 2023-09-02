@@ -5,32 +5,10 @@ import discord
 from tabulate import tabulate
 from asyncio import TimeoutError
 from time import sleep
-import re
+from operator import itemgetter
 
 from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
-
-'''
-Manual command tree:
-!roles              guildroles
-    info            guildroles.role_info
-    manage          guildroles.role_manage
-        add         guildroles.role_manage.add_role
-        remove      guildroles.role_manage.remove_role
-        edit        guildroles.role_manage.edit_role
-    user            guildroles.user_role
-        add         guildroles.user_role.user_add_role
-        remove      guildroles.user_role.user_remove_role
-    reaction        guildroles.role_reaction
-        list        guildroles.role_reaction.list_reaction
-        add         guildroles.role_reaction.add_reaction
-            msg     guildroles.role_reaction.add_reaction.add_msg
-            role    guildroles.role_reaction.add_reaction.add_role
-        remove      guildroles.role_reaction.remove_reaction
-            msg     guildroles.role_reaction.remove_reaction.remove_reaction_message
-            role    guildroles.role_reaction.remove_reaction.remove_reaction_from_message
-'''
-
 
 def make_error_message(errors):
     '''
@@ -52,6 +30,95 @@ def make_error_message(errors):
         return _error_msg_in
     else:
         return None
+
+
+async def get_message_by_id_or_name_from_settings(
+        msg_id_or_name, reaction_settings_in
+) -> dict:
+    '''
+    Get a message object and it's ID and name
+
+    Parameters
+    ------------
+    msg_id_or_name: int/str
+        The message ID to look for, or name of the saved message in
+        settings file
+    reaction_settings_in: dict
+        The reaction settings from the settings file
+
+    Returns
+    ------------
+    dict:
+        msg:
+            Discord message object
+        id: str
+            Discord message ID
+        name: str
+            Message name as used in the settings file
+    '''
+
+    msg_id = None
+    msg_name = None
+    if isinstance(msg_id_or_name, str):
+        # Get message ID and name first
+        if msg_id_or_name in reaction_settings_in:
+            msg_id = reaction_settings_in[msg_id_or_name]['id']
+            msg_name = msg_id_or_name
+    elif isinstance(msg_id_or_name, int):
+        msg_id = msg_id_or_name
+        for reaction in reaction_settings_in:
+            if reaction_settings_in[reaction]['id'] == msg_id_or_name:
+                msg_name = reaction_settings_in[reaction]
+    _channel = reaction_settings_in[msg_id_or_name]['channel']
+    log.log_more(f'using `msg_id`: {msg_id}')
+    log.log_more(f'using `msg_name`: {msg_name}')
+    _guild = discord_commands.get_guild()
+    _channels = discord_commands.get_text_channel_list()
+    _channel = _guild.get_channel(
+        _channels[_channel]
+    )
+    msg = await _channel.fetch_message(msg_id)
+    return {
+        'msg': msg,
+        'id': msg_id,
+        'name': msg_name
+    }
+
+
+async def sync_reaction_message_from_settings(msg_id_or_name):
+    # Read settings file
+    settings = file_io.read_json(envs.roles_settings_file)
+    reaction_msgs = settings['reaction_messages']
+    _msg = await get_message_by_id_or_name_from_settings(
+        msg_id_or_name, reaction_msgs
+    )
+    reaction_template = reaction_msgs[_msg['name']]
+    log.debug(f'reaction_template: {reaction_template}')
+    # By using settingsfile, recreate the embed
+    _roles = discord_commands.get_roles()
+    new_embed_desc = ''
+    for reaction in reaction_template['reactions']:
+        if len(new_embed_desc) > 0:
+            new_embed_desc += '\n'
+        if reaction[0] in _roles:
+            new_embed_desc += '{} <@&{}>'.format(
+                reaction[1], _roles[reaction[0]]['id']
+            )
+        else:
+            log.log('Could not find `{}` in roles'.format(
+                reaction[0]
+            ))
+    await _msg['msg'].clear_reactions()
+    for reaction in reaction_template['reactions']:
+        await _msg['msg'].add_reaction(reaction[1])
+    embed_json = {
+        'description': new_embed_desc
+    }
+    # Edit discord message
+    await _msg['msg'].edit(
+        content=reaction_template['content'],
+        embed=discord.Embed.from_dict(embed_json)
+    )
 
 
 class Autoroles(commands.Cog):
@@ -85,7 +152,7 @@ class Autoroles(commands.Cog):
                 out['bot_managed'].append(_bot_rolle)
             _tab = '```{}```'.format(
                 tabulate(
-                    # TODO How to i18n headers?
+                    # TODO i18n?
                     out, headers=['Rolle', 'Ant.medl.', 'Bot-rolle'],
                     numalign='center'
                 )
@@ -98,13 +165,13 @@ class Autoroles(commands.Cog):
     async def role_info(self, ctx, role_name: str = None):
         '''
         Get info about a specific role (`role_name`)
-        If no `role_name` is given, return all users with no roles
 
         Parameters
         ------------
         role_name: str
             The role name to get info about (default: None)
         '''
+
         _guild = discord_commands.get_guild()
         if role_name is not None and len(role_name) > 0:
             _roles = _guild.roles
@@ -113,8 +180,6 @@ class Autoroles(commands.Cog):
                 if str(_role.name).lower() == role_name.lower():
                     log.debug(f'Fant `{role_name}`')
                     embed = discord.Embed(color=_role.color)
-                    # embed.description()     # string
-                    # embed.set_thumbnail(url=_role.icon)
                     embed.add_field(name="ID", value=_role.id, inline=True)
                     embed.add_field(
                         name="Farge", value=_role.color, inline=True
@@ -175,23 +240,113 @@ class Autoroles(commands.Cog):
             _var_msg = f'Fant ikke rollen `{role_name}`'
             log.debug(_var_msg)
             await ctx.reply(_var_msg)
-        elif role_name is None:
-            # TODO var msg
-            no_roles = []
-            for member in _guild.members:
-                if len(member.roles) == 1:
-                    if member.roles[0].name == '@everyone':
-                        no_roles.append(member.name)
-            header = f'Brukere uten roller ({len(no_roles)}):'
-            out = ''
-            for _member in no_roles:
-                if (len(out) + len(_member)) > 1800:
-                    ctx.send(out)
-                    out = ''
-                if out == '':
-                    out += header
-                out += f'\n- {_member}'
-            await ctx.send(out)
+        return
+
+    @guildroles.group(name='list', aliases=['l'])
+    async def role_list(self, ctx):
+        'List roles, emojis or reactions'
+        return
+
+    @role_list.group(name='roles', aliases=['r'])
+    async def list_roles(self, ctx):
+        'List roles'
+        _roles = discord_commands.get_roles()
+        tabulate_dict = {
+            'name': [],
+            'id': [],
+            'members': [],
+            'bot_managed': []
+        }
+        for _role in _roles:
+            tabulate_dict['name'].append(_roles[_role]['name'])
+            tabulate_dict['id'].append(_roles[_role]['id'])
+            tabulate_dict['members'].append(_roles[_role]['members'])
+            if _roles[_role]['bot_managed']:
+                # TODO i18n?
+                tabulate_dict['bot_managed'].append('Ja')
+            elif not _roles[_role]['bot_managed']:
+                # TODO i18n?
+                tabulate_dict['bot_managed'].append('Nei')
+        await ctx.reply(
+            '```{}```'.format(
+                tabulate(
+                    # TODO var msg i18n?
+                    tabulate_dict, headers=[
+                        'Navn', 'ID', 'Medl.', 'Bot-rolle'
+                    ]
+                )
+            )
+        )
+        return
+
+    @role_list.group(name='emojis', aliases=['e'])
+    async def list_emojis(self, ctx):
+        'List server emojis'
+        _guild = discord_commands.get_guild()
+        tabulate_dict = {
+            'emoji': [],
+            'name': [],
+            'id': [],
+            'animated': [],
+            'managed': []
+        }
+        for emoji in _guild.emojis:
+            tabulate_dict['emoji'].append(f':{emoji.id}:')
+            tabulate_dict['name'].append(emoji.name)
+            tabulate_dict['id'].append(emoji.id)
+            if emoji.animated:
+                tabulate_dict['animated'].append('Ja')
+            else:
+                tabulate_dict['animated'].append('Nei')
+            if emoji.managed:
+                tabulate_dict['managed'].append('Ja')
+            else:
+                tabulate_dict['managed'].append('Nei')
+        await ctx.reply(
+            '```{}```'.format(
+                tabulate(
+                    # TODO var msg i18n?
+                    tabulate_dict, headers=[
+                        'Emoji', 'Navn', 'ID', 'Animert?', 'Auto-håndtert?'
+                    ]
+                )
+            )
+        )
+        return
+
+    @role_list.group(name='reactions', aliases=['reac'])
+    async def list_reactions(self, ctx):
+        'List reactions'
+        tabulate_dict = {
+            'name': [],
+            'channel': [],
+            'id': [],
+            'content': [],
+            'reactions': []
+        }
+        reaction_messages = file_io.read_json(
+            envs.roles_settings_file
+        )['reaction_messages']
+        for msg in reaction_messages:
+            tabulate_dict['name'].append(msg)
+            tabulate_dict['channel'].append(reaction_messages[msg]['channel'])
+            tabulate_dict['id'].append(reaction_messages[msg]['id'])
+            tabulate_dict['content'].append(
+                reaction_messages[msg]['content'][0:20]
+            )
+            tabulate_dict['reactions'].append(
+                len(reaction_messages[msg]['reactions'])
+            )
+        await ctx.reply(
+            '```{}```'.format(
+                tabulate(
+                    # TODO i18n?
+                    tabulate_dict, headers=[
+                        'Navn', 'Kanal', 'ID', 'Innhold', 'Ant. reaksj.'
+                    ]
+                )
+            )
+        )
         return
 
     @guildroles.group(name='manage', aliases=['m'])
@@ -515,7 +670,7 @@ class Autoroles(commands.Cog):
         await ctx.reply(
             '```{}```'.format(
                 tabulate(
-                    # TODO var msg i18n?
+                    # TODO i18n?
                     _tabulate_msgs, headers=[
                         'Navn', 'Kanal', 'ID', 'Innhold', 'Reaksjoner'
                     ], maxcolwidths=[None, None, None, 20, None]
@@ -525,13 +680,13 @@ class Autoroles(commands.Cog):
         return
 
     @role_reaction.group(name='add', aliases=['a'])
-    async def add_reaction(self, ctx):
+    async def add_reaction_item(self, ctx):
         '''
         Add a reaction message or a role to existing message
         '''
         return
 
-    @add_reaction.group(name='message', aliases=['msg', 'm'])
+    @add_reaction_item.group(name='message', aliases=['msg', 'm'])
     async def add_msg(
         self, ctx, msg_name: str = None, message_text: str = '',
         channel: str = None
@@ -542,7 +697,7 @@ class Autoroles(commands.Cog):
         Parameters
         ------------
         msg_name: str
-            Name of the message for the reaction roles
+            Name of the message for the reaction roles (default: None)
         message_text: str
             The text for the message (default: '')
         channel: strl
@@ -585,8 +740,12 @@ class Autoroles(commands.Cog):
             }
             reactions = []
             _roles = discord_commands.get_roles()
-            for line in str(_msg.content).split('\n'):
-                role, emoji = line.split(';')
+            content_split = []
+            content_split.extend(
+                line for line in str(_msg.content).split('\n')
+            )
+            for line in content_split:
+                role, emoji = line.strip().split(';')
                 # Use this for reporting non-existing roles
                 if role.lower() not in _roles:
                     log.debug(f'Could not find role `role` {role}')
@@ -630,12 +789,12 @@ class Autoroles(commands.Cog):
         file_io.write_json(envs.roles_settings_file, roles_settings)
         return
 
-    @add_reaction.group(name='role', aliases=['r'])
+    @add_reaction_item.group(name='role', aliases=['r'])
     async def add_reaction_role(
         self, ctx, msg_id_or_name=None, *role_emoji_combo
     ):
         '''
-        Add a reaction message
+        Add a reaction role to an existing message
 
         Parameters
         ------------
@@ -647,64 +806,79 @@ class Autoroles(commands.Cog):
             `testrole;❓`
             Multiple sets can be added, using newline (shift-Enter).
         '''
-        # TODO Roles are not added to settings file
+        # Update settings file
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
-        if isinstance(msg_id_or_name, str):
-            # Get message ID first
-            if msg_id_or_name in reaction_messages:
-                msg_id = reaction_messages[msg_id_or_name]['id']
-        elif isinstance(msg_id_or_name, int):
-            msg_id = msg_id_or_name
-        _channel = reaction_messages[msg_id_or_name]['channel']
-        log.debug(f'using `msg_id`: {msg_id}')
-        _guild = discord_commands.get_guild()
-        _channels = discord_commands.get_text_channel_list()
-        _channel = _guild.get_channel(
-            _channels[_channel]
-        )
-        _msg = await _channel.fetch_message(msg_id)
-        # Check if the bot is the author before continuing
-        env_bot_id = config.env.int('BOT_ID')
-        if _msg.author.id != env_bot_id:
-            # TODO var msg
-            await ctx.reply('Message is not created by me')
-            return
-        embed_desc = _msg.embeds[0].description
         _roles = discord_commands.get_roles()
         error_roles = {
             'duplicate': [],
             'do_not_exist': []
         }
-        reactions = reaction_messages[msg_id_or_name]['reactions']
+        _msg = await get_message_by_id_or_name_from_settings(
+            msg_id_or_name, reaction_messages
+        )
+        reactions = reaction_messages[_msg['name']]['reactions']
         for combo in role_emoji_combo:
-            role, emoji = combo.split(';')
+            role, emoji = str(combo).split(';')
             if role.lower() not in _roles:
                 log.debug(f'Could not find `role` {role}')
                 error_roles['do_not_exist'].append(role)
-                continue
-            if emoji in embed_desc or role in reactions:
+            elif role in reactions:
                 log.debug(f'Emoji {role} has already been added')
                 error_roles['duplicate'].append(role)
-                continue
-            embed_desc += '\n{} <@&{}>'.format(
-                emoji, _roles[role]['id']
-            )
-            log.debug(f'Adding emoji {emoji}')
-            await _msg.add_reaction(emoji)
-            await ctx.message.add_reaction('✅')
-            if '<:' in str(emoji):
-                emoji = re.match(r'<:(.*):\d+>', emoji).group(1)
-            reactions.append([role, emoji])
+            else:
+                reactions.append([role, emoji])
+                log.debug(f'Adding emoji {emoji}')
         file_io.write_json(envs.roles_settings_file, roles_settings)
-        embed_json = {
-            'description': embed_desc
-        }
+        await sync_reaction_message_from_settings(msg_id_or_name)
         # Inform about role/emoji errors
         _error_msg = make_error_message(error_roles)
         if _error_msg:
             await ctx.reply(_error_msg)
-        await _msg.edit(embed=discord.Embed.from_dict(embed_json))
+        return
+
+    @role_reaction.group(name='sync', aliases=['s'])
+    async def sync_reaction_items(self, ctx, msg_id_or_name=None):
+        '''
+        Synchronize a reaction message with the settings file
+
+        Parameters
+        ------------
+        msg_id_or_name: int/str
+            The message ID to look for, or name of the saved message in
+            settings file
+        '''
+        await sync_reaction_message_from_settings(msg_id_or_name)
+        return
+
+    @role_reaction.group(name='sort')
+    async def sort_reaction_items(
+        self, ctx, msg_id_or_name=None
+    ):
+        '''
+        Sort items in a reaction message alphabetically
+
+        Parameters
+        ------------
+        msg_id_or_name: int/str
+            The message ID to look for, or name of the saved message in
+            settings file
+        '''
+        if not msg_id_or_name:
+            # TODO var msg
+            ctx.reply('I need the ID or name of the reaction message')
+            return
+        roles_settings = file_io.read_json(envs.roles_settings_file)
+        reaction_messages = roles_settings['reaction_messages']
+        _msg = await get_message_by_id_or_name_from_settings(
+            msg_id_or_name, reaction_messages
+        )
+        reaction_messages[_msg['name']]['reactions'] = sorted(
+            reaction_messages[_msg['name']]['reactions'],
+            key=itemgetter(0)
+        )
+        file_io.write_json(envs.roles_settings_file, roles_settings)
+        await sync_reaction_message_from_settings(msg_id_or_name)
         return
 
     @role_reaction.group(name='remove', aliases=['r', 'delete', 'del'])
@@ -748,56 +922,48 @@ class Autoroles(commands.Cog):
 
     @remove_reaction.group(name='role', aliases=['r'])
     async def remove_reaction_from_message(
-        self, ctx, msg_name: str = None, role_name: str = None
+        self, ctx, msg_id_or_name: str = None, *role_names
     ):
         '''
         Remove a reaction from reaction message
 
         Parameters
         ------------
-        msg_name: str
-            The message name of the saved message in settings file
-        role_name: str
-            Name of a role that is connected to a reaction in the message
+        msg_id_or_name: int/str
+            The message ID to look for, or name of the saved message in
+            settings file
+        role_names: str
+            Name of one or several roles that is connected to a reaction
+            in the message
         '''
-        # Get message ID
+        # Update settings file
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
-        if msg_name not in reaction_messages:
-            await ctx.reply(f'Could not find {msg_name}')
-            return
-        # Fetch message
-        msg_id = reaction_messages[msg_name]['id']
-        channel = reaction_messages[msg_name]['channel']
-        _guild = discord_commands.get_guild()
-        _channels = discord_commands.get_text_channel_list()
-        _channel = _guild.get_channel(_channels[channel])
-        _msg = await _channel.fetch_message(msg_id)
         _roles = discord_commands.get_roles()
-        # read msg embed
-        embed_desc = _msg.embeds[0].description
-        new_embed_desc = ''
-        # identify role/emoji
-        emoji = None
-        reactions = reaction_messages[msg_name]['reactions']
-        for reaction in reactions:
-            if role_name.lower() == reaction[0].lower():
-                emoji = reaction[1]
-                log.debug(f'Got this emoji {emoji}')
-        embed_desc_list = embed_desc.splitlines(keepends=True)
-        for line in embed_desc_list:
-            if emoji in line and str(_roles[role_name]['id']) in line:
-                del embed_desc_list[embed_desc_list.index(line)]
-        new_embed_desc = ''.join(item for item in embed_desc_list)
-        embed_json = {
-            'description': new_embed_desc
+        error_roles = {
+            'duplicate': [],
+            'do_not_exist': []
         }
-        await _msg.edit(embed=discord.Embed.from_dict(embed_json))
-        await _msg.clear_reaction(emoji=emoji)
-        for reaction in reactions:
-            if role_name == reaction[0]:
-                del reactions[reactions.index(reaction)]
+        _msg = await get_message_by_id_or_name_from_settings(
+            msg_id_or_name, reaction_messages
+        )
+        reactions = reaction_messages[_msg['name']]['reactions']
+        log.log_more(f'role_names: {role_names}')
+        for role_name in role_names:
+            if role_name.lower() not in _roles:
+                log.debug(f'Could not find `role_name` {role_name}')
+                error_roles['do_not_exist'].append(role_name)
+            else:
+                # Remove reaction from settings file
+                for reaction in reactions:
+                    if role_name == reaction[0]:
+                        del reactions[reactions.index(reaction)]
         file_io.write_json(envs.roles_settings_file, roles_settings)
+        await sync_reaction_message_from_settings(msg_id_or_name)
+        # Inform about role/emoji errors
+        _error_msg = make_error_message(error_roles)
+        if _error_msg:
+            await ctx.reply(_error_msg)
         return
 
 
@@ -826,24 +992,30 @@ if len(_reaction_roles) > 0:
         _guild = discord_commands.get_guild()
         for reaction_message in reaction_messages:
             if payload.message_id == reaction_messages[reaction_message]['id']:
+                # TODO var msg
+                log.debug('Found message, checking reactions...')
                 reactions = reaction_messages[reaction_message]['reactions']
                 for reaction in reactions:
-                    print(payload.emoji.name)
-                    print(reaction[1])
-                    if re.match(r'(<:)?{}(:\d+>)?'.format(
-                                    reaction[1]
-                            ), payload.emoji.name):
+                    incoming_emoji = payload.emoji.name
+                    log.debug(f'incoming_emoji: {incoming_emoji}')
+                    log.debug('reaction[1]: {}'.format(
+                        reaction[1]
+                    ))
+                    if incoming_emoji in reaction[1]:
                         for _role in _guild.roles:
                             if _role.name.lower() == reaction[0].lower():
-                                log.debug(f'Adding role {reaction[0]} to user')
+                                log.debug(
+                                    f'Adding role {reaction[0]} to user'
+                                )
                                 await _guild.get_member(
                                     payload.user_id
                                 ).add_roles(
                                     _role,
-                                    reason='Added in accordance with reaction '
-                                           f'message {reaction_message}'
+                                    reason='Added in accordance with  '
+                                    'reaction message '
+                                    f'{reaction_message}'
                                 )
-                                continue
+                                break
         return
 
     @config.bot.event
@@ -853,13 +1025,16 @@ if len(_reaction_roles) > 0:
         _guild = discord_commands.get_guild()
         for reaction_message in reaction_messages:
             if payload.message_id == reaction_messages[reaction_message]['id']:
+                # TODO var msg
+                log.debug('Found message, checking reactions...')
                 reactions = reaction_messages[reaction_message]['reactions']
                 for reaction in reactions:
-                    print(payload.emoji.name)
-                    print(reaction[1])
-                    if re.match(r'(<:)?{}(:\d+>)?'.format(
-                                    reaction[1]
-                            ), payload.emoji.name):
+                    incoming_emoji = payload.emoji.name
+                    log.debug(f'incoming_emoji: {incoming_emoji}')
+                    log.debug('reaction[1]: {}'.format(
+                        reaction[1]
+                    ))
+                    if incoming_emoji in reaction[1]:
                         for _role in _guild.roles:
                             if _role.name.lower() == reaction[0].lower():
                                 log.debug(
@@ -870,10 +1045,10 @@ if len(_reaction_roles) > 0:
                                 ).remove_roles(
                                     _role,
                                     reason='Removed in accordance with '
-                                           'reaction message '
-                                           f'{reaction_message}'
+                                    'reaction message '
+                                    f'{reaction_message}'
                                 )
-                                continue
+                                break
         return
 
 
@@ -896,28 +1071,45 @@ if isinstance(_unique_role_settings['role'], int):
         '''
         _guild = discord_commands.get_guild()
         _unique_role = _unique_role_settings['role']
-        if len(after.roles) > len(before.roles):
+        log.log_more(
+            f'Before ({len(before.roles)}) vs after ({len(after.roles)})'
+        )
+        log.log_more('before.roles: {}'.format(
+            ', '.join(role.name for role in before.roles)
+        ))
+        log.log_more('after.roles: {}'.format(
+            ', '.join(role.name for role in after.roles)
+        ))
+        if len(after.roles) and all(
+            _unique_role == role.id for role in after.roles
+        ):
+            log.debug('Only the unique role was added')
+            return
+        # Prepare numbers for evaluation (remove 1 for @everyone)
+        _before = len(before.roles) - 1
+        _after = len(after.roles) - 1
+        if len(_unique_role_settings['not_include_in_total']) > 0:
             # TODO var msg
-            log.debug('Flere nye roller etter endring')
-            for _role in before.roles:
-                if _role.id == _unique_role:
-                    for __role in after.roles:
-                        if __role.id == _unique_role:
-                            log.debug('Unique role still in `after.roles`')
-                            await after.remove_roles(
-                                _guild.get_role(_unique_role)
-                            )
-                            return
-                    log.debug('Unique role not in `after.roles`')
-                    if len(after.roles) > len(before.roles):
-                        log.debug('...and ')
+            log.debug('Found roles not to include in total')
+            _before -= len(_unique_role_settings['not_include_in_total'])
+            _after -= len(_unique_role_settings['not_include_in_total'])
+        if any(str(_unique_role) == role for role in before.roles):
+            _before -= 1
+        elif any(str(_unique_role) == role for role in after.roles):
+            _after -= 1
+        log.log_more('before and after, minus unique role:')
+        log.log_more(f'_before: {_before}')
+        log.log_more(f'_after: {_after}')
+        if int(_after) == 0:
+            # TODO var msg
+            log.debug('Length of _after is 0, adding unique role')
+            await after.add_roles(_guild.get_role(_unique_role))
+            return
+        elif int(_after) > 1:
+            # TODO var msg
+            log.debug(
+                'Length of after.roles is more than 1, removing unique role'
+            )
+            await after.remove_roles(_guild.get_role(_unique_role))
         else:
-            # TODO var msg
-            log.debug('Færre nye roller etter endring')
-            # Exclude roles in .env, as well as @everyone
-            excluded_roles = len(
-                _unique_role_settings['not_include_in_total']
-            )+1
-            if (len(after.roles) - excluded_roles) == 0:
-                log.debug('Add unique role again')
-                await after.add_roles(_guild.get_role(_unique_role))
+            log.log('Something happened')
