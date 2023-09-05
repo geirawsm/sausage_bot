@@ -317,16 +317,30 @@ class Autoroles(commands.Cog):
                 tabulate_dict['managed'].append('Ja')
             else:
                 tabulate_dict['managed'].append('Nei')
-        await ctx.reply(
-            '```{}```'.format(
-                tabulate(
-                    # TODO var msg i18n?
-                    tabulate_dict, headers=[
-                        'Emoji', 'Navn', 'ID', 'Animert?', 'Auto-håndtert?'
-                    ]
-                )
-            )
+        tabulated = tabulate(
+            # TODO var msg i18n?
+            tabulate_dict, headers=[
+                'Emoji', 'Navn', 'ID', 'Animert?', 'Auto-håndtert?'
+            ]
         )
+        log.debug(f'Length of `tabulated` is {len(tabulated)}')
+        if len(tabulated) >= 1800:
+            tabulated = tabulated.splitlines(keepends=True)
+            paginated = []
+            temp_out = ''
+            for line in tabulated[2:]:
+                if len(temp_out) == 0:
+                    temp_out += tabulated[0]
+                    temp_out += tabulated[1]
+                if len(temp_out) + len(line) > 1800:
+                    log.debug('Hit 1800 mark')
+                    paginated.append(temp_out)
+                    temp_out = ''
+                else:
+                    temp_out += line
+            paginated.append(temp_out)
+            for page in paginated:
+                await ctx.reply(f'```{page}```')
         return
 
     @role_list.group(name='reactions', aliases=['reac'])
