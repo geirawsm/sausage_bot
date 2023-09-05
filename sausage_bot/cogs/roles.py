@@ -10,6 +10,7 @@ from operator import itemgetter
 from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
 
+
 def make_error_message(errors):
     '''
     Make a simple error message for reaction roles
@@ -396,9 +397,9 @@ class Autoroles(commands.Cog):
             await ctx.message.reply('Role has no name')
             return
         # TODO i18n
-        if permissions.lower() == 'ingen':
+        if permissions.lower() in ['ingen', 'none', 'no']:
             permissions = discord.Permissions(permissions=0)
-        if color.lower() == 'ingen':
+        if color.lower() in ['ingen', 'none', 'no']:
             color = discord.Color.random()
         else:
             color = discord.Color.from_str(color)
@@ -477,7 +478,7 @@ class Autoroles(commands.Cog):
         setting: str
             The setting to change (default: None)
             Available settings:
-                new_name (str)
+                name (str)
                 color (hex)
                 hoist (Bool)
                 mentionable (Bool)
@@ -498,7 +499,7 @@ class Autoroles(commands.Cog):
                 # TODO var msg
                 log.debug(f'role_name `{role_name}` is not found')
                 return
-            if setting == 'new_name':
+            if setting == 'name':
                 await _role_edit.edit(name=value)
                 # TODO var msg
                 log.debug('Changed name')
@@ -650,7 +651,6 @@ class Autoroles(commands.Cog):
     @guildroles.group(name='reaction', aliases=['reac'])
     async def role_reaction(self, ctx):
         'Manage reaction roles and messages on the server'
-        # TODO lag samme settings som på stats
         return
 
     @role_reaction.group(name='list', aliases=['l'])
@@ -714,14 +714,9 @@ class Autoroles(commands.Cog):
             Name of the message for the reaction roles (default: None)
         message_text: str
             The text for the message (default: '')
-        channel: strl
+        channel: str
             Channel to post reaction message to. If not specified, it will
             use the channel in settings
-        '''
-
-        '''
-        1. make message (in roles-channel defined in json-settings)
-        2. ask for multiple roles to add with emojis (without :)
         '''
         roles_settings = file_io.read_json(envs.roles_settings_file)
         if channel is None:
