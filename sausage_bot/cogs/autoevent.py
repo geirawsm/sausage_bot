@@ -268,6 +268,48 @@ class AutoEvent(commands.Cog):
             )
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_events=True)
+    )
+    @autoevent.group(name='announce', aliases=['ann'])
+    async def event_announce(
+        self, ctx, event_id: str = None, channel: str = None
+    ):
+        '''
+        Announce an event in a specific channel
+
+        Parameters
+        ------------
+        event_id: str
+            The ID for the event (default: None)
+        channel: str
+            The channel to announce in (default: None)
+        '''
+        # Get events
+        _guild = discord_commands.get_guild()
+        for event in _guild.scheduled_events:
+            if int(event_id) == event.id:
+                e_name = event.name
+                rel_start = '<t:{}:R>'.format(
+                    datetime_handling.get_dt(
+                        format='epoch',
+                        dt=event.start_time.astimezone()
+                    )
+                )
+                announce_text = 'Minner om eventen `{}` som '\
+                    'begynner {}, 30 min før kampstart'.format(
+                        e_name, rel_start
+                    )
+                break
+
+        # Announce to channel
+        await discord_commands.post_to_channel(
+            channel_in=channel,
+            content_in=announce_text
+        )
+        return
+
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('autoevent'))
