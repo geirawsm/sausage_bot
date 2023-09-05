@@ -268,12 +268,12 @@ class Autoroles(commands.Cog):
             elif not _roles[_role]['bot_managed']:
                 # TODO i18n?
                 tabulate_dict['bot_managed'].append('Nei')
-            tabulated = tabulate(
-                # TODO var msg i18n?
-                tabulate_dict, headers=[
-                    'Navn', 'ID', 'Medl.', 'Bot-rolle'
-                ]
-            )
+        tabulated = tabulate(
+            # TODO var msg i18n?
+            tabulate_dict, headers=[
+                'Navn', 'ID', 'Medl.', 'Bot-rolle'
+            ]
+        )
         log.debug(f'Length of `tabulated` is {len(tabulated)}')
         if len(tabulated) >= 1800:
             tabulated = tabulated.splitlines(keepends=True)
