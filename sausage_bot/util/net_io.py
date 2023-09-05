@@ -58,31 +58,43 @@ def make_event_start_stop(date, time=None):
         return None
     try:
         start_date = datetime_handling.get_dt('date', dt=start_dt)
+        log.debug(f'Making `start_date` {start_date}')
         start_time = datetime_handling.get_dt('time', sep=':', dt=start_dt)
+        log.debug(f'Making `start_time` {start_time}')
         # Make a startdate for the event that starts 30 minutes before
         # the match
         start_event = datetime_handling.change_dt(
             start_dt, 'remove', 30, 'minutes'
         )
+        log.debug(f'`start_event` is {start_event}')
         # Make an enddate for the event that should stop approximately
         # 30 minutes after the match is over
         end_dt = datetime_handling.change_dt(start_dt, 'add', 2.5, 'hours')
+        log.debug(f'`end_dt` is {end_dt}')
         # Make the epochs that the event will use
-        start_epoch = datetime_handling.get_dt(dt=start_event)
-        end_epoch = datetime_handling.get_dt(dt=end_dt)
-        # Make a relative start object for discord
+        event_start_epoch = datetime_handling.get_dt(dt=start_event)
+        event_end_epoch = datetime_handling.get_dt(dt=end_dt)
+        # Make a relative start object for the game
+        start_epoch = datetime_handling.get_dt(dt=start_dt)
         rel_start = discord.utils.format_dt(
-            datetime.fromtimestamp(start_epoch).astimezone(),
+            datetime.fromtimestamp(start_epoch),
+            'R'
+        )
+        # Make a relative start object for the event
+        event_rel_start = discord.utils.format_dt(
+            datetime.fromtimestamp(event_start_epoch),
             'R'
         )
         return {
             'start_date': start_date,
             'start_time': start_time,
             'start_dt': start_dt,
-            'start_epoch': start_epoch,
+            'start_event': start_event,
+            'event_start_epoch': event_start_epoch,
+            'event_end_epoch': event_end_epoch,
             'rel_start': rel_start,
+            'event_rel_start': event_rel_start,
             'end_dt': end_dt,
-            'end_epoch': end_epoch
         }
     except Exception as e:
         log.log(envs.ERROR_WITH_ERROR_MSG.format(e))
@@ -116,9 +128,11 @@ async def parse(url: str):
                 'date': dt_in['start_date'],
                 'time': dt_in['start_time'],
                 'start_dt': dt_in['start_dt'],
+                'start_event': dt_in['start_event'],
                 'end_dt': dt_in['end_dt'],
-                'start_epoch': dt_in['start_epoch'],
-                'rel_start': '<t:{}:R>'.format(dt_in['start_epoch'])
+                'event_start_epoch': dt_in['event_start_epoch'],
+                'rel_start': dt_in['rel_start'],
+                'event_rel_start': dt_in['event_rel_start']
             },
             'stadium': json_in['stadium']['name']
         }
@@ -145,14 +159,16 @@ async def parse(url: str):
                 'home': json_in['participants'][teams[0]]['name'],
                 'away': json_in['participants'][teams[1]]['name']
             },
-            'tournament': json_in['event']['tournament']['stageName'],
+            'tournament': json_in['tournament']['name'],
             'datetime': {
                 'date': dt_in['start_date'],
                 'time': dt_in['start_time'],
                 'start_dt': dt_in['start_dt'],
+                'start_event': dt_in['start_event'],
                 'end_dt': dt_in['end_dt'],
-                'start_epoch': dt_in['start_epoch'],
-                'rel_start': '<t:{}:R>'.format(dt_in['start_epoch'])
+                'event_start_epoch': dt_in['event_start_epoch'],
+                'rel_start': dt_in['rel_start'],
+                'event_rel_start': dt_in['event_rel_start']
             },
             'stadium': stadium
         }

@@ -8,6 +8,7 @@ from . import envs
 from .log import log
 
 # Set correct timezone and locale
+# TODO i18n
 tz = pendulum.timezone("Europe/Oslo")
 locale = pendulum.set_locale('nb')
 pendulum.week_starts_at(pendulum.MONDAY)
@@ -28,14 +29,9 @@ def make_dt(date_in):
     - 2022-05-17T11:22:00Z
     - 2023-08-05T10:00:00+02:00
     '''
-    if str(date_in)[-1] == 'Z':
-        log.debug('Found a `T` in `date_in`')
-        date_in = str(date_in).split('Z')[0]
-        return pendulum.parse(date_in)
-    elif '+' in str(date_in):
-        log.debug('Found a `+` in `date_in`')
-        date_in = str(date_in).split('+')[0]
-        return pendulum.parse(date_in)
+    if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
+        log.debug('Found a Z/T/+ in `date_in`')
+        return pendulum.parse(str(date_in)).in_tz(tz)
     else:
         # Remove all special characters from input
         date_in = re.sub(r'\s+|\s*,\s*| |\.+|:+|-+', ' ', str(date_in).strip())
@@ -51,16 +47,16 @@ def make_dt(date_in):
                 # Expecting `DD MM YYYY`, `YYY MM DD` or `DD MM YY`
                 if len(d_split[2]) == 4:
                     return pendulum.from_format(
-                        date_in, 'DD MM YYYY', tz=tz
+                        date_in, 'DD MM YYYY'
                     )
                 elif len(d_split[0]) == 4:
                     return pendulum.from_format(
-                        date_in, 'YYYY MM DD', tz=tz
+                        date_in, 'YYYY MM DD'
                     )
                 elif all(len(timeunit) == 2 for timeunit in d_split):
                     # We have to assume that this is DD MM YY
                     return pendulum.from_format(
-                        date_in, 'DD MM YY', tz=tz
+                        date_in, 'DD MM YY'
                     )
             elif d_len == 4:
                 # Expecting a wrong space or separator somewhere
@@ -69,7 +65,7 @@ def make_dt(date_in):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]}'
                     return pendulum.from_format(
-                        date_in, 'DD MM YYYY', tz=tz
+                        date_in, 'DD MM YYYY'
                     )
                 # If the fourth and last unit has a len of 4, it probably
                 # is the time with a missing separator
@@ -88,24 +84,24 @@ def make_dt(date_in):
                     date_in = date_in.strip()
                     log.log_more('date_in: {}'.format(date_in))
                     return pendulum.from_format(
-                        date_in, 'DD MM YYYY HH mm', tz=tz
+                        date_in, 'DD MM YYYY HH mm'
                     )
             elif d_len == 5:
                 if len(d_split[2]) == 4:
                     return pendulum.from_format(
-                        date_in, 'DD MM YYYY HH mm', tz=tz
+                        date_in, 'DD MM YYYY HH mm'
                     )
                 elif len(d_split[0]) == 4:
                     return pendulum.from_format(
-                        date_in, 'YYYY MM DD HH mm', tz=tz
+                        date_in, 'YYYY MM DD HH mm'
                     )
                 elif len(d_split[2]) == 2:
                     return pendulum.from_format(
-                        date_in, 'DD MM YY HH mm', tz=tz
+                        date_in, 'DD MM YY HH mm'
                     )
                 elif len(d_split[0]) == 2:
                     return pendulum.from_format(
-                        date_in, 'YY MM DD HH mm', tz=tz
+                        date_in, 'YY MM DD HH mm'
                     )
             elif d_len == 6:
                 # A split of 6 is most likely a split in YYYY
@@ -113,13 +109,13 @@ def make_dt(date_in):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]} {d[4]} {d[5]}'
                     return pendulum.from_format(
-                        date_in, 'DD MM YYYY HH mm', tz=tz
+                        date_in, 'DD MM YYYY HH mm'
                     )
                 pass
             else:
                 return None
             log.log_more('-'*10)
-        except(ValueError):
+        except ValueError:
             log.log_more('-'*10)
             return None
 
@@ -128,40 +124,50 @@ def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
 
-    dt              Uses `pendulum.now()` as datetime-object if nothing
-                    else is given
-    sep             Use dots as separator if nothing else is given
-    format          Returns the dt-object in epoch/linux time-format if
-                    nothing else is given
-    ```
-    Formats:
+    Parameters
+    ------------
+    format: str
+        The format to return the datetime-object in (default: 'epoch')
+    sep: str
+        Separators to use in the output (default: '.')
+    dt: str/datetime-object
+        Use a specific datetime-object when making the output
+        (default: 'pendulum.now()')
+
+    Returns
+    ------------
+    str
+        A datetime object formatted pretty in a string
+
+    Formats
+    ------------
     (Example date: May 17th 2014; time: 14:23:39; timezone: GMT)
-    `date`:             17.05.2014
-    `datetext`:         17 May 2014
-    `datetextfull`:     17 May 2014, 14.23
-    `datetimetextday`:  Monday, 17. May, 14.23
-    `revdate`:          2014.05.17
-    `datetime`:         17.05.2014 14.23
-    `datetimefull`:     17.05.2014 14.23.39
-    `revdatetimefull`:  2014.05.17 14.23.39
-    `time`:             14.23
-    `timefull`:         14.23.39
-    `week`:             20
-    `year`:             2014
-    `month`:            05
-    `day`:              17
-    `epoch`:            1400336619
-    ```
+    date                17.05.2014
+    datetext            17 May 2014
+    datetextfull        17 May 2014, 14.23
+    datetimetextday     Monday, 17. May, 14.23
+    revdate             2014.05.17
+    datetime            17.05.2014 14.23
+    datetimefull        17.05.2014 14.23.39
+    revdatetimefull     2014.05.17 14.23.39
+    time                14.23
+    timefull            14.23.39
+    week                20
+    year                2014
+    month               05
+    day                 17
+    epoch               1400336619
     '''
     if isinstance(dt, datetime.datetime):
         dt = make_dt(str(dt))
-    elif isinstance(dt, str):
+    if isinstance(dt, str):
         dt = make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
             return None
     elif not dt:
         dt = pendulum.now(tz)
+    # Make sure correct timezone is used in input
     if format == 'date':
         return dt.format(f'DD{sep}MM{sep}YYYY')
     elif format == 'datetext':
@@ -213,7 +219,9 @@ def change_dt(
     if change is None or unit is None or count is None:
         log.log(envs.TOO_FEW_ARGUMENTS)
         return None
-    accepted_units=['years', 'months', 'days', 'hours', 'minutes', 'seconds']
+    accepted_units = [
+        'years', 'months', 'days', 'hours', 'minutes', 'seconds'
+    ]
     if unit not in accepted_units:
         log.log(f'Unit `{unit}` is not accepted')
         return None
