@@ -122,6 +122,31 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
     )
 
 
+def paginate_tabulate(tabulated):
+    # Test that this works as intended
+    log.debug(f'Length of `tabulated` is {len(tabulated)}')
+    paginated = []
+    temp_out = ''
+    if len(tabulated) >= 1800:
+        tabulated_split = tabulated.splitlines(keepends=True)
+        temp_out += tabulated_split[0]
+        temp_out += tabulated_split[1]
+        for line in tabulated_split[2:]:
+            if len(temp_out) + len(line) > 1800:
+                log.debug('Hit 1800 mark')
+                paginated.append(temp_out)
+                temp_out = ''
+                temp_out += tabulated_split[0]
+                temp_out += tabulated_split[1]
+                temp_out += line
+            else:
+                temp_out += line
+        paginated.append(temp_out)
+    else:
+        paginated.append(tabulated)
+    return paginated
+
+
 class Autoroles(commands.Cog):
     'Manage roles and settings'
 
@@ -249,23 +274,36 @@ class Autoroles(commands.Cog):
         return
 
     @role_list.group(name='roles', aliases=['r'])
-    async def list_roles(self, ctx):
-        'List roles'
-        _roles = discord_commands.get_roles()
+    async def list_roles(self, ctx, sort: str = None):
+        '''
+        List roles
+
+        Parameters
+        ------------
+        sort: str
+            Sort roles alphabetically
+        '''
+        _guild = discord_commands.get_guild()
         tabulate_dict = {
             'name': [],
             'id': [],
             'members': [],
             'bot_managed': []
         }
-        for _role in _roles:
-            tabulate_dict['name'].append(_roles[_role]['name'])
-            tabulate_dict['id'].append(_roles[_role]['id'])
-            tabulate_dict['members'].append(_roles[_role]['members'])
-            if _roles[_role]['bot_managed']:
+        if sort is not None:
+            _roles = tuple(sorted(
+                _guild.roles, key=lambda role: role.name.lower()
+            ))
+        else:
+            _roles = _guild.roles
+        for role in _roles:
+            tabulate_dict['name'].append(role.name)
+            tabulate_dict['id'].append(role.id)
+            tabulate_dict['members'].append(len(role.members))
+            if role.managed:
                 # TODO i18n?
                 tabulate_dict['bot_managed'].append('Ja')
-            elif not _roles[_role]['bot_managed']:
+            elif not role.managed:
                 # TODO i18n?
                 tabulate_dict['bot_managed'].append('Nei')
         tabulated = tabulate(
@@ -274,39 +312,36 @@ class Autoroles(commands.Cog):
                 'Navn', 'ID', 'Medl.', 'Bot-rolle'
             ]
         )
-        log.debug(f'Length of `tabulated` is {len(tabulated)}')
-        if len(tabulated) >= 1800:
-            tabulated = tabulated.splitlines(keepends=True)
-            paginated = []
-            temp_out = ''
-            for line in tabulated[2:]:
-                if len(temp_out) == 0:
-                    temp_out += tabulated[0]
-                    temp_out += tabulated[1]
-                if len(temp_out) + len(line) > 1800:
-                    log.debug('Hit 1800 mark')
-                    paginated.append(temp_out)
-                    temp_out = ''
-                else:
-                    temp_out += line
-            paginated.append(temp_out)
-            for page in paginated:
-                await ctx.reply(f'```{page}```')
+        paginated = paginate_tabulate(tabulated)
+        for page in paginated:
+            log.log_more(f'`{page}`')
+            await ctx.reply(f'```{page}```')
         return
 
     @role_list.group(name='emojis', aliases=['e'])
-    async def list_emojis(self, ctx):
-        'List server emojis'
+    async def list_emojis(self, ctx, sort: str = None):
+        '''
+        List server emojis
+
+        Parameters
+        ------------
+        sort: str
+            Sort emojis alphabetically
+        '''
         _guild = discord_commands.get_guild()
         tabulate_dict = {
-            'emoji': [],
             'name': [],
             'id': [],
             'animated': [],
             'managed': []
         }
-        for emoji in _guild.emojis:
-            tabulate_dict['emoji'].append(f':{emoji.id}:')
+        if sort is not None:
+            _emojis = tuple(sorted(
+                _guild.emojis, key=lambda emoji: emoji.name.lower()
+            ))
+        else:
+            _emojis = _guild.emojis
+        for emoji in _emojis:
             tabulate_dict['name'].append(emoji.name)
             tabulate_dict['id'].append(emoji.id)
             if emoji.animated:
@@ -320,27 +355,12 @@ class Autoroles(commands.Cog):
         tabulated = tabulate(
             # TODO var msg i18n?
             tabulate_dict, headers=[
-                'Emoji', 'Navn', 'ID', 'Animert?', 'Auto-håndtert?'
+                'Navn', 'ID', 'Animert?', 'Auto-håndtert?'
             ]
         )
-        log.debug(f'Length of `tabulated` is {len(tabulated)}')
-        if len(tabulated) >= 1800:
-            tabulated = tabulated.splitlines(keepends=True)
-            paginated = []
-            temp_out = ''
-            for line in tabulated[2:]:
-                if len(temp_out) == 0:
-                    temp_out += tabulated[0]
-                    temp_out += tabulated[1]
-                if len(temp_out) + len(line) > 1800:
-                    log.debug('Hit 1800 mark')
-                    paginated.append(temp_out)
-                    temp_out = ''
-                else:
-                    temp_out += line
-            paginated.append(temp_out)
-            for page in paginated:
-                await ctx.reply(f'```{page}```')
+        paginated = paginate_tabulate(tabulated)
+        for page in paginated:
+            await ctx.reply(f'```{page}```')
         return
 
     @role_list.group(name='reactions', aliases=['reac'])
@@ -665,46 +685,6 @@ class Autoroles(commands.Cog):
     @guildroles.group(name='reaction', aliases=['reac'])
     async def role_reaction(self, ctx):
         'Manage reaction roles and messages on the server'
-        return
-
-    @role_reaction.group(name='list', aliases=['l'])
-    async def list_reaction(self, ctx):
-        'List available reaction messages'
-        settings = file_io.read_json(envs.roles_settings_file)
-        _msgs_in = settings['reaction_messages']
-        if len(_msgs_in) <= 0:
-            # TODO var msg
-            await ctx.reply(
-                'Ingen aktive reaction messages'
-            )
-            return
-        _tabulate_msgs = {
-            'name': [],
-            'channel': [],
-            'id': [],
-            'content': [],
-            'no_of_reactions': []
-        }
-        for _msg in _msgs_in:
-            _tabulate_msgs['name'].append(_msg)
-            _tabulate_msgs['channel'].append(_msgs_in[_msg]['channel'])
-            _tabulate_msgs['id'].append(_msgs_in[_msg]['id'])
-            _tabulate_msgs['content'].append(
-                _msgs_in[_msg]['content']
-            )
-            _tabulate_msgs['no_of_reactions'].append(
-                len(_msgs_in[_msg]['reactions'])
-            )
-        await ctx.reply(
-            '```{}```'.format(
-                tabulate(
-                    # TODO i18n?
-                    _tabulate_msgs, headers=[
-                        'Navn', 'Kanal', 'ID', 'Innhold', 'Reaksjoner'
-                    ], maxcolwidths=[None, None, None, 20, None]
-                )
-            )
-        )
         return
 
     @role_reaction.group(name='add', aliases=['a'])
