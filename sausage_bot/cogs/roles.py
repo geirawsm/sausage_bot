@@ -364,38 +364,64 @@ class Autoroles(commands.Cog):
         return
 
     @role_list.group(name='reactions', aliases=['reac'])
-    async def list_reactions(self, ctx):
-        'List reactions'
-        tabulate_dict = {
-            'name': [],
-            'channel': [],
-            'id': [],
-            'content': [],
-            'reactions': []
-        }
+    async def list_reactions(self, ctx, reaction_name: str = None):
+        '''
+        List reactions
+
+        If reaction_name is not provided, list all messages
+
+        Parameters
+        ------------
+        reaction_name: str
+            The names of the reaction message to list (default: None)
+        '''
         reaction_messages = file_io.read_json(
             envs.roles_settings_file
         )['reaction_messages']
-        for msg in reaction_messages:
-            tabulate_dict['name'].append(msg)
-            tabulate_dict['channel'].append(reaction_messages[msg]['channel'])
-            tabulate_dict['id'].append(reaction_messages[msg]['id'])
-            tabulate_dict['content'].append(
-                reaction_messages[msg]['content'][0:20]
-            )
-            tabulate_dict['reactions'].append(
-                len(reaction_messages[msg]['reactions'])
-            )
-        await ctx.reply(
-            '```{}```'.format(
-                tabulate(
-                    # TODO i18n?
-                    tabulate_dict, headers=[
-                        'Navn', 'Kanal', 'ID', 'Innhold', 'Ant. reaksj.'
-                    ]
+        if reaction_name:
+            if reaction_name not in reaction_messages:
+                await ctx.reply(f'Did not find `{reaction_name}`')
+                return
+            reactions = reaction_messages[reaction_name]['reactions']
+            tabulate_dict = {
+                'role': [],
+                'emoji': []
+            }
+            for reaction in reactions:
+                tabulate_dict['role'].append(reaction[0])
+                tabulate_dict['emoji'].append(reaction[1])
+            # TODO i18n?
+            await ctx.reply('```{}```'.format(
+                tabulate(tabulate_dict, headers=['Rolle', 'Emoji'])
+            ))
+        elif not reaction_name:
+            tabulate_dict = {
+                'name': [],
+                'channel': [],
+                'id': [],
+                'content': [],
+                'reactions': []
+            }
+            for msg in reaction_messages:
+                tabulate_dict['name'].append(msg)
+                tabulate_dict['channel'].append(reaction_messages[msg]['channel'])
+                tabulate_dict['id'].append(reaction_messages[msg]['id'])
+                tabulate_dict['content'].append(
+                    reaction_messages[msg]['content'][0:20]
                 )
-            )
-        )
+                tabulate_dict['reactions'].append(
+                    len(reaction_messages[msg]['reactions'])
+                )
+                await ctx.reply(
+                    '```{}```'.format(
+                        tabulate(
+                            # TODO i18n?
+                            tabulate_dict, headers=[
+                                'Navn', 'Kanal', 'ID', 'Innhold', 'Ant. reaksj.'
+                            ]
+                        )
+                    )
+                )
         return
 
     @guildroles.group(name='manage', aliases=['m'])
