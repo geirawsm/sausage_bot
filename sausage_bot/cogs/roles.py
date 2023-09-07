@@ -11,23 +11,21 @@ from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util.log import log
 
 
-def make_error_message(errors):
+def make_error_message(errors, header):
     '''
     Make a simple error message for reaction roles
     #autodoc skip#
     '''
     if len(errors['duplicate']) > 0 or len(errors['do_not_exist']) > 0:
         _error_msg_in = ''
-        # TODO var msg
-        _error_msg_in += '\nErrors:'
         if len(errors['duplicate']) > 0:
-            _error_msg_in += '\nDuplicate:'
-            for error_role in errors['duplicate']:
-                _error_msg_in += f'\n- {error_role}'
+            _error_msg_in += f'\n{header} duplicate:'
+            for _error in errors['duplicate']:
+                _error_msg_in += f'\n- {_error}'
         if len(errors['do_not_exist']) > 0:
-            _error_msg_in += '\nDoes not exist:'
-            for error_role in errors['do_not_exist']:
-                _error_msg_in += f'\n- {error_role}'
+            _error_msg_in += f'\n{header} does not exist:'
+            for _error in errors['do_not_exist']:
+                _error_msg_in += f'\n- {_error}'
         return _error_msg_in
     else:
         return None
