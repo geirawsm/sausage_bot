@@ -421,7 +421,9 @@ class Autoroles(commands.Cog):
             }
             for msg in reaction_messages:
                 tabulate_dict['name'].append(msg)
-                tabulate_dict['channel'].append(reaction_messages[msg]['channel'])
+                tabulate_dict['channel'].append(
+                    reaction_messages[msg]['channel']
+                )
                 tabulate_dict['id'].append(reaction_messages[msg]['id'])
                 tabulate_dict['content'].append(
                     reaction_messages[msg]['content'][0:20]
@@ -434,7 +436,8 @@ class Autoroles(commands.Cog):
                         tabulate(
                             # TODO i18n?
                             tabulate_dict, headers=[
-                                'Navn', 'Kanal', 'ID', 'Innhold', 'Ant. reaksj.'
+                                'Navn', 'Kanal', 'ID', 'Innhold',
+                                'Ant. reaksj.'
                             ]
                         )
                     )
@@ -738,7 +741,7 @@ class Autoroles(commands.Cog):
         return
 
     @add_reaction_item.group(name='message', aliases=['msg', 'm'])
-    async def add_msg(
+    async def add_reaction_message(
         self, ctx, msg_name: str = None, message_text: str = '',
         channel: str = None
     ):
@@ -1003,7 +1006,7 @@ class Autoroles(commands.Cog):
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
         if msg_name not in reaction_messages:
-            ctx.reply(f'Could not find {msg_name}')
+            await ctx.reply(f'Could not find {msg_name}')
             return
         # Remove reaction message from guild
         channel = reaction_messages[msg_name]['channel']
@@ -1050,22 +1053,27 @@ class Autoroles(commands.Cog):
             msg_id_or_name, reaction_messages
         )
         reactions = reaction_messages[_msg['name']]['reactions']
+        _reaction_roles_list = []
+        _reaction_roles_list.extend([role[0].lower() for role in reactions])
         log.log_more(f'role_names: {role_names}')
         for role_name in role_names:
             if role_name.lower() not in _roles:
                 log.debug(f'Could not find `role_name` {role_name}')
                 error_roles['do_not_exist'].append(role_name)
-            else:
+            elif role_name.lower() in _reaction_roles_list:
+                _index = _reaction_roles_list.index(role_name.lower())
                 # Remove reaction from settings file
-                for reaction in reactions:
-                    if role_name == reaction[0]:
-                        del reactions[reactions.index(reaction)]
+                del reactions[_index]
+                break
+            else:
+                log.debug(f'Could not find `{role_name}` in reactions')
+                error_roles['do_not_exist'].append(role_name)
         file_io.write_json(envs.roles_settings_file, roles_settings)
         sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
         if sync_errors:
             ctx.reply(sync_errors)
         # Inform about role/emoji errors
-        _error_msg = make_error_message(error_roles)
+        _error_msg = make_error_message(error_roles, 'Roles')
         if _error_msg:
             await ctx.reply(_error_msg)
         return
@@ -1091,6 +1099,9 @@ if len(_reaction_roles) > 0:
 
     @config.bot.event
     async def on_raw_reaction_add(payload):
+        if int(payload.member.id) == int(config.BOT_ID):
+            log.debug('Change made by bot, skip')
+            return
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
         _guild = discord_commands.get_guild()
@@ -1158,7 +1169,12 @@ if len(_reaction_roles) > 0:
 
 # Maintain unique roles
 _unique_role_settings = settings['unique_role']
-if isinstance(_unique_role_settings['role'], int):
+if 'role' not in _unique_role_settings or\
+        not isinstance(_unique_role_settings['role'], int):
+    # TODO var msg
+    log.log('No unique role provided or setting is not string')
+elif 'role' in _unique_role_settings and\
+        isinstance(_unique_role_settings['role'], int):
     # TODO var msg
     log.debug('Check for unique role')
 
@@ -1173,6 +1189,9 @@ if isinstance(_unique_role_settings['role'], int):
         these will not be counted in the total of a users role to make
         sure the total number will be correct
         '''
+        if int(before.id) == int(config.BOT_ID):
+            log.debug('Change made by bot, skip')
+            return
         _guild = discord_commands.get_guild()
         _unique_role = _unique_role_settings['role']
         log.log_more(
