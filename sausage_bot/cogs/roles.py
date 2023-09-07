@@ -869,6 +869,21 @@ class Autoroles(commands.Cog):
             `testrole;❓`
             Multiple sets can be added, using newline (shift-Enter).
         '''
+        if not msg_id_or_name:
+            ctx.reply('You need to reference a message ID or name')
+            return
+        if not role_emoji_combo:
+            ctx.reply('You need to reference roles and emojis')
+            return
+        temp_out = ''
+        combos = []
+        for combo in role_emoji_combo:
+            if ';' not in combo:
+                temp_out += f'{combo} '
+            if ';' in combo:
+                temp_out += combo
+                combos.append(temp_out)
+                temp_out = ''
         # Update settings file
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
@@ -891,7 +906,8 @@ class Autoroles(commands.Cog):
         reaction_emoji_check.extend(reaction[1] for reaction in reactions)
         _role_error = False
         _emoji_error = False
-        for combo in role_emoji_combo:
+        for combo in combos:
+            log.debug(f'combo: {combo}')
             role, emoji = str(combo).split(';')
             # Check roles
             if role in reaction_role_check:
