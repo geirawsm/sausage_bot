@@ -88,8 +88,8 @@ async def get_message_by_id_or_name_from_settings(
 
 async def sync_reaction_message_from_settings(msg_id_or_name):
     # Read settings file
-    settings = file_io.read_json(envs.roles_settings_file)
-    reaction_msgs = settings['reaction_messages']
+    roles_settings = file_io.read_json(envs.roles_settings_file)
+    reaction_msgs = roles_settings['reaction_messages']
     _msg = await get_message_by_id_or_name_from_settings(
         msg_id_or_name, reaction_msgs
     )
@@ -98,20 +98,38 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
     # By using settingsfile, recreate the embed
     _roles = discord_commands.get_roles()
     new_embed_desc = ''
-    for reaction in reaction_template['reactions']:
+    await _msg['msg'].clear_reactions()
+    _errors_out = ''
+    for idx, reaction in enumerate(reaction_template['reactions'][:]):
+        try:
+            await _msg['msg'].add_reaction(reaction[1])
+        except Exception as e:
+            log.debug(f'Could not add reaction to message: {e}')
+            if len(_errors_out) > 0:
+                _errors_out += '\n'
+            _errors_out += 'Could not add reaction {} to message'.format(
+                reaction[1]
+            )
+            reaction_template['reactions'].remove(reaction)
+            continue
         if len(new_embed_desc) > 0:
             new_embed_desc += '\n'
-        if reaction[0] in _roles:
+        if reaction[0].lower() in _roles:
             new_embed_desc += '{} <@&{}>'.format(
-                reaction[1], _roles[reaction[0]]['id']
+                reaction[1], _roles[reaction[0].lower()]['id']
             )
         else:
             log.log('Could not find `{}` in roles'.format(
                 reaction[0]
             ))
-    await _msg['msg'].clear_reactions()
-    for reaction in reaction_template['reactions']:
-        await _msg['msg'].add_reaction(reaction[1])
+            if len(_errors_out) > 0:
+                _errors_out += '\n'
+            _errors_out += 'Could not find role {}'.format(
+                reaction[0]
+            )
+            reaction_template['reactions'].remove(reaction)
+            continue
+    file_io.write_json(envs.roles_settings_file, roles_settings)
     embed_json = {
         'description': new_embed_desc
     }
