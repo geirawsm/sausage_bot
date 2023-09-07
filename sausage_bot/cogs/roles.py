@@ -127,10 +127,10 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
             )
             reaction_template['reactions'].remove(reaction)
             continue
-    file_io.write_json(envs.roles_settings_file, roles_settings)
     embed_json = {
         'description': new_embed_desc
     }
+    file_io.write_json(envs.roles_settings_file, roles_settings)
     # Edit discord message
     await _msg['msg'].edit(
         content=reaction_template['content'],
