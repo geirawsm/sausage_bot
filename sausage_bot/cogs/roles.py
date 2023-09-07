@@ -136,6 +136,7 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
         content=reaction_template['content'],
         embed=discord.Embed.from_dict(embed_json)
     )
+    return _errors_out
 
 
 def paginate_tabulate(tabulated):
