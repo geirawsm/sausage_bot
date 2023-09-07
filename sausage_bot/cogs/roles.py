@@ -873,26 +873,64 @@ class Autoroles(commands.Cog):
             'duplicate': [],
             'do_not_exist': []
         }
+        error_emojis = {
+            'duplicate': [],
+            'do_not_exist': []
+        }
         _msg = await get_message_by_id_or_name_from_settings(
             msg_id_or_name, reaction_messages
         )
         reactions = reaction_messages[_msg['name']]['reactions']
+        reaction_role_check = []
+        reaction_role_check.extend(reaction[0] for reaction in reactions)
+        reaction_emoji_check = []
+        reaction_emoji_check.extend(reaction[1] for reaction in reactions)
+        _role_error = False
+        _emoji_error = False
         for combo in role_emoji_combo:
             role, emoji = str(combo).split(';')
-            if role.lower() not in _roles:
+            # Check roles
+            if role in reaction_role_check:
+                log.debug(f'Role {role} has already been added')
+                error_roles['duplicate'].append(role)
+                _role_error = True
+            elif role.lower() not in _roles:
                 log.debug(f'Could not find `role` {role}')
                 error_roles['do_not_exist'].append(role)
-            elif role in reactions:
-                log.debug(f'Emoji {role} has already been added')
-                error_roles['duplicate'].append(role)
-            else:
-                reactions.append([role, emoji])
-                log.debug(f'Adding emoji {emoji}')
+                _role_error = True
+            # Check emojis
+            if emoji in reaction_emoji_check:
+                log.debug(f'Emoji {emoji} has already been added')
+                error_emojis['duplicate'].append(emoji)
+                _emoji_error = True
+            elif emoji not in reaction_emoji_check:
+                if not _role_error and not _emoji_error:
+                    try:
+                        reactions.append([role, emoji])
+                        log.debug(f'Adding role {role}, emoji {emoji}')
+                    except Exception as e:
+                        log.debug(
+                            f'Error when getting emoji {emoji}: {type(e)}: {e}'
+                        )
+                        error_emojis['do_not_exist'].append(emoji)
+                        _emoji_error = True
         file_io.write_json(envs.roles_settings_file, roles_settings)
-        await sync_reaction_message_from_settings(msg_id_or_name)
+        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
         # Inform about role/emoji errors
-        _error_msg = make_error_message(error_roles)
-        if _error_msg:
+        _error_msg = ''
+        if sync_errors:
+            _error_msg += sync_errors
+            _error_msg += '\n\n'
+        # TODO i18n
+        _msg_error_roles = make_error_message(error_roles, 'Roles')
+        _msg_error_emojis = make_error_message(error_emojis, 'Emojis')
+        if _msg_error_roles:
+            _error_msg += _msg_error_roles
+        if _msg_error_emojis:
+            if len(_error_msg) > 0:
+                _error_msg += '\n\n'
+            _error_msg += _msg_error_emojis
+        if len(_error_msg) > 0:
             await ctx.reply(_error_msg)
         return
 
