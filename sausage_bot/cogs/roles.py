@@ -945,7 +945,9 @@ class Autoroles(commands.Cog):
             The message ID to look for, or name of the saved message in
             settings file
         '''
-        await sync_reaction_message_from_settings(msg_id_or_name)
+        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
+        if sync_errors:
+            ctx.reply(sync_errors)
         return
 
     @role_reaction.group(name='sort')
@@ -975,7 +977,9 @@ class Autoroles(commands.Cog):
             key=itemgetter(0)
         )
         file_io.write_json(envs.roles_settings_file, roles_settings)
-        await sync_reaction_message_from_settings(msg_id_or_name)
+        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
+        if sync_errors:
+            ctx.reply(sync_errors)
         return
 
     @role_reaction.group(name='remove', aliases=['r', 'delete', 'del'])
@@ -1056,7 +1060,9 @@ class Autoroles(commands.Cog):
                     if role_name == reaction[0]:
                         del reactions[reactions.index(reaction)]
         file_io.write_json(envs.roles_settings_file, roles_settings)
-        await sync_reaction_message_from_settings(msg_id_or_name)
+        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
+        if sync_errors:
+            ctx.reply(sync_errors)
         # Inform about role/emoji errors
         _error_msg = make_error_message(error_roles)
         if _error_msg:
