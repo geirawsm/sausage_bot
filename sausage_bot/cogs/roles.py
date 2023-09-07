@@ -784,7 +784,16 @@ class Autoroles(commands.Cog):
                 'do_not_exist': []
             }
             reactions = []
-            _roles = discord_commands.get_roles()
+            _guild = discord_commands.get_guild()
+            _roles = _guild.roles
+            _roles_list = []
+            _roles_list.extend([role.name.lower() for role in _roles])
+            log.log_more(f'_roles_list: {_roles_list}')
+            _emojis = _guild.emojis
+            _emojis_list = []
+            _emojis_list.extend([emoji.name.lower() for emoji in _emojis])
+            log.log_more(f'_emojis_list: {_emojis_list}')
+            #
             content_split = []
             content_split.extend(
                 line for line in str(_msg.content).split('\n')
@@ -792,14 +801,19 @@ class Autoroles(commands.Cog):
             for line in content_split:
                 role, emoji = line.strip().split(';')
                 # Use this for reporting non-existing roles
-                if role.lower() not in _roles:
-                    log.debug(f'Could not find role `role` {role}')
+                if role.lower() not in _roles_list:
+                    log.debug(f'Could not find role `{role}`')
                     error_roles['do_not_exist'].append(role)
                     continue
+                else:
+                    for _role in _roles:
+                        if role == _role.name:
+                            _role_id = _role.id
+                            break
                 if len(desc_out) > 0:
                     desc_out += '\n'
                 desc_out += '{} <@&{}>'.format(
-                    emoji, _roles[role]['id']
+                    emoji, _role_id
                 )
                 reactions.append((role, emoji))
             embed_json = {
@@ -812,7 +826,7 @@ class Autoroles(commands.Cog):
             await _msg_addroles_msg.delete()
             await ctx.message.delete()
         # Inform about role/emoji errors
-        _error_msg = make_error_message(error_roles)
+        _error_msg = make_error_message(error_roles, 'Roles')
         if _error_msg:
             await ctx.reply(_error_msg)
         # Post the reaction message
