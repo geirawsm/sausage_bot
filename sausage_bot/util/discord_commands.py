@@ -165,7 +165,7 @@ async def post_to_channel(
         channel_out = config.bot.get_channel(server_channels[channel_in])
         msg_out = await channel_out.send(
             content=content_in,
-            embed=content_embed_in or None
+            embed=discord.Embed.from_dict(content_embed_in) or None
         )
         return msg_out
     else:

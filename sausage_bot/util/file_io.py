@@ -61,7 +61,7 @@ def read_json(json_file):
     '''
     ensure_file(json_file, {})
     try:
-        with open(json_file) as f:
+        with open(json_file, encoding='utf-8') as f:
             return dict(json.load(f))
     except json.JSONDecodeError as e:
         log.log(f"Error when reading json from {json_file}:\n{e}")
