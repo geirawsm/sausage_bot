@@ -223,6 +223,7 @@ class Autoroles(commands.Cog):
                 if str(_role.name).lower() == role_name.lower():
                     log.debug(f'Fant `{role_name}`')
                     embed = discord.Embed(color=_role.color)
+                    embed.set_thumbnail(url=_role.icon)
                     embed.add_field(name="ID", value=_role.id, inline=True)
                     embed.add_field(
                         name="Farge", value=_role.color, inline=True
@@ -235,7 +236,7 @@ class Autoroles(commands.Cog):
                                     _role.tags.integration_id
                                 ).name
                             ),
-                            inline=False
+                            inline=True
                         )
                     elif _role.is_integration():
                         embed.add_field(
@@ -243,12 +244,28 @@ class Autoroles(commands.Cog):
                             value='Ja, av {}'.format(
                                 _guild.get_member(_role.tags.bot_id).name
                             ),
-                            inline=False
+                            inline=True
                         )
                     else:
                         embed.add_field(
                             name="Autohåndteres", value="Nei", inline=True
                         )
+                    if _role.hoist:
+                        embed.add_field(
+                            name="Spesielt synlig",
+                            value='Ja',
+                            inline=True
+                        )
+                    else:
+                        embed.add_field(
+                            name="Spesielt synlig",
+                            value='Nei',
+                            inline=True
+                        )
+                    embed.add_field(
+                        name="Brukere med rollen",
+                        value=len(_role.members), inline=True
+                    )
                     permissions = ", ".join(
                         [permission for permission, value in
                             iter(_role.permissions) if value is True]
@@ -256,27 +273,13 @@ class Autoroles(commands.Cog):
                     if permissions:
                         embed.add_field(
                             name="Tillatelser", value=permissions,
-                            inline=True
+                            inline=False
                         )
                     else:
                         embed.add_field(
                             name="Tillatelser", value='Ingen',
-                            inline=True
+                            inline=False
                         )
-                    if _role.hoist:
-                        embed.add_field(
-                            name="Spesielt synlig",
-                            value='Ja'
-                        )
-                    else:
-                        embed.add_field(
-                            name="Spesielt synlig",
-                            value='Nei'
-                        )
-                    embed.add_field(
-                        name="Brukere med rollen",
-                        value=len(_role.members), inline=False
-                    )
                     await ctx.reply(embed=embed)
                     return
             # TODO var msg
