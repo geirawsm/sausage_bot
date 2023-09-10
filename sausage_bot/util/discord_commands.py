@@ -159,13 +159,15 @@ async def post_to_channel(
     Post `content_in` in plain text or `content_embed_in` to channel
     `channel_in`
     '''
+    if content_embed_in:
+        content_embed_in = discord.Embed.from_dict(content_embed_in)
     server_channels = get_text_channel_list()
     log.debug(f'Got these channels: {server_channels}')
     if channel_in in server_channels:
         channel_out = config.bot.get_channel(server_channels[channel_in])
         msg_out = await channel_out.send(
             content=content_in,
-            embed=discord.Embed.from_dict(content_embed_in) or None
+            embed=content_embed_in
         )
         return msg_out
     else:
