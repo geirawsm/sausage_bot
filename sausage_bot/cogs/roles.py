@@ -473,14 +473,13 @@ class Autoroles(commands.Cog):
         mentionable: str (yes/no)
             Set if the role should be mentionable or not
         '''
-
         if role_name is None:
             # todo var msg
             log.log('Role has no name')
             await ctx.message.reply('Role has no name')
             return
         # TODO i18n
-        if permissions.lower() in ['ingen', 'none', 'no']:
+        if str(permissions).lower() in ['ingen', 'none', 'no', '0']:
             permissions = discord.Permissions(permissions=0)
         if color.lower() in ['ingen', 'none', 'no']:
             color = discord.Color.random()
@@ -800,7 +799,6 @@ class Autoroles(commands.Cog):
             _emojis_list = []
             _emojis_list.extend([emoji.name.lower() for emoji in _emojis])
             log.log_more(f'_emojis_list: {_emojis_list}')
-            #
             content_split = []
             content_split.extend(
                 line for line in str(_msg.content).split('\n')
@@ -841,9 +839,6 @@ class Autoroles(commands.Cog):
             channel, content_in=message_text,
             content_embed_in=embed_json
         )
-        for reaction in reactions:
-            log.debug(f'Adding emoji {reaction[1]}')
-            await reaction_msg.add_reaction(reaction[1])
         # Save to the settings file
         reaction_messages[msg_name] = {
             'channel': channel,
@@ -853,6 +848,9 @@ class Autoroles(commands.Cog):
             'reactions': reactions
         }
         file_io.write_json(envs.roles_settings_file, roles_settings)
+        for reaction in reactions:
+            log.debug(f'Adding emoji {reaction[1]}')
+            await reaction_msg.add_reaction(reaction[1])
         return
 
     @add_reaction_item.group(name='role', aliases=['r'])
@@ -872,6 +870,7 @@ class Autoroles(commands.Cog):
             `testrole;❓`
             Multiple sets can be added, using newline (shift-Enter).
         '''
+        await ctx.add_reaction('✅')
         if not msg_id_or_name:
             ctx.reply('You need to reference a message ID or name')
             return
@@ -986,6 +985,7 @@ class Autoroles(commands.Cog):
             The message ID to look for, or name of the saved message in
             settings file
         '''
+        await ctx.add_reaction('✅')
         if not msg_id_or_name:
             # TODO var msg
             ctx.reply('I need the ID or name of the reaction message')
@@ -1022,6 +1022,7 @@ class Autoroles(commands.Cog):
         msg_name: str
             The names of the reaction message to remove (default: None)
         '''
+        await ctx.add_reaction('✅')
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
         if msg_name not in reaction_messages:
@@ -1042,6 +1043,8 @@ class Autoroles(commands.Cog):
         # Remove reaction message from settings file
         del reaction_messages[msg_name]
         file_io.write_json(envs.roles_settings_file, roles_settings)
+        # TODO var msg
+        await ctx.reply('Reaction message removed')
         return
 
     @remove_reaction.group(name='role', aliases=['r'])
