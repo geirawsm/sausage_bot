@@ -68,6 +68,11 @@ async def get_message_by_id_or_name_from_settings(
         for reaction in reaction_settings_in:
             if reaction_settings_in[reaction]['id'] == msg_id_or_name:
                 msg_name = reaction_settings_in[reaction]
+    if msg_id is None and msg_name is None:
+        # TODO var msg
+        log.log('No message was found')
+        return None
+    log.debug(f'`msg_id_or_name` is `{msg_id_or_name}`')
     _channel = reaction_settings_in[msg_id_or_name]['channel']
     log.log_more(f'using `msg_id`: {msg_id}')
     log.log_more(f'using `msg_name`: {msg_name}')
@@ -91,14 +96,17 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
     _msg = await get_message_by_id_or_name_from_settings(
         msg_id_or_name, reaction_msgs
     )
-    reaction_template = reaction_msgs[_msg['name']]
-    log.debug(f'reaction_template: {reaction_template}')
+    if _msg is None:
+        return None
+    reaction_settings = reaction_msgs[_msg['name']]
+    log.debug(f'reaction_settings: {reaction_settings}')
     # By using settingsfile, recreate the embed
     _roles = discord_commands.get_roles()
     new_embed_desc = ''
+    new_embed_content = ''
     await _msg['msg'].clear_reactions()
     _errors_out = ''
-    for idx, reaction in enumerate(reaction_template['reactions'][:]):
+    for idx, reaction in enumerate(reaction_settings['reactions'][:]):
         try:
             await _msg['msg'].add_reaction(reaction[1])
         except Exception as e:
@@ -108,8 +116,9 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
             _errors_out += 'Could not add reaction {} to message'.format(
                 reaction[1]
             )
-            reaction_template['reactions'].remove(reaction)
+            reaction_settings['reactions'].remove(reaction)
             continue
+        new_embed_content = reaction_settings['content']
         if len(new_embed_desc) > 0:
             new_embed_desc += '\n'
         if reaction[0].lower() in _roles:
@@ -125,15 +134,16 @@ async def sync_reaction_message_from_settings(msg_id_or_name):
             _errors_out += 'Could not find role {}'.format(
                 reaction[0]
             )
-            reaction_template['reactions'].remove(reaction)
+            reaction_settings['reactions'].remove(reaction)
             continue
     embed_json = {
-        'description': new_embed_desc
+        'description': new_embed_desc,
+        'content': new_embed_content
     }
     file_io.write_json(envs.roles_settings_file, roles_settings)
     # Edit discord message
     await _msg['msg'].edit(
-        content=reaction_template['content'],
+        content=reaction_settings['content'],
         embed=discord.Embed.from_dict(embed_json)
     )
     return _errors_out
@@ -219,7 +229,7 @@ class Autoroles(commands.Cog):
         if role_name is not None and len(role_name) > 0:
             _roles = _guild.roles
             for _role in _roles:
-                log.debug(f'Sjekker `_role`: {_role}')
+                log.log_more(f'Sjekker `_role`: {_role}')
                 if str(_role.name).lower() == role_name.lower():
                     log.debug(f'Fant `{role_name}`')
                     embed = discord.Embed(color=_role.color)
@@ -782,6 +792,7 @@ class Autoroles(commands.Cog):
             'mellomrom;emojinavn`\nBruk shift + enter mellom hvert sett '\
             'for å legge til flere om gangen.'
         _msg_addroles_msg = await ctx.message.reply(_msg_addroles)
+        _guild = discord_commands.get_guild()
         try:
             _msg = await config.bot.wait_for('message', timeout=60.0)
             desc_out = ''
@@ -870,7 +881,7 @@ class Autoroles(commands.Cog):
             `testrole;❓`
             Multiple sets can be added, using newline (shift-Enter).
         '''
-        await ctx.add_reaction('✅')
+        await ctx.message.add_reaction('✅')
         if not msg_id_or_name:
             ctx.reply('You need to reference a message ID or name')
             return
@@ -901,6 +912,10 @@ class Autoroles(commands.Cog):
         _msg = await get_message_by_id_or_name_from_settings(
             msg_id_or_name, reaction_messages
         )
+        if _msg is None:
+            # TODO var msg
+            await ctx.reply('Could not find reaction message')
+            return
         reactions = reaction_messages[_msg['name']]['reactions']
         reaction_role_check = []
         reaction_role_check.extend(reaction[0] for reaction in reactions)
@@ -967,9 +982,15 @@ class Autoroles(commands.Cog):
             The message ID to look for, or name of the saved message in
             settings file
         '''
+        if not msg_id_or_name:
+            # TODO var msg
+            await ctx.reply(
+                'Du må oppgi navn eller ID til en melding som skal synces'
+            )
+            return
         sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
         if sync_errors:
-            ctx.reply(sync_errors)
+            await ctx.reply(sync_errors)
         return
 
     @role_reaction.group(name='sort')
@@ -985,7 +1006,7 @@ class Autoroles(commands.Cog):
             The message ID to look for, or name of the saved message in
             settings file
         '''
-        await ctx.add_reaction('✅')
+        await ctx.message.add_reaction('✅')
         if not msg_id_or_name:
             # TODO var msg
             ctx.reply('I need the ID or name of the reaction message')
@@ -995,6 +1016,10 @@ class Autoroles(commands.Cog):
         _msg = await get_message_by_id_or_name_from_settings(
             msg_id_or_name, reaction_messages
         )
+        if _msg is None:
+            # TODO var msg
+            await ctx.reply('Could not find reaction message')
+            return
         reaction_messages[_msg['name']]['reactions'] = sorted(
             reaction_messages[_msg['name']]['reactions'],
             key=itemgetter(0)
@@ -1022,7 +1047,7 @@ class Autoroles(commands.Cog):
         msg_name: str
             The names of the reaction message to remove (default: None)
         '''
-        await ctx.add_reaction('✅')
+        await ctx.message.add_reaction('✅')
         roles_settings = file_io.read_json(envs.roles_settings_file)
         reaction_messages = roles_settings['reaction_messages']
         if msg_name not in reaction_messages:
@@ -1074,6 +1099,10 @@ class Autoroles(commands.Cog):
         _msg = await get_message_by_id_or_name_from_settings(
             msg_id_or_name, reaction_messages
         )
+        if _msg is None:
+            # TODO var msg
+            await ctx.reply('Could not find reaction message')
+            return
         reactions = reaction_messages[_msg['name']]['reactions']
         _reaction_roles_list = []
         _reaction_roles_list.extend([role[0].lower() for role in reactions])
