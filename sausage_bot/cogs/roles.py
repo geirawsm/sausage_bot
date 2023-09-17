@@ -755,7 +755,7 @@ class Autoroles(commands.Cog):
     @add_reaction_item.group(name='message', aliases=['msg', 'm'])
     async def add_reaction_message(
         self, ctx, msg_name: str = None, message_text: str = '',
-        channel: str = None
+        channel: str = None, order: int = None
     ):
         '''
         Add a reaction message
@@ -769,6 +769,8 @@ class Autoroles(commands.Cog):
         channel: str
             Channel to post reaction message to. If not specified, it will
             use the channel in settings
+        order: int
+            Set order for the message in the channel
         '''
         roles_settings = file_io.read_json(envs.roles_settings_file)
         if channel is None:
@@ -801,7 +803,6 @@ class Autoroles(commands.Cog):
                 'do_not_exist': []
             }
             reactions = []
-            _guild = discord_commands.get_guild()
             _roles = _guild.roles
             _roles_list = []
             _roles_list.extend([role.name.lower() for role in _roles])
@@ -853,6 +854,7 @@ class Autoroles(commands.Cog):
         # Save to the settings file
         reaction_messages[msg_name] = {
             'channel': channel,
+            'order': order,
             'id': reaction_msg.id,
             'content': message_text,
             'description': embed_json['description'],
@@ -1127,6 +1129,97 @@ class Autoroles(commands.Cog):
         _error_msg = make_error_message(error_roles, 'Roles')
         if _error_msg:
             await ctx.reply(_error_msg)
+        return
+
+    @role_reaction.group(name='reorder')
+    async def reorder_reaction_messages(
+        self, ctx, channel: str = None
+    ):
+        if not channel:
+            # TODO var msg
+            await ctx.message.reply(
+                'Du må oppgi kanalen som skal sorteres på nytt'
+            )
+            return
+        roles_settings = file_io.read_json(envs.roles_settings_file)
+        react_msgs = roles_settings['reaction_messages']
+        comparing = {
+            'settings': {},
+            'discord': {}
+        }
+        for msg in react_msgs:
+            comparing['settings'][react_msgs[msg]['order']] = \
+                react_msgs[msg]['id']
+        comparing['settings'] = dict(
+            sorted(comparing['settings'].items(), key=lambda x: x[0])
+        )
+        _guild = discord_commands.get_guild()
+        _channels = discord_commands.get_text_channel_list()
+        channel_object = _guild.get_channel(
+            _channels[channel]
+        )
+        discord_msgs = [message async for message in channel_object.history(
+            limit=20, oldest_first=True
+        )]
+        discord_comp = []
+        discord_comp.extend(
+            [(idx+1, message.id) for idx, message in enumerate(discord_msgs)]
+        )
+        for msg in discord_comp:
+            comparing['discord'][msg[0]] = msg[1]
+        comparing = dict(sorted(comparing.items()))
+        if len(comparing['settings']) != len(comparing['settings']):
+            # TODO var msg
+            log.log(
+                'Antall reaksjonsmeldinger i {} og innstillinger stemmer '
+                'ikke overens ({} vs {})'.format(
+                    channel, len(comparing['settings']),
+                    len(comparing['discord'])
+                )
+            )
+            return
+        elif len(comparing['settings']) == len(comparing['settings']):
+            len_reacts = len(comparing['settings']) + 1
+            i = 1
+            fail = None
+            while i <= len_reacts:
+                if comparing['settings'][i] != comparing['discord'][i]:
+                    # TODO var msg
+                    log.debug(
+                        'Feil rekkefølge oppdaget!'
+                    )
+                    fail = True
+                    break
+                else:
+                    # TODO var msg
+                    log.log('No errors in order')
+                    fail = False
+                i += 1
+            # Get and delete messages
+            _channels = discord_commands.get_text_channel_list()
+            for id in comparing['discord']:
+                msg = await _guild.get_channel(
+                    _channels[channel]
+                ).fetch_message(
+                    comparing['discord'][id]
+                )
+                log.debug(f'Found message {msg}')
+                await msg.delete()
+            # Recreate messages
+            for msg in react_msgs:
+                embed_json = {
+                    'description': react_msgs[msg]['description']
+                }
+                reaction_msg = await discord_commands.post_to_channel(
+                    channel, content_in=react_msgs[msg]['content'],
+                    content_embed_in=embed_json
+                )
+                for reaction in react_msgs[msg]['reactions']:
+                    log.debug(f'Adding emoji {reaction[1]}')
+                    await reaction_msg.add_reaction(reaction[1])
+                # Update the message id in settings file
+                react_msgs[msg]['id'] = reaction_msg.id
+            file_io.write_json(envs.roles_settings_file, roles_settings)
         return
 
 
