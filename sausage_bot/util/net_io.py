@@ -101,11 +101,22 @@ def make_event_start_stop(date, time=None):
         return None
 
 
-async def parse(url: str):
+async def parse(url: str = None):
     '''
-    Parse `url` to get info about a football match.
+    Parse `url` to get info about a football match
+    Currently supports the following sites:
+    - nifs.no
+    - vglive.no
+    - tv2.no/livesport
 
-    Returns a dict with information about the match given.
+    Parameters
+    ------------
+    url: str
+        The url to parse (default: None)
+
+    Returns
+    ------------
+    dict with info about the match
     '''
     def parse_nifs(json_in):
         '''
@@ -173,11 +184,53 @@ async def parse(url: str):
             'stadium': stadium
         }
 
+    def parse_tv2_livesport(json_in):
+        '''
+        Parse match ID from matchpage from tv2.no/livesport, then use that in an
+        api call
+        '''
+        # Get info relevant for the event
+        home = json_in['teams'][0]['name']
+        away = json_in['teams'][1]['name']
+        if 'venue' in json_in:
+            stadium = json_in['venue']['name']
+        else:
+            stadium = None
+        date_in = json_in['startDate']
+        _date_obj = datetime_handling.make_dt(date_in)
+        dt_in = make_event_start_stop(_date_obj)
+        if dt_in is None:
+            log.debug('Error with `dt_in`')
+            return None
+        return {
+            'teams': {
+                'home': home,
+                'away': away
+            },
+            'tournament': json_in['competition']['name'],
+            'datetime': {
+                'date': dt_in['start_date'],
+                'time': dt_in['start_time'],
+                'start_dt': dt_in['start_dt'],
+                'start_event': dt_in['start_event'],
+                'end_dt': dt_in['end_dt'],
+                'event_start_epoch': dt_in['event_start_epoch'],
+                'rel_start': dt_in['rel_start'],
+                'event_rel_start': dt_in['event_rel_start']
+            },
+            'stadium': stadium
+        }
+
+    if url is None:
+        log.debug('Got None as url')
+        return None
     PARSER = None
     if 'nifs.no' in url:
         PARSER = 'nifs'
     elif 'vglive.no' in url:
         PARSER = 'vglive'
+    elif 'tv2.no/livesport' in url:
+        PARSER = 'tv2livesport'
     elif args.force_parser:
         PARSER = args.force_parser
     log.log_more(f'Got parser `{PARSER}`')
@@ -208,6 +261,22 @@ async def parse(url: str):
             json_in = await get_link(base_url.format(_id))
             json_out = json.loads(json_in)
             parse = parse_vglive(json_out)
+            return parse
+        except Exception as e:
+            error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
+            log.log(error_msg)
+            return None
+    elif PARSER == 'tv2livesport':
+        if '/kamper/' not in url:
+            # todo var msg
+            log.log('The tv2 url is not from a match page')
+            return None
+        _id = re.match(r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url).group(1)
+        base_url = 'https://tv2-sport-backend.sumo.tv2.no/football/matches/{}/facts'
+        try:
+            json_in = await get_link(base_url.format(_id))
+            json_out = json.loads(json_in)
+            parse = parse_tv2_livesport(json_out)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
