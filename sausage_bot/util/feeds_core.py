@@ -165,8 +165,8 @@ async def get_feed_links(
         ):
             _filter_priority = eval(f'filter_{filter_priority}')
             log.debug(
-                f'Sjekker link ({title_in}) opp mot følgende '
-                f'filtere: {_filter_priority}'
+                f'Sjekker tittel ({title_in}) og beskrivelse ({desc_in}) '
+                f'opp mot følgende filtere: {_filter_priority}'
             )
             if len(_filter_priority) >= 1:
                 for filter in _filter_priority:
@@ -190,9 +190,21 @@ async def get_feed_links(
 
         log.debug('Starting `filter_link`')
         log.debug(f'Got `rss_item`: {rss_item}')
-        title_in = rss_item['title']
-        link_in = rss_item['link']
-        desc_in = rss_item['description']
+        try:
+            if rss_item.find('item'):
+                _item = rss_item.find('item')
+                title_in = _item.find('title').text
+                link_in = _item.find('link').text
+                desc_in = _item.find('description').text
+            else:
+                title_in = rss_item.find('title').text
+                link_in = rss_item.find('link').text
+                desc_in = rss_item.find('description').text
+        except:
+            log.debug(
+                'Got an error when checking the following rss item:'
+                f'{rss_item}'
+            )
         if filter_priority:
             log.debug(
                 f'Based on settings, the `{filter_priority}` filter'
@@ -207,6 +219,8 @@ async def get_feed_links(
         log.debug('Got these filters:')
         log.debug(f'Allow: {filter_allow}')
         log.debug(f'Deny: {filter_deny}')
+        if len(filter_allow) == 0 and len(filter_deny) == 0:
+            return link_in
         if post_based_on_filter(
             filter_priority, filter_allow, filter_deny, title_in, desc_in
         ):
@@ -227,11 +241,9 @@ async def get_feed_links(
             log.debug('Found podcast feed')
             all_items = soup.find_all('item')
             for item in all_items[0:3]:
-                link = item.find('link').text
-                log.debug(f'Got episode link: {link}')
-                if link == channel_link:
-                    link = item.find('enclosure')['url']
-                link = filter_link(item)
+                link = filter_link(
+                    item, filter_allow, filter_deny, filter_priority
+                )
                 links_out.append(link)
         # Gets Youtube urls
         elif soup.find('yt:channelId'):
