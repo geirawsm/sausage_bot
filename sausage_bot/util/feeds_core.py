@@ -154,7 +154,7 @@ async def get_feed_links(
 ):
     'Get the links from a RSS-feeds `url`'
 
-    def filter_link(link, filter_allow, filter_deny, filter_priority):
+    def filter_link(rss_item, filter_allow, filter_deny, filter_priority):
         '''
         Filter incoming links based on active filters and settings in
         `env.json`
@@ -189,9 +189,10 @@ async def get_feed_links(
                 return True
 
         log.debug('Starting `filter_link`')
-        title_in = link['title']
-        link_in = link['link']
-        desc_in = link['description']
+        log.debug(f'Got `rss_item`: {rss_item}')
+        title_in = rss_item['title']
+        link_in = rss_item['link']
+        desc_in = rss_item['description']
         if filter_priority:
             log.debug(
                 f'Based on settings, the `{filter_priority}` filter'
@@ -213,7 +214,7 @@ async def get_feed_links(
         else:
             return False
 
-    async def get_items_from_rss(req, url, include_shorts):
+    async def get_items_from_rss(req, url, include_shorts) -> list:
         try:
             soup = BeautifulSoup(req, features='xml')
         except Exception as e:
@@ -221,7 +222,7 @@ async def get_feed_links(
             return None
         links_out = []
         # Gets podcast urls
-        if soup.find('enclosure'):
+        if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
             channel_link = soup.find('channel').find('link')
             log.debug('Found podcast feed')
             all_items = soup.find_all('item')
@@ -230,6 +231,7 @@ async def get_feed_links(
                 log.debug(f'Got episode link: {link}')
                 if link == channel_link:
                     link = item.find('enclosure')['url']
+                link = filter_link(item)
                 links_out.append(link)
         # Gets Youtube urls
         elif soup.find('yt:channelId'):
@@ -310,19 +312,22 @@ async def get_feed_links(
             )
         links_out = await get_items_from_rss(req, url, include_shorts)
         log.debug(f'Got this from `get_items_from_rss`: {links_out}')
-        links = []
-        for link in links_out:
-            if (len(filter_allow) + len(filter_deny)) > 0:
-                _link = filter_link(
-                    link, filter_allow, filter_deny, filter_priority
-                )
-                if _link:
-                    log.debug(f'Appending link: `{_link}`')
-                    links.append(_link)
-            else:
-                links.append(link)
-        log.debug(f'Returning `links`: {links}')
-        return links
+        #
+        # links = []
+        # for link in links_out:
+        #     if (len(filter_allow) + len(filter_deny)) > 0:
+        #         _link = filter_link(
+        #             link, filter_allow, filter_deny, filter_priority
+        #         )
+        #         if _link:
+        #             log.debug(f'Appending link: `{_link}`')
+        #             links.append(_link)
+        #     else:
+        #         links.append(link)
+        # log.debug(f'Returning `links`: {links}')
+        # return links
+        #
+        return links_out
 
 
 async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
@@ -422,6 +427,7 @@ async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
             print(max_col_widths)
             table = tabulate(
                 tabulatify, tablefmt='plain',
+                headers="firstrow",
                 maxcolwidths=max_col_widths
             )
             return table
