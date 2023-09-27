@@ -100,8 +100,8 @@ class Quotes(commands.Cog):
         if quotes is None:
             await ctx.send(envs.UNREADABLE_FILE.format(envs.quote_file))
             return
-        # Find the next availabel quote number
-        new_quote_number = int(list(quotes.keys())[-1])+1
+        # Find the next available quote number
+        new_quote_number = len(quotes)
         # If no date is specified through `quote_date`, use date and time
         # as of now
         if quote_date is None:
