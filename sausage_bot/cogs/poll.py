@@ -21,6 +21,10 @@ class Poll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_messages=True)
+    )
     @commands.group(name='poll')
     async def poll(
         self, ctx, channel: str = None, post_time: str = None,

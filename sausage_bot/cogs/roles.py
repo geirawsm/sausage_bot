@@ -185,6 +185,11 @@ class Autoroles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @commands.group(name='roles')
     async def guildroles(self, ctx):
         '''
@@ -219,6 +224,10 @@ class Autoroles(commands.Cog):
             return
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @guildroles.group(name='info', aliases=['i'])
     async def role_info(self, ctx, role_name: str = None):
         '''
@@ -303,11 +312,19 @@ class Autoroles(commands.Cog):
             await ctx.reply(_var_msg)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @guildroles.group(name='list', aliases=['l'])
     async def role_list(self, ctx):
         'List roles, emojis or reactions'
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_list.group(name='roles', aliases=['r'])
     async def list_roles(self, ctx, sort: str = None):
         '''
@@ -353,6 +370,10 @@ class Autoroles(commands.Cog):
             await ctx.reply(f'```{page}```')
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_list.group(name='emojis', aliases=['e'])
     async def list_emojis(self, ctx, sort: str = None):
         '''
@@ -398,6 +419,10 @@ class Autoroles(commands.Cog):
             await ctx.reply(f'```{page}```')
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_list.group(name='reactions', aliases=['reac'])
     async def list_reactions(self, ctx, reaction_name: str = None):
         '''
@@ -471,11 +496,19 @@ class Autoroles(commands.Cog):
             )
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @guildroles.group(name='manage', aliases=['m'])
     async def role_manage(self, ctx):
         'Manage specific roles on the server'
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_manage.group(name='add', aliases=['a'])
     async def add_role(
         self, ctx, role_name: str, permissions: str,
@@ -540,6 +573,10 @@ class Autoroles(commands.Cog):
         await ctx.message.reply('Role is created')
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_manage.group(name='remove', aliases=['delete', 'r', 'd'])
     async def remove_role(self, ctx, role_name):
         '''
@@ -568,6 +605,10 @@ class Autoroles(commands.Cog):
         log.log(f'Fant ikke `{role_name}`')
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_manage.group(name='edit', aliases=['e'])
     async def edit_role(
         self, ctx, role_name: str = None,
@@ -643,6 +684,10 @@ class Autoroles(commands.Cog):
                 await ctx.reply(f'setting `{value}` not recognized')
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @guildroles.group(name='user')
     async def user_role(self, ctx):
         '''
@@ -650,6 +695,10 @@ class Autoroles(commands.Cog):
         '''
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @user_role.group(name='add', aliases=['a'])
     async def user_add_role(self, ctx, user_name: str, *role_names):
         '''
@@ -720,6 +769,10 @@ class Autoroles(commands.Cog):
         await ctx.message.reply(out_msg)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @user_role.group(name='remove', aliases=['delete', 'r', 'd'])
     async def user_remove_role(self, ctx, user_name, *role_names):
         '''
@@ -754,11 +807,19 @@ class Autoroles(commands.Cog):
         await ctx.message.reply(var_msg)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @guildroles.group(name='reaction', aliases=['reac'])
     async def role_reaction(self, ctx):
         'Manage reaction roles and messages on the server'
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_reaction.group(name='add', aliases=['a'])
     async def add_reaction_item(self, ctx):
         '''
@@ -766,6 +827,10 @@ class Autoroles(commands.Cog):
         '''
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @add_reaction_item.group(name='message', aliases=['msg', 'm'])
     async def add_reaction_message(
         self, ctx, msg_name: str = None, message_text: str = '',
@@ -856,6 +921,7 @@ class Autoroles(commands.Cog):
             sleep(3)
             await _msg_addroles_msg.delete()
             await ctx.message.delete()
+            return
         # Inform about role/emoji errors
         _error_msg = make_error_message(error_roles, 'Roles')
         if _error_msg:
@@ -875,11 +941,16 @@ class Autoroles(commands.Cog):
             'reactions': reactions
         }
         file_io.write_json(envs.roles_settings_file, roles_settings)
+        # TODO Gå over fra posting til reordering?
         for reaction in reactions:
             log.debug(f'Adding emoji {reaction[1]}')
             await reaction_msg.add_reaction(reaction[1])
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @add_reaction_item.group(name='role', aliases=['r'])
     async def add_reaction_role(
         self, ctx, msg_id_or_name=None, *role_emoji_combo
@@ -987,6 +1058,10 @@ class Autoroles(commands.Cog):
             await ctx.reply(_error_msg)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_reaction.group(name='sync', aliases=['s'])
     async def sync_reaction_items(self, ctx, msg_id_or_name=None):
         '''
@@ -1009,6 +1084,10 @@ class Autoroles(commands.Cog):
             await ctx.reply(sync_errors)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_reaction.group(name='sort')
     async def sort_reaction_items(
         self, ctx, msg_id_or_name=None
@@ -1046,6 +1125,10 @@ class Autoroles(commands.Cog):
             ctx.reply(sync_errors)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_reaction.group(name='remove', aliases=['r', 'delete', 'del'])
     async def remove_reaction(self, ctx):
         '''
@@ -1053,6 +1136,10 @@ class Autoroles(commands.Cog):
         '''
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @remove_reaction.group(name='message', aliases=['msg', 'm'])
     async def remove_reaction_message(self, ctx, msg_name: str = None):
         '''
@@ -1088,6 +1175,10 @@ class Autoroles(commands.Cog):
         await ctx.reply('Reaction message removed')
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @remove_reaction.group(name='role', aliases=['r'])
     async def remove_reaction_from_message(
         self, ctx, msg_id_or_name: str = None, *role_names
@@ -1145,6 +1236,10 @@ class Autoroles(commands.Cog):
             await ctx.reply(_error_msg)
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
     @role_reaction.group(name='reorder')
     async def reorder_reaction_messages(
         self, ctx, channel: str = None
