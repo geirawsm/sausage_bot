@@ -14,6 +14,7 @@ if args.data_dir:
 else:
     DATA_DIR = ROOT_DIR / 'data'
 JSON_DIR = DATA_DIR / 'json'
+DB_DIR = DATA_DIR / 'db'
 LOG_DIR = DATA_DIR / 'logs'
 STATIC_DIR = DATA_DIR / 'static'
 
@@ -35,6 +36,9 @@ cogs_status_file = JSON_DIR / 'cogs_status.json'
 stats_file = JSON_DIR / 'stats.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
 roles_settings_file = JSON_DIR / 'roles_settings.json'
+
+# DB files
+db_poll = DB_DIR / 'poll.db'
 
 # Template content
 env_template = '''
@@ -66,6 +70,35 @@ roles_template = {
         'not_include_in_total': [],
         'role': 0
     }
+}
+
+# Poll
+poll_db_polls_schema = {
+    'db_file': 'poll.db',
+    'name': 'poll',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'msg_id TEXT',
+        'channel TEXT',
+        'poll_text TEXT',
+        'post_time TEXT',
+        'lock_time TEXT',
+        'status_wait_post INTEGER',
+        'status_posted INTEGER',
+        'status_wait_lock INTEGER',
+        'status_locked INTEGER'
+    ]
+}
+
+poll_db_alternatives_schema = {
+    'db_file': 'poll.db',
+    'name': 'poll_alternatives',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'emoji TEXT NOT NULL',
+        'input TEXT NOT NULL',
+        'count INTEGER'
+    ]
 }
 
 ### Botlines ###
