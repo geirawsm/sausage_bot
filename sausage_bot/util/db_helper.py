@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import aiosqlite
 
-from sausage_bot.util import envs
+from sausage_bot.util import envs, file_io
 from sausage_bot.util.log import log
 
 
@@ -15,6 +15,7 @@ async def prep_table(db_file, table_temp):
     _cmd += ', '.join(item for item in item_list)
     _cmd += ');'
     log.db(f'Using this query: {_cmd}')
+    file_io.ensure_folder(envs.DB_DIR)
     async with aiosqlite.connect(envs.DB_DIR / db_file) as db:
         await db.execute(_cmd)
         log.db(
