@@ -227,7 +227,7 @@ async def parse(url: str = None):
     PARSER = None
     if 'nifs.no' in url:
         PARSER = 'nifs'
-    elif 'vglive.no' in url:
+    elif 'vglive.vg.no' in url:
         PARSER = 'vglive'
     elif 'tv2.no/livesport' in url:
         PARSER = 'tv2livesport'
@@ -255,7 +255,7 @@ async def parse(url: str = None):
             # todo var msg
             log.log('The vglive url is not from a match page')
             return None
-        _id = re.match(r'.*/kamp/.*/(\d+)/rapport', url).group(1)
+        _id = re.match(r'.*/kamp/.*/(\d+)/.*', url).group(1)
         base_url = 'https://vglive.no/api/vg/events/{}'
         try:
             json_in = await get_link(base_url.format(_id))
