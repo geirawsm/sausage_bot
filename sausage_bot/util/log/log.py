@@ -162,6 +162,34 @@ def debug(
         sleep(3)
 
 
+def db(
+        log_in: str, color: str = 'magenta', extra_info: str = False,
+        extra_color: str = None
+):
+    '''
+    Log database input specifically
+
+    color           Specify the color for highlighting the function name:
+                    black, red, green, yellow, blue, magenta, cyan, white.
+                    If `color` is not specified, it will highlight in magenta.
+    extra_info      Used to specify extra information in the logging
+    extra_color     Color for the `extra_info`
+    pretty          Prettify the output. Works on dict and list
+    '''
+    if args.log_db:
+        if extra_info is not None:
+            log_function(
+                log_in, color=color, extra_info=extra_info,
+                extra_color=extra_color
+            )
+        else:
+            log_function(
+                log_in, color='magenta'
+            )
+    if args.log_slow:
+        sleep(3)
+
+
 def log_func_name() -> str:
     'Get the function name that the `log`-function is used within'
     frame_file = sys._getframe(2)
