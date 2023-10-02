@@ -8,3 +8,4 @@ sausage_bot/data/.env
 sausage_bot/testing
 
 out
+sausage_bot/data/db
