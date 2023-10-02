@@ -1,0 +1,23 @@
+```mermaid
+flowchart TB
+    start(!poll 'channel' 'post_time' 'lock_time' 'poll_text') --> channel_ok{channel ok?}
+    channel_ok --No--> return_error[Return with error]
+    channel_ok --Yes--> post_time{post_time ok?}
+    post_time --No--> return_error
+    post_time --Yes--> post_wait[[Create post_wait in seconds\n]]
+    post_wait --> lock_time{Lock_time ok?}
+    lock_time --No--> return_error
+    lock_time --Yes--> lock_wait[[Create lock_wait in seconds]]
+    lock_wait --> text[[Prepare poll_text]]
+    text --> alts_in('Reply to this msg with alternatives')
+    alts_in --Times out?--> times_out[[Return error\nDelete messages]]
+    times_out --> return_error
+    alts_in --Alternatives given--> altemo[[Combine alternatives with random emojis\nAdd reactions to poll_msg\nCreate embed description]]
+    altemo --> status_wait[(Set status_wait_post to True)]
+    altemo --> post_waiting[["Wait post_wait(x) seconds"]]
+    post_waiting --> post_msg[[Post poll_msg]]
+    post_msg --> status_posted[(Set status_posted to True)]
+    post_msg --> lock_waiting[["Wait lock_wait(x) seconds"]]
+    lock_waiting --> lock_msg[[Lock poll_msg\nRemove reactions\nMove reactions to embed description]]
+    lock_msg --> status_locked[(Set status_locked to True)]
+```

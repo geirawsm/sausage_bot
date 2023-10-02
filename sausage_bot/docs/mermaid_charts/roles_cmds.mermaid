@@ -1,0 +1,30 @@
+```mermaid
+flowchart LR
+    A[!roles] --> AA[info]
+
+    A[!roles] --> AB[list]
+    AB --> ABA[roles]
+    AB --> ABB[emojis]
+    AB --> ABC[reactions]
+
+    A[!roles] --> AC[manage]
+    AC --> ACA[add]
+    AC --> ACB[remove]
+    AC --> ACC[edit]
+
+    A[!roles] --> AD[user]
+    AD --> ADA[add]
+    AD --> ADB[remove]
+
+    A[!roles] --> AE[reaction]
+    AE --> AEA[add]
+    AEA --> AEAA[message]
+    AEA --> AEAB[role]
+
+    AE --> AEB[sync]
+    AE --> AEC[sort]
+    AE --> AED[remove]
+    AED --> AEDA[message]
+    AED --> AEDB[role]
+    AE --> AEE[reorder]
+```

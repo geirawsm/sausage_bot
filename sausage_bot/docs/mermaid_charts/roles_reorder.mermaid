@@ -1,0 +1,19 @@
+```mermaid
+flowchart TB
+    A[!roles reaction\nadd message] -.Save 'order' int .-> AB[roles_settings.json/sqlite]
+    B[!roles reaction\nreorder] --> AB
+    AB --> AC[reaction_messages]
+    B --> BA[Discord channel messages]
+    AC --> AD[[order\nid]]
+    BA --> BB[[idx\nmessage.id]]
+    AD --> Z{Is order == idx and\nid == message.id?}
+    BB --> Z
+    Z -- YES --> Y[No change]
+    Z -- NO --> C[Delete all messages from here on and out]
+    C --> D[for msg in reaction_messages,\nsplit by latest id/idx\nremove remaining messages\nsync rest of messages]
+    AC --> AE[[id\nchannel]]
+    AE --> AEA{for id:\nis id in channel?}
+    AEA -- YES --> AEZ[No change]
+    AEA -- NO --> AEY[Find id in settings\nRecreate based on settings]
+
+```
