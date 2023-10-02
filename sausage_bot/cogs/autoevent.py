@@ -44,20 +44,21 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='add', aliases=['a'])
     async def event_add(
-        self, ctx, url: str = commands.param(
-            default=None,
-            description="URL to match page from nifs.no"
-        ),
-        channel: str = commands.param(
-            default=None,
-            description="Voice channel to run event on"
-        ),
-        text: str = commands.param(
-            default=None,
-            description="Additional text to the event's description"
-        )
+        self, ctx, url: str = None, channel: str = None, text: str = None,
     ):
-        'Add a scheduled event: `!autoevent add [url] [channel] [text]`'
+        '''
+        Add a scheduled event: `!autoevent add [url] [channel] [text]`
+
+        Parameters
+        ------------
+        url: str
+            URL to match page from nifs, vglive or tv2.no/livesport
+            (default: None)
+        channel: str
+            Voice channel to run event on (default: None)
+        text: str
+            Additional text to the event's description (default: None)
+        '''
         autoevent_img = envs.STATIC_DIR / config.env.str(
             'AUTOEVENT_EVENT_IMAGE', default=None
         )
@@ -213,8 +214,8 @@ class AutoEvent(commands.Cog):
     )
     @autoevent.group(name='list', aliases=['l'])
     async def list_events(self, ctx):
-        f'''
-        Lists all the planned events: `{config.PREFIX}autoevent list`
+        '''
+        Lists all the planned events: `!autoevent list`
         '''
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:
@@ -290,20 +291,23 @@ class AutoEvent(commands.Cog):
         _guild = discord_commands.get_guild()
         for event in _guild.scheduled_events:
             if int(event_id) == event.id:
-                e_name = event.name
                 rel_start = '<t:{}:R>'.format(
                     datetime_handling.get_dt(
                         format='epoch',
                         dt=event.start_time.astimezone()
                     )
                 )
-                announce_text = 'Minner om eventen `{}` som '\
+                announce_text = 'Minner om eventen som '\
                     'begynner {}, 30 min før kampstart'.format(
-                        e_name, rel_start
+                        rel_start
                     )
                 break
 
         # Announce to channel
+        await discord_commands.post_to_channel(
+            channel_in=channel,
+            content_in=event.url
+        )
         await discord_commands.post_to_channel(
             channel_in=channel,
             content_in=announce_text
