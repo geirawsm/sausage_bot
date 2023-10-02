@@ -19,7 +19,7 @@ logging_args.add_argument('--log', '-l',
                           default=False,
                           dest='log')
 logging_args.add_argument('--log-more', '-lm',
-                          help='Log absolutely everything',
+                          help='Log more things',
                           action='store_true',
                           default=False,
                           dest='log_more')
@@ -28,6 +28,11 @@ logging_args.add_argument('--log-print', '-lp',
                           action='store_true',
                           default=False,
                           dest='log_print')
+logging_args.add_argument('--log-database', '-ld',
+                          help='Log database actions',
+                          action='store_true',
+                          default=False,
+                          dest='log_db')
 logging_args.add_argument('--debug', '-d',
                           help='Show debug messages',
                           action='store_true',
