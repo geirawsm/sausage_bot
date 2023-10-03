@@ -28,6 +28,8 @@ def make_dt(date_in):
     - 17.05.20 22, 11.22
     - 2022-05-17T11:22:00Z
     - 2023-08-05T10:00:00+02:00
+    - 1122
+    - 11.22
     '''
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
         log.debug('Found a Z/T/+ in `date_in`')
@@ -43,21 +45,27 @@ def make_dt(date_in):
             log.log_more('`date_in` is {}'.format(date_in))
             log.log_more(f'Got `d_len` {d_len}')
             log.log_more(f'd_split: {d_split}')
-            if d_len == 3:
+            if d_len <= 2:
+                # Expecting `HHmm` or `HH( |:|-|_|.)mm`
+                date_in = date_in.replace(' ', '')
+                return pendulum.from_format(
+                    date_in, 'HHmm'
+                ).in_tz(tz)
+            elif d_len == 3:
                 # Expecting `DD MM YYYY`, `YYY MM DD` or `DD MM YY`
                 if len(d_split[2]) == 4:
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY'
-                    )
+                    ).in_tz(tz)
                 elif len(d_split[0]) == 4:
                     return pendulum.from_format(
                         date_in, 'YYYY MM DD'
-                    )
+                    ).in_tz(tz)
                 elif all(len(timeunit) == 2 for timeunit in d_split):
                     # We have to assume that this is DD MM YY
                     return pendulum.from_format(
                         date_in, 'DD MM YY'
-                    )
+                    ).in_tz(tz)
             elif d_len == 4:
                 # Expecting a wrong space or separator somewhere
                 # If all units have 2 in len, then it could be a split in YYYY,
@@ -66,7 +74,7 @@ def make_dt(date_in):
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]}'
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY'
-                    )
+                    ).in_tz(tz)
                 # If the fourth and last unit has a len of 4, it probably
                 # is the time with a missing separator
                 elif all(len(timeunit) == 2 for timeunit in d_split[0:2])\
@@ -85,24 +93,24 @@ def make_dt(date_in):
                     log.log_more('date_in: {}'.format(date_in))
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
-                    )
+                    ).in_tz(tz)
             elif d_len == 5:
                 if len(d_split[2]) == 4:
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
-                    )
+                    ).in_tz(tz)
                 elif len(d_split[0]) == 4:
                     return pendulum.from_format(
                         date_in, 'YYYY MM DD HH mm'
-                    )
+                    ).in_tz(tz)
                 elif len(d_split[2]) == 2:
                     return pendulum.from_format(
                         date_in, 'DD MM YY HH mm'
-                    )
+                    ).in_tz(tz)
                 elif len(d_split[0]) == 2:
                     return pendulum.from_format(
                         date_in, 'YY MM DD HH mm'
-                    )
+                    ).in_tz(tz)
             elif d_len == 6:
                 # A split of 6 is most likely a split in YYYY
                 if all(len(timeunit) == 2 for timeunit in d_split):
@@ -110,7 +118,7 @@ def make_dt(date_in):
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]} {d[4]} {d[5]}'
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
-                    )
+                    ).in_tz(tz)
                 pass
             else:
                 return None

@@ -107,7 +107,9 @@ class AutoEvent(commands.Cog):
                 tournament = scr['tournament']
                 stadium = scr['stadium']
                 _dt = scr['datetime']
-                start_text = _dt['start_dt'].strftime('%-d. %B, %H:%M')
+                start_text = _dt['start_dt'].format(
+                    'd. MMMM, HH:mm', locale=datetime_handling.locale
+                )
                 rel_start = _dt['rel_start']
                 start_event = _dt['start_event']
                 end_dt = _dt['end_dt']
