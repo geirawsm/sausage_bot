@@ -37,5 +37,4 @@ jobs:
     - name: Test with pytest
       run: |
         pip install pytest
-        export PYTHONPATH=src
-        pytest sausage_bot/test
+        pytest
