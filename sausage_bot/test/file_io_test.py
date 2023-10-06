@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 from unittest import mock
-from ..util import file_io
-from sausage_bot.util import envs
+from ..util import file_io, envs
 
 
 def test_write_file_input():
