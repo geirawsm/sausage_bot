@@ -38,4 +38,4 @@ jobs:
       run: |
         pip install pytest
         export PYTHONPATH=src
-        pytest
+        pytest sausage_bot/test
