@@ -38,9 +38,6 @@ stats_file = JSON_DIR / 'stats.json'
 stats_logs_file = JSON_DIR / 'stats_logs.json'
 roles_settings_file = JSON_DIR / 'roles_settings.json'
 
-# DB files
-db_poll = DB_DIR / 'poll.db'
-
 # Template content
 env_template = '''
 # Basic settings

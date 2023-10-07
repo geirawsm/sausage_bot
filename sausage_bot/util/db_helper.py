@@ -6,8 +6,7 @@ from sausage_bot.util import envs, file_io
 from sausage_bot.util.log import log
 
 
-async def prep_table(db_file, table_temp):
-    log.log_more(f'Got `db_file``: {db_file}')
+async def prep_table(table_temp):
     log.log_more(f'Got `table_temp``: {table_temp}')
     table_name = table_temp['name']
     item_list = table_temp['items']
@@ -16,7 +15,9 @@ async def prep_table(db_file, table_temp):
     _cmd += ');'
     log.db(f'Using this query: {_cmd}')
     file_io.ensure_folder(envs.DB_DIR)
-    async with aiosqlite.connect(envs.DB_DIR / db_file) as db:
+    async with aiosqlite.connect(
+        envs.DB_DIR / table_temp['db_file']
+    ) as db:
         await db.execute(_cmd)
         log.db(
             'Changed {} rows'.format(
@@ -26,8 +27,7 @@ async def prep_table(db_file, table_temp):
 
 
 async def db_insert_many_all(
-        db_file,
-        table_name: str = None,
+        template_info,
         inserts=None
 ):
     '''
@@ -35,11 +35,13 @@ async def db_insert_many_all(
 
     Parameters
     ------------
-    table_name: str
-        The names of the table to add to (default: None)
+    template_info: dict
+        dict info about the table from envs file
     inserts: list(tuple)
         A list with tuples for reach row
     '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
     log.log_more(f'Got `db_file``: {db_file}')
     log.log_more(f'Got `table_name``: {table_name}')
     log.log_more(f'Got `inserts``: {inserts}')
@@ -58,8 +60,7 @@ async def db_insert_many_all(
 
 
 async def db_insert_many_some(
-        db_file: str = None,
-        table_name: str = None,
+        template_info,
         rows: tuple = None,
         inserts: list = None
 ):
@@ -68,15 +69,15 @@ async def db_insert_many_some(
 
     Parameters
     ------------
-    db_file: str
-        Name of the db file (default: None)
-    table_name: str
-        Name of the table to add to (default: None)
+    template_info: dict
+        dict info about the table from envs file
     rows: tuple
         A tuple with the row names to add each inserts tuple into
     inserts: list(tuples)
         A list with tuples for reach row
     '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
     if db_file is None:
         log.log('`db_file` is None')
         return None
@@ -109,12 +110,9 @@ async def db_insert_many_some(
         )
 
 
-async def db_update_fields(
-        db_file: str = None, table_name: str = None,
-        ids=None, updates: list = None
-):
+async def db_update_fields(template_info, ids=None, updates: list = None):
     '''
-    Update a `table_name` with listed tuples in `updates` where you can
+    Update a table with listed tuples in `updates` where you can
     find the specific `ids`
 
     Equals to this SQl command:
@@ -126,15 +124,15 @@ async def db_update_fields(
             employeeid = 4
     Parameters
     ------------
-    db_file: str
-        Name of the db file (default: None)
-    table_name: str
-        Table name in sqlite (default: None)
+    template_info: dict
+        dict info about the table from envs file
     ids: tuple/list of tuples
         Single or multiple things to look for to identify correct rows
     updates: list(tuples)
         A list of tuples with a field, value combination
     '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
     if table_name is None:
         log.log('Missing table_name')
         return
@@ -164,8 +162,8 @@ async def db_update_fields(
 
 
 async def get_output(
-        db_file: str = None, table_name: str = None,
-        ids: tuple = None, fields_out: tuple = None, order_by: list = None
+        template_info, ids: tuple = None, fields_out: tuple = None,
+        order_by: list = None
 ):
     '''
     Get output from a SELECT query from a specified `table_name`, with
@@ -173,10 +171,8 @@ async def get_output(
 
     Parameters
     ------------
-    db_file: str
-        The names of the role to add (default: None)
-    table_name: str
-        Table name in sqlite (default: None)
+    template_info: dict
+        dict info about the table from envs file
     ids: tuple
         Single or multiple things to look for to identify correct rows
     fields_out: tuple
@@ -189,13 +185,18 @@ async def get_output(
     int or float
         Expected results.
     '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
     _cmd = 'SELECT '
     if fields_out is None:
         _cmd += '*'
-    elif isinstance(fields_out, tuple):
+    elif isinstance(fields_out, tuple) and\
+            len(fields_out) > 1:
         _cmd += ', '.join(field for field in fields_out)
+    elif isinstance(fields_out, str):
+        _cmd += fields_out
     _cmd += f' FROM {table_name}'
-    if ids is not None:
+    if ids is not None and len(ids) > 0:
         _cmd += ' WHERE '
         for id in ids:
             _cmd += f"{id[0]} = '{id[1]}'"
