@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import pytest
-from sausage_bot.util import net_io
+from ..util import net_io
 
 
 def test_make_event_start_stop():

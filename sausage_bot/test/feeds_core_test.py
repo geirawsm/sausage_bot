@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
-from sausage_bot.util import file_io
+from ..util import file_io
 
 
 def test_check_similarity_return_number_or_none():
