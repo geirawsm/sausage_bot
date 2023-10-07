@@ -51,4 +51,3 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: $/test:latest
