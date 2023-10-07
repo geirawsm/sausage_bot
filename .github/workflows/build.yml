@@ -51,4 +51,5 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: ${{secrets.DOCKER_USER}}/sausage_bot:latest
+        tags: ${{ steps.meta.outputs.tags }}
+
