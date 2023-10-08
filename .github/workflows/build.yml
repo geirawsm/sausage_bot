@@ -21,9 +21,10 @@ jobs:
     - name: Install dependencies
       run: |
         cd ..
+        pwd
         python -m pip install --upgrade pip
-        pip install flake8
-        pip install -r requirements.txt
+        pip install flake8 pipenv
+        pipenv install
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -34,7 +35,7 @@ jobs:
       env:
         DISCORD_TOKEN: ${{secrets.DISCORD_TOKEN}}
       run: |
-        python -m pytest
+        pipenv run python -m pytest
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     - name: Login to Docker Hub
