@@ -19,7 +19,10 @@ jobs:
         GITHUB_CONTEXT: ${{ toJson(github) }}
       run: echo "$GITHUB_CONTEXT"
     - name: List files
-      run: ls -al
+      run: |
+        ls -al
+        cd ..
+        ls -al
 #    - name: Set up Python 3.10
 #      uses: actions/setup-python@v3
 #      with:
