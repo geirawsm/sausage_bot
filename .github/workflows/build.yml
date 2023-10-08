@@ -34,7 +34,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       env:
-        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        DISCORD_TOKEN: ${{secrets.DISCORD_TOKEN}}
       run: |
         python -m pytest
     - name: Login to Docker Hub
@@ -46,7 +46,6 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./Dockerfile
+        file: ./dockerfile
         push: true
         tags: ${{secrets.DOCKER_USER}}/sausage_bot:latest
-
