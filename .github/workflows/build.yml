@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+  defaults:
+    run:
+      working-directory: ../.
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,7 +34,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Test with pytest
-      working-directory: ../.
+      working-directory: ./test
       run: |
         pytest
 
