@@ -7,7 +7,6 @@ on:
 permissions:
   contents: read
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,9 +31,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Test with pytest
-      working-directory: /home/runner/work/sausage_bot/test
       run: |
-        pytest
+        pytest /home/runner/work/sausage_bot/test
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
