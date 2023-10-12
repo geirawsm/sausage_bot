@@ -65,7 +65,7 @@ async def db_insert_many_some(
         inserts: list = None
 ):
     '''
-    Insert info in specific columns in a sqlite row
+    Insert info in specific columns in a sqlite row:
 
     Parameters
     ------------
@@ -86,18 +86,34 @@ async def db_insert_many_some(
         return None
     log.log_more(f'Got `db_file``: {db_file}')
     log.log_more(f'Got `table_name``: {table_name}')
-    log.log_more(f'Got `rows``: {rows}')
-    log.log_more(f'Got `inserts``: {inserts}')
-    if len(rows) != len(inserts[0]):
+    log.log_more(f'Got `rows``: {rows} {type(rows)} {len(rows)}')
+    log.log_more(f'Got `inserts``: {inserts} {type(inserts)} {len(inserts)}')
+    input_singles = False
+    input_multiples = False
+    if isinstance(rows, str) and len(inserts) == 1:
         log.log(
-            f'Lenght of rows and inserts does not match ({len(rows)} vs '
-            f'len(inserts[0]))'
+            f'Only one rows and inserts, which is OK'
         )
-        return None
+        input_singles = True
+    else:
+        if len(rows) != len(inserts[0]):
+            log.log(
+                f'Length of rows and inserts does not match ({len(rows)} vs '
+                f'{len(inserts[0])})'
+            )
+            return None
+        else:
+            input_multiples = True
     _cmd = f'INSERT INTO {table_name} ('
-    _cmd += ', '.join(row for row in rows)
+    if input_singles:
+        _cmd += rows
+    elif input_multiples:
+        _cmd += ', '.join(row for row in rows)
     _cmd += ') VALUES ('
-    _cmd += ', '.join('?'*len(inserts[0]))
+    if input_singles:
+        _cmd += '?'
+    elif input_multiples:
+        _cmd += ', '.join('?'*len(inserts[0]))
     _cmd += ')'
     log.db(f'Using this query: {_cmd}')
     async with aiosqlite.connect(db_file) as db:

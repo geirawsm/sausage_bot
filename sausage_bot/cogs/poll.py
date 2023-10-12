@@ -89,8 +89,7 @@ class Poll(commands.Cog):
         poll_text = ' '.join(_ for _ in poll_text)
         _uuid = str(uuid.uuid4())
         await db_helper.db_insert_many_some(
-            envs.db_poll,
-            envs.poll_db_polls_schema['name'],
+            envs.poll_db_polls_schema,
             (
                 'uuid', 'channel', 'post_time', 'lock_time',
                 'poll_text', 'status_wait_post', 'status_posted',
@@ -129,8 +128,7 @@ class Poll(commands.Cog):
             log.debug(f'`alts_db`: {alts_db}')
             # Add to db
             await db_helper.db_insert_many_some(
-                envs.db_poll,
-                envs.poll_db_alternatives_schema['name'],
+                envs.poll_db_alternatives_schema,
                 ('uuid', 'emoji', 'input', 'count'),
                 alts_db
             )
@@ -197,8 +195,7 @@ class Poll(commands.Cog):
             return
         # Post the poll message
         await db_helper.db_update_fields(
-            envs.db_poll,
-            envs.poll_db_polls_schema['name'],
+            envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
                 ('status_wait_post', 1)
@@ -215,8 +212,7 @@ class Poll(commands.Cog):
             content_embed_in=embed_json
         )
         await db_helper.db_update_fields(
-            envs.db_poll,
-            envs.poll_db_polls_schema['name'],
+            envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
                 ('msg_id', poll_msg.id),
@@ -228,8 +224,7 @@ class Poll(commands.Cog):
             await poll_msg.add_reaction(reaction)
         log.debug('Waiting to lock...')
         await db_helper.db_update_fields(
-            envs.db_poll,
-            envs.poll_db_polls_schema['name'],
+            envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
                 ('status_wait_lock', 1)
@@ -253,8 +248,7 @@ class Poll(commands.Cog):
             for react in poll_reacts:
                 if react.emoji in alts:
                     await db_helper.db_update_fields(
-                        envs.db_poll,
-                        envs.poll_db_alternatives_schema['name'],
+                        envs.poll_db_alternatives_schema,
                         [
                             ('uuid', _uuid),
                             ('emoji', react.emoji)
@@ -265,7 +259,7 @@ class Poll(commands.Cog):
                     )
                     break
         sorted_reacts = await db_helper.get_output(
-            envs.db_poll, envs.poll_db_alternatives_schema['name'],
+            envs.poll_db_alternatives_schema,
             [
                 ('uuid', _uuid)
             ],
@@ -293,8 +287,7 @@ class Poll(commands.Cog):
             content_embed_in=embed_json
         )
         await db_helper.db_update_fields(
-            envs.db_poll,
-            envs.poll_db_polls_schema['name'],
+            envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
                 ('status_locked', 1)
@@ -306,10 +299,10 @@ async def setup(bot):
     log.log(envs.COG_STARTING.format('poll'))
     log.log_more('Checking db')
     await db_helper.prep_table(
-        envs.db_poll, envs.poll_db_polls_schema
+        envs.poll_db_polls_schema
     )
     await db_helper.prep_table(
-        envs.db_poll, envs.poll_db_alternatives_schema
+        envs.poll_db_alternatives_schema
     )
     log.log_more('Registering cog to bot')
     await bot.add_cog(Poll(bot))
