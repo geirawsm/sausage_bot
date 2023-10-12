@@ -237,12 +237,10 @@ class Poll(commands.Cog):
         )
         log.log_more(f'dt_post: {dt_post}')
         log.log_more(f'dt_lock: {dt_lock}')
-        log.debug(f'pendulum.now() - {pendulum.now()}', color='red')
         lock_diff = (dt_lock - pendulum.now()).in_seconds()
         log.debug(f'`lock_diff` in seconds: {lock_diff}')
         await asyncio.sleep(lock_diff)
         log.debug('Ready to lock!')
-        log.debug(f'pendulum.now() - {pendulum.now()}', color='red')
         _guild = discord_commands.get_guild()
         _channels = discord_commands.get_text_channel_list()
         _channel = _guild.get_channel(
@@ -266,7 +264,6 @@ class Poll(commands.Cog):
                         ]
                     )
                     break
-        log.debug(f'pendulum.now() - {pendulum.now()}', color='red')
         sorted_reacts = await db_helper.get_output(
             envs.db_poll, envs.poll_db_alternatives_schema['name'],
             [
@@ -279,7 +276,6 @@ class Poll(commands.Cog):
         )
         # Remove old poll_msg
         await poll_msg.delete()
-        log.debug(f'pendulum.now() - {pendulum.now()}', color='red')
         # Move reaction to the text
         desc_out = f'{poll_text}\n'
         for reaction in sorted_reacts:
@@ -292,7 +288,6 @@ class Poll(commands.Cog):
                 'text': f'Avstemning ble stengt etter {dt_lock_text}'
             }
         }
-        log.debug(f'pendulum.now() - {pendulum.now()}', color='red')
         await discord_commands.post_to_channel(
             channel, content_in='',
             content_embed_in=embed_json
@@ -305,7 +300,6 @@ class Poll(commands.Cog):
                 ('status_locked', 1)
             ]
         )
-        log.debug(f'pendulum.now() - {pendulum.now()}', color='red')
 
 
 async def setup(bot):
