@@ -99,6 +99,26 @@ poll_db_alternatives_schema = {
     ]
 }
 
+# Dilemmas
+dilemmas_db_schema = {
+    'db_file': 'dilemmas.db',
+    'name': 'dilemmas',
+    'items': [
+        'id TEXT NOT NULL',
+        'dilemmas_text TEXT'
+    ],
+    'primary': 'id'
+}
+
+dilemmas_db_log_schema = {
+    'db_file': 'dilemmas.db',
+    'name': 'log',
+    'items': [
+        'id TEXT NOT NULL',
+        'ctx_id TEXT'
+    ]
+}
+
 ### Botlines ###
 # Generiske
 GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'

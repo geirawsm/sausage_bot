@@ -12,6 +12,8 @@ async def prep_table(table_temp):
     item_list = table_temp['items']
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
     _cmd += ', '.join(item for item in item_list)
+    if 'primary' in table_temp:
+        _cmd += ', PRIMARY KEY({})'.format(table_temp['primary'])
     _cmd += ');'
     log.db(f'Using this query: {_cmd}')
     file_io.ensure_folder(envs.DB_DIR)
@@ -26,7 +28,7 @@ async def prep_table(table_temp):
         )
 
 
-async def db_insert_many_all(
+async def insert_many_all(
         template_info,
         inserts=None
 ):
@@ -59,7 +61,7 @@ async def db_insert_many_all(
         )
 
 
-async def db_insert_many_some(
+async def insert_many_some(
         template_info,
         rows: tuple = None,
         inserts: list = None
@@ -126,7 +128,45 @@ async def db_insert_many_some(
         )
 
 
-async def db_update_fields(template_info, ids=None, updates: list = None):
+async def insert_single(
+        template_info,
+        field_name: str = None,
+        insert=None
+):
+    '''
+    Insert a single field in specific column in a sqlite row:
+
+    Parameters
+    ------------
+    template_info: dict
+        dict info about the table from envs file
+    field_name: str
+        Row name to add insert into
+    insert:
+        Input for the field_name
+    '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
+    if db_file is None:
+        log.log('`db_file` is None')
+        return None
+    if table_name is None:
+        log.log('`table_name` is None')
+        return None
+    _cmd = f'''INSERT INTO {table_name} ({field_name})
+              VALUES(?)'''
+    log.db(f'Using this query: {_cmd}')
+    async with aiosqlite.connect(db_file) as db:
+        await db.execute(_cmd, insert)
+        await db.commit()
+        log.debug(
+            'Changed {} rows'.format(
+                db.total_changes
+            )
+        )
+
+
+async def update_fields(template_info, ids=None, updates: list = None):
     '''
     Update a table with listed tuples in `updates` where you can
     find the specific `ids`
@@ -178,12 +218,13 @@ async def db_update_fields(template_info, ids=None, updates: list = None):
 
 
 async def get_output(
-        template_info, ids: tuple = None, fields_out: tuple = None,
-        order_by: list = None
+    template_info, ids: tuple = None, fields_out: tuple = None,
+    order_by: list = None
 ):
     '''
-    Get output from a SELECT query from a specified `table_name`, with
-    WHERE-filtering the `ids` and ORDER BY `order_by` (if given).
+    Get output from a SELECT query from a specified
+    `template_info[table_name]`, with WHERE-filtering the `ids` and
+    ORDER BY `order_by` (if given).
 
     Parameters
     ------------
@@ -195,11 +236,6 @@ async def get_output(
         What fields to get from the db file
     order_by: list(tuples)
         What fields to order by and if ASC or DESC
-
-    Returns
-    ------------
-    int or float
-        Expected results.
     '''
     db_file = envs.DB_DIR / template_info['db_file']
     table_name = template_info['name']
@@ -223,4 +259,70 @@ async def get_output(
     async with aiosqlite.connect(db_file) as db:
         out = await db.execute(_cmd)
         out = await out.fetchall()
+        return out
+
+
+async def get_random_left_exclude_output(
+    template_info_1, template_info_2, key: str = None,
+    fields_out: tuple = None
+):
+    '''
+    Get output from the following query:
+
+        SELECT `fields_out`
+        FROM `template_info_1[table_name] A`
+        LEFT JOIN `template_info_2[table_name]` B
+        ON A.`key` = B.`key`
+        WHERE B.`key` IS NULL
+        ORDER BY RAND()
+        LIMIT 1
+
+    Note: `fields_out` will only get values from `template_info_1`
+
+    Returns
+    ------------
+    tuple
+        ()
+    '''
+    db_file = envs.DB_DIR / template_info_1['db_file']
+    table_name1 = template_info_1['name']
+    table_name2 = template_info_2['name']
+    _cmd = 'SELECT '
+    if fields_out is None:
+        _cmd += '*'
+    elif isinstance(fields_out, tuple) and\
+            len(fields_out) > 1:
+        _cmd += ', '.join(f'A.{field}' for field in fields_out)
+    elif isinstance(fields_out, str):
+        _cmd += fields_out
+    _cmd += f' FROM {table_name1} A'
+    _cmd += f' LEFT JOIN {table_name2} B ON'
+    _cmd += f' A.{key} = B.{key}'
+    _cmd += f' WHERE B.{key} IS NULL'
+    _cmd += ' ORDER BY RANDOM()'
+    _cmd += ' LIMIT 1'
+    log.db(f'Using this query: {_cmd}')
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            out = await db.execute(_cmd)
+            out = await out.fetchall()
+            return out
+    except aiosqlite.OperationalError:
+        return None
+
+
+async def empty_table(template_info):
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
+    _cmd = f'DELETE FROM {table_name};'
+    #_cmd += ' WHERE id IS NOT NULL'
+    log.db(f'Using this query: {_cmd}')
+    async with aiosqlite.connect(db_file) as db:
+        out = await db.execute(_cmd)
+        await db.commit()
+        log.debug(
+            'Changed {} rows'.format(
+                db.total_changes
+            )
+        )
         return out
