@@ -88,7 +88,7 @@ class Poll(commands.Cog):
             return
         poll_text = ' '.join(_ for _ in poll_text)
         _uuid = str(uuid.uuid4())
-        await db_helper.db_insert_many_some(
+        await db_helper.insert_many_some(
             envs.poll_db_polls_schema,
             (
                 'uuid', 'channel', 'post_time', 'lock_time',
@@ -127,7 +127,7 @@ class Poll(commands.Cog):
                 alts_db.append((_uuid, needed_emojis[idx], alt, 0))
             log.debug(f'`alts_db`: {alts_db}')
             # Add to db
-            await db_helper.db_insert_many_some(
+            await db_helper.insert_many_some(
                 envs.poll_db_alternatives_schema,
                 ('uuid', 'emoji', 'input', 'count'),
                 alts_db
@@ -194,7 +194,7 @@ class Poll(commands.Cog):
             await ctx.message.delete()
             return
         # Post the poll message
-        await db_helper.db_update_fields(
+        await db_helper.update_fields(
             envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
@@ -211,7 +211,7 @@ class Poll(commands.Cog):
             channel, content_in=message_text,
             content_embed_in=embed_json
         )
-        await db_helper.db_update_fields(
+        await db_helper.update_fields(
             envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
@@ -223,7 +223,7 @@ class Poll(commands.Cog):
             log.debug(f'Adding emoji {reaction}')
             await poll_msg.add_reaction(reaction)
         log.debug('Waiting to lock...')
-        await db_helper.db_update_fields(
+        await db_helper.update_fields(
             envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
@@ -247,7 +247,7 @@ class Poll(commands.Cog):
         for alts in alts_db:
             for react in poll_reacts:
                 if react.emoji in alts:
-                    await db_helper.db_update_fields(
+                    await db_helper.update_fields(
                         envs.poll_db_alternatives_schema,
                         [
                             ('uuid', _uuid),
@@ -286,7 +286,7 @@ class Poll(commands.Cog):
             channel, content_in='',
             content_embed_in=embed_json
         )
-        await db_helper.db_update_fields(
+        await db_helper.update_fields(
             envs.poll_db_polls_schema,
             ('uuid', _uuid),
             [
