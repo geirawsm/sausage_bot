@@ -167,13 +167,16 @@ def get_dt(format='epoch', sep='.', dt=False):
     epoch               1400336619
     '''
     if isinstance(dt, datetime.datetime):
+        log.debug('Input is a datetime object')
         dt = make_dt(str(dt))
     if isinstance(dt, str):
+        log.debug('Input is a string')
         dt = make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
             return None
     elif not dt:
+        log.debug('No input detected, getting `now()`')
         dt = pendulum.now(tz)
     # Make sure correct timezone is used in input
     if format == 'date':

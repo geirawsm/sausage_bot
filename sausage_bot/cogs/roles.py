@@ -1271,7 +1271,10 @@ class Autoroles(commands.Cog):
                 react_msgs[msg]['id']
             channel_compare[react_msgs[msg]['id']] = \
                 react_msgs[msg]['channel']
-        log.debug(f'This is the `channel_compare`: {channel_compare}', color='yellow')
+        log.debug(
+            f'This is the `channel_compare`: {channel_compare}',
+            color='yellow'
+        )
         order_compare['settings'] = dict(
             sorted(order_compare['settings'].items(), key=lambda x: x[0])
         )
@@ -1290,7 +1293,10 @@ class Autoroles(commands.Cog):
         for msg in discord_order_comp:
             order_compare['discord'][msg[0]] = msg[1]
         order_compare = dict(sorted(order_compare.items()))
-        log.debug(f'This is the `order_compare`: {order_compare}', color='yellow')
+        log.debug(
+            f'This is the `order_compare`: {order_compare}',
+            color='yellow'
+        )
         trigger_reordering = None
         # Check order of messages
         if len(order_compare['discord']) != len(order_compare['settings']):
@@ -1307,7 +1313,9 @@ class Autoroles(commands.Cog):
             set2 = set(order_compare['discord'].items())
             missing_msgs = list(set1 ^ set2)
             for msg in missing_msgs:
-                msg_search = await discord_commands.search_for_message_id(msg[1])
+                msg_search = await discord_commands.search_for_message_id(
+                    msg[1]
+                )
                 if msg_search is not None:
                     msg = await _guild.get_channel(
                         _channels[msg_search['channel']]
@@ -1368,7 +1376,8 @@ class Autoroles(commands.Cog):
                     'description': react_msgs[msg]['description']
                 }
                 reaction_msg = await discord_commands.post_to_channel(
-                    react_msgs[msg]['channel'], content_in=react_msgs[msg]['content'],
+                    react_msgs[msg]['channel'],
+                    content_in=react_msgs[msg]['content'],
                     content_embed_in=embed_json
                 )
                 for reaction in react_msgs[msg]['reactions']:

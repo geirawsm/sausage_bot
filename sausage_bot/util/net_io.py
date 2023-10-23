@@ -186,8 +186,8 @@ async def parse(url: str = None):
 
     def parse_tv2_livesport(json_in):
         '''
-        Parse match ID from matchpage from tv2.no/livesport, then use that in an
-        api call
+        Parse match ID from matchpage from tv2.no/livesport, then use that
+        in an API call
         '''
         # Get info relevant for the event
         home = json_in['teams'][0]['name']
@@ -271,8 +271,10 @@ async def parse(url: str = None):
             # todo var msg
             log.log('The tv2 url is not from a match page')
             return None
-        _id = re.match(r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url).group(1)
-        base_url = 'https://tv2-sport-backend.sumo.tv2.no/football/matches/{}/facts'
+        _id = re.match(
+            r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url).group(1)
+        base_url = 'https://tv2-sport-backend.sumo.tv2.no/football/'\
+            'matches/{}/facts'
         try:
             json_in = await get_link(base_url.format(_id))
             json_out = json.loads(json_in)
