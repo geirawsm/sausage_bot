@@ -3,6 +3,7 @@
 'Custom logging for the module'
 import sys
 from colorama import init, Fore, Style
+import pendulum
 from pathlib import Path
 import discord
 from .. import config, envs
@@ -10,7 +11,6 @@ from ..args import args
 from time import sleep
 import os
 import json
-import asyncio
 
 # colorama specific reset routine
 init(autoreset=True)
@@ -28,13 +28,14 @@ def log_function(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in green.
-    extra_info      Used to specify extra information in the logging (default: None)
+    extra_info      Used to specify extra information in the logging
+                    (default: None)
     extra_color     Color for the `extra_info` (default: green)
     pretty          Prettify the output. Works on dict and list
     '''
-    from .. import datetime_handling
-    get_dt = datetime_handling.get_dt
-    log_out = '[{}] '.format(get_dt(format = 'datetimefull'))
+    dt = pendulum.now(config.TIMEZONE)
+    _dt_full = dt.format(f'DD.MM.YYYY HH.mm.ss')
+    log_out = '[{}] '.format(_dt_full)
     if color is None:
         color = Fore.GREEN
     else:

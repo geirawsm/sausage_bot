@@ -29,6 +29,8 @@ def config():
 PREFIX = env('PREFIX', default='!')
 BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='general')
 DISCORD_TOKEN = env('DISCORD_TOKEN', default='1234')
+TIMEZONE = env('TIMEZONE', default='Europe/Oslo')
+LOCALE = env('LOCALE', default='nb_NO')
 
 try:
     BOT_ID = env('BOT_ID')
