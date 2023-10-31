@@ -7,13 +7,20 @@ from sausage_bot.util.log import log
 
 
 async def prep_table(table_temp):
-    log.log_more(f'Got `table_temp``: {table_temp}')
+    log.log_more(f'Got `table_temp`: {table_temp}')
     table_name = table_temp['name']
     item_list = table_temp['items']
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
     _cmd += ', '.join(item for item in item_list)
-    if 'primary' in table_temp:
-        _cmd += ', PRIMARY KEY({})'.format(table_temp['primary'])
+    if 'primary' in table_temp and\
+            table_temp['primary'] is not None:
+        _cmd += ', PRIMARY KEY({}'.format(
+            table_temp['primary']
+        )
+        if 'autoincrement' in table_temp and\
+                table_temp['autoincrement'] is True:
+            _cmd += ' AUTOINCREMENT'
+        _cmd += ')'
     _cmd += ');'
     log.db(f'Using this query: {_cmd}')
     file_io.ensure_folder(envs.DB_DIR)
@@ -44,9 +51,9 @@ async def insert_many_all(
     '''
     db_file = envs.DB_DIR / template_info['db_file']
     table_name = template_info['name']
-    log.log_more(f'Got `db_file``: {db_file}')
-    log.log_more(f'Got `table_name``: {table_name}')
-    log.log_more(f'Got `inserts``: {inserts}')
+    log.log_more(f'Got `db_file`: {db_file}')
+    log.log_more(f'Got `table_name`: {table_name}')
+    log.log_more(f'Got `inserts`: {inserts}')
     _cmd = f'INSERT INTO {table_name} VALUES('
     _cmd += ', '.join('?'*len(inserts[0]))
     _cmd += ')'
@@ -86,10 +93,10 @@ async def insert_many_some(
     if table_name is None:
         log.log('`table_name` is None')
         return None
-    log.log_more(f'Got `db_file``: {db_file}')
-    log.log_more(f'Got `table_name``: {table_name}')
-    log.log_more(f'Got `rows``: {rows} {type(rows)} {len(rows)}')
-    log.log_more(f'Got `inserts``: {inserts} {type(inserts)} {len(inserts)}')
+    log.log_more(f'Got `db_file`: {db_file}')
+    log.log_more(f'Got `table_name`: {table_name}')
+    log.log_more(f'Got `rows`: {rows} {type(rows)} {len(rows)}')
+    log.log_more(f'Got `inserts`: {inserts} {type(inserts)} {len(inserts)}')
     input_singles = False
     input_multiples = False
     if isinstance(rows, str) and len(inserts) == 1:
@@ -117,15 +124,21 @@ async def insert_many_some(
     elif input_multiples:
         _cmd += ', '.join('?'*len(inserts[0]))
     _cmd += ')'
-    log.db(f'Using this query: {_cmd}')
+    log.db(f'Using this query: {_cmd} {inserts}')
     async with aiosqlite.connect(db_file) as db:
-        await db.executemany(_cmd, inserts)
+        if len(inserts) >= 1:
+            await db.executemany(_cmd, inserts)
+            db_last_row = None
+        else:
+            await db.execute(_cmd, inserts)
+            db_last_row = None
         await db.commit()
         log.debug(
             'Changed {} rows'.format(
                 db.total_changes
             )
         )
+    return db_last_row
 
 
 async def insert_single(
@@ -164,6 +177,8 @@ async def insert_single(
                 db.total_changes
             )
         )
+        last_row = db.lastinsertrow
+    return last_row
 
 
 async def update_fields(template_info, ids=None, updates: list = None):
@@ -172,12 +187,12 @@ async def update_fields(template_info, ids=None, updates: list = None):
     find the specific `ids`
 
     Equals to this SQl command:
-        UPDATE employees
-        SET city = 'Toronto',
-            state = 'ON',
-            postalcode = 'M5P 2N7'
+        UPDATE `template_info[table_name]`
+        SET `updates[0]` = `updates[1]`,
+            `updates[0]` = `updates[1]`,
+            `updates[0]` = `updates[1]`
         WHERE
-            employeeid = 4
+            `id[0]` = `id[1]`
     Parameters
     ------------
     template_info: dict
@@ -219,7 +234,7 @@ async def update_fields(template_info, ids=None, updates: list = None):
 
 async def get_output(
     template_info, ids: tuple = None, fields_out: tuple = None,
-    order_by: list = None
+    order_by: list = None, get_row_ids: bool = False
 ):
     '''
     Get output from a SELECT query from a specified
@@ -236,10 +251,14 @@ async def get_output(
         What fields to get from the db file
     order_by: list(tuples)
         What fields to order by and if ASC or DESC
+    get_row_ids: bool
+        Also get rowid
     '''
     db_file = envs.DB_DIR / template_info['db_file']
     table_name = template_info['name']
     _cmd = 'SELECT '
+    if get_row_ids:
+        _cmd += 'rowid, '
     if fields_out is None:
         _cmd += '*'
     elif isinstance(fields_out, tuple) and\
@@ -315,7 +334,6 @@ async def empty_table(template_info):
     db_file = envs.DB_DIR / template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name};'
-    #_cmd += ' WHERE id IS NOT NULL'
     log.db(f'Using this query: {_cmd}')
     async with aiosqlite.connect(db_file) as db:
         out = await db.execute(_cmd)
@@ -326,3 +344,97 @@ async def empty_table(template_info):
             )
         )
         return out
+
+
+async def get_one_random_output(
+    template_info, fields_out: tuple = None
+):
+    '''
+    Get output from the following query:
+
+        SELECT `fields_out`
+        FROM `template_info[table_name]`
+        ORDER BY RAND()
+        LIMIT 1
+    '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name1 = template_info['name']
+    _cmd = 'SELECT '
+    if fields_out is None:
+        _cmd += '*'
+    elif isinstance(fields_out, tuple) and\
+            len(fields_out) > 1:
+        _cmd += ', '.join(f'A.{field}' for field in fields_out)
+    elif isinstance(fields_out, str):
+        _cmd += fields_out
+    _cmd += f' FROM {table_name1} A'
+    _cmd += ' ORDER BY RANDOM()'
+    _cmd += ' LIMIT 1'
+    log.db(f'Using this query: {_cmd}')
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            out = await db.execute(_cmd)
+            out = await out.fetchall()
+            return out
+    except aiosqlite.OperationalError:
+        return None
+
+
+async def get_output_by_rowid(
+    template_info, rowid: str = None, fields_out: tuple = None
+):
+    '''
+    Get a unique output from the following query:
+
+        SELECT * / `fields_out`
+        FROM `template_info[table_name]`
+        WHERE rowid = `rowid`
+    '''
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
+    _cmd = 'SELECT '
+    if fields_out is None:
+        _cmd += 'rowid, *'
+    elif isinstance(fields_out, tuple) and\
+            len(fields_out) > 1:
+        _cmd += ', '.join(f'A.{field}' for field in fields_out)
+    elif isinstance(fields_out, str):
+        _cmd += fields_out
+    _cmd += f' FROM {table_name}'
+    _cmd += f" WHERE rowid = {rowid}"
+    _cmd += f" ORDER BY rowid"
+    log.db(f'Using this query: {_cmd}')
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            out = await db.execute(_cmd)
+            out = await out.fetchall()
+            return out
+    except aiosqlite.OperationalError:
+        return None
+
+
+async def get_row_ids(template_info):
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
+    _cmd = f'SELECT rowid FROM {table_name}'
+    log.db(f'Using this query: {_cmd}')
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            out = await db.execute(_cmd)
+            out = await out.fetchall()
+            return out
+    except aiosqlite.OperationalError:
+        return None
+
+
+async def del_row_id(template_info, number):
+    db_file = envs.DB_DIR / template_info['db_file']
+    table_name = template_info['name']
+    _cmd = f'DELETE FROM {table_name} WHERE rowid = {number}'
+    log.db(f'Using this query: {_cmd}')
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            await db.execute(_cmd)
+            await db.commit()
+    except aiosqlite.OperationalError:
+        return None

@@ -119,6 +119,30 @@ dilemmas_db_log_schema = {
     ]
 }
 
+# Quote
+quote_db_schema = {
+    'db_file': 'quote.db',
+    'name': 'quote',
+    'items': [
+        'uuid TEXT NOT NULL UNIQUE',
+        'quote_text TEXT',
+        'datetime TEXT'
+    ],
+    'primary': 'uuid',
+    'autoincrement': False
+}
+
+quote_db_log_schema = {
+    'db_file': 'quote.db',
+    'name': 'log',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'ctx_id TEXT'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
 ### Botlines ###
 # Generiske
 GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
@@ -128,7 +152,6 @@ TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
 CHANNEL_NOT_FOUND = 'Finner ikke kanalen `{}` på denne discord-serveren'
 POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
     'finnes ikke'
-UNREADABLE_FILE = 'Klarte ikke å lese `{}`. Sjekk eventuelle feil.'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
 GOT_CHANNEL_LIST = 'Henter kanalliste:\n{}'
 GOT_SPECIFIC_CHANNEL = 'Fant kanal `{}` med id `{}`'
@@ -219,11 +242,12 @@ QUOTE_NO_CONFIRMATION_RECEIVED = 'Ikke fått svar på 15 sekunder, stopper '\
     'sletting'
 QUOTE_DELETE_CONFIRMED = 'Slettet sitat #{}'
 QUOTE_KEY_PHRASES = [
-    QUOTE_CONFIRM_DELETE[0:46],     # Er du sikker på at du vil slette følgende sitat
-    QUOTE_NO_CONFIRMATION_RECEIVED,
-    QUOTE_DELETE_CONFIRMED[0:14]
+    QUOTE_CONFIRM_DELETE[0:46],         # Er du sikker på at du vil slette f...
+    QUOTE_NO_CONFIRMATION_RECEIVED,     # Ikke fått svar på 15 sekunder, sto...
+    QUOTE_DELETE_CONFIRMED[0:14]        # Slettet sitat #
 ]
 QUOTE_COUNT = 'Jeg har {} sitater på lager'
+QUOTE_DOES_NOT_EXIST = 'Sitat nummer {} finnes ikke'
 
 # COG - YOUTUBE
 YOUTUBE_NO_FEEDS_FOUND = 'Fant ingen Youtube-feeds'

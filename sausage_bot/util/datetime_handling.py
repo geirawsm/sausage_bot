@@ -27,9 +27,10 @@ def make_dt(date_in):
     - 17.05.2022, 1122
     - 17.05.20 22, 11.22
     - 2022-05-17T11:22:00Z
-    - 2023-08-05T10:00:00+02:00
+    - 2022-05-17T11:22:00+02:00
     - 1122
     - 11.22
+    - 2022-05-17 11:22:00.987
     '''
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
         log.debug('Found a Z/T/+ in `date_in`')
@@ -112,7 +113,6 @@ def make_dt(date_in):
                         date_in, 'YY MM DD HH mm'
                     ).in_tz(tz)
             elif d_len == 6:
-                # A split of 6 is most likely a split in YYYY
                 if all(len(timeunit) == 2 for timeunit in d_split):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]} {d[4]} {d[5]}'
@@ -120,6 +120,17 @@ def make_dt(date_in):
                         date_in, 'DD MM YYYY HH mm'
                     ).in_tz(tz)
                 pass
+            elif d_len == 7:
+                if len(d_split[0]) == 4 and len(d_split[1]) == 2 and\
+                        len(d_split[2]) == 2 and len(d_split[3]) == 2 and\
+                        len(d_split[4]) == 2 and len(d_split[5]) == 2 and\
+                        len(d_split[6]) == 3:
+                    d = d_split
+                    date_in = f'{d[0]} {d[1]} {d[2]} {d[3]} {d[4]} '\
+                        f'{d[5]} {d[6]}'
+                    return pendulum.from_format(
+                        date_in, 'YYYY MM DD HH mm ss SSS'
+                    ).in_tz(tz)
             else:
                 return None
             log.log_more('-'*10)
@@ -165,6 +176,7 @@ def get_dt(format='epoch', sep='.', dt=False):
     month               05
     day                 17
     epoch               1400336619
+    ISO8601             YYYY-MM-DD HH:MM:SS.SSS
     '''
     if isinstance(dt, datetime.datetime):
         log.debug('Input is a datetime object')
@@ -209,6 +221,8 @@ def get_dt(format='epoch', sep='.', dt=False):
         return dt.format(f'DD')
     elif format == 'epoch':
         return dt.int_timestamp
+    elif format == 'ISO8601':
+        return dt.format(f'YYYY-MM-DD HH:mm:ss.SSS', locale=locale)
     else:
         return None
 
