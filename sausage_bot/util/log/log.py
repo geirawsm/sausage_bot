@@ -19,7 +19,7 @@ init(autoreset=True)
 def log_function(
         log_in: str, color: str = None, extra_info: str = None,
         extra_color: str = None, pretty: bool = False,
-        sameline: bool = False
+        sameline: bool = False, pre: str = None
 ):
     '''
     Include the name of the function in logging.
@@ -32,10 +32,8 @@ def log_function(
                     (default: None)
     extra_color     Color for the `extra_info` (default: green)
     pretty          Prettify the output. Works on dict and list
+    sameline        Reuse line for next output
     '''
-    dt = pendulum.now(config.TIMEZONE)
-    _dt_full = dt.format(f'DD.MM.YYYY HH.mm.ss')
-    log_out = '[{}] '.format(_dt_full)
     if color is None:
         color = Fore.GREEN
     else:
@@ -46,23 +44,32 @@ def log_function(
         extra_color = eval('Fore.{}'.format(extra_color.upper()))
     function_name = log_func_name()
     if args.log_highlight is not None and str(args.log_highlight)\
-            in function_name:
+            in function_name['name']:
         color = Fore.RED
+    dt = pendulum.now(config.TIMEZONE)
+    _dt_full = dt.format(f'DD.MM.YYYY HH.mm.ss')
+    log_out = '{color}{style}[ {dt} ] '.format(
+        color=color,
+        style=Style.BRIGHT,
+        dt=_dt_full
+    )
     if args.log_print:
-        log_out += '{color}{style}[ {function_name} ]'.format(
-            color=color, style=Style.BRIGHT,
-            function_name=function_name
-        )
         if extra_info:
-            log_out += '{color}{style}[ {extra_info} ]'.format(
+            log_out += '[ {extra_info} ]'.format(
                 color=extra_color, style=Style.BRIGHT,
                 extra_info=extra_info
             )
+        log_out += '{color}{style}[ {func_name} ({func_line}) ]'.format(
+            color=color, style=Style.BRIGHT,
+            func_line=function_name['line'],
+            func_name=function_name['name']
+        )
         log_out += '{reset} '.format(reset=Style.RESET_ALL)
     else:
-        log_out += '[ {} ] '.format(log_func_name())
         if extra_info:
-            log_out += '[ {} ] '.format(extra_info)
+            log_out = '[ {} ] '.format(extra_info)
+        log_out += '[ {} ] '.format(function_name['line'])
+        log_out += '[ {} ] '.format(function_name['name'])
         log_out += str(log_in)
     if args.log_print:
         if pretty:
@@ -89,8 +96,9 @@ def log_function(
                 print(log_out)
     else:
         log_out += '\n'
-        _logfilename = envs.LOG_DIR / \
-            '{}.log'.format(get_dt('revdate', sep='-'))
+        dt = pendulum.now(config.TIMEZONE)
+        _dt_rev = dt.format(f'YYYY-MM-DD HH.mm.ss')
+        _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
         write_log.close()
@@ -115,7 +123,7 @@ def log(
         sleep(3)
 
 
-def log_more(
+def verbose(
         log_in: str, color: str = None, pretty: bool = False,
         sameline: bool = False
 ):
@@ -128,15 +136,17 @@ def log_more(
                     If `color` is not specified, it will highlight in green.
     pretty          Prettify the output. Works on dict and list
     '''
-    if args.log_more:
-        log_function(log_in, color=color, pretty=pretty, sameline=sameline)
+    if args.log_verbose:
+        log_function(
+            log_in, color=color, pretty=pretty, sameline=sameline,
+            extra_info=envs.log_extra_info('verbose')
+        )
     if args.log_slow:
         sleep(3)
 
 
 def debug(
-        log_in: str, color: str = None, extra_info: str = False,
-        extra_color: str = None, pretty: bool = False,
+        log_in: str, color: str = None, pretty: bool = False,
         sameline: bool = False
 ):
     '''
@@ -145,27 +155,19 @@ def debug(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in gre
-    extra_info      Used to specify extra information in the logging
-    extra_color     Color for the `extra_info`
     pretty          Prettify the output. Works on dict and list
     '''
     if args.debug:
-        if extra_info is not None:
-            log_function(
-                log_in, color=color, extra_info=extra_info,
-                extra_color=extra_color, pretty=pretty, sameline=sameline
-            )
-        else:
-            log_function(
-                log_in, color='yellow', pretty=pretty, sameline=sameline
-            )
+        log_function(
+            log_in, color=color, extra_info=envs.log_extra_info('debug'), pretty=pretty,
+            sameline=sameline
+        )
     if args.log_slow:
         sleep(3)
 
 
 def db(
-        log_in: str, color: str = 'magenta', extra_info: str = False,
-        extra_color: str = None
+        log_in: str, color: str = 'magenta', extra_color: str = None
 ):
     '''
     Log database input specifically
@@ -178,30 +180,33 @@ def db(
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log_db:
-        if extra_info is not None:
-            log_function(
-                log_in, color=color, extra_info=extra_info,
-                extra_color=extra_color
-            )
-        else:
-            log_function(
-                log_in, color='magenta'
-            )
+        log_function(
+            log_in, color=color, extra_color=extra_color,
+
+            extra_info=envs.log_extra_info('database')
+        )
     if args.log_slow:
         sleep(3)
 
 
-def log_func_name() -> str:
+def log_func_name() -> dict:
     'Get the function name that the `log`-function is used within'
+    frame_line = sys._getframe(3).f_lineno
     frame_file = sys._getframe(2)
     frame_func = sys._getframe(3)
     func_name = frame_func.f_code.co_name
     func_file = frame_file.f_back.f_code.co_filename
     func_file = Path(func_file).stem
     if func_name == '<module>':
-        return str(func_file)
+        return {
+            'name': str(func_file),
+            'line': str(frame_line)
+        }
     else:
-        return '{}.{}'.format(func_file, func_name)
+        return {
+            'name': f'{func_file}.{func_name}',
+            'line': str(frame_line)
+        }
 
 
 async def log_to_bot_channel(content_in=None, content_embed_in=None):

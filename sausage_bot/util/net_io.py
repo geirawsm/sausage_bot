@@ -233,7 +233,7 @@ async def parse(url: str = None):
         PARSER = 'tv2livesport'
     elif args.force_parser:
         PARSER = args.force_parser
-    log.log_more(f'Got parser `{PARSER}`')
+    log.verbose(f'Got parser `{PARSER}`')
     if PARSER == 'nifs':
         if 'matchId=' not in url:
             # todo var msg

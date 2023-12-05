@@ -15,10 +15,7 @@ class Dilemmas(commands.Cog):
 
     @commands.group(name='dilemmas')
     async def dilemmas(self, ctx):
-        f'''
-        Post a random dilemma:
-        `{config.PREFIX}dilemmas`
-        '''
+        f'''Post a random dilemma: `{config.PREFIX}dilemmas`'''
 
         def prettify(dilemmas_in):
             'Enclosing `dilemmas_in` in quotation marks'
@@ -73,12 +70,12 @@ class Dilemmas(commands.Cog):
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('dilemmas'))
-    log.log_more('Checking db')
+    log.verbose('Checking db')
     await db_helper.prep_table(
         envs.dilemmas_db_schema
     )
     await db_helper.prep_table(
         envs.dilemmas_db_log_schema
     )
-    log.log_more('Registering cog to bot')
+    log.verbose('Registering cog to bot')
     await bot.add_cog(Dilemmas(bot))

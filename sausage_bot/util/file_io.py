@@ -119,7 +119,7 @@ def ensure_file(file_path_in: str, file_template=False):
     log.debug('{} size: {}'.format(file_name, file_size(file_path_in)))
     # Create the file if it doesn't exist
     if not file_size(file_path_in):
-        log.log_more('File not found, creating: {}'.format(file_path_in))
+        log.verbose('File not found, creating: {}'.format(file_path_in))
         if file_name.split('.')[-1] == 'json':
             if file_template:
                 write_json(file_path_in, file_template)
@@ -203,7 +203,7 @@ def check_similarity(
 
 def create_necessary_files(file_list):
     'Get `file_list` (list) and create necessary files before running code'
-    log.log_more('Creating necessary files')
+    log.verbose('Creating necessary files')
     for file in file_list:
         if isinstance(file, tuple):
             ensure_file(file[0], file_template=file[1])

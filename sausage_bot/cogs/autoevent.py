@@ -81,12 +81,12 @@ class AutoEvent(commands.Cog):
                     scraped_info
                 ))
             voice_channels = discord_commands.get_voice_channel_list()
-            log.log_more(envs.GOT_CHANNEL_LIST.format(voice_channels))
+            log.verbose(envs.GOT_CHANNEL_LIST.format(voice_channels))
             if channel in voice_channels:
                 CHANNEL_OK = True
                 log.debug('channel is ok')
                 channel_id = voice_channels[channel]
-                log.log_more(
+                log.verbose(
                     envs.GOT_SPECIFIC_CHANNEL.format(
                         channel, channel_id
                     )
@@ -186,7 +186,7 @@ class AutoEvent(commands.Cog):
         else:
             for event in event_dict:
                 _id = event_dict[event]['id']
-                log.log_more(
+                log.verbose(
                     envs.COMPARING_IDS.format(
                         event_id_in, type(event_id_in),
                         _id, type(_id)

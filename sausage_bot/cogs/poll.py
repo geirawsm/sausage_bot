@@ -34,14 +34,16 @@ class Poll(commands.Cog):
         Make a poll for voting on something. After posting this command,
         you will be asked to reply with the alternatives
 
+            !poll `channel` `post_time` `lock_time` `poll_text`
+
         Parameters
         ------------
         channel: str
             Channel to post poll in
         post_time: str
-            What time to post the poll
+            What to post the poll. Accepts time in 0000
         lock_time: str
-            When will the poll be locked for more answers after posting
+            Lock poll after x m(inutes) or h(ours)
         *poll_text
             Input for the poll
 
@@ -69,16 +71,16 @@ class Poll(commands.Cog):
             if post_time == 'now':
                 dt_post = None
             else:
-                log.log_more(f'`post_time`: {post_time}')
+                log.verbose(f'`post_time`: {post_time}')
                 re_search = re.search(
                     r'(\d{2})([,.\-;:_]+)?(\d{2})', post_time
                 )
                 post_time = post_time.replace(str(re_search.group(2)), '')
-                log.log_more(f'`post_time`: {post_time}')
+                log.verbose(f'`post_time`: {post_time}')
                 dt_post = pendulum.from_format(
                     post_time, 'HHmm', 'local'
                 )
-                log.log_more(f'dt_post: {dt_post}')
+                log.verbose(f'dt_post: {dt_post}')
         except Exception as e:
             log.log(f'Got error when parsing post_time: {e}')
             return
@@ -230,8 +232,8 @@ class Poll(commands.Cog):
                 ('status_wait_lock', 1)
             ]
         )
-        log.log_more(f'dt_post: {dt_post}')
-        log.log_more(f'dt_lock: {dt_lock}')
+        log.verbose(f'dt_post: {dt_post}')
+        log.verbose(f'dt_lock: {dt_lock}')
         lock_diff = (dt_lock - pendulum.now()).in_seconds()
         log.debug(f'`lock_diff` in seconds: {lock_diff}')
         await asyncio.sleep(lock_diff)
@@ -259,11 +261,11 @@ class Poll(commands.Cog):
                     )
                     break
         sorted_reacts = await db_helper.get_output(
-            envs.poll_db_alternatives_schema,
-            [
+            template_info=envs.poll_db_alternatives_schema,
+            where=[
                 ('uuid', _uuid)
             ],
-            ('input', 'count'),
+            select=('input', 'count'),
             [
                 ('count', 'DESC')
             ]
@@ -297,14 +299,14 @@ class Poll(commands.Cog):
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('poll'))
-    log.log_more('Checking db')
+    log.verbose('Checking db')
     await db_helper.prep_table(
         envs.poll_db_polls_schema
     )
     await db_helper.prep_table(
         envs.poll_db_alternatives_schema
     )
-    log.log_more('Registering cog to bot')
+    log.verbose('Registering cog to bot')
     await bot.add_cog(Poll(bot))
 
 

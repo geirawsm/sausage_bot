@@ -7,7 +7,7 @@ import uuid
 from time import sleep
 from asyncio import TimeoutError
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util import config, envs, file_io, discord_commands, db_helper
+from sausage_bot.util import config, envs, discord_commands, db_helper
 from sausage_bot.util.log import log
 
 
@@ -54,9 +54,9 @@ class Quotes(commands.Cog):
                 (Date and time)
                 ```
             '''
-            log.log_more(f'number: {number}')
-            log.log_more(f'text: {text}')
-            log.log_more(f'date: {date}')
+            log.verbose(f'number: {number}')
+            log.verbose(f'text: {text}')
+            log.verbose(f'date: {date}')
             out = '```\n#{}\n{}\n({})\n```'.format(
                 number, text, date
             )
@@ -91,7 +91,7 @@ class Quotes(commands.Cog):
                     dt=random_quote[0][3]
                 )
                 _quote = prettify(quote_number, quote_text, quote_date)
-                log.log_more(f'Posting this quote:\n{_quote}')
+                log.verbose(f'Posting this quote:\n{_quote}')
                 quote_post = await ctx.send(_quote)
                 await db_helper.insert_many_some(
                     envs.quote_db_log_schema,
@@ -209,7 +209,7 @@ class Quotes(commands.Cog):
                 f'Sitat nummer {quote_number} finnes ikke.'
             )
             return
-        log.log_more('Endrer sitat nummer {}'.format(quote_number))
+        log.verbose('Endrer sitat nummer {}'.format(quote_number))
         # If no date is specified through `custom_date`, use the existing
         # date and time
         if custom_date is None:
@@ -316,7 +316,7 @@ class Quotes(commands.Cog):
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('quote'))
-    log.log_more('Checking db')
+    log.verbose('Checking db')
     await db_helper.prep_table(
         envs.quote_db_schema
     )

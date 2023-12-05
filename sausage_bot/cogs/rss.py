@@ -66,8 +66,8 @@ class RSSfeed(commands.Cog):
                 URL_OK = True
             else:
                 URL_OK = False
-            log.log_more(f'URL_OK is {URL_OK}')
-            log.log_more(envs.GOT_CHANNEL_LIST.format(
+            log.verbose(f'URL_OK is {URL_OK}')
+            log.verbose(envs.GOT_CHANNEL_LIST.format(
                 discord_commands.get_text_channel_list()))
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
@@ -347,9 +347,9 @@ class RSSfeed(commands.Cog):
                 log.log(envs.RSS_NO_FEEDS_FOUND)
         # Make sure that the feed links aren't stale / 404
         await feeds_core.review_feeds_status(envs.rss_feeds_file)
-        log.log_more('Got these feeds:')
+        log.verbose('Got these feeds:')
         for feed in feeds:
-            log.log_more('- {}'.format(feed))
+            log.verbose('- {}'.format(feed))
         # Start processing per feed settings
         for feed in feeds:
             log.debug(
@@ -385,7 +385,7 @@ class RSSfeed(commands.Cog):
     @rss_parse.before_loop
     async def before_rss_parse():
         '#autodoc skip#'
-        log.log_more('`rss_parse` waiting for bot to be ready...')
+        log.verbose('`rss_parse` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
     rss_parse.start()
@@ -399,7 +399,7 @@ class RSSfeed(commands.Cog):
 async def setup(bot):
     # Create necessary files before starting
     log.log(envs.COG_STARTING.format('rss'))
-    log.log_more(envs.CREATING_FILES)
+    log.verbose(envs.CREATING_FILES)
     check_and_create_files = [
         (envs.rss_feeds_file, {}),
         envs.rss_feeds_logs_file

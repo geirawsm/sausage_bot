@@ -49,6 +49,7 @@ LOCALE=
 BOT_DUMP_CHANNEL=general
 WATCHING=
 '''
+
 # Stats
 stats_template = {
     'channel': 'stats',
@@ -142,6 +143,55 @@ quote_db_log_schema = {
     'primary': None,
     'autoincrement': False
 }
+
+# Roles
+roles_db_msgs_schema = {
+    'db_file': 'roles.db',
+    'name': 'messages',
+    'items': [
+        'msg_id TEXT NOT NULL',
+        'channel TEXT',
+        'name TEXT',
+        'content TEXT',
+        'description TEXT',
+        'msg_order INTEGER'
+    ],
+    'primary': 'msg_id'
+}
+
+roles_db_roles_schema = {
+    'db_file': 'roles.db',
+    'name': 'roles',
+    'items': [
+        'msg_id TEXT NOT NULL',
+        'role_name TEXT',
+        'emoji TEXT'
+    ]
+}
+
+roles_db_settings_schema = {
+    'db_file': 'roles.db',
+    'name': 'settings',
+    'items': [
+        'setting TEXT',
+        'value TEXT'
+    ]
+}
+
+
+def log_extra_info(type):
+    infos = {
+        'info': {
+            'verbose': 'VERBOSE',
+            'database': 'DATABASES',
+            'debug': 'DEBUG'
+        },
+        'length': 9
+    }
+    split = int((infos['length'] - len(infos['info'][type])) / 2)
+    return '{s}{text}{s}'.format(
+        s=' '*split, text=infos['info'][type]
+    )
 
 ### Botlines ###
 # Generiske

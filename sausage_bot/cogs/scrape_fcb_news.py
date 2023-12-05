@@ -107,7 +107,7 @@ class scrape_and_post(commands.Cog):
     @post_fcb_news.before_loop
     async def before_post_fcb_news():
         '#autodoc skip#'
-        log.log_more('`post_fcb_news` waiting for bot to be ready...')
+        log.verbose('`post_fcb_news` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
     post_fcb_news.start()

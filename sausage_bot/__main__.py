@@ -21,7 +21,7 @@ for folder in check_and_create_folders:
         pass
 
 # Create necessary files before starting
-log.log_more('Creating necessary files')
+log.verbose('Creating necessary files')
 check_and_create_files = [
     (envs.env_file, envs.env_template)
 ]

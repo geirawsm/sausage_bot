@@ -18,11 +18,11 @@ logging_args.add_argument('--log', '-l',
                           action='store_true',
                           default=False,
                           dest='log')
-logging_args.add_argument('--log-more', '-lm',
-                          help='Log more things',
+logging_args.add_argument('--verbose', '-V',
+                          help='Log verbose',
                           action='store_true',
                           default=False,
-                          dest='log_more')
+                          dest='log_verbose')
 logging_args.add_argument('--log-print', '-lp',
                           help='Print logging instead of writing to file',
                           action='store_true',

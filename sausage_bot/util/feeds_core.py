@@ -11,16 +11,16 @@ from .log import log
 
 async def check_feed_validity(url):
     'Make sure that `url` is a valid link'
-    log.log_more(f'Checking `{url}`')
+    log.verbose(f'Checking `{url}`')
     req = await net_io.get_link(url)
     if req is None:
-        log.log_more('Returned None')
+        log.verbose('Returned None')
         return False
     try:
         etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
         return True
     except (etree.XMLSyntaxError) as e:
-        log.log_more(envs.ERROR_WITH_ERROR_MSG.format(e))
+        log.verbose(envs.ERROR_WITH_ERROR_MSG.format(e))
         return False
 
 
@@ -588,7 +588,7 @@ async def process_links_for_posting_or_editing(
     `feed_log_file`:    File containing the logs of posts
     `CHANNEL`:          Discord channel to post/edit
     '''
-    log.log_more(
+    log.verbose(
         'Starting `process_links_for_posting_or_editing`',
         sameline=True
     )
@@ -606,7 +606,7 @@ async def process_links_for_posting_or_editing(
                 feed_link, FEED_LOG[feed])
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
-                log.log_more(f'Posting link `{feed_link}`')
+                log.verbose(f'Posting link `{feed_link}`')
                 await discord_commands.post_to_channel(CHANNEL, feed_link)
                 # Add link to log
                 FEED_LOG[feed].append(feed_link)
@@ -620,10 +620,10 @@ async def process_links_for_posting_or_editing(
                 FEED_LOG[feed].remove(feed_link_similar)
                 FEED_LOG[feed].append(feed_link)
         elif link_is_in_log(feed_link, feed, FEED_LOG):
-            log.log_more(f'Link `{feed_link}` already logged. Skipping.')
+            log.verbose(f'Link `{feed_link}` already logged. Skipping.')
         # Write to the logs-file at the end
         file_io.write_json(feed_log_file, FEED_LOG)
-    log.log_more('Stopping `process_links_for_posting_or_editing`')
+    log.verbose('Stopping `process_links_for_posting_or_editing`')
 
 
 if __name__ == "__main__":

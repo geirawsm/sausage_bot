@@ -43,9 +43,9 @@ def make_dt(date_in):
         d_len = len(d_split)
         # Decide how to interpret the input
         try:
-            log.log_more('`date_in` is {}'.format(date_in))
-            log.log_more(f'Got `d_len` {d_len}')
-            log.log_more(f'd_split: {d_split}')
+            log.verbose('`date_in` is {}'.format(date_in))
+            log.verbose(f'Got `d_len` {d_len}')
+            log.verbose(f'd_split: {d_split}')
             if d_len <= 2:
                 # Expecting `HHmm` or `HH( |:|-|_|.)mm`
                 date_in = date_in.replace(' ', '')
@@ -91,7 +91,7 @@ def make_dt(date_in):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]} {d[3]}'
                     date_in = date_in.strip()
-                    log.log_more('date_in: {}'.format(date_in))
+                    log.verbose('date_in: {}'.format(date_in))
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
                     ).in_tz(tz)
@@ -133,9 +133,9 @@ def make_dt(date_in):
                     ).in_tz(tz)
             else:
                 return None
-            log.log_more('-'*10)
+            log.verbose('-'*10)
         except ValueError:
-            log.log_more('-'*10)
+            log.verbose('-'*10)
             return None
 
 

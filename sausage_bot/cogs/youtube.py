@@ -199,7 +199,7 @@ class Youtube(commands.Cog):
                     feed_link, FEED_LOG[name])
                 if not feed_link_similar:
                     # Consider this a whole new post and post link to channel
-                    log.log_more(f'Posting link `{feed_link}`')
+                    log.verbose(f'Posting link `{feed_link}`')
                     await discord_commands.post_to_channel(CHANNEL, feed_link)
                     # Add link to log
                     FEED_LOG[name].append(feed_link)
@@ -212,7 +212,7 @@ class Youtube(commands.Cog):
                     FEED_LOG[name].remove(feed_link_similar)
                     FEED_LOG[name].append(feed_link)
             elif feeds_core.link_is_in_log(feed_link, name, FEED_LOG):
-                log.log_more(f'Link `{feed_link}` already logged. Skipping.')
+                log.verbose(f'Link `{feed_link}` already logged. Skipping.')
             # Write to the logs-file at the end
             file_io.write_json(feed_log_file, FEED_LOG)
 
@@ -258,7 +258,7 @@ class Youtube(commands.Cog):
     @post_videos.before_loop
     async def before_post_new_videos():
         '#autodoc skip#'
-        log.log_more('`post_videos` waiting for bot to be ready...')
+        log.verbose('`post_videos` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
     post_videos.start()
@@ -272,7 +272,7 @@ class Youtube(commands.Cog):
 async def setup(bot):
     log.log(envs.COG_STARTING.format('youtube'))
     # Create necessary files before starting
-    log.log_more(envs.CREATING_FILES)
+    log.verbose(envs.CREATING_FILES)
     check_and_create_files = [
         (envs.yt_feeds_file, {}),
         envs.yt_feeds_logs_file

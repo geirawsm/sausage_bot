@@ -156,7 +156,7 @@ class Stats(commands.Cog):
                 f'Antall filer med kode: {files_in_codebase}\n'\
                 f'Antall linjer med kode: {lines_in_codebase}```\n'
         stats_msg += f'```(Serverstats sist oppdatert: {dt_log})```\n'
-        log.log_more(
+        log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'
             f'{stats_msg}'
         )
@@ -173,7 +173,7 @@ class Stats(commands.Cog):
     @update_stats.before_loop
     async def before_update_stats():
         '#autodoc skip#'
-        log.log_more('`update_stats` waiting for bot to be ready...')
+        log.verbose('`update_stats` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
     update_stats.start()
@@ -187,7 +187,7 @@ class Stats(commands.Cog):
 async def setup(bot):
     # Starting the cog
     log.log(envs.COG_STARTING.format('stats'))
-    log.log_more(envs.CREATING_FILES)
+    log.verbose(envs.CREATING_FILES)
     check_and_create_files = [
         (envs.stats_logs_file, {}),
         (envs.stats_file, envs.stats_template)

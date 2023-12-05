@@ -147,7 +147,11 @@ def get_roles():
             'is_default': role.is_default(),
             'bot_managed': role.is_bot_managed()
         }
-    log.debug(f'Got these roles:\n{roles_dict}')
+    log.verbose(
+        'Got these roles: {}'.format(
+            ', '.join(name for name in roles_dict)
+        )
+    )
     return roles_dict
 
 
@@ -238,39 +242,6 @@ async def delete_bot_msgs(ctx, keyphrases=None):
                 # TODO var msg
                 await ctx.reply('Ingen nøkkelfraser oppgitt')
     return
-
-
-async def search_for_message_id(id):
-    '''
-    Look for a message id in all text channels' 10 latest messages
-
-    Returns
-    ------------
-    dict
-        {
-            'msg_id': msg_id,
-            'channel': channel
-        }
-    #autodoc skip#
-    '''
-    _guild = get_guild()
-    _channels = get_text_channel_list()
-    for channel in _channels:
-        log.debug(f'Checking channel `{channel}`')
-        # TODO er her
-        channel_object = _guild.get_channel(
-            _channels[channel]
-        )
-        msgs = [message async for message in channel_object.history(
-            limit=5, oldest_first=False
-        )]
-        for msg in msgs:
-            if str(id) == str(msg.id):
-                return {
-                    'msg_id': msg.id,
-                    'channel': channel
-                }
-    return None
 
 
 if __name__ == "__main__":
