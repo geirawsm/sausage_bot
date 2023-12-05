@@ -266,7 +266,7 @@ class Poll(commands.Cog):
                 ('uuid', _uuid)
             ],
             select=('input', 'count'),
-            [
+            order_by=[
                 ('count', 'DESC')
             ]
         )

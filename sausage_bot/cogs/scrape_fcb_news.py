@@ -71,7 +71,8 @@ class scrape_and_post(commands.Cog):
                                     link = f'{root_url}{link}'
                                 try:
                                     links[team].append(link)
-                                except:
+                                except Exception as e:
+                                    log.log(f'Kom over en feil: {e}')
                                     links[team] = []
                                     links[team].append(link)
                                 index_items += 1

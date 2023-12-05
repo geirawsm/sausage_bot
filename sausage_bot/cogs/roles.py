@@ -6,7 +6,6 @@ from tabulate import tabulate
 from asyncio import TimeoutError
 from time import sleep
 import re
-from pprint import pprint
 
 from sausage_bot.util import config, envs, file_io, discord_commands, db_helper
 from sausage_bot.util.log import log

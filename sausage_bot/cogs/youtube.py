@@ -68,7 +68,8 @@ class Youtube(commands.Cog):
                     slash_filter = re.match(r'(.*)/$', yt_link).group(1)
                     if slash_filter:
                         yt_link = slash_filter
-                except:
+                except Exception as e:
+                    log.log(f'Kom over en feil: {e}')
                     pass
                 # Get yt-id
                 yt_info = await Youtube.get_yt_info(yt_link)
