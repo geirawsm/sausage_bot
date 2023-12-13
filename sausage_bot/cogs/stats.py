@@ -16,7 +16,7 @@ def get_role_numbers():
     member_count = guild.member_count
     return {
         'member_count': member_count,
-        'roles': discord_commands.get_roles()
+        'roles': discord_commands.get_roles(filter_zeroes=True)
     }
 
 

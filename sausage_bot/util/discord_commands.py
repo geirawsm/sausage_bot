@@ -131,7 +131,7 @@ def get_sorted_scheduled_events():
     return out
 
 
-def get_roles():
+def get_roles(filter_zeroes=None):
     '''
     Get a dict of all roles on server and their ID's
     #autodoc skip#
@@ -139,6 +139,8 @@ def get_roles():
     roles_dict = {}
     # Get all roles and their IDs
     for role in get_guild().roles:
+        if filter_zeroes and len(role.members) == 0:
+            continue
         roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
