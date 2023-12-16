@@ -920,6 +920,22 @@ class Autoroles(commands.Cog):
         '''
         if channel is None:
             channel = config.ROLE_CHANNEL
+        msg_db_orders = await db_helper.get_output(
+            envs.roles_db_msgs_schema,
+            select=('msg_order', 'name')
+        )
+        if order is None:
+            # TODO var msg
+            await ctx.reply(
+                'Order is necessary'
+            )
+            return
+        elif order in [msg_order[0] for msg_order in msg_db_orders]:
+            # TODO var msg
+            await ctx.reply(
+                'Order already exist'
+            )
+            return
         msg_db = await db_helper.get_output(
             envs.roles_db_msgs_schema,
             where=[
