@@ -922,6 +922,7 @@ class Autoroles(commands.Cog):
             channel = config.ROLE_CHANNEL
         msg_db_orders = await db_helper.get_output(
             envs.roles_db_msgs_schema,
+            where=('channel', channel),
             select=('msg_order', 'name')
         )
         if order is None:
@@ -933,7 +934,8 @@ class Autoroles(commands.Cog):
         elif order in [msg_order[0] for msg_order in msg_db_orders]:
             # TODO var msg
             await ctx.reply(
-                'Order already exist'
+                f'That order number already exist for {channel}, '
+                f'try {len(msg_db_orders)+1}'
             )
             return
         msg_db = await db_helper.get_output(
@@ -1408,7 +1410,8 @@ class Autoroles(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('autoroles'))
+    cog_name = 'roles'
+    log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
     await db_helper.prep_table(
         envs.roles_db_msgs_schema
@@ -1419,6 +1422,9 @@ async def setup(bot):
     await db_helper.prep_table(
         envs.roles_db_settings_schema
     )
+    if file_io.file_size(envs.roles_settings_file) is not False:
+        await db_helper.json_to_db(cog_name)
+        # TODO Slett json hvis finnes
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 
