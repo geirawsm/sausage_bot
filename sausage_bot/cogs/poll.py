@@ -298,7 +298,8 @@ class Poll(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('poll'))
+    cog_name = 'poll'
+    log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
     await db_helper.prep_table(
         envs.poll_db_polls_schema
