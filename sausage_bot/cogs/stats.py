@@ -5,8 +5,7 @@ from discord.ext import commands, tasks
 from tabulate import tabulate
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
-from sausage_bot.util import discord_commands
-from sausage_bot.util.args import args
+from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.log import log
 
 
@@ -49,8 +48,8 @@ class Stats(commands.Cog):
     async def update_stats():
         '''
         Update interesting stats in a channel post and write the info to
-        `mod_vars.stats_logs_file`.
-        The channel is defined in the .env file (stats_channel).
+        the log db.
+        The channel is defined in stats settings db.
         '''
         def tabify(
             dict_in: dict,
@@ -108,37 +107,47 @@ class Stats(commands.Cog):
                 log.more('`dict_in` is not a dict. Check the input.')
 
         log.log('Starting `update_stats`')
-        stats_settings = file_io.read_json(envs.stats_file)
-        stats_log = file_io.read_json(envs.stats_logs_file)
+        stats_settings = dict(
+            await db_helper.get_output(
+                template_info=envs.stats_db_schema
+            )
+        )
         if stats_settings['channel']:
             stats_channel = stats_settings['channel']
         else:
             stats_channel = 'stats'
-        if stats_settings['show_code_stats']:
-            # Get stats about the code
-            _codebase = get_stats_codebase()
-            lines_in_codebase = _codebase['total_lines']
-            files_in_codebase = _codebase['total_files']
-        _y = datetime_handling.get_dt('year')
-        _m = datetime_handling.get_dt('month')
-        _d = datetime_handling.get_dt('day')
-        if _y not in stats_log:
-            stats_log[_y] = {}
-        if _m not in stats_log[_y]:
-            stats_log[_y][_m] = {}
-        if _d not in stats_log[_y][_m]:
-            stats_log[_y][_m][_d] = {}
-        if stats_settings['show_role_stats']:
-            # Get server members
-            members = get_role_numbers()
-            stats_log[_y][_m][_d]['members'] = {
-                'total': members['member_count'],
-                'roles': members['roles']
-            }
-        if stats_settings['show_code_stats']:
-            # Get info about the codebase
-            stats_log[_y][_m][_d]['files_in_codebase'] = files_in_codebase
-            stats_log[_y][_m][_d]['lines_in_codebase'] = lines_in_codebase
+        stats_log_inserts = []
+        # Get stats about the code
+        _codebase = get_stats_codebase()
+        lines_in_codebase = _codebase['total_lines']
+        files_in_codebase = _codebase['total_files']
+        # Get server members
+        members = get_role_numbers()
+        # Update log database if not alredy this day
+        date_exist = await db_helper.get_output(
+            template_info=envs.stats_db_log_schema,
+            order_by=[('datetime', 'DESC')],
+            single=True
+        )
+        if datetime_handling.get_dt(
+            format='date'
+        ) > datetime_handling.get_dt(
+            format='date', dt=date_exist[0]
+        ):
+            stats_log_inserts.append(
+                (
+                    str(datetime_handling.get_dt('ISO8601')),
+                    files_in_codebase, lines_in_codebase,
+                    members['member_count']
+                )
+            )
+            # Write changes to database
+            await db_helper.insert_many_all(
+                template_info=envs.stats_db_log_schema,
+                inserts=stats_log_inserts
+            )
+        else:
+            log.verbose('Today has already been logged, skipping...')
         # Update the stats-msg
         if stats_settings['show_role_stats']:
             total_members = members['member_count']
@@ -164,12 +173,6 @@ class Stats(commands.Cog):
             stats_msg, stats_channel
         )
 
-        # Write changes to file
-        if not args.maintenance:
-            file_io.write_json(envs.stats_logs_file, stats_log)
-        else:
-            log.log('Did not write changes to file', color='RED')
-
     @update_stats.before_loop
     async def before_update_stats():
         '#autodoc skip#'
@@ -185,12 +188,27 @@ class Stats(commands.Cog):
 
 
 async def setup(bot):
-    # Starting the cog
-    log.log(envs.COG_STARTING.format('stats'))
-    log.verbose(envs.CREATING_FILES)
-    check_and_create_files = [
-        (envs.stats_logs_file, {}),
-        (envs.stats_file, envs.stats_template)
-    ]
-    file_io.create_necessary_files(check_and_create_files)
+    cog_name = 'stats'
+    log.log(envs.COG_STARTING.format(cog_name))
+    log.verbose('Checking db')
+    # Convert json to sqlite db-files if exists
+    stats_file_inserts = None
+    stats_settings_inserts = None
+    stats_log_inserts = None
+    if file_io.file_size(envs.stats_file):
+        log.verbose('Found old json file')
+        stats_file_inserts = db_helper.json_to_db_inserts(cog_name)
+        stats_settings_inserts = stats_file_inserts['stats_inserts']
+        stats_log_inserts = stats_file_inserts['stats_logs_inserts']
+    stats_prep_is_ok = await db_helper.prep_table(
+        envs.stats_db_schema, stats_settings_inserts
+    )
+    stats_log_prep_is_ok = await db_helper.prep_table(
+        envs.stats_db_log_schema, stats_log_inserts
+    )
+    # Delete old json files if they exist
+    if stats_prep_is_ok and stats_log_prep_is_ok:
+        file_io.remove_file(envs.stats_file)
+        file_io.remove_file(envs.stats_logs_file)
+    log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))

@@ -170,11 +170,25 @@ roles_db_roles_schema = {
 }
 
 roles_db_settings_schema = {
-    'db_file': 'roles.db',
+
+# Stats
+stats_db_schema = {
+    'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'settings',
     'items': [
         'setting TEXT',
         'value TEXT'
+    ]
+}
+
+stats_db_log_schema = {
+    'db_file': str(DB_DIR / 'stats_log.sqlite'),
+    'name': 'log',
+    'items': [
+        'datetime TEXT',
+        'code_files INTEGER',
+        'code_lines INTEGER',
+        'members INTEGER'
     ]
 }
 
