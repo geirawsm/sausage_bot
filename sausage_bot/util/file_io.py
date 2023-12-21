@@ -8,6 +8,10 @@ from difflib import SequenceMatcher
 from ..util.log import log
 
 
+def remove_file(filename):
+    os.remove(filename)
+
+
 def write_file(filename, content_to_write, append=False):
     '''
     Write `content_to_write` to the file `filename`
