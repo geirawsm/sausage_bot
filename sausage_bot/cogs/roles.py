@@ -1392,17 +1392,25 @@ class Autoroles(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('autoroles'))
+    cog_name = 'roles'
+    log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
-    await db_helper.prep_table(
-        envs.roles_db_msgs_schema
+    # Convert json to sqlite db-files if exists
+    roles_inserts = None
+    if file_io.file_size(envs.roles_settings_file):
+        log.verbose('Found old json file')
+        roles_inserts = db_helper.json_to_db_inserts(cog_name)
+    msgs_is_ok = await db_helper.prep_table(
+        envs.roles_db_msgs_schema, roles_inserts['msg_inserts']
     )
-    await db_helper.prep_table(
-        envs.roles_db_roles_schema
+    reacts_is_ok = await db_helper.prep_table(
+        envs.roles_db_roles_schema, roles_inserts['reactions_inserts']
     )
-    await db_helper.prep_table(
-        envs.roles_db_settings_schema
+    settings_is_ok = await db_helper.prep_table(
+        envs.roles_db_settings_schema, roles_inserts['settings_inserts']
     )
+    if msgs_is_ok and reacts_is_ok and settings_is_ok:
+        file_io.remove_file(envs.roles_settings_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 
