@@ -3,7 +3,7 @@
 from discord.ext import commands
 import uuid
 
-from sausage_bot.util import config, envs, db_helper
+from sausage_bot.util import config, envs, db_helper, file_io
 from sausage_bot.util.log import log
 
 
@@ -69,13 +69,24 @@ class Dilemmas(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('dilemmas'))
+    cog_name = 'dilemmas'
+    log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
-    await db_helper.prep_table(
-        envs.dilemmas_db_schema
+    # Convert json to sqlite db-files if exists
+    dilemmas_inserts = None
+    if file_io.file_size(envs.dilemmas_file):
+        log.verbose('Found old json file')
+        dilemmas_inserts = await db_helper.json_to_db_inserts(cog_name)
+    dilemmas_prep_is_ok = await db_helper.prep_table(
+        envs.dilemmas_db_schema, dilemmas_inserts
     )
     await db_helper.prep_table(
         envs.dilemmas_db_log_schema
     )
+    # Delete old json files if they exist
+    if dilemmas_prep_is_ok:
+        file_io.remove_file(envs.dilemmas_file)
+    if file_io.file_size(envs.dilemmas_log_file):
+        file_io.remove_file(envs.dilemmas_log_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(Dilemmas(bot))
