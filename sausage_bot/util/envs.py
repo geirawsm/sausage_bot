@@ -73,7 +73,7 @@ roles_template = {
 
 # Poll
 poll_db_polls_schema = {
-    'db_file': 'poll.db',
+    'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll',
     'items': [
         'uuid TEXT NOT NULL',
@@ -90,7 +90,7 @@ poll_db_polls_schema = {
 }
 
 poll_db_alternatives_schema = {
-    'db_file': 'poll.db',
+    'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll_alternatives',
     'items': [
         'uuid TEXT NOT NULL',
@@ -102,7 +102,7 @@ poll_db_alternatives_schema = {
 
 # Dilemmas
 dilemmas_db_schema = {
-    'db_file': 'dilemmas.db',
+    'db_file': str(DB_DIR / 'dilemmas.sqlite'),
     'name': 'dilemmas',
     'items': [
         'id TEXT NOT NULL',
@@ -112,7 +112,7 @@ dilemmas_db_schema = {
 }
 
 dilemmas_db_log_schema = {
-    'db_file': 'dilemmas.db',
+    'db_file': str(DB_DIR / 'dilemmas.sqlite'),
     'name': 'log',
     'items': [
         'id TEXT NOT NULL',
@@ -122,7 +122,7 @@ dilemmas_db_log_schema = {
 
 # Quote
 quote_db_schema = {
-    'db_file': 'quote.db',
+    'db_file': str(DB_DIR / 'quote.sqlite'),
     'name': 'quote',
     'items': [
         'uuid TEXT NOT NULL UNIQUE',
@@ -134,7 +134,7 @@ quote_db_schema = {
 }
 
 quote_db_log_schema = {
-    'db_file': 'quote.db',
+    'db_file': str(DB_DIR / 'quote.sqlite'),
     'name': 'log',
     'items': [
         'uuid TEXT NOT NULL',
@@ -146,7 +146,7 @@ quote_db_log_schema = {
 
 # Roles
 roles_db_msgs_schema = {
-    'db_file': 'roles.db',
+    'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'messages',
     'items': [
         'msg_id TEXT NOT NULL',
@@ -160,7 +160,7 @@ roles_db_msgs_schema = {
 }
 
 roles_db_roles_schema = {
-    'db_file': 'roles.db',
+    'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'roles',
     'items': [
         'msg_id TEXT NOT NULL',
@@ -170,6 +170,13 @@ roles_db_roles_schema = {
 }
 
 roles_db_settings_schema = {
+    'db_file': str(DB_DIR / 'roles.sqlite'),
+    'name': 'settings',
+    'items': [
+        'setting TEXT',
+        'value TEXT'
+    ]
+}
 
 # Stats
 stats_db_schema = {
