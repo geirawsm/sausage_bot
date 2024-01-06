@@ -180,7 +180,6 @@ async def sync_reaction_message_from_settings(
     }
     # Edit discord message if it exist
     log.debug(f'`db_message` is {db_message}')
-    # TODO Det er her det stopper!!
     await msg_obj.edit(
         content=db_message[0][3],
         embed=discord.Embed.from_dict(embed_json)
@@ -1305,7 +1304,6 @@ class Autoroles(commands.Cog):
         Avsjekk at rekkefølge stemmer
         Hvis ikke stemmer, fjern alle meldinger for kanalen og lag nye
         '''
-        # TODO Denne er neste!
         if not channel:
             # TODO var msg
             await ctx.message.reply(
@@ -1479,18 +1477,6 @@ async def on_raw_reaction_add(payload):
 async def on_raw_reaction_remove(payload):
     # TODO var msg
     log.debug('Checking removed reaction role')
-    # pprint(payload)
-    # <RawReactionActionEvent
-    #   message_id=1181339357571973151
-    #   user_id=364182141929521164
-    #   channel_id=1133022522623922216
-    #   guild_id=1000877858421477398
-    #   emoji=<PartialEmoji
-    #       animated=False
-    #       name='test1'
-    #       id=1151230241856028763>
-    #   event_type='REACTION_REMOVE'
-    #   member=None>
     if str(payload.user_id) == str(config.BOT_ID):
         log.debug('Change made by bot, skip')
         return

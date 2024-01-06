@@ -93,6 +93,18 @@ def file_size(filename):
         return False
 
 
+def file_exist(filename):
+    '''
+    Checks if the file exist. If it can't find the file it will return
+    False
+    '''
+    try:
+        os.stat(filename, follow_symlinks=True)
+        return True
+    except FileNotFoundError:
+        return False
+
+
 def ensure_folder(folder_path: str):
     '''
     Create folders in `folder_path` if it doesn't exist

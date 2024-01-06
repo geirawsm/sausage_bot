@@ -6,7 +6,7 @@ from time import sleep
 from yt_dlp import YoutubeDL
 
 from sausage_bot.util import config, envs, feeds_core, file_io
-from sausage_bot.util import discord_commands
+from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.log import log
 
 
@@ -78,7 +78,7 @@ class Youtube(commands.Cog):
                         envs.YOUTUBE_EMPTY_LINK.format(yt_link)
                     )
                     return
-                await feeds_core.add_to_feed_file(
+                await feeds_core.add_to_feed_db(
                     name=str(feed_name), feed_link=str(yt_link),
                     channel=channel, user_add=AUTHOR,
                     feeds_filename=envs.yt_feeds_file,
@@ -116,9 +116,7 @@ class Youtube(commands.Cog):
     ):
         'Remove a Youtube feed: `!youtube remove [feed_name]`'
         AUTHOR = ctx.message.author.name
-        removal = feeds_core.remove_feed_from_file(
-            feed_name, envs.yt_feeds_file
-        )
+        removal = feeds_core.remove_feed_from_file(feed_name)
         if removal:
             await log.log_to_bot_channel(
                 envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
@@ -272,13 +270,17 @@ class Youtube(commands.Cog):
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('youtube'))
-    # Create necessary files before starting
-    log.verbose(envs.CREATING_FILES)
-    check_and_create_files = [
-        (envs.yt_feeds_file, {}),
-        envs.yt_feeds_logs_file
-    ]
-    file_io.create_necessary_files(check_and_create_files)
+    # Create necessary databases before starting
+    if not db_helper.file_exist(
+        envs.feeds_db_feed_schema
+    ):
+        log.verbose(envs.CREATING_DB_FILES)
+        await db_helper.prep_table(
+            envs.feeds_db_feed_schema
+        )
+        await db_helper.prep_table(
+            envs.feeds_db_filters_schema
+        )
     # Starting the cog
     await bot.add_cog(Youtube(bot))
 

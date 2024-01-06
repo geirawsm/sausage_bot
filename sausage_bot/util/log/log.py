@@ -56,7 +56,6 @@ def log_function(
     if args.log_print:
         if extra_info:
             log_out += '[ {extra_info} ]'.format(
-                color=extra_color, style=Style.BRIGHT,
                 extra_info=extra_info
             )
         log_out += '{color}{style}[ {func_name} ({func_line}) ]'.format(
@@ -83,6 +82,7 @@ def log_function(
         else:
             log_out += str(log_in)
             if sameline:
+                # TODO Denne fungerer nok kanskje ikke helt som forventa?
                 try:
                     max_cols, max_rows = os.get_terminal_size(0)
                 except (OSError):
@@ -118,7 +118,10 @@ def log(
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log:
-        log_function(log_in, color=color, pretty=pretty, sameline=sameline)
+        log_function(
+            log_in, color=color, pretty=pretty, sameline=sameline,
+            extra_info=envs.log_extra_info('log')
+        )
     if args.log_slow:
         sleep(3)
 

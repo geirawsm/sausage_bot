@@ -165,7 +165,7 @@ except Exception as e:
     log.log(e)
 
 
-def setup(bot):
+async def setup(bot):
     @bot.event
     async def on_command_error(ctx, exception):
         # if the exception is of any of selected classes redirect to discord

@@ -26,10 +26,16 @@ async def get_link(url):
         log.debug(f'Trying `url`: {url}')
         session = aiohttp.ClientSession()
         async with session.get(url) as resp:
+            url_status = resp.status
+            log.debug(f'Got status: {url_status}')
             content_out = await resp.text()
         await session.close()
     except Exception as e:
         log.debug(f'Error when getting `url`: {e}')
+        return None
+    if 399 < int(url_status) < 600:
+        log.log(f'Got error code {url_status}')
+        return None
     if content_out is None:
         return None
     else:
