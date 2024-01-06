@@ -233,11 +233,11 @@ class Quotes(commands.Cog):
         )
         # Update quote
         await db_helper.update_fields(
-            envs.quote_db_schema,
-            [
+            template_info=envs.quote_db_schema,
+            where=[
                 ('rowid', quote_number)
             ],
-            [
+            updates=[
                 ('quote_text', quote_in),
                 ('datetime', quote_date)
             ]

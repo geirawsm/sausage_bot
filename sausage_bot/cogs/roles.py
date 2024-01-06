@@ -535,9 +535,12 @@ class Autoroles(commands.Cog):
                 group_by='A.msg_id',
                 order_by=[
                     ('channel', 'DESC'),
-                    ('order', 'ASC')
+                    ('msg_order', 'ASC')
                 ]
             )
+            if sorted_reacts is None:
+                await ctx.reply('Ingen meldinger i databasen')
+                return
             for _sort in sorted_reacts:
                 tabulate_dict['name'].append(_sort[0])
                 tabulate_dict['channel'].append(_sort[1])
@@ -1395,17 +1398,23 @@ async def setup(bot):
     log.verbose('Checking db')
     # Convert json to sqlite db-files if exists
     roles_inserts = None
+    roles_inserts_msg = None
+    roles_inserts_reactions = None
+    roles_inserts_settings = None
     if file_io.file_size(envs.roles_settings_file):
         log.verbose('Found old json file')
         roles_inserts = db_helper.json_to_db_inserts(cog_name)
+        roles_inserts_msg = roles_inserts['msg_inserts']
+        roles_inserts_reactions = roles_inserts['reactions_inserts']
+        roles_inserts_settings = roles_inserts['settings_inserts']
     msgs_is_ok = await db_helper.prep_table(
-        envs.roles_db_msgs_schema, roles_inserts['msg_inserts']
+        envs.roles_db_msgs_schema, roles_inserts_msg
     )
     reacts_is_ok = await db_helper.prep_table(
-        envs.roles_db_roles_schema, roles_inserts['reactions_inserts']
+        envs.roles_db_roles_schema, roles_inserts_reactions
     )
     settings_is_ok = await db_helper.prep_table(
-        envs.roles_db_settings_schema, roles_inserts['settings_inserts']
+        envs.roles_db_settings_schema, roles_inserts_settings
     )
     if msgs_is_ok and reacts_is_ok and settings_is_ok:
         file_io.remove_file(envs.roles_settings_file)

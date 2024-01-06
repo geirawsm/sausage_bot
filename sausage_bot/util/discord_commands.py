@@ -29,6 +29,8 @@ def get_text_channel_list():
     '''
     channel_dict = {}
     guild = get_guild()
+    if guild is None:
+        return None
     # Get all channels and their IDs
     for channel in guild.text_channels:
         channel_dict[channel.name] = channel.id
