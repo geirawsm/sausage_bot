@@ -41,7 +41,6 @@ class RSSfeed(commands.Cog):
         channel: str
             The channel to post from the feed
         '''
-
         AUTHOR = ctx.message.author.name
         URL_OK = False
         CHANNEL_OK = False
@@ -73,8 +72,8 @@ class RSSfeed(commands.Cog):
                 CHANNEL_OK = True
             if URL_OK and CHANNEL_OK:
                 await feeds_core.add_to_feed_db(
-                    str(feed_name), str(feed_link), channel, AUTHOR,
-                    envs.rss_feeds_file
+                    'rss', str(feed_name), str(feed_link), channel,
+                    AUTHOR
                 )
                 await log.log_to_bot_channel(
                     envs.RSS_ADDED_BOT.format(
@@ -440,9 +439,11 @@ class RSSfeed(commands.Cog):
         return
 
     # Tasks
-    @tasks.loop(minutes=config.env.int('RSS_LOOP', default=5))
+    @tasks.loop(
+            minutes=config.env.int('RSS_LOOP', default=5)
+    )
     async def rss_parse():
-        log.debug('Starting `rss_parse`')
+        log.log('Starting `rss_parse`')
         # Make sure that the feed links aren't stale / 404
         await feeds_core.review_feeds_status('rss')
         # Start processing feeds
@@ -481,6 +482,7 @@ class RSSfeed(commands.Cog):
                 await feeds_core.process_links_for_posting_or_editing(
                     UUID, feed, FEED_POSTS, CHANNEL
                 )
+        log.log('Done with posting')
         return
 
     @rss_parse.before_loop

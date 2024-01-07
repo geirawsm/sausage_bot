@@ -92,14 +92,17 @@ async def delete(ctx, amount=0):
     commands.is_owner(),
     commands.has_permissions(kick_members=True)
 )
-async def kick(ctx, member: discord.Member = commands.param(
-    default=None,
-    description="Name of Discord user you want to kick"
-), *, reason: str = commands.param(
-    default=None,
-    description="Reason for kicking user")
-):
-    'Kick a member from the server'
+async def kick(ctx, member: discord.Member = None, *, reason: str = None):
+    '''
+    Kick a member from the server
+
+    Parameters
+    ------------
+    member: discord.Member
+        Name of Discord user you want to kick (default: None)
+    reason: str
+        Reason for kicking user (defautl: None)
+    '''
     try:
         await member.kick(reason=reason)
         await ctx.send(f'{member} has been kicked')
@@ -112,14 +115,17 @@ async def kick(ctx, member: discord.Member = commands.param(
     commands.is_owner(),
     commands.has_permissions(ban_members=True)
 )
-async def ban(ctx, member: discord.Member = commands.param(
-    default=None,
-    description="Name of Discord user you want to ban"
-), *, reason: str = commands.param(
-    default=None,
-    description="Reason for banning user")
-):
-    'Ban a member from the server'
+async def ban(ctx, member: discord.Member = None, *, reason: str = None):
+    '''
+    Ban a member from the server
+
+    Parameters
+    ------------
+    member: discord.Member
+        Name of Discord user you want to ban (default: None)
+    reason: str
+        Reason for banning user (default: None)
+    '''
     try:
         await member.ban(reason=reason)
         await ctx.send(f'{member} has been banned!')
