@@ -241,6 +241,59 @@ def json_to_db_inserts(cog_name):
             'filter': rss_filter_inserts,
             'logs': rss_logs_inserts
         }
+    elif cog_name == 'youtube':
+        yt_file = file_io.read_json(envs.yt_feeds_file)
+        yt_logs_file = file_io.read_json(envs.yt_feeds_logs_file)
+        yt_inserts = []
+        yt_filter_inserts = []
+        yt_logs_inserts = []
+        yt_logs_index = {}
+        for feed in yt_file:
+            _uuid = str(uuid4())
+            yt_logs_index[feed] = _uuid
+            yt_inserts.append(
+                (
+                    _uuid, feed, yt_file[feed]['url'],
+                    yt_file[feed]['channel'],
+                    yt_file[feed]['added'],
+                    yt_file[feed]['added by'],
+                    yt_file[feed]['status_url'],
+                    yt_file[feed]['status_url_counter'],
+                    yt_file[feed]['status_channel'],
+                    yt_file[feed]['yt_id']
+                )
+            )
+            filter_allow = yt_file[feed]['filter_allow']
+            filter_deny = yt_file[feed]['filter_deny']
+            if (len(filter_allow) + len(filter_deny)) > 0:
+                if len(filter_allow) > 0:
+                    for line in filter_allow:
+                        yt_filter_inserts.append(
+                            (
+                                _uuid, 'allow', filter_allow[line]
+                            )
+                        )
+                if len(filter_deny) > 0:
+                    for line in filter_deny:
+                        yt_filter_inserts.append(
+                            (
+                                _uuid, 'deny', line
+                            )
+                        )
+        for feed in yt_logs_file:
+            if feed in yt_logs_index:
+                for link in yt_logs_file[feed]:
+                    yt_logs_inserts.append(
+                        (
+                            yt_logs_index[feed], link,
+                            str(get_dt(format='ISO8601'))
+                        )
+                    )
+        return {
+            'feeds': yt_inserts,
+            'filter': yt_filter_inserts,
+            'logs': yt_logs_inserts
+        }
     log.log(f'Converting done!')
 
 

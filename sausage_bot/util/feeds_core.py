@@ -3,6 +3,7 @@
 from bs4 import BeautifulSoup
 from lxml import etree
 from tabulate import tabulate
+from uuid import uuid4
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper, config
@@ -206,37 +207,59 @@ def filter_links(items):
 
 
 async def add_to_feed_db(
-    name, feed_link=None, channel=None, user_add=None, yt_id=None
+    feed_type, name, feed_link=None, channel=None, user_add=None,
+    yt_id=None
 ):
     '''
     Add a an item to the feeds table in db
 
+    `feed_type`:
     `name`:         The identifiable name of the added feed
     `feed_link`:    The link for the feed
-    `channel`       The discord channel to post the feed to
-    `user_add`      The user who added the feed
+    `channel`:      The discord channel to post the feed to
+    `user_add`:     The user who added the feed
+    `yt_id`:        yt-id
     '''
 
+    if feed_type not in ['rss', 'youtube']:
+        log.log('Function requires `feed_type`')
+        return None
     # Test the link first
     test_link = await net_io.get_link(feed_link)
     if test_link is None:
         return None
     date_now = datetime_handling.get_dt(format='datetime')
-    await db_helper.insert_many_some(
-        envs.rss_db_schema,
-        rows=(
-            'feed_name', 'url', 'channel', 'added', 'added_by',
-            'status_url', 'status_url_counter', 'status_channel',
-            'yt_id'
-        ),
-        inserts=(
-            (
-                name, feed_link, channel, date_now, user_add,
-                envs.FEEDS_URL_SUCCESS, 0, envs.CHANNEL_STATUS_SUCCESS,
-                yt_id if yt_id else 'rss'
+    if feed_type == 'rss':
+        await db_helper.insert_many_some(
+            envs.rss_db_schema,
+            rows=(
+                'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
+                'status_url', 'status_url_counter', 'status_channel'
+            ),
+            inserts=(
+                (
+                    str(uuid4()), name, feed_link, channel, date_now,
+                    user_add, envs.FEEDS_URL_SUCCESS, 0,
+                    envs.CHANNEL_STATUS_SUCCESS
+                )
             )
         )
-    )
+    elif feed_type == 'youtube':
+        await db_helper.insert_many_some(
+            envs.youtube_db_schema,
+            rows=(
+                'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
+                'status_url', 'status_url_counter', 'status_channel',
+                'youtube_id'
+            ),
+            inserts=(
+                (
+                    str(uuid4()), name, feed_link, channel, date_now,
+                    user_add, envs.FEEDS_URL_SUCCESS, 0,
+                    envs.CHANNEL_STATUS_SUCCESS, yt_id
+                )
+            )
+        )
 
 
 async def remove_feed_from_db(feed_uuid):
@@ -257,11 +280,13 @@ async def remove_feed_from_db(feed_uuid):
     return removal_ok
 
 
-async def get_feed_links(feed_info):
-    'Get the links from a RSS-feed'
-
+async def get_feed_links(feed_type, feed_info):
+    'Get the links from a feed'
     UUID = feed_info[0]
-    URL = feed_info[2]
+    if feed_type == 'rss':
+        URL = feed_info[2]
+    elif feed_type == 'youtube':
+        URL = envs.YOUTUBE_RSS_LINK.format(feed_info[9])
     # Get the url and make it parseable
     req = await net_io.get_link(URL)
     if req is not None:

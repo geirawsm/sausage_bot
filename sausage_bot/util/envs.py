@@ -199,7 +199,6 @@ stats_db_log_schema = {
     ]
 }
 
-
 # RSS
 rss_db_schema = {
     'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
@@ -234,6 +233,51 @@ rss_db_filter_schema = {
 
 rss_db_log_schema = {
     'db_file': str(DB_DIR / 'rss_log.sqlite'),
+    'name': 'log',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'url TEXT',
+        'date TEXT'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+# Youtube
+youtube_db_schema = {
+    'db_file': str(DB_DIR / 'youtube_feeds.sqlite'),
+    'name': 'youtube_feeds',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'feed_name TEXT',
+        'url TEXT',
+        'channel TEXT',
+        'added TEXT',
+        'added_by TEXT',
+        'status_url TEXT',
+        'status_url_counter INTEGER',
+        'status_channel TEXT',
+        'youtube_id TEXT'
+    ],
+    'primary': 'uuid',
+    'autoincrement': False
+}
+
+youtube_db_filter_schema = {
+    'db_file': str(DB_DIR / 'youtube_feeds.sqlite'),
+    'name': 'filter',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'allow_or_deny TEXT NOT NULL',
+        'filter TEXT NOT NULL'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+
+youtube_db_log_schema = {
+    'db_file': str(DB_DIR / 'youtube_log.sqlite'),
     'name': 'log',
     'items': [
         'uuid TEXT NOT NULL',
