@@ -71,6 +71,16 @@ roles_template = {
     }
 }
 
+# Cogs
+cogs_db_schema = {
+    'db_file': str(DB_DIR / 'cogs.sqlite'),
+    'name': 'cogs',
+    'items': [
+        'cog_name TEXT NOT NULL',
+        'status TEXT NOT NULL'
+    ]
+}
+
 # Poll
 poll_db_polls_schema = {
     'db_file': str(DB_DIR / 'poll.sqlite'),

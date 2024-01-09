@@ -4,7 +4,7 @@ import os
 from discord.ext import commands
 from tabulate import tabulate
 
-from sausage_bot.util import envs, file_io, config
+from sausage_bot.util import envs, file_io, config, db_helper
 from .log import log
 
 
@@ -18,19 +18,8 @@ for folder in check_and_create_folders:
     except (FileExistsError):
         pass
 
-# Create necessary files before starting
-log.verbose('Creating necessary files')
-check_and_create_files = [
-    (envs.cogs_status_file, {})
-]
-for file in check_and_create_files:
-    if isinstance(file, tuple):
-        file_io.ensure_file(file[0], file_template=file[1])
-    else:
-        file_io.ensure_file(file)
 
-
-class loading:
+class Loading:
     '''
     Control the cogs for the bot
     #autodoc skip#
@@ -50,13 +39,14 @@ class loading:
                 'This command only accept `enable` (e) or `disable` (d)'
             )
             return False
-        cogs_status = file_io.read_json(envs.cogs_status_file)
         try:
             log.debug(f'Change cog `{cog_name}` status')
             # Change status
-            cogs_status[cog_name] = status
-            # Write changes
-            file_io.write_json(envs.cogs_status_file, cogs_status)
+            await db_helper.update_fields(
+                template_info=envs.cogs_db_schema,
+                where=[('cog_name', cog_name)],
+                updates=[status]
+            )
             return True
         except Exception as e:
             log.log(envs.COGS_CHANGE_STATUS_FAIL.format(e))
@@ -104,66 +94,82 @@ class loading:
     async def load_and_clean_cogs():
         '''
         This does three things:
-        1. Adds cogs from files that are not already present in the
-            `cogs_status` file
-        2. Removes cogs from the `cogs_status` file if a file doesn't exist
+        1. Adds cogs from folder that are not already present in the
+            cogs db
+        2. Removes cogs from the cogs db if a file doesn't exist
         3. Start cogs based on status in `cogs_status` file
         #autodoc skip#
         '''
         cog_files = []
-        # Add cogs that are not present in the `cogs_status` file
-        cogs_status = file_io.read_json(envs.cogs_status_file)
-        try:
-            log.debug(
-                f'These cogs are already registered: '
-                f'{sorted(list(file_io.read_json(envs.cogs_status_file)))}'
-            )
-        except TypeError as e:
-            log.debug(
-                f'Error when reading json file: {e}'
-            )
+        # Add cogs that are not present in the cogs db
+        already_registered_cogs = await db_helper.get_output(
+            template_info=envs.cogs_db_schema,
+            order_by=[('cog_name', 'ASC')]
+        )
+        log.debug(
+            f'These cogs are already registered: {already_registered_cogs}'
+        )
         log.debug(
             f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
         )
+        filelist = []
         for filename in os.listdir(envs.COGS_DIR):
             if filename.endswith('.py') and not filename.startswith('_'):
                 cog_name = filename[:-3]
-                log.debug(f'Checking `{cog_name}`')
                 # Add all cog names to `cog_files` for easier cleaning
-                cog_files.append(cog_name)
-                if cog_name not in cogs_status:
+                filelist.append(cog_name)
+                if cog_name not in [
+                        name[0] for name in already_registered_cogs
+                ]:
                     # Added as disable
+                    cog_files.append((cog_name, 'disable'))
                     log.log(
-                        'Added cog {} to cogs_status file'.format(cog_name)
+                        'Added cog {}'.format(cog_name)
                     )
-                    cogs_status[cog_name] = 'disable'
+        if len(cog_files) > 0:
+            log.debug(f'`cog_files` is {cog_files}')
+            await db_helper.insert_many_all(
+                template_info=envs.cogs_db_schema,
+                inserts=cog_files
+            )
         # Clean out cogs that no longer has a file
-        log.log('Checking `cogs_status` file for non-existing cogs')
+        # Reload all registered cogs
+        already_registered_cogs = await db_helper.get_output(
+            template_info=envs.cogs_db_schema,
+            order_by=[('cog_name', 'ASC')]
+        )
         to_be_removed = []
-        for cog_name in cogs_status:
-            if cog_name not in cog_files:
+        for cog_name in [name[0] for name in already_registered_cogs]:
+            log.debug(f'`cog_name` is {cog_name}')
+            if cog_name not in filelist:
                 log.log(f'Removing `{cog_name}`')
-                to_be_removed.append(cog_name)
-        for removal in to_be_removed:
-            cogs_status.pop(removal)
+                to_be_removed.append(('cog_name', cog_name))
+        log.debug(f'`to_be_removed` is {to_be_removed}')
+        if len(to_be_removed) > 0:
+            await db_helper.del_row_by_OR_filters(
+                template_info=envs.cogs_db_schema,
+                where=to_be_removed
+            )
         # Start cogs based on status
         log.log('Checking `cogs_status` file for enabled cogs')
-        for cog_name in cogs_status:
-            if cogs_status[cog_name] in ['enable', 'e']:
+        for cog_name in already_registered_cogs:
+            if cog_name[1] in ['enable', 'e']:
                 log.log('Loading cog: {}'.format(cog_name))
-                await loading.load_cog(cog_name)
-        file_io.write_json(envs.cogs_status_file, cogs_status)
+                await Loading.load_cog(cog_name)
 
     async def reload_all_cogs():
         '''
         Reload all cogs which is already enabled
         #autodoc skip#
         '''
-        cogs_status = file_io.read_json(envs.cogs_status_file)
+        cogs_status = await db_helper.get_output(
+            template_info=envs.cogs_db_schema,
+            where=('status', 'enable')
+        )
         for cog_name in cogs_status:
-            if cogs_status[cog_name] == 'enable':
+            if cog_name[1] == 'enable':
                 log.log('Reloading cog: {}'.format(cog_name))
-                await loading.reload_cog(cog_name)
+                await Loading.reload_cog(cog_name)
 
 
 @config.bot.command()
@@ -183,12 +189,12 @@ async def cog(ctx, cmd_in=None, *cog_names):
         '#autodoc skip#'
         if cmd_in in ['enable', 'e']:
             for cog_name in cog_names:
-                _loading = await loading.load_cog(cog_name)
-                await loading.change_cog_status(cog_name, 'enable')
+                _loading = await Loading.load_cog(cog_name)
+                await Loading.change_cog_status(cog_name, 'enable')
         elif cmd_in in ['disable', 'd']:
             for cog_name in cog_names:
-                _unloading = await loading.unload_cog(cog_name)
-                await loading.change_cog_status(cog_name, 'disable')
+                _unloading = await Loading.unload_cog(cog_name)
+                await Loading.change_cog_status(cog_name, 'disable')
         elif not cmd_in:
             await ctx.send(
                 envs.COGS_TOO_FEW_ARGUMENTS
@@ -210,26 +216,31 @@ async def cog(ctx, cmd_in=None, *cog_names):
                 conf_msg = envs.ALL_COGS_DISABLED
             else:
                 conf_msg = envs.COGS_DISABLED.format(', '.join(cog_names))
-        cogs_file = file_io.read_json(envs.cogs_status_file)
-        cogs_file = dict(sorted(cogs_file.items()))
+        cogs_db = await db_helper.get_output(
+            template_info=envs.cogs_db_schema
+        )
+        cogs_db = [name[0] for name in cogs_db]
         if cog_names[0] == 'all':
-            # Use all names from cogs_file
-            await action_on_cog(cmd_in, list(cogs_file))
+            # Use all names from cogs_db
+            await action_on_cog(cmd_in, cogs_db)
         else:
             # Only use given names in function
-            await action_on_cog(cmd_in, list(cog_names))
+            await action_on_cog(cmd_in, cog_names)
         await ctx.send(conf_msg)
         return True
     elif cmd_in == 'list':
         # List cogs and their status
-        cogs_status = file_io.read_json(envs.cogs_status_file)
+        cogs_db = await db_helper.get_output(
+            template_info=envs.cogs_db_schema,
+            order_by=[('cog_name', 'ASC')]
+        )
         await ctx.send(
-            get_cogs_list(cogs_status)
+            get_cogs_list(cogs_db)
         )
         return
     elif cmd_in == 'reload':
         # Reload all cogs
-        await loading.reload_all_cogs()
+        await Loading.reload_all_cogs()
         await ctx.send(envs.ALL_COGS_RELOADED)
         return
     elif cmd_in is None:
@@ -244,11 +255,12 @@ def get_cogs_list(cogs_file):
     Get a pretty list of all the cogs
     #autodoc skip#
     '''
-    # Sort cogs first
-    cogs_file = sorted(cogs_file.items())
     log.debug(f'Got this from `cogs_file`: {cogs_file}')
     text_out = '```{}```'.format(
-        tabulate(cogs_file, headers=['Cog', 'Status'])
+        tabulate(
+            cogs_file, headers=['Cog', 'Status'],
+            tablefmt='presto'
+        )
     )
     log.debug(f'Returning:\n{text_out}')
     return text_out

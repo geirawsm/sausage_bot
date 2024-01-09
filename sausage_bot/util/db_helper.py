@@ -294,6 +294,13 @@ def json_to_db_inserts(cog_name):
             'filter': yt_filter_inserts,
             'logs': yt_logs_inserts
         }
+    elif cog_name == 'cogs':
+        cogs_file = file_io.read_json(envs.cogs_status_file)
+        cogs_inserts = []
+        for cog in cogs_file:
+            cogs_inserts.append((cog, cogs_file[cog]))
+        log.verbose(f'Got this for `cogs_inserts`:\n{cogs_inserts}')
+        return cogs_inserts
     log.log(f'Converting done!')
 
 
