@@ -456,6 +456,9 @@ async def review_feeds_status(feed_type: str = None):
         ),
         order_by=[('feed_name', 'DESC')]
     )
+    if feeds_status_db_in is None:
+        log.log('No feeds to review')
+        return None
     db_updates = {}
     for feed in feeds_status_db_in:
         log.debug('Got this feed: ', pretty=feed)

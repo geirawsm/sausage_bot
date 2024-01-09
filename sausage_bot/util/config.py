@@ -37,6 +37,7 @@ try:
     BOT_ID = env('BOT_ID')
 except EnvError:
     print('You need to set `BOT_ID` in .env for this to work')
+    sys.exit()
 
 
 try:
