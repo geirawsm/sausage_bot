@@ -48,7 +48,6 @@ jobs:
       with:
         images: ${{secrets.DOCKER_USER}}/sausage_bot
 
-    # TODO Denne fungerer ikke som ment
     - name: Build and push
       uses: docker/build-push-action@v5
       with:

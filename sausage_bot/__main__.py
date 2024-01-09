@@ -6,13 +6,13 @@ from discord.ext import commands
 import os
 
 from sausage_bot.util.args import args
-from sausage_bot.util import config, envs, file_io, cogs
+from sausage_bot.util import config, envs, file_io, cogs, db_helper
 from sausage_bot.util.log import log
 
 
 # Create necessary folders before starting
 check_and_create_folders = [
-    envs.LOG_DIR, envs.JSON_DIR
+    envs.LOG_DIR, envs.DB_DIR
 ]
 for folder in check_and_create_folders:
     try:
@@ -40,13 +40,31 @@ async def on_ready():
     '''
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
-            log.log('{} has connected to `{}`'.format(config.bot.user, guild.name))
+            log.log('{} has connected to `{}`'.format(
+                config.bot.user, guild.name))
             break
-    await cogs.loading.load_and_clean_cogs()
+    # Create necessary databases before starting `cog`
+    cog_name = 'cogs'
+    log.verbose('Checking db')
+    # Convert json to sqlite db-files if exists
+    cogs_prep_is_ok = False
+    cogs_file_inserts = None
+    if not file_io.file_size(envs.cogs_db_schema['db_file']):
+        if file_io.file_size(envs.cogs_status_file):
+            log.verbose('Found old json file')
+            cogs_file_inserts = db_helper.json_to_db_inserts(cog_name)
+        cogs_prep_is_ok = await db_helper.prep_table(
+            envs.cogs_db_schema, cogs_file_inserts
+        )
+    # Delete old json files if they exist
+    if cogs_prep_is_ok:
+        file_io.remove_file(envs.cogs_status_file)
+    await cogs.Loading.load_and_clean_cogs()
     if args.maintenance:
         log.log('Maintenance mode activated', color='RED')
         await config.bot.change_presence(
-            status=discord.Status.dnd)
+            status=discord.Status.dnd
+        )
     else:
         await config.bot.change_presence(
             activity=discord.Activity(
@@ -92,14 +110,17 @@ async def delete(ctx, amount=0):
     commands.is_owner(),
     commands.has_permissions(kick_members=True)
 )
-async def kick(ctx, member: discord.Member = commands.param(
-    default=None,
-    description="Name of Discord user you want to kick"
-), *, reason: str = commands.param(
-    default=None,
-    description="Reason for kicking user")
-):
-    'Kick a member from the server'
+async def kick(ctx, member: discord.Member = None, *, reason: str = None):
+    '''
+    Kick a member from the server
+
+    Parameters
+    ------------
+    member: discord.Member
+        Name of Discord user you want to kick (default: None)
+    reason: str
+        Reason for kicking user (defautl: None)
+    '''
     try:
         await member.kick(reason=reason)
         await ctx.send(f'{member} has been kicked')
@@ -112,14 +133,17 @@ async def kick(ctx, member: discord.Member = commands.param(
     commands.is_owner(),
     commands.has_permissions(ban_members=True)
 )
-async def ban(ctx, member: discord.Member = commands.param(
-    default=None,
-    description="Name of Discord user you want to ban"
-), *, reason: str = commands.param(
-    default=None,
-    description="Reason for banning user")
-):
-    'Ban a member from the server'
+async def ban(ctx, member: discord.Member = None, *, reason: str = None):
+    '''
+    Ban a member from the server
+
+    Parameters
+    ------------
+    member: discord.Member
+        Name of Discord user you want to ban (default: None)
+    reason: str
+        Reason for banning user (default: None)
+    '''
     try:
         await member.ban(reason=reason)
         await ctx.send(f'{member} has been banned!')
@@ -165,7 +189,7 @@ except Exception as e:
     log.log(e)
 
 
-def setup(bot):
+async def setup(bot):
     @bot.event
     async def on_command_error(ctx, exception):
         # if the exception is of any of selected classes redirect to discord

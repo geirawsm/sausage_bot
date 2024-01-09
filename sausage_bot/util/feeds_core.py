@@ -3,561 +3,547 @@
 from bs4 import BeautifulSoup
 from lxml import etree
 from tabulate import tabulate
+from uuid import uuid4
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
-from sausage_bot.util import net_io
+from sausage_bot.util import net_io, db_helper, config
 
 from .log import log
+
+
+async def check_if_feed_name_exist(feed_name):
+    feeds = await db_helper.get_output(
+        template_info=envs.rss_db_schema,
+        select='feed_name'
+    )
+    feeds = [feed[0] for feed in feeds]
+    log.debug(f'`feeds`: {feeds}')
+    if feed_name not in feeds:
+        return False
+    else:
+        return True
+
+
+async def check_url_validity(url):
+    'Make sure that `url` is a valid link'
+    log.verbose(f'Checking `{url}`')
+    req = await net_io.get_link(url)
+    log.debug(f'req is ({type(req)})')
+    if req is None:
+        return False
+    else:
+        return True
+
 
 async def check_feed_validity(url):
     'Make sure that `url` is a valid link'
     log.verbose(f'Checking `{url}`')
     req = await net_io.get_link(url)
+    log.debug(f'req is ({type(req)})')
+    if req is None:
+        return None
+    sample_item = await get_items_from_rss(
+        req=req,
+        url=url,
+        test=True
+    )
+    log.debug(f'`sample_item`: {sample_item}')
     if req is None:
         log.verbose('Returned None')
         return False
+
     try:
-        etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
+        log.verbose(f'`req` is a {type(req)}')
+        # etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
+        BeautifulSoup(req, features='xml')
         return True
     except (etree.XMLSyntaxError) as e:
         log.verbose(envs.ERROR_WITH_ERROR_MSG.format(e))
         return False
 
 
-async def add_to_feed_file(
-    name, feed_link=None, channel=None, user_add=None,
-    feeds_filename=None, yt_id=None
+async def get_items_from_rss(
+    req, url, filters_in=None, log_in=None, test: bool = False
+) -> list:
+    try:
+        soup = BeautifulSoup(req, features='xml')
+    except Exception as e:
+        log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
+        return None
+    links_out = []
+    # If used for testing feeds, only get one article
+    if test:
+        max_items = 1
+    else:
+        max_items = 3
+    items_out = {
+        'filters': filters_in,
+        'items': [],
+        'log': log_in
+    }
+    items_info = {
+        'type': '',
+        'title': '',
+        'description': '',
+        'link': ''
+    }
+    # Gets podcast feed
+    if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
+        log.debug('Found podcast feed')
+        all_items = soup.find_all('item')
+        for item in all_items[0:max_items]:
+            temp_info = items_info.copy()
+            temp_info['type'] = 'podcast'
+            temp_info['title'] = item.find('title').text
+            temp_info['description'] = item.find('description').text
+            temp_info['link'] = item.find('link').text
+            items_out['items'].append(temp_info)
+    # Gets Youtube feed
+    elif soup.find('yt:channelId'):
+        log.debug('Found Youtube feed')
+        all_entries = soup.find_all('entry')
+        for item in all_entries[0:max_items]:
+            temp_info = items_info.copy()
+            temp_info['type'] = 'youtube'
+            temp_info['title'] = item.find('title').text
+            temp_info['description'] = item.find('media:description').text
+            temp_info['link'] = item.find('link')['href']
+            items_out['items'].append(temp_info)
+    # Gets plain articles
+    else:
+        log.debug('Found normal RSS feed')
+        article_method = False
+        if len(soup.find_all('item')) > 0:
+            article_method = 'item'
+        elif len(soup.find_all('entry')) > 0:
+            article_method = 'entry'
+        else:
+            log.log('Klarte ikke finne ut av feed?')
+            return None
+        all_items = soup.find_all(article_method)
+        for item in all_items[0:max_items]:
+            temp_info = items_info.copy()
+            temp_info['type'] = 'rss'
+            if article_method == 'item':
+                temp_info['title'] = item.find('title').text
+                temp_info['description'] = item.find('media:keywords')
+                temp_info['link'] = item.find('link').text
+            elif article_method == 'entry':
+                temp_info['title'] = item.find('title').text
+                temp_info['description'] = item.find('content').text
+                temp_info['link'] = item.find('link')['href']
+            items_out['items'].append(temp_info)
+    links_out = filter_links(items_out)
+    links_out.reverse()
+    return links_out
+
+
+def filter_links(items):
+    '''
+    Filter incoming links based on active filters
+    '''
+
+    def post_based_on_filter(item, filters_in):
+        allow = []
+        deny = []
+        for filter_in in filters_in:
+            if filter_in[0] == 'allow':
+                allow.append(filter_in[1])
+            elif filter_in[0] == 'deny':
+                deny.append(filter_in[1])
+        filter_priority = eval(config.env(
+            'RSS_FILTER_PRIORITY', default='deny'))
+        if len(filter_priority) >= 1:
+            for filter_out in filter_priority:
+                log.debug(f'Using filter: {filter_out}')
+                if item['title']:
+                    if filter_out.lower() in item['title'].lower():
+                        log.debug(
+                            f'Fant filter `{filter_out}` i '
+                            'tittel ({})'.format(item['title'])
+                        )
+                        return False
+                if item['description']:
+                    if filter_out.lower() in item['description'].lower():
+                        log.debug(
+                            f'Fant filter `{filter_out}` i '
+                            'beskrivelse ({})').format(item['description'])
+                        return False
+            log.debug(
+                'Fant ikke noe filter i tittel eller beskrivelse'
+            )
+            return True
+
+    log.debug(
+        'Got `items` (sample): {}'.format(
+            items['items'][0]
+        )
+    )
+    links_out = []
+    for item in items['items']:
+        log.verbose(f'Checking item: {item}')
+        if item['type'] == 'youtube':
+            if not config.env('YT_INCLUDE_SHORTS', default='true'):
+                shorts_keywords = ['#shorts', '(shorts)']
+                if any(kw in str(item['title']).lower()
+                        for kw in shorts_keywords) or\
+                        any(kw in str(item['description']).lower()
+                            for kw in shorts_keywords):
+                    log.debug(
+                        'Skipped {} because of `#Shorts` '
+                        'or `(shorts)`'.format(
+                            item['title']
+                        )
+                    )
+                    continue
+        log.debug('Filters: {}'.format(items['filters']))
+        if items['filters'] is not None and len(items['filters']) > 0:
+            link_filter = post_based_on_filter(item, items['filters'])
+            if link_filter:
+                links_out.append(item['link'])
+        else:
+            links_out.append(item['link'])
+        return links_out
+
+
+async def add_to_feed_db(
+    feed_type, name, feed_link=None, channel=None, user_add=None,
+    yt_id=None
 ):
     '''
-    Add a an item to the feed-json.
+    Add a an item to the feeds table in db
 
+    `feed_type`:
     `name`:         The identifiable name of the added feed
     `feed_link`:    The link for the feed
-    `channel`       The discord channel to post the feed to
-    `user_add`      The user who added the feed
+    `channel`:      The discord channel to post the feed to
+    `user_add`:     The user who added the feed
+    `yt_id`:        yt-id
     '''
+
+    if feed_type not in ['rss', 'youtube']:
+        log.log('Function requires `feed_type`')
+        return None
     # Test the link first
     test_link = await net_io.get_link(feed_link)
     if test_link is None:
         return None
     date_now = datetime_handling.get_dt(format='datetime')
-    feeds_file = file_io.read_json(feeds_filename)
-    feeds_file[name] = {
-        'url': feed_link,
-        'channel': channel,
-        'filter_allow': [],
-        'filter_deny': [],
-        'added': date_now,
-        'added by': user_add,
-        'status_url': 'added',
-        'status_url_counter': 0,
-        'status_channel': 'ok',
-        'yt_id': yt_id
-    }
-    file_io.write_json(feeds_filename, feeds_file)
-
-
-def remove_feed_from_file(name, feed_file):
-    'Remove a feed from `feed file` based on `name`'
-    name = str(name)
-    feeds_list = file_io.read_json(feed_file)
-    try:
-        feeds_list.pop(name)
-        file_io.write_json(feed_file, feeds_list)
-        return True
-    except (KeyError):
-        return False
-
-
-async def update_feed(
-    feed_name, feeds_file_in, actions=None, items=None, values_in=None
-):
-    '''
-    Update the fields for a feed in `feeds_file`
-
-    `feed_name`:        Identifiable name for the feed
-    `feeds_file_in`:    The file in where to update feed
-    `actions`:          What actions to perform on the item:
-                        Command     Alternatives
-                        'add'
-                        'edit'      'change'
-                        'increment'
-                        'remove'    'delete'
-
-    `items`:            What items you want to change: name, channel, url,
-                        status_url, status_url_counter or status_channel
-    `values_in`:        Value to change/replace `item`
-    '''
-    ACTION_ADD = ['add']
-    ACTION_EDIT = ['edit', 'change', 'increment']
-    ACTION_REMOVE = ['remove', 'delete']
-    ACTION_ALL = ACTION_ADD + ACTION_EDIT + ACTION_REMOVE
-    feed_name = str(feed_name)
-    feeds_file = file_io.read_json(feeds_file_in)
-    # Make standard input to list format
-    try:
-        if isinstance(actions, str):
-            action = list(actions)
-        if isinstance(items, str):
-            items = list(items)
-        if isinstance(values_in, str):
-            values_in = list(values_in)
-    except:
-        log.log('Error when making input to list')
-        return
-    # Check if all relevant lists are the same length
-    if len(actions) == len(items) == len(values_in):
-        log.log('Not all list inputs have the same length')
-        return
-    # Check correct actions
-    action_errors = []
-    for action in actions:
-        if action not in ACTION_ALL:
-            action_errors.append(action)
-        if len(action_errors) > 0:
-            log.log(f'Got these action errors: {action_errors}')
-            return None
-    counter = 0
-    while counter < len(actions):
-        action = actions[counter]
-        item = items[counter]
-        value_in = values_in[counter]
-        # Treat name specifically
-        if item == 'name':
-            log.log('Update feed name')
-            if feed_name in feeds_file:
-                log.log(f'Changing name from `{feed_name}` to `{value_in}`')
-                feeds_file[value_in] = feeds_file[feed_name]
-                feeds_file.pop(feed_name)
-            else:
-                log.log('Feed name does not exist')
-                return False
-        elif action == 'increment':
-            if value_in is None:
-                value_in = 1
-            log.log(f'Incrementing `{item}` with {value_in}')
-            feeds_file[feed_name][item] += value_in
-        else:
-            log.log(f'Update `{item}` status')
-            if action in ACTION_ADD or action in ACTION_EDIT:
-                feeds_file[feed_name][item] = value_in
-            elif action in ACTION_REMOVE:
-                feeds_file[feed_name][item] = ''
-        counter += 1
-    await file_io.write_json(feeds_file_in, feeds_file)
-    return True
-
-
-async def get_feed_links(
-        feed_name, url, filter_allow, filter_deny, cog_mode,
-        include_shorts, filter_priority=None
-):
-    'Get the links from a RSS-feeds `url`'
-
-    def filter_link(rss_item, filter_allow, filter_deny, filter_priority):
-        '''
-        Filter incoming links based on active filters and settings in
-        `env.json`
-        '''
-
-        def post_based_on_filter(
-            filter_priority, filter_allow, filter_deny, title_in, desc_in
-        ):
-            _filter_priority = eval(f'filter_{filter_priority}')
-            log.debug(
-                f'Sjekker tittel ({title_in}) og beskrivelse ({desc_in}) '
-                f'opp mot følgende filtere: {_filter_priority}'
-            )
-            if len(_filter_priority) >= 1:
-                for filter in _filter_priority:
-                    if title_in:
-                        if filter.lower() in title_in.lower():
-                            log.debug(
-                                f'Fant filter `{filter}` i '
-                                f'tittel ({title_in})'
-                            )
-                            return False
-                    if desc_in:
-                        if filter.lower() in desc_in.lower():
-                            log.debug(
-                                f'Fant filter `{filter}` i '
-                                f'beskrivelse ({desc_in})')
-                            return False
-                log.debug(
-                    'Fant ikke noe filter i tittel eller beskrivelse'
+    if feed_type == 'rss':
+        await db_helper.insert_many_some(
+            envs.rss_db_schema,
+            rows=(
+                'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
+                'status_url', 'status_url_counter', 'status_channel'
+            ),
+            inserts=(
+                (
+                    str(uuid4()), name, feed_link, channel, date_now,
+                    user_add, envs.FEEDS_URL_SUCCESS, 0,
+                    envs.CHANNEL_STATUS_SUCCESS
                 )
-                return True
-
-        log.debug('Starting `filter_link`')
-        log.debug(f'Got `rss_item`: {rss_item}')
-        try:
-            if rss_item.find('item'):
-                _item = rss_item.find('item')
-                title_in = _item.find('title').text
-                link_in = _item.find('link').text
-                desc_in = _item.find('description').text
-            else:
-                title_in = rss_item.find('title').text
-                link_in = rss_item.find('link').text
-                desc_in = rss_item.find('description').text
-        except:
-            log.debug(
-                'Got an error when checking the following rss item:'
-                f'{rss_item}'
             )
-        if filter_priority:
-            log.debug(
-                f'Based on settings, the `{filter_priority}` filter'
-                f' is prioritized'
-            )
-        elif filter_priority is None or filter_priority == '':
-            log.debug(
-                'No `filter_priority` given, setting `deny` as standard'
-            )
-            if not filter_priority:
-                filter_priority = 'deny'
-        log.debug('Got these filters:')
-        log.debug(f'Allow: {filter_allow}')
-        log.debug(f'Deny: {filter_deny}')
-        if len(filter_allow) == 0 and len(filter_deny) == 0:
-            return link_in
-        if post_based_on_filter(
-            filter_priority, filter_allow, filter_deny, title_in, desc_in
-        ):
-            return link_in
-        else:
-            return False
-
-    async def get_items_from_rss(req, url, include_shorts) -> list:
-        try:
-            soup = BeautifulSoup(req, features='xml')
-        except Exception as e:
-            log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
-            return None
-        links_out = []
-        # Gets podcast urls
-        if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
-            channel_link = soup.find('channel').find('link')
-            log.debug('Found podcast feed')
-            all_items = soup.find_all('item')
-            for item in all_items[0:3]:
-                link = filter_link(
-                    item, filter_allow, filter_deny, filter_priority
-                )
-                links_out.append(link)
-        # Gets Youtube urls
-        elif soup.find('yt:channelId'):
-            log.debug('Found Youtube feed')
-            log.debug(f'`include_shorts` is {include_shorts}')
-            all_entries = soup.find_all('entry')
-            max_no_of_entries = 5
-            entry_counter = 0
-            for entry in all_entries:
-                if entry_counter < max_no_of_entries:
-                    link = entry.find('link')['href']
-                    if include_shorts is False:
-                        title = entry.find('title')
-                        media_title = entry.find('media:title')
-                        shorts_keywords = ['#shorts', '(shorts)']
-                        if any(kw in str(title).lower()
-                               for kw in shorts_keywords) or\
-                                any(kw in str(media_title).lower()
-                                    for kw in shorts_keywords):
-                            log.debug(
-                                f'Skipped {link} because of `#Shorts` '
-                                'or `(shorts)`'
-                            )
-                            pass
-                        else:
-                            links_out.append(link)
-                            entry_counter += 1
-                    elif include_shorts is True:
-                        links_out.append(link)
-                        entry_counter += 1
-        # Gets plain articles
-        else:
-            all_items = soup.find_all('item')
-            for item in all_items[0:3]:
-                link = item.find('link').text
-                links_out.append(link)
-        links_out.reverse()
-        return links_out
-
-    if cog_mode == 'rss':
-        FEEDS_FILE = envs.rss_feeds_file
-    elif cog_mode == 'youtube':
-        FEEDS_FILE = envs.yt_feeds_file
-    # Get the url and make it parseable
-    req = await net_io.get_link(url)
-    if req is None:
-        # Each time this happens, increment a counter and change url_status.
-        # If the counter is more than x, post a message to bot channel.
-        # When successfull, set the counter to 0 and reset status to OK
-        feeds_file_in = file_io.read_json(FEEDS_FILE)
-        _status_url = feeds_file_in[feed_name]['status_url']
-        _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
-        if _status_url == envs.FEEDS_URL_ERROR and\
-                _status_url_counter == envs.FEEDS_URL_ERROR_LIMIT:
-            log.debug(f'Changing url status after error with url  ({url})')
-            await log.log_to_bot_channel(f'Problemer med å hente `{url}`')
-        elif _status_url == envs.FEEDS_URL_ERROR:
-            log.debug(
-                f'Incrementing error counter after error with url ({url})'
-            )
-            update_feed(
-                feed_name, envs.rss_feeds_file, actions=['edit', 'increment'],
-                items=['status_url', 'status_url_counter'],
-                values_in=[envs.FEEDS_URL_ERROR, 1]
-            )
-    elif req is not None:
-        # Clear the counter
-        feeds_file_in = file_io.read_json(FEEDS_FILE)
-        _status_url = feeds_file_in[feed_name]['status_url']
-        _status_url_counter = feeds_file_in[feed_name]['status_url_counter']
-        if _status_url == envs.FEEDS_URL_ERROR and\
-                _status_url_counter > 0:
-            log.debug('Changing url status after success')
-            update_feed(
-                feed_name, envs.rss_feeds_file, actions=['edit', 'edit'],
-                items=['status_url', 'status_url_counter'],
-                values_in=[envs.FEEDS_URL_SUCCESS, 0]
-            )
-        links_out = await get_items_from_rss(req, url, include_shorts)
-        log.debug(f'Got this from `get_items_from_rss`: {links_out}')
-        #
-        # links = []
-        # for link in links_out:
-        #     if (len(filter_allow) + len(filter_deny)) > 0:
-        #         _link = filter_link(
-        #             link, filter_allow, filter_deny, filter_priority
-        #         )
-        #         if _link:
-        #             log.debug(f'Appending link: `{_link}`')
-        #             links.append(_link)
-        #     else:
-        #         links.append(link)
-        # log.debug(f'Returning `links`: {links}')
-        # return links
-        #
-        return links_out
-
-
-async def get_feed_list(feeds_file, feeds_vars: dict, list_type: str = None):
-    '''
-    Get a prettified list of feeds from `feeds_file`.
-
-    feeds_file  The file containing feeds or other things to list
-    feeds_vars  The titles and lengths of the fields to be used
-    list_type   If specified, should show that specific list_type,
-                as specified in the feeds_vars 'list_type' field
-    '''
-
-    def split_lengthy_lists(feeds_file_in, feeds_vars, list_type=None):
-        def wanted_fields(feeds_vars, list_type=None):
-            # Get wanted fields
-            fields = {}
-            for item in feeds_vars:
-                if list_type is None:
-                    if len(feeds_vars[item]['list_type']) == 0:
-                        if item not in fields:
-                            fields[item] = {}
-                        fields[item]['title'] = feeds_vars[item]['title']
-                        if feeds_vars[item]['max_len'] > 0:
-                            if item not in fields:
-                                fields[item] = {}
-                            fields[item]['max_len'] = feeds_vars[item][
-                                'max_len'
-                            ]
-                        else:
-                            if item not in fields:
-                                fields[item] = {}
-                            fields[item]['max_len'] = None
-                elif list_type == 'added':
-                    if len(feeds_vars[item]['list_type']) == 0 or\
-                            'added' in feeds_vars[item]['list_type']:
-                        if item not in fields:
-                            fields[item] = {}
-                        fields[item]['title'] = feeds_vars[item]['title']
-                        if feeds_vars[item]['max_len'] > 0:
-                            if item not in fields:
-                                fields[item] = {}
-                            fields[item]['max_len'] = feeds_vars[item][
-                                'max_len'
-                            ]
-                        else:
-                            if item not in fields:
-                                fields[item] = {}
-                            fields[item]['max_len'] = None
-                elif list_type == 'filter':
-                    if len(feeds_vars[item]['list_type']) == 0 or\
-                            'filter' in feeds_vars[item]['list_type']:
-                        if item not in fields:
-                            fields[item] = {}
-                        fields[item]['title'] = feeds_vars[item]['title']
-                        if feeds_vars[item]['max_len'] > 0:
-                            if item not in fields:
-                                fields[item] = {}
-                            fields[item]['max_len'] = feeds_vars[item][
-                                'max_len'
-                            ]
-                        else:
-                            if item not in fields:
-                                fields[item] = {}
-                            fields[item]['max_len'] = None
-                else:
-                    log.debug(f'Skipping `item` {item}')
-            return fields
-
-        def make_table(feeds_in, want_fields):
-            tabulatify = []
-            # Add headers
-            header_list = ['Name']
-            for header in want_fields:
-                header_list.append(want_fields[header]['title'])
-            tabulatify.append(header_list)
-            # Add rest of values
-            for feed in feeds_in:
-                temp_list = []
-                temp_list.append(feed)
-                for item in want_fields:
-                    if feeds_in[feed][item] == []:
-                        temp_list.append(envs.FEEDS_NONE_VALUE_AS_TEXT)
-                    elif isinstance(feeds_in[feed][item], list):
-                        temp_out = ''
-                        for list_item in feeds_in[feed][item]:
-                            temp_out += list_item
-                            if list_item != feeds_in[feed][item][-1]:
-                                temp_out += ', '
-                        temp_list.append(temp_out)
-                    else:
-                        temp_list.append(feeds_in[feed][item])
-                tabulatify.append(temp_list)
-            # Get info about max_len
-            max_col_widths = [None]
-            for item in want_fields:
-                max_col_widths.append(want_fields[item]['max_len'])
-            print(max_col_widths)
-            table = tabulate(
-                tabulatify, tablefmt='plain',
-                headers="firstrow",
-                maxcolwidths=max_col_widths
-            )
-            return table
-
-        def make_pretty_header(header, max_len):
-            out = ''
-            out += header
-            out += '\n'
-            out += '-' * max_len
-            out += '\n'
-            return out
-
-        out = ''
-        list_paginated = []
-        table = make_table(
-            feeds_file_in, wanted_fields(feeds_vars, list_type)
-        ).split('\n')
-        # Get max len from paginated list
-        max_total_len = 0
-        for line in table:
-            if len(line) > max_total_len:
-                max_total_len = len(line)
-        # Actual limit is 2000, this is just a buffer
-        max_len_discord_post = 1800
-        out += make_pretty_header(
-            table[0], max_total_len
         )
-        # Make content from feeds
-        for line in table[1:]:
-            log.debug(f'`out` as of now is {len(out)} long')
-            if (len(out) + len(line)) >= max_len_discord_post:
-                log.debug('Reached `max_len_discord_post`')
-                list_paginated.append(out)
-                out = make_pretty_header(
-                    table[0], max_total_len
-                )
-                out += line
-                out += '\n'
-            else:
-                log.debug('No limit reached')
-                out += line
-                if line != table[-1]:
-                    out += '\n'
-            log.debug('Status:')
-            log.debug(f'´list_paginated´: {len(list_paginated)}')
-            log.debug(f'´out´:\n{out}')
-        list_paginated.append(out)
-        log.debug(f'`len(list_paginated): `{len(list_paginated)}')
-        for page in list_paginated:
-            log.debug(f'`len(page): `{len(page)}')
-        return list_paginated
-
-    feeds_file = file_io.read_json(feeds_file)
-    feeds_file = dict(sorted(
-        feeds_file.items(), key=lambda x: x[0].lower()
-    ))
-    # Return None if empty file
-    if len(feeds_file) <= 0:
-        return None
-    return split_lengthy_lists(
-        feeds_file, feeds_vars, list_type=list_type
-    )
-
-
-async def review_feeds_status(feeds_file):
-    'Get a status for a feed from `feeds` and update it in source file'
-    feeds_file_in = file_io.read_json(feeds_file)
-    for feed in feeds_file_in:
-        URL = feeds_file_in[feed]['url']
-        URL_STATUS = feeds_file_in[feed]['status_url']
-        if URL_STATUS == 'stale':
-            log.log('Feed url for {} is stale, checking it...'.format(feed))
-            if get_feed_links(URL) is not None:
-                log.log('Feed url for {} is ok, reactivating!'.format(feed))
-                update_feed(
-                    feed, feeds_file, actions='edit', items='status_url',
-                    url='ok'
-                )
-                break
-            elif get_feed_links(URL) is None:
-                log.log(f'Feed url for {feed} is still stale, skipping')
-                break
-        CHANNEL = feeds_file_in[feed]['channel']
-        CHANNEL_STATUS = feeds_file_in[feed]['status_channel']
-        if CHANNEL_STATUS == 'unlisted':
-            log.log(
-                'Feed channel {} for {} is unlisted, checking it...'.format(
-                    CHANNEL, feed
+    elif feed_type == 'youtube':
+        await db_helper.insert_many_some(
+            envs.youtube_db_schema,
+            rows=(
+                'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
+                'status_url', 'status_url_counter', 'status_channel',
+                'youtube_id'
+            ),
+            inserts=(
+                (
+                    str(uuid4()), name, feed_link, channel, date_now,
+                    user_add, envs.FEEDS_URL_SUCCESS, 0,
+                    envs.CHANNEL_STATUS_SUCCESS, yt_id
                 )
             )
-            if CHANNEL in discord_commands.get_text_channel_list():
-                log.log(
-                    'Feed channel {} for {} is ok, reactivating!'.format(
-                        CHANNEL, feed
-                    )
-                )
-                update_feed(
-                    feed, feeds_file, actions='edit',
-                    items='status_channel', values_in='ok'
-                )
+        )
 
 
-def link_is_in_log(link: str, feed_name: str, feed_log: list) -> bool:
-    'Checks if `link` is in the `feed_log`'
-    log.debug(
-        f'Checking if `{link}` is in `{feed_name}` in feed_log'
+async def remove_feed_from_db(feed_uuid):
+    'Remove a feed from `feed file` based on `uuid`'
+    removal_ok = True
+    removal = await db_helper.del_row_by_AND_filter(
+        envs.rss_db_schema,
+        where=('uuid', feed_uuid)
     )
-    if feed_name in feed_log:
-        log.debug(f'Found `{feed_name}`')
-        if link in feed_log[feed_name]:
-            log.debug('Found link in log')
-            return True
-        else:
-            log.debug('Found NOT link in log')
-            return False
+    if not removal:
+        removal_ok = False
+    removal_filters = await db_helper.del_row_by_AND_filter(
+        envs.rss_db_filter_schema,
+        where=('uuid', feed_uuid)
+    )
+    if not removal_filters:
+        removal_ok = False
+    return removal_ok
+
+
+async def get_feed_links(feed_type, feed_info):
+    'Get the links from a feed'
+    UUID = feed_info[0]
+    if feed_type == 'rss':
+        URL = feed_info[2]
+    elif feed_type == 'youtube':
+        URL = envs.YOUTUBE_RSS_LINK.format(feed_info[9])
+    # Get the url and make it parseable
+    req = await net_io.get_link(URL)
+    if req is not None:
+        filters_db = await db_helper.get_output(
+            template_info=envs.rss_db_filter_schema,
+            select=('allow_or_deny', 'filter'),
+            where=[('uuid', UUID)]
+        )
+        log_db = await db_helper.get_output(
+            template_info=envs.rss_db_log_schema,
+            where=[('uuid', UUID)]
+        )
+        links_out = await get_items_from_rss(
+            req=req, url=URL, filters_in=filters_db,
+            log_in=log_db
+        )
+        log.debug(f'Got this from `get_items_from_rss`: {links_out}')
+        return links_out
     else:
-        log.debug(f'{feed_name} not in `feed_log`')
+        return None
+
+
+async def get_feed_list(
+        db_in: str = None, db_filter_in: str = None, list_type: str = None
+):
+    '''
+    Get a prettified list of feeds.
+
+    Parameters
+    ------------
+    db_in: str
+        Database to get feeds from (default: None)
+    db_filter_in: str
+        Database with the filters (default: None)
+    list_type: str
+        If specified, should show that specific list_type
+    '''
+    def split_lengthy_list(table_in):
+        def split_list(lst, chunk_size):
+            chunks = [[] for _ in range(
+                (len(lst) + chunk_size - 1) // chunk_size
+            )]
+            for i, item in enumerate(lst):
+                chunks[i // chunk_size].append(item)
+            return chunks
+
+        log.debug(f'length of table_in: {len(table_in)}')
+        max_post_limit = 1900
+        paginated = []
+        if len(table_in) >= max_post_limit:
+            line_len = len(table_in.split('\n')[1])
+            log.debug(f'Each line is {line_len} chars long')
+            post_limit = int(max_post_limit / line_len)
+            log.debug(f'Each post can therefore hold {post_limit} lines')
+            splits = split_list(table_in.split('\n')[2:], post_limit-2)
+            header = table_in.split('\n')[0]
+            header += '\n{}'.format(table_in.split('\n')[1])
+            temp_page = ''
+            for split in splits:
+                temp_page = header
+                for line in split:
+                    temp_page += f'\n{line}'
+                paginated.append(temp_page)
+        else:
+            paginated.append(table_in)
+        return paginated
+
+    if list_type is None:
+        feeds_out = await db_helper.get_output(
+            template_info=db_in,
+            select=(
+                'feed_name', 'url', 'channel'
+            ),
+            order_by=[
+                ('feed_name', 'DESC')
+            ]
+        )
+        # Return None if empty db
+        if len(feeds_out) <= 0:
+            log.log('No feeds in database')
+            return None
+        headers = ('Feed', 'URL', 'Channel')
+        maxcolwidths = [None, None, None]
+    elif list_type == 'added':
+        feeds_out = await db_helper.get_output(
+            template_info=db_in,
+            select=(
+                'feed_name', 'url', 'channel', 'added', 'added_by'
+            ),
+            order_by=[
+                ('feed_name', 'DESC')
+            ]
+        )
+        # Return None if empty db
+        if len(feeds_out) <= 0:
+            log.log('No feeds in database')
+            return None
+        headers = ('Feed', 'URL', 'Channel', 'Added', 'Added by')
+        maxcolwidths = [None, None, None, None, None]
+    elif list_type == 'filter':
+        if db_filter_in is None:
+            log.log('`db_filter_in` is not specified')
+            return None
+        feeds_db = await db_helper.get_output(
+            template_info=db_in,
+            select=(
+                'uuid', 'feed_name', 'channel'
+            ),
+            order_by=[
+                ('feed_name', 'DESC')
+            ]
+        )
+        feeds_filter = await db_helper.get_output(
+            template_info=db_filter_in,
+            order_by=[
+                ('uuid', 'DESC'),
+                ('filter', 'ASC')
+            ]
+        )
+        feeds_out = []
+        for feed in feeds_db:
+            filter_uuid = [filter_item for filter_item in feeds_filter
+                           if filter_item[0] == feed[0]]
+            filter_allow = [filter_item[2] for filter_item in filter_uuid
+                            if filter_item[1] == 'allow']
+            filter_deny = [filter_item[2] for filter_item in filter_uuid
+                           if filter_item[1] == 'deny']
+            temp_list = []
+            for item in feed[1:]:
+                temp_list.append(item)
+            temp_list.append(
+                ', '.join(item for item in filter_allow)
+            )
+            temp_list.append(
+                ', '.join(item for item in filter_deny)
+            )
+            feeds_out.append(temp_list)
+        headers = ('Feed', 'Channel', 'Allow', 'Deny')
+        maxcolwidths = [None, None, 30, 30]
+    table_out = tabulate(
+        tabular_data=feeds_out,
+        headers=headers,
+        maxcolwidths=maxcolwidths,
+        tablefmt='presto'
+    )
+    return split_lengthy_list(table_out)
+
+
+async def review_feeds_status(feed_type: str = None):
+    '''
+    Get a status for a feed that is `feed_type` and update it in database.
+    Checks both url and channel availability
+
+    Parameters
+    ------------
+    feed_type: str
+        Can be `rss` or `youtube` (default: None)
+    '''
+    if feed_type not in ['rss', 'youtube']:
+        log.log('`feed_type` must be `rss` or `youtube`')
         return False
+    feeds_status_db_in = await db_helper.get_output(
+        template_info=envs.rss_db_schema,
+        select=(
+            'uuid', 'feed_name', 'url', 'status_url', 'status_url_counter',
+            'channel', 'status_channel'
+        ),
+        order_by=[('feed_name', 'DESC')]
+    )
+    db_updates = {}
+    for feed in feeds_status_db_in:
+        log.debug('Got this feed: ', pretty=feed)
+        UUID = feed[0]
+        FEED_NAME = feed[1]
+        URL = feed[2]
+        URL_STATUS = feed[3]
+        URL_STATUS_COUNTER = feed[4]
+        if not isinstance(URL_STATUS_COUNTER, int):
+            URL_STATUS_COUNTER = 0
+        is_valid_feed = await check_feed_validity(URL)
+        if is_valid_feed:
+            log.log('Feed url for {} is ok!'.format(FEED_NAME))
+            if URL_STATUS != envs.FEEDS_URL_SUCCESS:
+                log.verbose('status_url is not OK, fixing...')
+                if 'status_url' not in db_updates:
+                    db_updates['status_url'] = []
+                db_updates['status_url'].append(
+                    ('uuid', UUID, envs.FEEDS_URL_SUCCESS)
+                )
+            if URL_STATUS_COUNTER != 0:
+                log.verbose('status_url_counter is not 0, fixing...')
+                if 'status_url_counter' not in db_updates:
+                    db_updates['status_url_counter'] = []
+                db_updates['status_url_counter'].append(
+                    ('uuid', UUID, 0)
+                )
+        elif not is_valid_feed:
+            if URL_STATUS_COUNTER >= envs.FEEDS_URL_ERROR_LIMIT:
+                _url_e_msg = f'Error when getting feed for {FEED_NAME}'\
+                    f' (strike {envs.FEEDS_URL_ERROR_LIMIT})'
+                log.log(_url_e_msg)
+                log.log_to_bot_channel(_url_e_msg)
+                if URL_STATUS != envs.FEEDS_URL_ERROR:
+                    if 'status_url' not in db_updates:
+                        db_updates['status_url'] = []
+                    db_updates['status_url'].append(
+                        ('uuid', UUID, envs.FEEDS_URL_ERROR)
+                    )
+            elif URL_STATUS_COUNTER < envs.FEEDS_URL_ERROR_LIMIT:
+                log.log(
+                    f'Problems with url for {feed}, marking it as `Stale` and'
+                    'starting counting'
+                )
+                if URL_STATUS != envs.FEEDS_URL_STALE:
+                    if 'status_url' not in db_updates:
+                        db_updates['status_url'] = []
+                    db_updates['status_url'].append(
+                        ('uuid', UUID, envs.FEEDS_URL_STALE)
+                    )
+                if 'status_url_counter' not in db_updates:
+                    db_updates['status_url_counter'] = []
+                db_updates['status_url_counter'].append(
+                    ('uuid', UUID, (URL_STATUS_COUNTER + 1))
+                )
+        CHANNEL = feed[5]
+        CHANNEL_STATUS = feed[6]
+        if CHANNEL in discord_commands.get_text_channel_list():
+            log.log(
+                'Feed channel {} for {} is ok'.format(
+                    CHANNEL, FEED_NAME
+                )
+            )
+            if CHANNEL_STATUS == envs.CHANNEL_STATUS_ERROR:
+                if 'status_channel' not in db_updates:
+                    db_updates['status_channel'] = []
+                db_updates['status_channel'].append(
+                    ('uuid', UUID, envs.CHANNEL_STATUS_SUCCESS)
+                )
+        elif CHANNEL not in discord_commands.get_text_channel_list():
+            if 'status_channel' not in db_updates:
+                db_updates['status_channel'] = []
+            db_updates['status_channel'].append(
+                ('uuid', UUID, envs.CHANNEL_STATUS_ERROR)
+            )
+            await log.log_to_bot_channel(
+                f'{FEED_NAME} skal poste i #{CHANNEL} men den finnes ikke'
+            )
+    if len(db_updates) == 0:
+        log.verbose('All feeds are OK, nothing to update')
+        return True
+    else:
+        log.verbose(f'Updating db with `db_updates`: {db_updates}')
+        await db_helper.update_fields(
+            template_info=envs.rss_db_schema,
+            updates=db_updates
+        )
+        return True
 
 
 def link_similar_to_logged_post(link: str, feed_log: list):
@@ -567,16 +553,31 @@ def link_similar_to_logged_post(link: str, feed_log: list):
     If no links are found to be similar, return None.
     '''
     for log_item in feed_log:
-        if file_io.check_similarity(log_item, link):
-            return log_item
+        if file_io.check_similarity(log_item[0], link):
+            return True
+    return False
+
+
+def link_is_in_log(link, log_in):
+    try:
+        if link not in [log_url[0] for log_url in log_in]:
+            log.verbose(f'Link not in log')
+            return False
+        else:
+            log.verbose(f'Found link logs ({link})')
+            return True
+    except Exception as e:
+        log.debug(
+            f'Error: {e}:', pretty=log_in)
+        return None
 
 
 async def process_links_for_posting_or_editing(
-    feed, FEED_POSTS, feed_log_file, CHANNEL
+    uuid, feed, FEED_POSTS, CHANNEL
 ):
     '''
-    Compare `FEED_POSTS` to posts belonging to `feed` in `feed_log_file`
-    to see if they already have been posted or not.
+    Compare `FEED_POSTS` to posts belonging to `feed` to see if they already
+    have been posted or not.
     - If not posted, post to `CHANNEL`
     - If posted, make a similarity check just to make sure we are not posting
     duplicate links because someone's aggregation systems can't handle
@@ -585,7 +586,6 @@ async def process_links_for_posting_or_editing(
 
     `feed`:             Name of the feed to process
     `FEED_POSTS`:       The newly received feed posts
-    `feed_log_file`:    File containing the logs of posts
     `CHANNEL`:          Discord channel to post/edit
     '''
     log.verbose(
@@ -593,23 +593,34 @@ async def process_links_for_posting_or_editing(
         sameline=True
     )
     log.debug(f'Here\'s the `FEED_POSTS`: {FEED_POSTS}')
-    FEED_LOG = file_io.read_json(feed_log_file)
-    try:
-        FEED_LOG[feed]
-    except (KeyError):
-        FEED_LOG[feed] = []
+    FEED_LOG = await db_helper.get_output(
+        template_info=envs.rss_db_log_schema,
+        select='url',
+        where=[('uuid', uuid)]
+    )
     for feed_link in FEED_POSTS:
         log.debug(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
-        if not link_is_in_log(feed_link, feed, FEED_LOG):
+        link_in_log = link_is_in_log(feed_link, FEED_LOG)
+        if not link_in_log:
+            log.debug('Checking if link is similar to log')
             feed_link_similar = link_similar_to_logged_post(
-                feed_link, FEED_LOG[feed])
+                feed_link, FEED_LOG)
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
                 log.verbose(f'Posting link `{feed_link}`')
                 await discord_commands.post_to_channel(CHANNEL, feed_link)
                 # Add link to log
-                FEED_LOG[feed].append(feed_link)
+                await db_helper.insert_many_all(
+                    template_info=envs.rss_db_log_schema,
+                    inserts=[
+                        (uuid, feed_link, str(
+                            datetime_handling.get_dt(
+                                format='ISO8601'
+                            )
+                        ))
+                    ]
+                )
             elif feed_link_similar:
                 # Consider this a similar post that needs to
                 # be edited in the channel
@@ -617,12 +628,17 @@ async def process_links_for_posting_or_editing(
                     feed_link_similar, feed_link, CHANNEL
                 )
                 # Replace original link with new
-                FEED_LOG[feed].remove(feed_link_similar)
-                FEED_LOG[feed].append(feed_link)
-        elif link_is_in_log(feed_link, feed, FEED_LOG):
+                await db_helper.update_fields(
+                    template_info=envs.rss_db_log_schema,
+                    where=[
+                        ('url', feed_link_similar)
+                    ],
+                    updates=[
+                        ('url', feed_link)
+                    ]
+                )
+        elif link_in_log:
             log.verbose(f'Link `{feed_link}` already logged. Skipping.')
-        # Write to the logs-file at the end
-        file_io.write_json(feed_log_file, FEED_LOG)
     log.verbose('Stopping `process_links_for_posting_or_editing`')
 
 

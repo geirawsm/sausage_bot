@@ -49,6 +49,12 @@ logging_args.add_argument('--highlight', '-hl',
                           action='store',
                           default=None,
                           dest='log_highlight')
+logging_args.add_argument('--log-all',
+                          help='Log all levels (log, verbose, log-print, '
+                               'log-database and debug)',
+                          action='store_true',
+                          default=False,
+                          dest='log_all')
 
 testing_args = parser.add_argument_group('Testing')
 testing_args.add_argument('--force-parser',
@@ -56,6 +62,11 @@ testing_args.add_argument('--force-parser',
                           action='store',
                           default=False,
                           dest='force_parser')
+testing_args.add_argument('--not-write-database', '-nwd',
+                          help='Do not write to databases',
+                          action='store_true',
+                          default=False,
+                          dest='not_write_database')
 
 maintenance_args = parser.add_argument_group('Maintenance')
 maintenance_args.add_argument('--maintenance', '-m',
@@ -91,4 +102,4 @@ args, unknown = parser.parse_known_args()
 
 
 if __name__ == "__main__":
-    pass
+    print(args)

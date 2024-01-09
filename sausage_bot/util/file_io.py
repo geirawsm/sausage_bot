@@ -8,6 +8,10 @@ from difflib import SequenceMatcher
 from ..util.log import log
 
 
+def remove_file(filename):
+    os.remove(filename)
+
+
 def write_file(filename, content_to_write, append=False):
     '''
     Write `content_to_write` to the file `filename`
@@ -85,6 +89,18 @@ def file_size(filename):
     try:
         _stats = os.stat(filename, follow_symlinks=True)
         return _stats[stat.ST_SIZE]
+    except FileNotFoundError:
+        return False
+
+
+def file_exist(filename):
+    '''
+    Checks if the file exist. If it can't find the file it will return
+    False
+    '''
+    try:
+        os.stat(filename, follow_symlinks=True)
+        return True
     except FileNotFoundError:
         return False
 

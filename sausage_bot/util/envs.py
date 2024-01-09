@@ -71,9 +71,19 @@ roles_template = {
     }
 }
 
+# Cogs
+cogs_db_schema = {
+    'db_file': str(DB_DIR / 'cogs.sqlite'),
+    'name': 'cogs',
+    'items': [
+        'cog_name TEXT NOT NULL',
+        'status TEXT NOT NULL'
+    ]
+}
+
 # Poll
 poll_db_polls_schema = {
-    'db_file': 'poll.db',
+    'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll',
     'items': [
         'uuid TEXT NOT NULL',
@@ -90,7 +100,7 @@ poll_db_polls_schema = {
 }
 
 poll_db_alternatives_schema = {
-    'db_file': 'poll.db',
+    'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll_alternatives',
     'items': [
         'uuid TEXT NOT NULL',
@@ -102,7 +112,7 @@ poll_db_alternatives_schema = {
 
 # Dilemmas
 dilemmas_db_schema = {
-    'db_file': 'dilemmas.db',
+    'db_file': str(DB_DIR / 'dilemmas.sqlite'),
     'name': 'dilemmas',
     'items': [
         'id TEXT NOT NULL',
@@ -112,7 +122,7 @@ dilemmas_db_schema = {
 }
 
 dilemmas_db_log_schema = {
-    'db_file': 'dilemmas.db',
+    'db_file': str(DB_DIR / 'dilemmas.sqlite'),
     'name': 'log',
     'items': [
         'id TEXT NOT NULL',
@@ -122,7 +132,7 @@ dilemmas_db_log_schema = {
 
 # Quote
 quote_db_schema = {
-    'db_file': 'quote.db',
+    'db_file': str(DB_DIR / 'quote.sqlite'),
     'name': 'quote',
     'items': [
         'uuid TEXT NOT NULL UNIQUE',
@@ -134,7 +144,7 @@ quote_db_schema = {
 }
 
 quote_db_log_schema = {
-    'db_file': 'quote.db',
+    'db_file': str(DB_DIR / 'quote.sqlite'),
     'name': 'log',
     'items': [
         'uuid TEXT NOT NULL',
@@ -146,7 +156,7 @@ quote_db_log_schema = {
 
 # Roles
 roles_db_msgs_schema = {
-    'db_file': 'roles.db',
+    'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'messages',
     'items': [
         'msg_id TEXT NOT NULL',
@@ -160,7 +170,7 @@ roles_db_msgs_schema = {
 }
 
 roles_db_roles_schema = {
-    'db_file': 'roles.db',
+    'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'roles',
     'items': [
         'msg_id TEXT NOT NULL',
@@ -170,7 +180,7 @@ roles_db_roles_schema = {
 }
 
 roles_db_settings_schema = {
-    'db_file': 'roles.db',
+    'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'settings',
     'items': [
         'setting TEXT',
@@ -178,10 +188,121 @@ roles_db_settings_schema = {
     ]
 }
 
+# Stats
+stats_db_schema = {
+    'db_file': str(DB_DIR / 'stats.sqlite'),
+    'name': 'settings',
+    'items': [
+        'setting TEXT NOT NULL',
+        'value TEXT NOT NULL'
+    ]
+}
+
+stats_db_log_schema = {
+    'db_file': str(DB_DIR / 'stats_log.sqlite'),
+    'name': 'log',
+    'items': [
+        'datetime TEXT',
+        'code_files INTEGER',
+        'code_lines INTEGER',
+        'members INTEGER'
+    ]
+}
+
+# RSS
+rss_db_schema = {
+    'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
+    'name': 'rss_feeds',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'feed_name TEXT',
+        'url TEXT',
+        'channel TEXT',
+        'added TEXT',
+        'added_by TEXT',
+        'status_url TEXT',
+        'status_url_counter INTEGER',
+        'status_channel TEXT',
+        'youtube_id TEXT'
+    ],
+    'primary': 'uuid',
+    'autoincrement': False
+}
+
+rss_db_filter_schema = {
+    'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
+    'name': 'filter',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'allow_or_deny TEXT NOT NULL',
+        'filter TEXT NOT NULL'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+rss_db_log_schema = {
+    'db_file': str(DB_DIR / 'rss_log.sqlite'),
+    'name': 'log',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'url TEXT',
+        'date TEXT'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+# Youtube
+youtube_db_schema = {
+    'db_file': str(DB_DIR / 'youtube_feeds.sqlite'),
+    'name': 'youtube_feeds',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'feed_name TEXT',
+        'url TEXT',
+        'channel TEXT',
+        'added TEXT',
+        'added_by TEXT',
+        'status_url TEXT',
+        'status_url_counter INTEGER',
+        'status_channel TEXT',
+        'youtube_id TEXT'
+    ],
+    'primary': 'uuid',
+    'autoincrement': False
+}
+
+youtube_db_filter_schema = {
+    'db_file': str(DB_DIR / 'youtube_feeds.sqlite'),
+    'name': 'filter',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'allow_or_deny TEXT NOT NULL',
+        'filter TEXT NOT NULL'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+
+youtube_db_log_schema = {
+    'db_file': str(DB_DIR / 'youtube_log.sqlite'),
+    'name': 'log',
+    'items': [
+        'uuid TEXT NOT NULL',
+        'url TEXT',
+        'date TEXT'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
 
 def log_extra_info(type):
     infos = {
         'info': {
+            'log': 'LOG',
             'verbose': 'VERBOSE',
             'database': 'DATABASES',
             'debug': 'DEBUG'
@@ -206,7 +327,7 @@ ERROR_WITH_ERROR_MSG = 'Feil: {}'
 GOT_CHANNEL_LIST = 'Henter kanalliste:\n{}'
 GOT_SPECIFIC_CHANNEL = 'Fant kanal `{}` med id `{}`'
 COMPARING_IDS = 'Sammenligner med `{}` ({}) med `{}` ({})'
-CREATING_FILES = 'Lager nødvendige filer'
+CREATING_DB_FILES = 'Sjekker databasefil'
 BOT_NOT_SET_UP = 'The bot is not properly set up'
 
 # MAIN
@@ -234,7 +355,7 @@ RSS_ADDED = '{} ble lag til i kanalen {}'
 RSS_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
 RSS_REMOVED = 'RSS-feeden {} ble fjernet'
 RSS_REMOVED_BOT = 'RSS-feeden {} ble fjernet av {}'
-RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden {}'
+RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden {}, men det oppsto en feil'
 RSS_COULD_NOT_REMOVE = 'Klarte ikke å fjerne RSS-feeden {}'
 RSS_FEED_CHANNEL_CHANGE = 'rss: {} endret kanalen til feeden `{}` til `{}`'
 RSS_LIST_ARG_WRONG = 'Kjenner ikke til kommandoen {}'
@@ -247,23 +368,23 @@ RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
 RSS_CHANGED_CHANNEL = 'Endret kanal for feeden `{}` til `{}`'
 RSS_VARS = {
+    'feed_name': {
+        'title': 'Name', 'db_col': 'feed_name', 'max_len': 0, 'list_type': []
+    },
     'url': {
-        'title': 'Feed', 'max_len': 0, 'list_type': []
+        'title': 'Feed', 'db_col': 'url', 'max_len': 0, 'list_type': []
     },
     'channel': {
-        'title': 'Channel', 'max_len': 0, 'list_type': []
-    },
-    'filter_allow': {
-        'title': 'Allow', 'max_len': 30, 'list_type': ['filter']
-    },
-    'filter_deny': {
-        'title': 'Deny', 'max_len': 30, 'list_type': ['filter']
+        'title': 'Channel', 'db_col': 'channel', 'max_len': 0, 'list_type': []
     },
     'added': {
-        'title': 'Added', 'max_len': 0, 'list_type': ['added']
+        'title': 'Added', 'db_col': 'added', 'max_len': 0, 'list_type': ['added']
     },
     'added_by': {
-        'title': 'Added by', 'max_len': 0, 'list_type': ['added']
+        'title': 'Added by', 'db_col': 'added_by', 'max_len': 0, 'list_type': ['added']
+    },
+    'filter': {
+        'title': 'Filter', 'db_col': 'Filter', 'max_len': 30, 'list_type': ['filter']
     }
 }
 
@@ -271,9 +392,12 @@ RSS_VARS = {
 FEEDS_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
 FEEDS_LINK_INDEX_ERROR = 'Fikk IndexError ved henting av link til {} i {}'
 FEEDS_NONE_VALUE_AS_TEXT = 'Ingen'
-FEEDS_URL_ERROR = 'failed'
+FEEDS_URL_ERROR = 'Failed'
+FEEDS_URL_STALE = 'Stale'
 FEEDS_URL_ERROR_LIMIT = 3
-FEEDS_URL_SUCCESS = 'ok'
+FEEDS_URL_SUCCESS = 'OK'
+CHANNEL_STATUS_ERROR = 'Failed'
+CHANNEL_STATUS_SUCCESS = 'OK'
 NET_IO_CONNECTION_ERROR = 'Feil ved oppkobling til `{}`: {}'
 NET_IO_TIMEOUT = 'Oppkobling til `{}` gikk ut på tid: {}'
 NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\

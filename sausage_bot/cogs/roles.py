@@ -180,7 +180,6 @@ async def sync_reaction_message_from_settings(
     }
     # Edit discord message if it exist
     log.debug(f'`db_message` is {db_message}')
-    # TODO Det er her det stopper!!
     await msg_obj.edit(
         content=db_message[0][3],
         embed=discord.Embed.from_dict(embed_json)
@@ -536,9 +535,12 @@ class Autoroles(commands.Cog):
                 group_by='A.msg_id',
                 order_by=[
                     ('channel', 'DESC'),
-                    ('order', 'ASC')
+                    ('msg_order', 'ASC')
                 ]
             )
+            if sorted_reacts is None:
+                await ctx.reply('Ingen meldinger i databasen')
+                return
             for _sort in sorted_reacts:
                 tabulate_dict['name'].append(_sort[0])
                 tabulate_dict['channel'].append(_sort[1])
@@ -1323,7 +1325,6 @@ class Autoroles(commands.Cog):
         Avsjekk at rekkefølge stemmer
         Hvis ikke stemmer, fjern alle meldinger for kanalen og lag nye
         '''
-        # TODO Denne er neste!
         if not channel:
             # TODO var msg
             await ctx.message.reply(
@@ -1413,18 +1414,28 @@ async def setup(bot):
     cog_name = 'roles'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
-    await db_helper.prep_table(
-        envs.roles_db_msgs_schema
+    # Convert json to sqlite db-files if exists
+    roles_inserts = None
+    roles_inserts_msg = None
+    roles_inserts_reactions = None
+    roles_inserts_settings = None
+    if file_io.file_size(envs.roles_settings_file):
+        log.verbose('Found old json file')
+        roles_inserts = db_helper.json_to_db_inserts(cog_name)
+        roles_inserts_msg = roles_inserts['msg_inserts']
+        roles_inserts_reactions = roles_inserts['reactions_inserts']
+        roles_inserts_settings = roles_inserts['settings_inserts']
+    msgs_is_ok = await db_helper.prep_table(
+        envs.roles_db_msgs_schema, roles_inserts_msg
     )
-    await db_helper.prep_table(
-        envs.roles_db_roles_schema
+    reacts_is_ok = await db_helper.prep_table(
+        envs.roles_db_roles_schema, roles_inserts_reactions
     )
-    await db_helper.prep_table(
-        envs.roles_db_settings_schema
+    settings_is_ok = await db_helper.prep_table(
+        envs.roles_db_settings_schema, roles_inserts_settings
     )
-    if file_io.file_size(envs.roles_settings_file) is not False:
-        await db_helper.json_to_db(cog_name)
-        # TODO Slett json hvis finnes
+    if msgs_is_ok and reacts_is_ok and settings_is_ok:
+        file_io.remove_file(envs.roles_settings_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 
@@ -1493,18 +1504,6 @@ async def on_raw_reaction_add(payload):
 async def on_raw_reaction_remove(payload):
     # TODO var msg
     log.debug('Checking removed reaction role')
-    # pprint(payload)
-    # <RawReactionActionEvent
-    #   message_id=1181339357571973151
-    #   user_id=364182141929521164
-    #   channel_id=1133022522623922216
-    #   guild_id=1000877858421477398
-    #   emoji=<PartialEmoji
-    #       animated=False
-    #       name='test1'
-    #       id=1151230241856028763>
-    #   event_type='REACTION_REMOVE'
-    #   member=None>
     if str(payload.user_id) == str(config.BOT_ID):
         log.debug('Change made by bot, skip')
         return

@@ -9,3 +9,4 @@ sausage_bot/testing
 
 out
 sausage_bot/data/db
+sausage_bot/test/test_parse/*

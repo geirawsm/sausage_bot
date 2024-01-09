@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+
 from discord.ext import commands, tasks
 import re
 from time import sleep
 from yt_dlp import YoutubeDL
 
 from sausage_bot.util import config, envs, feeds_core, file_io
-from sausage_bot.util import discord_commands
+from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.log import log
 
 
@@ -27,21 +28,24 @@ class Youtube(commands.Cog):
     )
     @youtube.group(name='add')
     async def youtube_add(
-        self, ctx, feed_name: str = commands.param(
-            default=None,
-            description="Name of feed"
-        ),
-        yt_link: str = commands.param(
-            default=None,
-            description="The link for the youtube-channel"
-        ),
-        channel: str = commands.param(
-            default=None,
-            description="The Discord channel to post from the feed")
+        self, ctx, feed_name: str = None, yt_link: str = None,
+        channel: str = None
     ):
-        'Add a Youtube feed to a specific channel: `!youtube add '\
-            '[feed_name] [yt_link] [channel]`'
+        '''
+        Add a Youtube feed to a specific channel:
+        `!youtube add [feed_name] [yt_link] [channel]`
+
+        Parameters
+        ------------
+        feed_name: str
+            Name of feed (default: None)
+        yt_link: str
+            The link for the youtube-channel
+        channel: str
+            The Discord channel to post from the feed
+        '''
         AUTHOR = ctx.message.author.name
+        URL_OK = False
         CHANNEL_OK = False
         if feed_name is None:
             await ctx.send(
@@ -63,14 +67,6 @@ class Youtube(commands.Cog):
             if discord_commands.channel_exist(channel):
                 CHANNEL_OK = True
             if CHANNEL_OK:
-                # Remove trailing slash from url
-                try:
-                    slash_filter = re.match(r'(.*)/$', yt_link).group(1)
-                    if slash_filter:
-                        yt_link = slash_filter
-                except Exception as e:
-                    log.log(f'Kom over en feil: {e}')
-                    pass
                 # Get yt-id
                 yt_info = await Youtube.get_yt_info(yt_link)
                 if yt_info is None:
@@ -78,11 +74,9 @@ class Youtube(commands.Cog):
                         envs.YOUTUBE_EMPTY_LINK.format(yt_link)
                     )
                     return
-                await feeds_core.add_to_feed_file(
-                    name=str(feed_name), feed_link=str(yt_link),
-                    channel=channel, user_add=AUTHOR,
-                    feeds_filename=envs.yt_feeds_file,
-                    yt_id=yt_info['channel_id']
+                await feeds_core.add_to_feed_db(
+                    'youtube', str(feed_name), str(yt_link), channel,
+                    AUTHOR, yt_info['channel_id']
                 )
                 await log.log_to_bot_channel(
                     envs.YOUTUBE_ADDED_BOT.format(
@@ -108,17 +102,22 @@ class Youtube(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @youtube.group(name='remove', aliases=['r', 'delete', 'del'])
-    async def youtube_remove(
-        self, ctx, feed_name: str = commands.param(
-            default=None,
-            description="Name of feed"
-        )
-    ):
-        'Remove a Youtube feed: `!youtube remove [feed_name]`'
+    async def youtube_remove(self, ctx, feed_name: str = None):
+        '''
+        Remove a Youtube feed: `!youtube remove [feed_name]`
+
+        Parameters
+        ------------
+        feed_name: str
+            Name of feed (default: None)
+        yt_link: str
+            The link for the youtube-channel
+        channel: str
+            The Discord channel to post from the feed
+        '''
+
         AUTHOR = ctx.message.author.name
-        removal = feeds_core.remove_feed_from_file(
-            feed_name, envs.yt_feeds_file
-        )
+        removal = await feeds_core.remove_feed_from_db(feed_name)
         if removal:
             await log.log_to_bot_channel(
                 envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
@@ -136,27 +135,36 @@ class Youtube(commands.Cog):
         return
 
     @youtube.group(name='list')
-    async def youtube_list(
-            self, ctx, list_type: str = commands.param(
-                default=None,
-                description="`added` or `filter`"
-            )):
-        'List all active Youtube feeds: !youtube list ([list_type])'
+    async def youtube_list(self, ctx, list_type: str = None):
+        '''
+        List all active Youtube feeds: !youtube list ([list_type])
+
+        Parameters
+        ------------
+        list_type: str
+            None, `added` or `filter` (default: None)
+        '''
         if list_type == 'added':
-            list_format = await feeds_core.get_feed_list(
-                envs.yt_feeds_file, envs.YOUTUBE_VARS, list_type='added'
+            formatted_list = await feeds_core.get_feed_list(
+                db_in=envs.youtube_db_schema,
+                list_type='added'
             )
         elif list_type == 'filter':
-            list_format = await feeds_core.get_feed_list(
-                envs.yt_feeds_file, envs.YOUTUBE_VARS, list_type='filter'
+            formatted_list = await feeds_core.get_feed_list(
+                db_in=envs.youtube_db_schema,
+                db_filter_in=envs.youtube_db_filter_schema,
+                list_type='filter'
             )
         else:
-            list_format = await feeds_core.get_feed_list(
-                envs.yt_feeds_file, envs.YOUTUBE_VARS
+            formatted_list = await feeds_core.get_feed_list(
+                envs.youtube_db_schema
             )
-        if list_format is not None:
-            for page in list_format:
-                log.debug(f'Sending page ({len(page)} / {len(list_format)})')
+        if formatted_list is not None:
+            page_counter = 0
+            for page in formatted_list:
+                page_counter += 1
+                log.debug(
+                    f'Sending page ({page_counter} / {len(formatted_list)})')
                 await ctx.send(f"```{page}```")
                 sleep(1)
         else:
@@ -224,34 +232,42 @@ class Youtube(commands.Cog):
     )
     async def post_videos():
         log.log('Starting `post_videos`')
-        # Update the feeds
-        feeds = file_io.read_json(envs.yt_feeds_file)
-        try:
-            if len(feeds) == 0:
-                log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
-                return
-        except Exception as e:
-            log.log(f'Got error when getting RSS feeds: {e}')
-            if feeds is None:
-                log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
-                return
+        # Make sure that the feed links aren't stale / 404
+        await feeds_core.review_feeds_status('youtube')
+        # Start processing feeds
+        feeds = await db_helper.get_output(
+            template_info=envs.youtube_db_schema,
+            order_by=[
+                ('feed_name', 'DESC')
+            ],
+            where=[
+                ('status_url', envs.FEEDS_URL_SUCCESS),
+                ('status_channel', envs.CHANNEL_STATUS_SUCCESS)
+            ]
+        )
+        if len(feeds) == 0:
+            log.log(envs.YOUTUBE_NO_FEEDS_FOUND)
+            return
+        log.verbose('Got these feeds:')
         for feed in feeds:
-            log.log(f'Checking {feed}', sameline=True)
+            log.verbose('- {}'.format(feed[1]))
+        for feed in feeds:
+            log.log(f'Checking {feed[1]}', sameline=True)
+            UUID = feed[0]
+            FEED_NAME = feed[1]
+            CHANNEL = feed[3]
             FEED_POSTS = await feeds_core.get_feed_links(
-                feed, envs.YOUTUBE_RSS_LINK.format(feeds[feed]['yt_id']),
-                feeds[feed]['filter_allow'],
-                feeds[feed]['filter_deny'], 'youtube',
-                include_shorts=config.env.bool(
-                    'YT_INCLUDE_SHORTS', default=True
-                )
+                feed_type='youtube', feed_info=feed
             )
-            CHANNEL = feeds[feed]['channel']
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(envs.YOUTUBE_FEED_POSTS_IS_NONE.format(feed))
+                await log.log_to_bot_channel(
+                    envs.YOUTUBE_FEED_POSTS_IS_NONE.format(FEED_NAME)
+                )
             else:
                 await feeds_core.process_links_for_posting_or_editing(
-                    feed, FEED_POSTS, envs.yt_feeds_logs_file, CHANNEL
+                    UUID, feed, FEED_POSTS, CHANNEL
                 )
         log.log('Done with posting')
         return
@@ -271,15 +287,40 @@ class Youtube(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('youtube'))
-    # Create necessary files before starting
-    log.verbose(envs.CREATING_FILES)
-    check_and_create_files = [
-        (envs.yt_feeds_file, {}),
-        envs.yt_feeds_logs_file
-    ]
-    file_io.create_necessary_files(check_and_create_files)
-    # Starting the cog
+    # Create necessary databases before starting
+    cog_name = 'youtube'
+    log.log(envs.COG_STARTING.format(cog_name))
+    log.verbose('Checking db')
+    # Convert json to sqlite db-files if exists
+    yt_inserts = None
+    yt_prep_is_ok = None
+    yt_log_prep_is_ok = None
+    if not file_io.file_size(envs.youtube_db_schema['db_file']):
+        if file_io.file_size(envs.yt_feeds_file):
+            log.verbose('Found old json file - feeds')
+            yt_inserts = db_helper.json_to_db_inserts(cog_name)
+        yt_prep_is_ok = await db_helper.prep_table(
+            envs.youtube_db_schema,
+            yt_inserts['feeds'] if yt_inserts is not None else yt_inserts
+        )
+        await db_helper.prep_table(
+            envs.youtube_db_filter_schema,
+            yt_inserts['filter'] if yt_inserts is not None else yt_inserts
+        )
+    if not file_io.file_size(envs.youtube_db_log_schema['db_file']):
+        if file_io.file_size(envs.yt_feeds_logs_file):
+            log.verbose('Found old json file - logs')
+        yt_log_prep_is_ok = await db_helper.prep_table(
+            envs.youtube_db_log_schema,
+            yt_inserts['logs'] if yt_inserts is not None else yt_inserts
+        )
+    # Delete old json files if they are not necessary anymore
+    if yt_prep_is_ok:
+        file_io.remove_file(envs.yt_feeds_file)
+    if yt_log_prep_is_ok:
+        file_io.remove_file(envs.yt_feeds_logs_file)
+    log.verbose('Registering cog to bot')
+
     await bot.add_cog(Youtube(bot))
 
 

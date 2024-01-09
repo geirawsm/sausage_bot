@@ -7,7 +7,7 @@ import uuid
 from time import sleep
 from asyncio import TimeoutError
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util import config, envs, discord_commands, db_helper
+from sausage_bot.util import config, envs, discord_commands, db_helper, file_io
 from sausage_bot.util.log import log
 
 
@@ -233,11 +233,11 @@ class Quotes(commands.Cog):
         )
         # Update quote
         await db_helper.update_fields(
-            envs.quote_db_schema,
-            [
+            template_info=envs.quote_db_schema,
+            where=[
                 ('rowid', quote_number)
             ],
-            [
+            updates=[
                 ('quote_text', quote_in),
                 ('datetime', quote_date)
             ]
@@ -315,12 +315,24 @@ class Quotes(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('quote'))
+    cog_name = 'quote'
+    log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
-    await db_helper.prep_table(
-        envs.quote_db_schema
+    # Convert json to sqlite db-files if exists
+    quote_inserts = None
+    if file_io.file_size(envs.quote_file):
+        log.verbose('Found old json file')
+        quote_inserts = db_helper.json_to_db_inserts(cog_name)
+    quote_prep_is_ok = await db_helper.prep_table(
+        envs.quote_db_schema, quote_inserts
     )
     await db_helper.prep_table(
         envs.quote_db_log_schema
     )
+    # Delete old json files if they are not necessary anymore
+    if quote_prep_is_ok:
+        file_io.remove_file(envs.quote_file)
+    if file_io.file_size(envs.quote_log_file):
+        file_io.remove_file(envs.quote_log_file)
+    log.verbose('Registering cog to bot')
     await bot.add_cog(Quotes(bot))

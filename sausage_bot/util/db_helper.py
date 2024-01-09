@@ -1,15 +1,37 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import aiosqlite
+from uuid import uuid4
 
 from sausage_bot.util import envs, file_io
+from sausage_bot.util.args import args
 from sausage_bot.util.log import log
+from sausage_bot.util.datetime_handling import get_dt
 
 
-async def prep_table(table_temp):
+def db_exist(db_file_in):
+    file_io.ensure_folder(envs.DB_DIR)
+    db_path = str(envs.DB_DIR / db_file_in['db_file'])
+    try:
+        file_io.file_exist(db_path)
+        return True
+    except Exception as e:
+        log.log(f'Could not find database {db_path}: {e}')
+        return False
+
+
+async def prep_table(
+            table_temp, old_inserts: list = None
+        ):
     log.verbose(f'Got `table_temp`: {table_temp}')
+    db_file = table_temp['db_file']
     table_name = table_temp['name']
     item_list = table_temp['items']
+    if not file_io.file_size(db_file):
+        log.verbose(f'Did not find db file `{db_file}`')
+        file_io.ensure_folder(envs.DB_DIR)
+    else:
+        log.verbose(f'db file exist.')
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
     _cmd += ', '.join(item for item in item_list)
     if 'primary' in table_temp and\
@@ -23,20 +45,263 @@ async def prep_table(table_temp):
         _cmd += ')'
     _cmd += ');'
     log.db(f'Using this query: {_cmd}')
-    file_io.ensure_folder(envs.DB_DIR)
-    try:
-        async with aiosqlite.connect(
-            envs.DB_DIR / table_temp['db_file']
-        ) as db:
-            await db.execute(_cmd)
-            log.db(
-                'Changed {} rows'.format(
-                    db.total_changes
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                log.db(
+                    'Changed {} rows'.format(
+                        db.total_changes
+                    )
+                )
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None
+    delete_json_ok = False
+    if old_inserts:
+        db_rows = await get_row_ids(table_temp)
+        db_len = len(db_rows)
+        if db_len <= 0:
+            log.verbose('Inserting old info into db file')
+            await insert_many_all(
+                template_info=table_temp,
+                inserts=old_inserts
+            )
+            delete_json_ok = True
+        elif db_len == len(old_inserts):
+            log.log(
+                'Length of table and inserts are the same '
+                '({} vs {}), will not import'.format(
+                    db_len, len(old_inserts)
                 )
             )
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+            delete_json_ok = True
+        else:
+            log.verbose(
+                'Inserts given, but db file already has input. '
+                'This should be looked into, so messaging the bot-dump'
+            )
+            await log.log_to_bot_channel(
+                content_in='Want to insert info from old json into '
+                f'{table_name}, but something is wrong'
+                '({} vs {})'.format(
+                    db_len, len(old_inserts)
+                )
+            )
+            delete_json_ok = False
+    return delete_json_ok
+
+
+def json_to_db_inserts(cog_name):
+    '''
+    This is a clean up function to be used for converting from old json
+    files to sqlite files
+    #autodoc skip#
+    '''
+    log.log(f'Converting json to db')
+    log.log(f'Processing `{cog_name}`')
+    if cog_name == 'roles':
+        settings_file = file_io.read_json(envs.roles_settings_file)
+        settings_inserts = []
+        msg_inserts = []
+        reactions_inserts = []
+        if len(settings_file) > 0:
+            if 'unique_role' in settings_file:
+                log.verbose('Found unique role-settings')
+                if settings_file['unique_role']['role'] is not None:
+                    settings_inserts.append(
+                        ('unique', str(settings_file['unique_role']['role']))
+                    )
+                no_total = settings_file['unique_role']['not_include_in_total']
+                if len(no_total) > 0:
+                    for list_item in no_total:
+                        settings_inserts.append(
+                            ('not_include_in_total', str(no_total[list_item]))
+                        )
+                log.verbose(
+                    f'Got this for `settings_inserts`:\n{settings_inserts}'
+                )
+            for _msg in settings_file['reaction_messages']:
+                __msg = settings_file['reaction_messages'][_msg]
+                msg_inserts.append(
+                    (
+                        str(__msg['id']), __msg['channel'], str(_msg),
+                        __msg['content'], __msg['description'],
+                        int(__msg['order'])
+                    )
+                )
+                reacts = __msg['reactions']
+                for react in reacts:
+                    reactions_inserts.append(
+                        (
+                            str(__msg['id']), react[0], react[1]
+                        )
+                    )
+        return {
+            'settings_inserts': settings_inserts,
+            'msg_inserts': msg_inserts,
+            'reactions_inserts': reactions_inserts
+        }
+    elif cog_name == 'dilemmas':
+        dilemmas_file = file_io.read_json(envs.dilemmas_file)
+        dilemmas_inserts = []
+        for dilemma in dilemmas_file:
+            dilemmas_inserts.append(
+                (str(uuid4()), dilemmas_file[dilemma])
+            )
+        log.verbose(f'Got this for `dilemmas_inserts`:\n{dilemmas_inserts}')
+        return dilemmas_inserts
+    elif cog_name == 'quote':
+        quote_file = file_io.read_json(envs.quote_file)
+        quotes_inserts = []
+        for quote in quote_file:
+            quotes_inserts.append(
+                (
+                    str(uuid4()), quote_file[quote]['quote'],
+                    quote_file[quote]['datetime']
+                )
+            )
+        log.verbose(f'Got this for `quotes_inserts`:\n{quotes_inserts}')
+        return quotes_inserts
+    elif cog_name == 'stats':
+        stats_file = file_io.read_json(envs.stats_file)
+        stats_logs_file = file_io.read_json(envs.stats_logs_file)
+        stats_inserts = []
+        stats_logs_inserts = []
+        for setting in stats_file:
+            stats_inserts.append((setting, stats_file[setting]))
+        log.verbose(f'Got this for `stats_inserts`:\n{stats_inserts}')
+        for _y in stats_logs_file:
+            for _m in stats_logs_file[_y]:
+                for _d in stats_logs_file[_y][_m]:
+                    stats_logs_inserts.append(
+                        (
+                            f'{_y}-{_m}-{_d} 00:00:00.000',
+                            stats_logs_file[_y][_m][_d]['files_in_codebase'],
+                            stats_logs_file[_y][_m][_d]['lines_in_codebase'],
+                            stats_logs_file[_y][_m][_d]['members']['total']
+                        )
+                    )
+        return {
+            'stats_inserts': stats_inserts,
+            'stats_logs_inserts': stats_logs_inserts
+        }
+    elif cog_name == 'rss':
+        rss_file = file_io.read_json(envs.rss_feeds_file)
+        rss_logs_file = file_io.read_json(envs.rss_feeds_logs_file)
+        rss_inserts = []
+        rss_filter_inserts = []
+        rss_logs_inserts = []
+        rss_logs_index = {}
+        for feed in rss_file:
+            _uuid = str(uuid4())
+            rss_logs_index[feed] = _uuid
+            rss_inserts.append(
+                (
+                    _uuid, feed, rss_file[feed]['url'],
+                    rss_file[feed]['channel'],
+                    rss_file[feed]['added'],
+                    rss_file[feed]['added by'],
+                    rss_file[feed]['status_url'],
+                    rss_file[feed]['status_url_counter'],
+                    rss_file[feed]['status_channel'],
+                    rss_file[feed]['yt_id'] if 'yt_id' in rss_file[feed] else ''
+                )
+            )
+            filter_allow = rss_file[feed]['filter_allow']
+            filter_deny = rss_file[feed]['filter_deny']
+            if (len(filter_allow) + len(filter_deny)) > 0:
+                if len(filter_allow) > 0:
+                    for line in filter_allow:
+                        rss_filter_inserts.append(
+                            (
+                                _uuid, 'allow', filter_allow[line]
+                            )
+                        )
+                if len(filter_deny) > 0:
+                    for line in filter_deny:
+                        rss_filter_inserts.append(
+                            (
+                                _uuid, 'deny', line
+                            )
+                        )
+        for feed in rss_logs_file:
+            if feed in rss_logs_index:
+                for link in rss_logs_file[feed]:
+                    rss_logs_inserts.append(
+                        (
+                            rss_logs_index[feed], link,
+                            str(get_dt(format='ISO8601'))
+                        )
+                    )
+        return {
+            'feeds': rss_inserts,
+            'filter': rss_filter_inserts,
+            'logs': rss_logs_inserts
+        }
+    elif cog_name == 'youtube':
+        yt_file = file_io.read_json(envs.yt_feeds_file)
+        yt_logs_file = file_io.read_json(envs.yt_feeds_logs_file)
+        yt_inserts = []
+        yt_filter_inserts = []
+        yt_logs_inserts = []
+        yt_logs_index = {}
+        for feed in yt_file:
+            _uuid = str(uuid4())
+            yt_logs_index[feed] = _uuid
+            yt_inserts.append(
+                (
+                    _uuid, feed, yt_file[feed]['url'],
+                    yt_file[feed]['channel'],
+                    yt_file[feed]['added'],
+                    yt_file[feed]['added by'],
+                    yt_file[feed]['status_url'],
+                    yt_file[feed]['status_url_counter'],
+                    yt_file[feed]['status_channel'],
+                    yt_file[feed]['yt_id']
+                )
+            )
+            filter_allow = yt_file[feed]['filter_allow']
+            filter_deny = yt_file[feed]['filter_deny']
+            if (len(filter_allow) + len(filter_deny)) > 0:
+                if len(filter_allow) > 0:
+                    for line in filter_allow:
+                        yt_filter_inserts.append(
+                            (
+                                _uuid, 'allow', filter_allow[line]
+                            )
+                        )
+                if len(filter_deny) > 0:
+                    for line in filter_deny:
+                        yt_filter_inserts.append(
+                            (
+                                _uuid, 'deny', line
+                            )
+                        )
+        for feed in yt_logs_file:
+            if feed in yt_logs_index:
+                for link in yt_logs_file[feed]:
+                    yt_logs_inserts.append(
+                        (
+                            yt_logs_index[feed], link,
+                            str(get_dt(format='ISO8601'))
+                        )
+                    )
+        return {
+            'feeds': yt_inserts,
+            'filter': yt_filter_inserts,
+            'logs': yt_logs_inserts
+        }
+    elif cog_name == 'cogs':
+        cogs_file = file_io.read_json(envs.cogs_status_file)
+        cogs_inserts = []
+        for cog in cogs_file:
+            cogs_inserts.append((cog, cogs_file[cog]))
+        log.verbose(f'Got this for `cogs_inserts`:\n{cogs_inserts}')
+        return cogs_inserts
+    log.log(f'Converting done!')
 
 
 async def insert_many_all(
@@ -45,6 +310,12 @@ async def insert_many_all(
 ):
     '''
     Insert info to all columns in a sqlite row
+
+    Equals to this SQl command:
+        INSERT INTO `template_info[table_name]`
+        VALUES(?, ?, ?)
+
+        (inserts is tuples of values)
 
     Parameters
     ------------
@@ -58,23 +329,37 @@ async def insert_many_all(
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
     log.verbose(f'Got `inserts`: {inserts}')
+    input_singles = False
+    input_multiples = False
     _cmd = f'INSERT INTO {table_name} VALUES('
-    _cmd += ', '.join('?'*len(inserts[0]))
+    if isinstance(inserts[0], str):
+        _cmd += ', '.join('?'*len(inserts))
+        input_singles = True
+    elif isinstance(inserts[0], (list, tuple)):
+        _cmd += ', '.join('?'*len(inserts[0]))
+        input_multiples = True
     _cmd += ')'
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.executemany(_cmd, inserts)
-            await db.commit()
-            log.db(
-                'Changed {} rows'.format(
-                    db.total_changes
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                if input_singles:
+                    await db.execute(_cmd, inserts)
+                elif input_multiples:
+                    await db.executemany(_cmd, inserts)
+                await db.commit()
+                log.db(
+                    'Changed {} rows'.format(
+                        db.total_changes
+                    )
                 )
-            )
-        log.db(f'Done and commited!')
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+                return True
+            log.db(f'Done and commited!')
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None
 
 
 async def insert_many_some(
@@ -105,53 +390,43 @@ async def insert_many_some(
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
     log.verbose(f'Got `rows`: {rows} {type(rows)} {len(rows)}')
-    log.verbose(f'Got `inserts`: {inserts} {type(inserts)} {len(inserts)}')
+    log.verbose(
+        f'Got `inserts`: {type(inserts)} {len(inserts)}', pretty=inserts
+    )
     input_singles = False
     input_multiples = False
-    if isinstance(rows, str) and len(inserts) == 1:
-        log.log(
-            f'Only one rows and inserts, which is OK'
-        )
+    if isinstance(inserts[0], (tuple)):
+        input_multiples = True
+    elif isinstance(inserts[0], str):
         input_singles = True
-    else:
-        if len(rows) != len(inserts[0]):
-            log.log(
-                f'Length of rows and inserts does not match ({len(rows)} vs '
-                f'{len(inserts[0])})'
-            )
-            return None
-        else:
-            input_multiples = True
     _cmd = f'INSERT INTO {table_name} ('
-    if input_singles:
-        _cmd += rows
-    elif input_multiples:
-        _cmd += ', '.join(row for row in rows)
+    _cmd += ', '.join(row for row in rows)
     _cmd += ') VALUES ('
     if input_singles:
-        _cmd += '?'
+        _cmd += ', '.join('?'*len(inserts))
     elif input_multiples:
         _cmd += ', '.join('?'*len(inserts[0]))
     _cmd += ')'
     log.db(f'Using this query: {_cmd} {inserts}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            if len(inserts) >= 1:
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        if input_singles:
+            inserts = [inserts]
+        try:
+            async with aiosqlite.connect(db_file) as db:
                 await db.executemany(_cmd, inserts)
                 db_last_row = None
-            else:
-                await db.execute(_cmd, inserts)
-                db_last_row = None
-            await db.commit()
-            log.debug(
-                'Changed {} rows'.format(
-                    db.total_changes
+                await db.commit()
+                log.debug(
+                    'Changed {} rows'.format(
+                        db.total_changes
+                    )
                 )
-            )
-        return db_last_row
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+            return db_last_row
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None
 
 
 async def insert_single(
@@ -182,34 +457,52 @@ async def insert_single(
     _cmd = f'''INSERT INTO {table_name} ({field_name})
               VALUES(?)'''
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.execute(_cmd, insert)
-            await db.commit()
-            log.debug(
-                'Changed {} rows'.format(
-                    db.total_changes
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd, insert)
+                await db.commit()
+                log.debug(
+                    'Changed {} rows'.format(
+                        db.total_changes
+                    )
                 )
-            )
-            last_row = db.lastinsertrow
-        return last_row
-        log.db(f'Done and commited!')
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+                last_row = db.lastinsertrow
+            return last_row
+            log.db(f'Done and commited!')
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None
 
-async def update_fields(template_info, where=None, updates: list = None):
+
+async def update_fields(
+    template_info, where=None, updates: list = None
+        ):
     '''
     Update a table with listed tuples in `updates` where you can
-    find the specific `where`
+    find the specific `where`.
 
     Equals to this SQl command:
         UPDATE `template_info[table_name]`
-        SET `updates[0]` = `updates[1]`,
-            `updates[0]` = `updates[1]`,
-            `updates[0]` = `updates[1]`
+        SET `updates[0][0]` = `updates[0][1]`
+            `updates[1][0]` = `updates[1][1]`,
+            `updates[2][0]` = `updates[2][1]`
         WHERE
             `where[0]` = `where[1]`
+
+    If one update has a list as a value, interpret this as using CASE.
+    This cannot be combined with WHERE
+
+        UPDATE `template_info[table_name]`
+        SET `updates[0][0]` = `updates[0][1]`
+            `updates[1][0]` = CASE
+                WHEN `updates[1][1][0][0]` = `updates[1][1][0][1]` THEN `updates[1][1][0][2]`
+                ELSE `updates[1][0]`
+            END,
+            `updates[2][0]` = `updates[2][1]`
+
     Parameters
     ------------
     template_info: dict
@@ -217,41 +510,57 @@ async def update_fields(template_info, where=None, updates: list = None):
     where: tuple/list of tuples
         Single or multiple things to look for to identify correct rows
     updates: list(tuples)
-        A list of tuples with a field, value combination
+        A list of tuples with a field, value combination. If value is a
+        list, it should be treated as CASE
     '''
     db_file = envs.DB_DIR / template_info['db_file']
     table_name = template_info['name']
     if table_name is None:
         log.log('Missing table_name')
         return
-    if where is None:
-        log.log('Missing where')
-        return
     if updates is None:
         log.log('Missing updates')
         return
     _cmd = f'UPDATE {table_name} SET '
-    for update in updates:
-        _cmd += "{} = '{}'".format(update[0], update[1])
-        if update != updates[-1]:
-            _cmd += ', '
-    if isinstance(where, tuple):
-        _cmd += f" WHERE {where[0]} = '{where[1]}'"
-    elif isinstance(where, list):
-        _cmd += " WHERE "
-        for id in where:
-            _cmd += f"{id[0]} = '{id[1]}'"
-            if id != where[-1]:
-                _cmd += ' AND '
+    if isinstance(updates, dict):
+        for update in updates:
+            log.verbose(f'Got `update`: {update}')
+            _cmd += "{} = CASE".format(update)
+            for _item in updates[update]:
+                _cmd += " WHEN {} = '{}' THEN '{}'".format(
+                    _item[0], _item[1], _item[2]
+                )
+            _cmd += ' ELSE {} END'.format(update)
+            if update != list(updates)[-1]:
+                _cmd += ', '
+    elif isinstance(updates, (list, tuple)):
+        if isinstance(updates[0], str):
+            _cmd += "{} = '{}'".format(updates[0], updates[1])
+        elif isinstance(updates[0], (list, tuple)):
+            for update in updates:
+                _cmd += "{} = '{}'".format(update[0], update[1])
+                if update != updates[-1]:
+                    _cmd += ', '
+        if isinstance(where, tuple):
+            _cmd += f" WHERE {where[0]} = '{where[1]}'"
+        elif isinstance(where, list):
+            _cmd += " WHERE "
+            for id in where:
+                _cmd += f"{id[0]} = '{id[1]}'"
+                if id != where[-1]:
+                    _cmd += ' AND '
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.execute(_cmd)
-            await db.commit()
-        log.db(f'Done and commited!')
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                await db.commit()
+            log.db(f'Done and commited!')
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None
 
 
 async def get_output(
@@ -308,6 +617,10 @@ async def get_output(
             out = await db.execute(_cmd)
             if single:
                 out = await out.fetchone()
+                if out is None:
+                    return None
+                else:
+                    out = out[0]
             else:
                 out = await out.fetchall()
             return out
@@ -383,7 +696,7 @@ async def get_combined_output(
 
     Note: `select` will only get values from `template_info_1`
     '''
-    db_file = envs.DB_DIR / template_info_1['db_file']
+    db_file = template_info_1['db_file']
     table_name1 = template_info_1['name']
     table_name2 = template_info_2['name']
     _cmd = 'SELECT '
@@ -428,19 +741,22 @@ async def empty_table(template_info):
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name};'
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            out = await db.execute(_cmd)
-            await db.commit()
-            log.debug(
-                'Changed {} rows'.format(
-                    db.total_changes
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                out = await db.execute(_cmd)
+                await db.commit()
+                log.debug(
+                    'Changed {} rows'.format(
+                        db.total_changes
+                    )
                 )
-            )
-            return out
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+                return out
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None
 
 
 async def get_one_random_output(
@@ -535,12 +851,15 @@ async def del_row_id(template_info, numbers):
     elif isinstance(numbers, int):
         _cmd += f'= {numbers}'
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.execute(_cmd)
-            await db.commit()
-    except aiosqlite.OperationalError:
-        return None
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                await db.commit()
+        except aiosqlite.OperationalError:
+            return None
 
 
 async def del_row_ids(template_info, numbers=None):
@@ -550,12 +869,15 @@ async def del_row_ids(template_info, numbers=None):
     _cmd += ', '.join(str(number) for number in numbers)
     _cmd += ')'
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.execute(_cmd)
-            await db.commit()
-    except aiosqlite.OperationalError:
-        return None
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                await db.commit()
+        except aiosqlite.OperationalError:
+            return None
 
 
 async def del_row_by_OR_filters(
@@ -581,12 +903,17 @@ async def del_row_by_OR_filters(
             if id != where[-1]:
                 _cmd += ' OR '
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.execute(_cmd)
-            await db.commit()
-    except aiosqlite.OperationalError:
-        return None
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                await db.commit()
+            log.db(f'Done and commited!')
+        except aiosqlite.OperationalError:
+            log.db(f'Error: {e}')
+            return None
 
 
 async def del_row_by_AND_filter(
@@ -596,16 +923,17 @@ async def del_row_by_AND_filter(
     Delete using the following query:
 
         DELETE FROM `template_info[table_name]`
-        WHERE `where[0]` = `where[1]`
+        WHERE
+            `where[0]` = `where[1]`
 
     Additional WHEREs uses AND
     '''
     db_file = envs.DB_DIR / template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name}'
-    if isinstance(where, tuple):
+    if isinstance(where[0], str):
         _cmd += f" WHERE {where[0]} = '{where[1]}'"
-    elif isinstance(where, list):
+    elif isinstance(where, (list, tuple)):
         _cmd += " WHERE "
         for id in where:
             log.debug(
@@ -616,11 +944,15 @@ async def del_row_by_AND_filter(
             if id != where[-1]:
                 _cmd += ' AND '
     log.db(f'Using this query: {_cmd}')
-    try:
-        async with aiosqlite.connect(db_file) as db:
-            await db.execute(_cmd)
-            await db.commit()
-        log.db(f'Done and commited!')
-    except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
-        return None
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                await db.commit()
+            log.db(f'Done and commited!')
+            return True
+        except aiosqlite.OperationalError as e:
+            log.db(f'Error: {e}')
+            return None

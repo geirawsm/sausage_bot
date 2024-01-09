@@ -16,6 +16,15 @@ import json
 init(autoreset=True)
 
 
+# Checking if log_all is activated
+if args.log_all:
+    args.log = True
+    args.log_verbose = True
+    args.log_print = True
+    args.log_db = True
+    args.debug = True
+
+
 def log_function(
         log_in: str, color: str = None, extra_info: str = None,
         extra_color: str = None, pretty: bool = False,
@@ -31,7 +40,7 @@ def log_function(
     extra_info      Used to specify extra information in the logging
                     (default: None)
     extra_color     Color for the `extra_info` (default: green)
-    pretty          Prettify the output. Works on dict and list
+    pretty          Prettify specific output. Works on dict, list and tuple
     sameline        Reuse line for next output
     '''
     if color is None:
@@ -56,7 +65,6 @@ def log_function(
     if args.log_print:
         if extra_info:
             log_out += '[ {extra_info} ]'.format(
-                color=extra_color, style=Style.BRIGHT,
                 extra_info=extra_info
             )
         log_out += '{color}{style}[ {func_name} ({func_line}) ]'.format(
@@ -65,24 +73,21 @@ def log_function(
             func_name=function_name['name']
         )
         log_out += '{reset} '.format(reset=Style.RESET_ALL)
-    else:
-        if extra_info:
-            log_out = '[ {} ] '.format(extra_info)
-        log_out += '[ {} ] '.format(function_name['line'])
-        log_out += '[ {} ] '.format(function_name['name'])
-        log_out += str(log_in)
-    if args.log_print:
         if pretty:
-            log_out += 'Prettifying...'
-            if isinstance(log_in, (dict, list)):
+            print(log_out)
+            if isinstance(pretty, (dict, list, tuple)):
+                log_out += f'{log_in} (prettifying...):'
                 print(
                     json.dumps(
-                        log_in, indent=4, ensure_ascii=False
+                        pretty, indent=4, ensure_ascii=False
                     )
                 )
+            else:
+                print('input is not dict, list nor tuple')
         else:
             log_out += str(log_in)
             if sameline:
+                # TODO Denne fungerer nok kanskje ikke helt som forventa?
                 try:
                     max_cols, max_rows = os.get_terminal_size(0)
                 except (OSError):
@@ -94,6 +99,12 @@ def log_function(
                 ), end='\r')
             else:
                 print(log_out)
+    else:
+        if extra_info:
+            log_out = '[ {} ] '.format(extra_info)
+        log_out += '[ {} ] '.format(function_name['line'])
+        log_out += '[ {} ] '.format(function_name['name'])
+        log_out += str(log_in)
     else:
         log_out += '\n'
         dt = pendulum.now(config.TIMEZONE)
@@ -118,7 +129,10 @@ def log(
     pretty          Prettify the output. Works on dict and list
     '''
     if args.log:
-        log_function(log_in, color=color, pretty=pretty, sameline=sameline)
+        log_function(
+            log_in, color=color, pretty=pretty, sameline=sameline,
+            extra_info=envs.log_extra_info('log')
+        )
     if args.log_slow:
         sleep(3)
 
@@ -216,24 +230,24 @@ async def log_to_bot_channel(content_in=None, content_embed_in=None):
 
     for guild in config.bot.guilds:
         if str(guild.name).lower() == config.env('DISCORD_GUILD').lower():
-            log.debug(f'Got guild {guild} ({type(guild)})')
+            debug(f'Got guild {guild} ({type(guild)})')
         else:
-            log.log(envs.GUILD_NOT_FOUND)
+            log(envs.GUILD_NOT_FOUND)
             guild = None
 
     # Get all channels and their IDs
     for channel in guild.text_channels:
         server_channels[channel.name] = channel.id
-    log.debug(f'Got these channels: {server_channels}')
+    debug(f'Got these channels: {server_channels}')
     if log_channel in server_channels:
         channel_out = config.bot.get_channel(server_channels[log_channel])
         msg_out = await channel_out.send(
             content=content_in,
-            embed=discord.Embed.from_dict(content_embed_in) or None
+#            embed=discord.Embed.from_dict(content_embed_in) or None
         )
         return msg_out
     else:
-        log.log(
+        log(
             envs.POST_TO_NON_EXISTING_CHANNEL.format(
                 log_channel
             )
