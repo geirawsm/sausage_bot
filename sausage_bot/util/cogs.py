@@ -140,7 +140,6 @@ class Loading:
         )
         to_be_removed = []
         for cog_name in [name[0] for name in already_registered_cogs]:
-            log.debug(f'`cog_name` is {cog_name}')
             if cog_name not in filelist:
                 log.log(f'Removing `{cog_name}`')
                 to_be_removed.append(('cog_name', cog_name))
