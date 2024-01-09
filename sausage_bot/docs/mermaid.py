@@ -49,7 +49,7 @@ def mermaid(graph):
     """
     Generates image link for mermaid chart
     """
-    log.debug(f'Making image link...')
+    log.debug('Making image link...')
     graphbytes = graph.encode("utf-8")
     base64_bytes = base64.urlsafe_b64encode(graphbytes)
     base64_string = base64_bytes.decode("utf-8")

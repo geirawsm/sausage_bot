@@ -31,7 +31,7 @@ async def prep_table(
         log.verbose(f'Did not find db file `{db_file}`')
         file_io.ensure_folder(envs.DB_DIR)
     else:
-        log.verbose(f'db file exist.')
+        log.verbose('db file exist.')
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
     _cmd += ', '.join(item for item in item_list)
     if 'primary' in table_temp and\
@@ -100,7 +100,7 @@ def json_to_db_inserts(cog_name):
     files to sqlite files
     #autodoc skip#
     '''
-    log.log(f'Converting json to db')
+    log.log('Converting json to db')
     log.log(f'Processing `{cog_name}`')
     if cog_name == 'roles':
         settings_file = file_io.read_json(envs.roles_settings_file)
@@ -207,7 +207,8 @@ def json_to_db_inserts(cog_name):
                     rss_file[feed]['status_url'],
                     rss_file[feed]['status_url_counter'],
                     rss_file[feed]['status_channel'],
-                    rss_file[feed]['yt_id'] if 'yt_id' in rss_file[feed] else ''
+                    rss_file[feed]['yt_id'] if 'yt_id' in rss_file[feed]
+                    else ''
                 )
             )
             filter_allow = rss_file[feed]['filter_allow']
@@ -301,7 +302,7 @@ def json_to_db_inserts(cog_name):
             cogs_inserts.append((cog, cogs_file[cog]))
         log.verbose(f'Got this for `cogs_inserts`:\n{cogs_inserts}')
         return cogs_inserts
-    log.log(f'Converting done!')
+    log.log('Converting done!')
 
 
 async def insert_many_all(
@@ -356,7 +357,7 @@ async def insert_many_all(
                     )
                 )
                 return True
-            log.db(f'Done and commited!')
+            log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
             log.db(f'Error: {e}')
             return None
@@ -471,7 +472,7 @@ async def insert_single(
                 )
                 last_row = db.lastinsertrow
             return last_row
-            log.db(f'Done and commited!')
+            log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
             log.db(f'Error: {e}')
             return None
@@ -498,7 +499,8 @@ async def update_fields(
         UPDATE `template_info[table_name]`
         SET `updates[0][0]` = `updates[0][1]`
             `updates[1][0]` = CASE
-                WHEN `updates[1][1][0][0]` = `updates[1][1][0][1]` THEN `updates[1][1][0][2]`
+                WHEN `updates[1][1][0][0]` = `updates[1][1][0][1]`
+                    THEN `updates[1][1][0][2]`
                 ELSE `updates[1][0]`
             END,
             `updates[2][0]` = `updates[2][1]`
@@ -557,7 +559,7 @@ async def update_fields(
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            log.db(f'Done and commited!')
+            log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
             log.db(f'Error: {e}')
             return None
@@ -815,7 +817,7 @@ async def get_output_by_rowid(
         _cmd += fields_out
     _cmd += f' FROM {table_name}'
     _cmd += f" WHERE rowid = {rowid}"
-    _cmd += f" ORDER BY rowid"
+    _cmd += " ORDER BY rowid"
     log.db(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
@@ -845,7 +847,7 @@ async def del_row_id(template_info, numbers):
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name} WHERE rowid '
     if isinstance(numbers, list):
-        _cmd += f'IN ('
+        _cmd += 'IN ('
         _cmd += ', '.join(str(number) for number in numbers)
         _cmd += ')'
     elif isinstance(numbers, int):
@@ -910,8 +912,8 @@ async def del_row_by_OR_filters(
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            log.db(f'Done and commited!')
-        except aiosqlite.OperationalError:
+            log.db('Done and commited!')
+        except aiosqlite.OperationalError as e:
             log.db(f'Error: {e}')
             return None
 
@@ -951,7 +953,7 @@ async def del_row_by_AND_filter(
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            log.db(f'Done and commited!')
+            log.db('Done and commited!')
             return True
         except aiosqlite.OperationalError as e:
             log.db(f'Error: {e}')

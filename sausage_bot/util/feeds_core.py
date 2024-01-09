@@ -561,7 +561,7 @@ def link_similar_to_logged_post(link: str, feed_log: list):
 def link_is_in_log(link, log_in):
     try:
         if link not in [log_url[0] for log_url in log_in]:
-            log.verbose(f'Link not in log')
+            log.verbose('Link not in log')
             return False
         else:
             log.verbose(f'Found link logs ({link})')

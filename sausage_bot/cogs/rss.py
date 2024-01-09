@@ -226,13 +226,14 @@ class RSSfeed(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-
     @rss.group(name='filter', invoke_without_command=True)
     async def rss_filter(self, ctx):
         '''
         Manage filters for feeds
         '''
-        await ctx.reply('Denne kommandoen trenger mer info. Sjekk `!help rss filter`')
+        await ctx.reply(
+            'Denne kommandoen trenger mer info. Sjekk `!help rss filter`'
+        )
 
     @commands.check_any(
         commands.is_owner(),
@@ -284,7 +285,9 @@ class RSSfeed(commands.Cog):
             inserts=((_uuid, allow_deny, filter_in))
         )
         if adding_filter:
-            await ctx.message.reply(f'Added filter `{filter_in} ({allow_deny})`')
+            await ctx.message.reply(
+                f'Added filter `{filter_in} ({allow_deny})`'
+            )
         else:
             await ctx.message.reply(
                 f'Error when adding filter `{filter_in}`, check logs'

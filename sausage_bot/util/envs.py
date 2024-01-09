@@ -314,6 +314,7 @@ def log_extra_info(type):
         s=' '*split, text=infos['info'][type]
     )
 
+
 ### Botlines ###
 # Generiske
 GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
@@ -355,7 +356,8 @@ RSS_ADDED = '{} ble lag til i kanalen {}'
 RSS_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
 RSS_REMOVED = 'RSS-feeden {} ble fjernet'
 RSS_REMOVED_BOT = 'RSS-feeden {} ble fjernet av {}'
-RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden {}, men det oppsto en feil'
+RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden {}, '\
+    'men det oppsto en feil'
 RSS_COULD_NOT_REMOVE = 'Klarte ikke å fjerne RSS-feeden {}'
 RSS_FEED_CHANNEL_CHANGE = 'rss: {} endret kanalen til feeden `{}` til `{}`'
 RSS_LIST_ARG_WRONG = 'Kjenner ikke til kommandoen {}'
@@ -378,13 +380,16 @@ RSS_VARS = {
         'title': 'Channel', 'db_col': 'channel', 'max_len': 0, 'list_type': []
     },
     'added': {
-        'title': 'Added', 'db_col': 'added', 'max_len': 0, 'list_type': ['added']
+        'title': 'Added', 'db_col': 'added', 'max_len': 0,
+        'list_type': ['added']
     },
     'added_by': {
-        'title': 'Added by', 'db_col': 'added_by', 'max_len': 0, 'list_type': ['added']
+        'title': 'Added by', 'db_col': 'added_by', 'max_len': 0,
+        'list_type': ['added']
     },
     'filter': {
-        'title': 'Filter', 'db_col': 'Filter', 'max_len': 30, 'list_type': ['filter']
+        'title': 'Filter', 'db_col': 'Filter', 'max_len': 30,
+        'list_type': ['filter']
     }
 }
 

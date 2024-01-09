@@ -224,7 +224,7 @@ async def update_stats_post(stats_info, stats_channel):
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
-                    #TODO var msg
+                    # TODO var msg
                     log.debug('Found post with `Serverstats sist`, editing...')
                     await msg.edit(content=stats_info)
                     found_stats_msg = True

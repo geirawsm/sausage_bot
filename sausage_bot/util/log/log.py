@@ -99,7 +99,6 @@ def log_function(
                 ), end='\r')
             else:
                 print(log_out)
-    else:
         if extra_info:
             log_out = '[ {} ] '.format(extra_info)
         log_out += '[ {} ] '.format(function_name['line'])

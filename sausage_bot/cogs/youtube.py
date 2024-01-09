@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-
 from discord.ext import commands, tasks
-import re
 from time import sleep
 from yt_dlp import YoutubeDL
 
@@ -45,7 +43,6 @@ class Youtube(commands.Cog):
             The Discord channel to post from the feed
         '''
         AUTHOR = ctx.message.author.name
-        URL_OK = False
         CHANNEL_OK = False
         if feed_name is None:
             await ctx.send(

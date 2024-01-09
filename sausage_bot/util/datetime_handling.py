@@ -214,15 +214,15 @@ def get_dt(format='epoch', sep='.', dt=False):
     elif format == 'week':
         return dt.week_of_year
     elif format == 'year':
-        return dt.format(f'YYYY')
+        return dt.format('YYYY')
     elif format == 'month':
-        return dt.format(f'MM')
+        return dt.format('MM')
     elif format == 'day':
-        return dt.format(f'DD')
+        return dt.format('DD')
     elif format == 'epoch':
         return dt.int_timestamp
     elif format == 'ISO8601':
-        return dt.format(f'YYYY-MM-DD HH:mm:ss.SSS', locale=locale)
+        return dt.format('YYYY-MM-DD HH:mm:ss.SSS', locale=locale)
     else:
         return None
 

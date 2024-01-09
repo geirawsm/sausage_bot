@@ -19,10 +19,10 @@ from pprint import pprint
 from .modules import doc_envs
 from .modules.doc_args import doc_args
 from ..util import envs, file_io, datetime_handling
-#from ..util.args import args
+# from ..util.args import args
 from ..util.log import log
-#from time import sleep
-#import re
+# from time import sleep
+# import re
 
 
 def dump(item):
@@ -120,7 +120,8 @@ def get_decorators(func):
                 try:
                     return f'{dec.value.id}.{dec.attr}'
                 except Exception as e:
-                    return f'{dec.value.value.id}.{dec.value.attr}.{dec.attr}'
+                    return f'{dec.value.value.id}.{dec.value.attr}'\
+                        f'.{dec.attr}: {e}'
             elif isinstance(dec, ast.Name):
                 return dec.id
             else:
@@ -241,7 +242,9 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                         arg_spec_len = 0
                         for _arg_func in _args_func:
                             for _arg_spec in _args_func[_arg_func]:
-                                if len(_args_func[_arg_func][_arg_spec]) > arg_spec_len:
+                                if len(
+                                    _args_func[_arg_func][_arg_spec]
+                                ) > arg_spec_len:
                                     arg_spec_len = len(
                                         _args_func[_arg_func][_arg_spec])
                         if arg_spec_len > 0:
@@ -341,17 +344,25 @@ def get_args(func_in, args_in):
                     except:
                         if 'attr' in vars(arg.annotation):
                             log.debug(
-                                f'Got `arg.annotation.attr`: {arg.annotation.attr}')
+                                'Got `arg.annotation.attr`: '
+                                f'{arg.annotation.attr}'
+                            )
                         else:
                             print(
-                                f'arg.annotation.value.attr: {arg.annotation.value.attr}')
+                                'arg.annotation.value.attr: '
+                                f'{arg.annotation.value.attr}')
                             print(
-                                f'arg.annotation.slice.id: {arg.annotation.slice.id}')
-                            out[arg.arg]['type_hint'] = f'{arg.annotation.slice.id}'
+                                f'arg.annotation.slice.id: '
+                                f'{arg.annotation.slice.id}')
+                            out[arg.arg]['type_hint'] =\
+                                f'{arg.annotation.slice.id}'
                         try:
                             log.debug(
-                                f'Got `arg.annotation.value.id`: {arg.annotation.value.id}')
-                            out[arg.arg]['type_hint'] = f'{arg.annotation.value.id}.{arg.annotation.attr}'
+                                f'Got `arg.annotation.value.id`: '
+                                f'{arg.annotation.value.id}')
+                            out[arg.arg]['type_hint'] =\
+                                f'{arg.annotation.value.id}.'\
+                                f'{arg.annotation.attr}'
                         except:
                             log.debug('NO MORE TO DO')
             if def_index >= 0:
@@ -365,7 +376,7 @@ def get_args(func_in, args_in):
                             log.debug('vars(_defs[def_index]):')
                             pprint(vars(_defs[def_index]))
                         except:
-                            log.debug(f'_defs[def_index]:')
+                            log.debug('_defs[def_index]:')
                             pprint(_defs[def_index])
                         for _kw in _defs[def_index].keywords:
                             pprint(f'_kw.arg: {_kw.arg}')
@@ -393,14 +404,14 @@ def get_args(func_in, args_in):
             func_in.args.args, func_in.args.defaults
         )
         log.debug(f'Got `argdefs`: {argdefs}', extra_info=func_in.name)
-        if argdefs != None:
+        if argdefs is not None:
             args_in['argdefs'] = argdefs
         # Add keyword args and their defaults
         kwargdefs = get_args_and_defs(
             func_in.args.kwonlyargs, func_in.args.kw_defaults
         )
         log.debug(f'Got `kwargdefs`: {kwargdefs}', extra_info=func_in.name)
-        if kwargdefs != None:
+        if kwargdefs is not None:
             args_in['kwargdefs'] = kwargdefs
         if len(args_in) > 0:
             return args_in
@@ -456,7 +467,7 @@ if __name__ == "__main__":
         # Get module name
         single_filename = str(filename).split(os.sep)[-1]
         module_name = f'# {single_filename}\n'
-    elif doc_args.file == None:
+    elif doc_args.file is None:
         log.debug('Getting all files')
         filelist = glob.glob('**/*.py', recursive=True)
         # Get module name
@@ -464,7 +475,9 @@ if __name__ == "__main__":
     if not filelist:
         if doc_args.file:
             print(
-                f'Could not read input `{doc_args.file}`. Does the file exist?')
+                f'Could not read input `{doc_args.file}`.'
+                ' Does the file exist?'
+            )
         else:
             print(f'Could not find any python files in `{doc_envs.ROOT_DIR}`.')
         sys.exit()
@@ -473,7 +486,10 @@ if __name__ == "__main__":
         if not doc_args.file:
             rel_filename = filename.replace(str(envs.ROOT_DIR), '')
             # We do not want to process some type of files or folders
-            if any(unwanted in str(filename) for unwanted in doc_envs.skip_folder_or_file):
+            if any(
+                unwanted in str(filename) for unwanted in
+                doc_envs.skip_folder_or_file
+            ):
                 log.debug(f'Skipped file: `{rel_filename}`')
                 continue
         md_out += get_info_from_file(filename)

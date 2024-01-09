@@ -4,7 +4,7 @@ import os
 from discord.ext import commands
 from tabulate import tabulate
 
-from sausage_bot.util import envs, file_io, config, db_helper
+from sausage_bot.util import envs, config, db_helper
 from .log import log
 
 
@@ -189,11 +189,11 @@ async def cog(ctx, cmd_in=None, *cog_names):
         '#autodoc skip#'
         if cmd_in in ['enable', 'e']:
             for cog_name in cog_names:
-                _loading = await Loading.load_cog(cog_name)
+                await Loading.load_cog(cog_name)
                 await Loading.change_cog_status(cog_name, 'enable')
         elif cmd_in in ['disable', 'd']:
             for cog_name in cog_names:
-                _unloading = await Loading.unload_cog(cog_name)
+                await Loading.unload_cog(cog_name)
                 await Loading.change_cog_status(cog_name, 'disable')
         elif not cmd_in:
             await ctx.send(
