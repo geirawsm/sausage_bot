@@ -193,8 +193,8 @@ stats_db_schema = {
     'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'settings',
     'items': [
-        'setting TEXT',
-        'value TEXT'
+        'setting TEXT NOT NULL',
+        'value TEXT NOT NULL'
     ]
 }
 

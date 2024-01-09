@@ -84,8 +84,8 @@ async def prep_table(
                 'This should be looked into, so messaging the bot-dump'
             )
             await log.log_to_bot_channel(
-                content_in=f'Want to insert info from old json into '
-                ' {table_name}, but something is wrong'
+                content_in='Want to insert info from old json into '
+                f'{table_name}, but something is wrong'
                 '({} vs {})'.format(
                     db_len, len(old_inserts)
                 )
@@ -496,8 +496,7 @@ async def update_fields(
     This cannot be combined with WHERE
 
         UPDATE `template_info[table_name]`
-        SET
-            `updates[0][0]` = `updates[0][1]`
+        SET `updates[0][0]` = `updates[0][1]`
             `updates[1][0]` = CASE
                 WHEN `updates[1][1][0][0]` = `updates[1][1][0][1]` THEN `updates[1][1][0][2]`
                 ELSE `updates[1][0]`
@@ -911,7 +910,9 @@ async def del_row_by_OR_filters(
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
+            log.db(f'Done and commited!')
         except aiosqlite.OperationalError:
+            log.db(f'Error: {e}')
             return None
 
 
@@ -922,7 +923,8 @@ async def del_row_by_AND_filter(
     Delete using the following query:
 
         DELETE FROM `template_info[table_name]`
-        WHERE `where[0]` = `where[1]`
+        WHERE
+            `where[0]` = `where[1]`
 
     Additional WHEREs uses AND
     '''
