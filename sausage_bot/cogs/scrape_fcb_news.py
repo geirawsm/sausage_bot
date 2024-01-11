@@ -111,14 +111,12 @@ class scrape_and_post(commands.Cog):
         log.verbose('`post_fcb_news` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
-    post_fcb_news.start()
-
-    def cog_unload():
-        'Cancel task if unloaded'
-        log.log('Unloaded, cancelling tasks...')
-        scrape_and_post.post_fcb_news.cancel()
-
 
 async def setup(bot):
     log.log(envs.COG_STARTING.format('scrape_fcb_news'))
     await bot.add_cog(scrape_and_post(bot))
+    scrape_and_post.post_fcb_news.start()
+
+
+async def teardown(bot):
+    scrape_and_post.post_fcb_news.stop()

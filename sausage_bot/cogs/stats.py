@@ -179,13 +179,6 @@ class Stats(commands.Cog):
         log.verbose('`update_stats` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
-    update_stats.start()
-
-    def cog_unload():
-        'Cancel task if unloaded'
-        log.log('Unloaded, cancelling tasks...')
-        Stats.update_stats.cancel()
-
 
 async def setup(bot):
     cog_name = 'stats'
@@ -212,3 +205,8 @@ async def setup(bot):
         file_io.remove_file(envs.stats_logs_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
+    Stats.update_stats.start()
+
+
+async def teardown(bot):
+    Stats.update_stats.stop()

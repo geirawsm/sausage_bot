@@ -278,12 +278,10 @@ class Youtube(commands.Cog):
         log.verbose('`post_videos` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
-    post_videos.start()
-
-    def cog_unload():
-        'Cancel task if unloaded'
-        log.log('Unloaded, cancelling tasks...')
-        Youtube.post_videos.cancel()
+#    def cog_unload():
+#        'Cancel task if unloaded'
+#        log.log('Unloaded, cancelling tasks...')
+#        Youtube.post_videos.cancel()
 
 
 async def setup(bot):
@@ -320,9 +318,9 @@ async def setup(bot):
     if yt_log_prep_is_ok:
         file_io.remove_file(envs.yt_feeds_logs_file)
     log.verbose('Registering cog to bot')
-
     await bot.add_cog(Youtube(bot))
+    Youtube.post_videos.start()
 
 
-if __name__ == "__main__":
-    pass
+async def teardown(bot):
+    Youtube.post_videos.stop()

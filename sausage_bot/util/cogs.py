@@ -45,7 +45,7 @@ class Loading:
             await db_helper.update_fields(
                 template_info=envs.cogs_db_schema,
                 where=[('cog_name', cog_name)],
-                updates=[status]
+                updates=[('status', status)]
             )
             return True
         except Exception as e:
@@ -102,12 +102,12 @@ class Loading:
         '''
         cog_files = []
         # Add cogs that are not present in the cogs db
-        already_registered_cogs = await db_helper.get_output(
+        cogs_in_db = await db_helper.get_output(
             template_info=envs.cogs_db_schema,
             order_by=[('cog_name', 'ASC')]
         )
         log.debug(
-            f'These cogs are already registered: {already_registered_cogs}'
+            f'These cogs are already registered: {cogs_in_db}'
         )
         log.debug(
             f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
@@ -119,7 +119,7 @@ class Loading:
                 # Add all cog names to `cog_files` for easier cleaning
                 filelist.append(cog_name)
                 if cog_name not in [
-                        name[0] for name in already_registered_cogs
+                        name[0] for name in cogs_in_db
                 ]:
                     # Added as disable
                     cog_files.append((cog_name, 'disable'))
@@ -134,12 +134,12 @@ class Loading:
             )
         # Clean out cogs that no longer has a file
         # Reload all registered cogs
-        already_registered_cogs = await db_helper.get_output(
+        cogs_in_db = await db_helper.get_output(
             template_info=envs.cogs_db_schema,
             order_by=[('cog_name', 'ASC')]
         )
         to_be_removed = []
-        for cog_name in [name[0] for name in already_registered_cogs]:
+        for cog_name in [name[0] for name in cogs_in_db]:
             if cog_name not in filelist:
                 log.log(f'Removing `{cog_name}`')
                 to_be_removed.append(('cog_name', cog_name))
@@ -151,10 +151,10 @@ class Loading:
             )
         # Start cogs based on status
         log.log('Checking `cogs_status` file for enabled cogs')
-        for cog_name in already_registered_cogs:
+        for cog_name in cogs_in_db:
             if cog_name[1] in ['enable', 'e']:
-                log.log('Loading cog: {}'.format(cog_name))
-                await Loading.load_cog(cog_name)
+                log.log('Loading cog: {}'.format(cog_name[0]))
+                await Loading.load_cog(cog_name[0])
 
     async def reload_all_cogs():
         '''

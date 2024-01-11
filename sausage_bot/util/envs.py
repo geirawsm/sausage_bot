@@ -222,8 +222,7 @@ rss_db_schema = {
         'added_by TEXT',
         'status_url TEXT',
         'status_url_counter INTEGER',
-        'status_channel TEXT',
-        'youtube_id TEXT'
+        'status_channel TEXT'
     ],
     'primary': 'uuid',
     'autoincrement': False

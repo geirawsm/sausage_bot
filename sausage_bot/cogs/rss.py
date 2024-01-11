@@ -494,12 +494,10 @@ class RSSfeed(commands.Cog):
         log.verbose('`rss_parse` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
-    rss_parse.start()
-
     def cog_unload():
         'Cancel task if unloaded'
-        log.log('Unloaded, cancelling tasks...')
-        RSSfeed.rss_parse.cancel()
+        log.log('Unloaded, stopping tasks...')
+        RSSfeed.rss_parse.stop()
 
 
 async def setup(bot):
@@ -537,3 +535,8 @@ async def setup(bot):
         file_io.remove_file(envs.rss_feeds_logs_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(RSSfeed(bot))
+    rss_parse.start()
+
+
+async def teardown(bot):
+    RSSfeed.rss_parse.stop()

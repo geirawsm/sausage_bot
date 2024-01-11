@@ -11,7 +11,7 @@ from sausage_bot.util.datetime_handling import get_dt
 
 def db_exist(db_file_in):
     file_io.ensure_folder(envs.DB_DIR)
-    db_path = str(envs.DB_DIR / db_file_in['db_file'])
+    db_path = str(db_file_in['db_file'])
     try:
         file_io.file_exist(db_path)
         return True
@@ -325,7 +325,7 @@ async def insert_many_all(
     inserts: list(tuple)
         A list with tuples for reach row
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
@@ -380,7 +380,7 @@ async def insert_many_some(
     inserts: list(tuples)
         A list with tuples for reach row
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     if db_file is None:
         log.log('`db_file` is None')
@@ -447,7 +447,7 @@ async def insert_single(
     insert:
         Input for the field_name
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     if db_file is None:
         log.log('`db_file` is None')
@@ -515,7 +515,7 @@ async def update_fields(
         A list of tuples with a field, value combination. If value is a
         list, it should be treated as CASE
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     if table_name is None:
         log.log('Missing table_name')
@@ -587,7 +587,7 @@ async def get_output(
     get_row_ids: bool
         Also get rowid
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = 'SELECT '
     if get_row_ids:
@@ -613,7 +613,7 @@ async def get_output(
     if order_by is not None:
         _cmd += ' ORDER BY '
         _cmd += ', ' .join(f'{order[0]} {order[1]}' for order in order_by)
-    log.db(f'Using this query: {_cmd}')
+    log.db(f'{db_file}: Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             out = await db.execute(_cmd)
@@ -653,7 +653,7 @@ async def get_random_left_exclude_output(
     tuple
         ()
     '''
-    db_file = envs.DB_DIR / template_info_1['db_file']
+    db_file = template_info_1['db_file']
     table_name1 = template_info_1['name']
     table_name2 = template_info_2['name']
     _cmd = 'SELECT '
@@ -739,7 +739,7 @@ async def get_combined_output(
 
 
 async def empty_table(template_info):
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name};'
     log.db(f'Using this query: {_cmd}')
@@ -772,7 +772,7 @@ async def get_one_random_output(
         ORDER BY RAND()
         LIMIT 1
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name1 = template_info['name']
     _cmd = 'SELECT '
     if fields_out is None:
@@ -805,7 +805,7 @@ async def get_output_by_rowid(
         FROM `template_info[table_name]`
         WHERE rowid = `rowid`
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = 'SELECT '
     if fields_out is None:
@@ -829,7 +829,7 @@ async def get_output_by_rowid(
 
 
 async def get_row_ids(template_info):
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'SELECT rowid FROM {table_name}'
     log.db(f'Using this query: {_cmd}')
@@ -843,7 +843,7 @@ async def get_row_ids(template_info):
 
 
 async def del_row_id(template_info, numbers):
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name} WHERE rowid '
     if isinstance(numbers, list):
@@ -865,7 +865,7 @@ async def del_row_id(template_info, numbers):
 
 
 async def del_row_ids(template_info, numbers=None):
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name} WHERE rowid IN ('
     _cmd += ', '.join(str(number) for number in numbers)
@@ -893,7 +893,7 @@ async def del_row_by_OR_filters(
 
     Additional WHEREs uses OR
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name} '
     if isinstance(where, tuple):
@@ -930,7 +930,7 @@ async def del_row_by_AND_filter(
 
     Additional WHEREs uses AND
     '''
-    db_file = envs.DB_DIR / template_info['db_file']
+    db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name}'
     if isinstance(where[0], str):
@@ -939,7 +939,6 @@ async def del_row_by_AND_filter(
         _cmd += " WHERE "
         for id in where:
             log.debug(
-                # TODO Teste output
                 f'`id` is {type(id)}: {id}'
             )
             _cmd += f"{id[0]} = '{id[1]}'"
