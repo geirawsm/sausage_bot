@@ -12,7 +12,7 @@ from sausage_bot.util.log import log
 
 # Create necessary folders before starting
 check_and_create_folders = [
-    envs.LOG_DIR, envs.DB_DIR
+    envs.DB_DIR
 ]
 for folder in check_and_create_folders:
     try:

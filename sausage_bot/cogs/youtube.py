@@ -114,7 +114,9 @@ class Youtube(commands.Cog):
         '''
 
         AUTHOR = ctx.message.author.name
-        removal = await feeds_core.remove_feed_from_db(feed_name)
+        removal = await feeds_core.remove_feed_from_db(
+            feed_type='youtube', feed_name=feed_name
+        )
         if removal:
             await log.log_to_bot_channel(
                 envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
@@ -186,42 +188,6 @@ class Youtube(commands.Cog):
             log.debug(f'Could not extract youtube info: {_error}')
             return None
 
-    async def process_links_for_posting_or_editing(
-        name, videos, feed_info, feed_log_file
-    ):
-        log.debug(f'Got `videos`: {videos}')
-        log.debug(f'Got `feed_info`: {feed_info}')
-        CHANNEL = feed_info['channel']
-        FEED_LOG = file_io.read_json(feed_log_file)
-        try:
-            FEED_LOG[name]
-        except (KeyError):
-            FEED_LOG[name] = []
-        for feed_link in videos[0:2]:
-            log.debug(f'Got feed_link `{feed_link}`')
-            # Check if the link is in the log
-            if not feeds_core.link_is_in_log(feed_link, name, FEED_LOG):
-                feed_link_similar = feeds_core.link_similar_to_logged_post(
-                    feed_link, FEED_LOG[name])
-                if not feed_link_similar:
-                    # Consider this a whole new post and post link to channel
-                    log.verbose(f'Posting link `{feed_link}`')
-                    await discord_commands.post_to_channel(CHANNEL, feed_link)
-                    # Add link to log
-                    FEED_LOG[name].append(feed_link)
-                elif feed_link_similar:
-                    # Consider this a similar post that needs to
-                    # be edited in the channel
-                    await discord_commands.replace_post(
-                        feed_link_similar, feed_link, CHANNEL
-                    )
-                    FEED_LOG[name].remove(feed_link_similar)
-                    FEED_LOG[name].append(feed_link)
-            elif feeds_core.link_is_in_log(feed_link, name, FEED_LOG):
-                log.verbose(f'Link `{feed_link}` already logged. Skipping.')
-            # Write to the logs-file at the end
-            file_io.write_json(feed_log_file, FEED_LOG)
-
     # Tasks
     @tasks.loop(
             minutes=config.env.int('YT_LOOP', default=5),
@@ -251,11 +217,15 @@ class Youtube(commands.Cog):
         log.verbose('Got these feeds:')
         for feed in feeds:
             log.verbose('- {}'.format(feed[1]))
+        # Start processing per feed settings
         for feed in feeds:
             log.log(f'Checking {feed[1]}', sameline=True)
             UUID = feed[0]
             FEED_NAME = feed[1]
             CHANNEL = feed[3]
+            log.debug(
+                f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
+            )
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='youtube', feed_info=feed
             )
@@ -267,7 +237,7 @@ class Youtube(commands.Cog):
                 )
             else:
                 await feeds_core.process_links_for_posting_or_editing(
-                    UUID, feed, FEED_POSTS, CHANNEL
+                    'youtube', UUID, FEED_POSTS, CHANNEL
                 )
         log.log('Done with posting')
         return
@@ -277,11 +247,6 @@ class Youtube(commands.Cog):
         '#autodoc skip#'
         log.verbose('`post_videos` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
-
-#    def cog_unload():
-#        'Cancel task if unloaded'
-#        log.log('Unloaded, cancelling tasks...')
-#        Youtube.post_videos.cancel()
 
 
 async def setup(bot):

@@ -358,10 +358,8 @@ class RSSfeed(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @rss.group(name='remove')
-    async def rss_remove(
-        self, ctx, feed_name: str = None,
-    ):
+    @rss.group(name='remove', aliases=['r', 'delete', 'del'])
+    async def rss_remove(self, ctx, feed_name: str = None):
         '''
         Remove a feed based on `feed_name`
 
@@ -383,7 +381,9 @@ class RSSfeed(commands.Cog):
             log.debug(_error_msg)
             await ctx.reply(_error_msg)
             return
-        removal = await feeds_core.remove_feed_from_db(_uuid)
+        removal = await feeds_core.remove_feed_from_db(
+            feed_type='rss', feed_name=feed_name
+        )
         if removal:
             await log.log_to_bot_channel(
                 envs.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
@@ -448,7 +448,10 @@ class RSSfeed(commands.Cog):
     async def rss_parse():
         log.log('Starting `rss_parse`')
         # Make sure that the feed links aren't stale / 404
-        await feeds_core.review_feeds_status('rss')
+        review_feeds = await feeds_core.review_feeds_status('rss')
+        if review_feeds in [None, False]:
+            log.log('No videos to post')
+            return
         # Start processing feeds
         feeds = await db_helper.get_output(
             template_info=envs.rss_db_schema,
@@ -474,7 +477,9 @@ class RSSfeed(commands.Cog):
             log.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
-            FEED_POSTS = await feeds_core.get_feed_links(feed_info=feed)
+            FEED_POSTS = await feeds_core.get_feed_links(
+                feed_type='rss', feed_info=feed
+            )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
@@ -483,7 +488,7 @@ class RSSfeed(commands.Cog):
                 )
             else:
                 await feeds_core.process_links_for_posting_or_editing(
-                    UUID, feed, FEED_POSTS, CHANNEL
+                    'rss', UUID, FEED_POSTS, CHANNEL
                 )
         log.log('Done with posting')
         return

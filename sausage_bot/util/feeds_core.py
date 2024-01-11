@@ -262,18 +262,30 @@ async def add_to_feed_db(
         )
 
 
-async def remove_feed_from_db(feed_uuid):
-    'Remove a feed from `feed file` based on `uuid`'
+async def remove_feed_from_db(feed_type, feed_name):
+    'Remove a feed from `feed file` based on `feed_name`'
     removal_ok = True
+    if feed_type == 'rss':
+        feed_db = envs.rss_db_schema
+        feed_db_filter = envs.rss_db_filter_schema
+    elif feed_type == 'youtube':
+        feed_db = envs.youtube_db_schema
+        feed_db_filter = envs.youtube_db_filter_schema
+    uuid_from_db = await db_helper.get_output(
+            template_info=feed_db,
+            select=('uuid'),
+            where=[('feed_name', feed_name)],
+            single=True
+        )
     removal = await db_helper.del_row_by_AND_filter(
-        envs.rss_db_schema,
-        where=('uuid', feed_uuid)
+        feed_db,
+        where=('uuid', uuid_from_db)
     )
     if not removal:
         removal_ok = False
     removal_filters = await db_helper.del_row_by_AND_filter(
-        envs.rss_db_filter_schema,
-        where=('uuid', feed_uuid)
+        feed_db_filter,
+        where=('uuid', uuid_from_db)
     )
     if not removal_filters:
         removal_ok = False
@@ -285,18 +297,22 @@ async def get_feed_links(feed_type, feed_info):
     UUID = feed_info[0]
     if feed_type == 'rss':
         URL = feed_info[2]
+        feed_db_filter = envs.rss_db_filter_schema
+        feed_db_log = envs.rss_db_log_schema
     elif feed_type == 'youtube':
         URL = envs.YOUTUBE_RSS_LINK.format(feed_info[9])
+        feed_db_filter = envs.youtube_db_filter_schema
+        feed_db_log = envs.youtube_db_log_schema
     # Get the url and make it parseable
     req = await net_io.get_link(URL)
     if req is not None:
         filters_db = await db_helper.get_output(
-            template_info=envs.rss_db_filter_schema,
+            template_info=feed_db_filter,
             select=('allow_or_deny', 'filter'),
             where=[('uuid', UUID)]
         )
         log_db = await db_helper.get_output(
-            template_info=envs.rss_db_log_schema,
+            template_info=feed_db_log,
             where=[('uuid', UUID)]
         )
         links_out = await get_items_from_rss(
@@ -448,12 +464,12 @@ async def review_feeds_status(feed_type: str = None):
     if feed_type not in ['rss', 'youtube']:
         log.log('`feed_type` must be `rss` or `youtube`')
         return False
+    if feed_type == 'rss':
+        feed_db = envs.rss_db_schema
+    elif feed_type == 'youtube':
+        feed_db = envs.youtube_db_schema
     feeds_status_db_in = await db_helper.get_output(
-        template_info=envs.rss_db_schema,
-        select=(
-            'uuid', 'feed_name', 'url', 'status_url', 'status_url_counter',
-            'channel', 'status_channel'
-        ),
+        template_info=feed_db,
         order_by=[('feed_name', 'DESC')]
     )
     if feeds_status_db_in is None:
@@ -464,7 +480,10 @@ async def review_feeds_status(feed_type: str = None):
         log.debug('Got this feed: ', pretty=feed)
         UUID = feed[0]
         FEED_NAME = feed[1]
-        URL = feed[2]
+        if feed_type == 'rss':
+            URL = feed[2]
+        elif feed_type == 'youtube':
+            URL = envs.YOUTUBE_RSS_LINK.format(feed[9])
         URL_STATUS = feed[3]
         URL_STATUS_COUNTER = feed[4]
         if not isinstance(URL_STATUS_COUNTER, int):
@@ -514,8 +533,8 @@ async def review_feeds_status(feed_type: str = None):
                 db_updates['status_url_counter'].append(
                     ('uuid', UUID, (URL_STATUS_COUNTER + 1))
                 )
-        CHANNEL = feed[5]
-        CHANNEL_STATUS = feed[6]
+        CHANNEL = feed[3]
+        CHANNEL_STATUS = feed[8]
         if CHANNEL in discord_commands.get_text_channel_list():
             log.log(
                 'Feed channel {} for {} is ok'.format(
@@ -543,7 +562,7 @@ async def review_feeds_status(feed_type: str = None):
     else:
         log.verbose(f'Updating db with `db_updates`: {db_updates}')
         await db_helper.update_fields(
-            template_info=envs.rss_db_schema,
+            template_info=feed_db,
             updates=db_updates
         )
         return True
@@ -555,6 +574,8 @@ def link_similar_to_logged_post(link: str, feed_log: list):
     If similiar, return the similar link from log.
     If no links are found to be similar, return None.
     '''
+    if feed_log is None:
+        return False
     for log_item in feed_log:
         if file_io.check_similarity(log_item[0], link):
             return True
@@ -562,6 +583,9 @@ def link_similar_to_logged_post(link: str, feed_log: list):
 
 
 def link_is_in_log(link, log_in):
+    if log_in is None:
+        log.verbose('Log is empty')
+        return False
     try:
         if link not in [log_url[0] for log_url in log_in]:
             log.verbose('Link not in log')
@@ -576,7 +600,7 @@ def link_is_in_log(link, log_in):
 
 
 async def process_links_for_posting_or_editing(
-    uuid, feed, FEED_POSTS, CHANNEL
+    feed_type: str, uuid, FEED_POSTS, CHANNEL
 ):
     '''
     Compare `FEED_POSTS` to posts belonging to `feed` to see if they already
@@ -595,9 +619,16 @@ async def process_links_for_posting_or_editing(
         'Starting `process_links_for_posting_or_editing`',
         sameline=True
     )
+    if feed_type not in ['rss', 'youtube']:
+        log.log('Function requires `feed_type`')
+        return None
+    if feed_type == 'rss':
+        feed_db_log = envs.rss_db_log_schema
+    elif feed_type == 'youtube':
+        feed_db_log = envs.youtube_db_log_schema
     log.debug(f'Here\'s the `FEED_POSTS`: {FEED_POSTS}')
     FEED_LOG = await db_helper.get_output(
-        template_info=envs.rss_db_log_schema,
+        template_info=feed_db_log,
         select='url',
         where=[('uuid', uuid)]
     )
@@ -615,7 +646,7 @@ async def process_links_for_posting_or_editing(
                 await discord_commands.post_to_channel(CHANNEL, feed_link)
                 # Add link to log
                 await db_helper.insert_many_all(
-                    template_info=envs.rss_db_log_schema,
+                    template_info=feed_db_log,
                     inserts=[
                         (uuid, feed_link, str(
                             datetime_handling.get_dt(
@@ -632,7 +663,7 @@ async def process_links_for_posting_or_editing(
                 )
                 # Replace original link with new
                 await db_helper.update_fields(
-                    template_info=envs.rss_db_log_schema,
+                    template_info=feed_db_log,
                     where=[
                         ('url', feed_link_similar)
                     ],
