@@ -69,7 +69,7 @@ testing_args.add_argument('--not-write-database', '-nwd',
                           dest='not_write_database')
 
 maintenance_args = parser.add_argument_group('Maintenance')
-maintenance_args.add_argument('--maintenance', '-m',
+maintenance_args.add_argument('--maintenance',
                               help='Start the bot in maintenance mode',
                               action='store_true',
                               default=False,
