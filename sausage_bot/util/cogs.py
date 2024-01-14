@@ -257,8 +257,7 @@ def get_cogs_list(cogs_file):
     log.debug(f'Got this from `cogs_file`: {cogs_file}')
     text_out = '```{}```'.format(
         tabulate(
-            cogs_file, headers=['Cog', 'Status'],
-            tablefmt='presto'
+            cogs_file, headers=['Cog', 'Status']
         )
     )
     log.debug(f'Returning:\n{text_out}')

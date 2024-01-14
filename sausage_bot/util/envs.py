@@ -195,6 +195,15 @@ stats_db_schema = {
     'items': [
         'setting TEXT NOT NULL',
         'value TEXT NOT NULL'
+    ],
+    'inserts': [
+        ['channel', ''],
+        ['hide_role', ''],
+        ['hide_bot_roles', True],
+        ['show_code_stats', False],
+        ['show_role_stats', True],
+        ['sort_roles_abc', False],
+        ['sort_roles_321', False]
     ]
 }
 

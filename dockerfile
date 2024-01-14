@@ -13,4 +13,4 @@ RUN pipenv install --system --deploy --ignore-pipfile
 VOLUME [ "/data" ]
 
 # Run bot
-ENTRYPOINT ["python", "-m", "sausage_bot", "-l", "-lm", "-lp", "-d", "--data-dir", "/data"]
+CMD ["python", "-m", "sausage_bot", "--log", "--verbose", "--log-print", "--log-database", "--debug", "--data-dir", "/data"]

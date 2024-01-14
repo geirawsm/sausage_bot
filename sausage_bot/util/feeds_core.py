@@ -445,8 +445,7 @@ async def get_feed_list(
     table_out = tabulate(
         tabular_data=feeds_out,
         headers=headers,
-        maxcolwidths=maxcolwidths,
-        tablefmt='presto'
+        maxcolwidths=maxcolwidths
     )
     return split_lengthy_list(table_out)
 

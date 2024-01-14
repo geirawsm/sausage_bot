@@ -9,13 +9,15 @@ from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.log import log
 
 
-def get_role_numbers():
+def get_role_numbers(hide_bots: bool = None):
     'Get roles and number of members'
-    guild = discord_commands.get_guild()
-    member_count = guild.member_count
+    log.debug(f'`hide_bots` is {hide_bots}')
+    roles_info = discord_commands.get_roles(
+        filter_zeroes=True, filter_bots=hide_bots
+    )
     return {
-        'member_count': member_count,
-        'roles': discord_commands.get_roles(filter_zeroes=True)
+        'member_count': len(roles_info),
+        'roles': roles_info
     }
 
 
@@ -44,29 +46,38 @@ class Stats(commands.Cog):
         self.bot = bot
 
     # Tasks
-    @tasks.loop(minutes=5)
+    @tasks.loop(
+        minutes=config.env.int('STATS_LOOP', default=5)
+    )
     async def update_stats():
         '''
         Update interesting stats in a channel post and write the info to
         the log db.
         The channel is defined in stats settings db.
         '''
-        def tabify(
+        async def tabify(
             dict_in: dict,
             headers: list,
         ):
-            hide_roles = stats_settings['hide_roles']
-            hide_roles_lower = [x.lower() for x in hide_roles]
+            hide_roles = await db_helper.get_output(
+                template_info=envs.stats_db_schema,
+                select=('value'),
+                where=[('setting', 'hide_role')]
+            )
+            hide_roles_lower = [x[0].lower() for x in hide_roles]
             # TODO var msg
             log.debug(f'Using this for filter:\n{hide_roles_lower}')
             text_out = ''
             if isinstance(dict_in, dict):
                 log.debug(
                     'Checking `sort_abc` ({}) and `sort_321` ({})'.format(
-                        stats_settings['sort_roles_abc'],
-                        stats_settings['sort_roles_321']
+                        eval(stats_settings['sort_roles_abc']),
+                        eval(stats_settings['sort_roles_321'])
                     )
                 )
+                if not eval(stats_settings['sort_roles_abc']) and\
+                        not eval(stats_settings['sort_roles_321']):
+                    stats_settings['sort_roles_abc'] = True
                 if stats_settings['sort_roles_abc']:
                     dict_in = dict(sorted(
                         dict_in.items(), key=lambda x: x[1]['name']
@@ -74,7 +85,7 @@ class Stats(commands.Cog):
                     log.debug(
                         f'Sorting roles alphabetically: {list(dict_in)[0:4]}'
                     )
-                if stats_settings['sort_roles_321']:
+                elif eval(stats_settings['sort_roles_321']):
                     dict_in = dict(sorted(
                         dict_in.items(), key=lambda x: x[1]['members'],
                         reverse=True
@@ -83,6 +94,7 @@ class Stats(commands.Cog):
                         f'Sorting roles by number of members: '
                         f'{list(dict_in)[0:4]}'
                     )
+
                 # Tabulate the output
                 dict_out = {
                     'name': [],
@@ -92,6 +104,7 @@ class Stats(commands.Cog):
                     if role.lower() not in hide_roles_lower:
                         if role != '@everyone':
                             # Add an if to check for filter bot roles
+
                             dict_out['name'].append(dict_in[role]['name'])
                             dict_out['members'].append(
                                 dict_in[role]['members']
@@ -112,6 +125,7 @@ class Stats(commands.Cog):
                 template_info=envs.stats_db_schema
             )
         )
+        log.debug(f'`stats_settings` is {stats_settings}')
         if stats_settings['channel']:
             stats_channel = stats_settings['channel']
         else:
@@ -122,18 +136,29 @@ class Stats(commands.Cog):
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
         # Get server members
-        members = get_role_numbers()
-        # Update log database if not alredy this day
+        members = get_role_numbers(
+            hide_bots=eval(stats_settings['hide_bot_roles'])
+        )
+        # Update log database if not already this day
+        log.debug('Logging stats')
         date_exist = await db_helper.get_output(
             template_info=envs.stats_db_log_schema,
             order_by=[('datetime', 'DESC')],
             single=True
         )
-        if datetime_handling.get_dt(
-            format='date'
-        ) > datetime_handling.get_dt(
-            format='date', dt=date_exist[0]
-        ):
+        log_stats = False
+        if date_exist:
+            if datetime_handling.get_dt(
+                format='date'
+            ) > datetime_handling.get_dt(
+                format='date', dt=date_exist
+            ):
+                log_stats = True
+            else:
+                log.verbose('Today has already been logged, skipping...')
+        elif date_exist is None:
+            log_stats = True
+        if log_stats:
             stats_log_inserts.append(
                 (
                     str(datetime_handling.get_dt('ISO8601')),
@@ -146,22 +171,26 @@ class Stats(commands.Cog):
                 template_info=envs.stats_db_log_schema,
                 inserts=stats_log_inserts
             )
-        else:
-            log.verbose('Today has already been logged, skipping...')
         # Update the stats-msg
-        if stats_settings['show_role_stats']:
+        if eval(stats_settings['show_role_stats']):
             total_members = members['member_count']
-            roles_members = tabify(
+            roles_members = await tabify(
                 dict_in=members['roles'], headers=['Rolle', 'Brukere']
             )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
-        if stats_settings['show_role_stats']:
-            stats_msg += f'> Medlemmer\n```'\
+        log.debug('`show_role_stats` is {})'.format(
+            stats_settings['show_role_stats']
+        ))
+        if eval(stats_settings['show_role_stats']):
+            stats_msg += f'### Medlemmer\n```'\
                 f'Antall medlemmer: {total_members}\n\n'\
                 f'{roles_members}```\n'
-        if stats_settings['show_code_stats']:
-            stats_msg += f'> Kodebase\n```'\
+        log.debug('`show_code_stats` is {}'.format(
+            stats_settings['show_code_stats']
+        ))
+        if eval(stats_settings['show_code_stats']):
+            stats_msg += f'### Kodebase\n```'\
                 f'Antall filer med kode: {files_in_codebase}\n'\
                 f'Antall linjer med kode: {lines_in_codebase}```\n'
         stats_msg += f'```(Serverstats sist oppdatert: {dt_log})```\n'
@@ -186,7 +215,7 @@ async def setup(bot):
     log.verbose('Checking db')
     # Convert json to sqlite db-files if exists
     stats_file_inserts = None
-    stats_settings_inserts = None
+    stats_settings_inserts = envs.stats_db_schema['inserts']
     stats_log_inserts = None
     if file_io.file_size(envs.stats_file):
         log.verbose('Found old json file')

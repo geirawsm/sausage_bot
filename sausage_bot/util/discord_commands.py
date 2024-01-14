@@ -133,16 +133,21 @@ def get_sorted_scheduled_events():
     return out
 
 
-def get_roles(filter_zeroes=None):
+def get_roles(filter_zeroes=None, filter_bots=None):
     '''
     Get a dict of all roles on server and their ID's
     #autodoc skip#
     '''
+    log.debug(f'`filter_zeroes` is {filter_zeroes}')
+    log.debug(f'`filter_bots` is {filter_bots}')
     roles_dict = {}
     # Get all roles and their IDs
     for role in get_guild().roles:
         if filter_zeroes and len(role.members) == 0:
             continue
+        if filter_bots:
+            if role.is_bot_managed():
+                continue
         roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
@@ -217,11 +222,12 @@ async def update_stats_post(stats_info, stats_channel):
     '''
     server_channels = get_text_channel_list()
     if stats_channel in server_channels:
+        log.debug(f'Found stats channel {stats_channel}')
         channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
             # TODO var msg
-            log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}')
+            log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
                     # TODO var msg

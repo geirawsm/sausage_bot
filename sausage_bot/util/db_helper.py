@@ -333,6 +333,7 @@ async def insert_many_all(
     input_singles = False
     input_multiples = False
     _cmd = f'INSERT INTO {table_name} VALUES('
+    print(inserts)
     if isinstance(inserts[0], str):
         _cmd += ', '.join('?'*len(inserts))
         input_singles = True

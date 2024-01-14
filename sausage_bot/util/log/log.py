@@ -43,25 +43,28 @@ def log_function(
     pretty          Prettify specific output. Works on dict, list and tuple
     sameline        Reuse line for next output
     '''
-    if color is None:
-        color = Fore.GREEN
-    else:
-        color = eval('Fore.{}'.format(color.upper()))
-    if extra_color is None:
-        extra_color = Fore.GREEN
-    else:
-        extra_color = eval('Fore.{}'.format(extra_color.upper()))
+    if args.log_print:
+        if color is None:
+            color = Fore.GREEN
+        else:
+            color = eval('Fore.{}'.format(color.upper()))
+        if extra_color is None:
+            extra_color = Fore.GREEN
+        else:
+            extra_color = eval('Fore.{}'.format(extra_color.upper()))
     function_name = log_func_name()
-    if args.log_highlight is not None and str(args.log_highlight)\
-            in function_name['name']:
-        color = Fore.RED
+    if args.log_print:
+        if args.log_highlight is not None and str(args.log_highlight)\
+                in function_name['name']:
+            color = Fore.RED
     dt = pendulum.now(config.TIMEZONE)
     _dt_full = dt.format(f'DD.MM.YYYY HH.mm.ss')
-    log_out = '{color}{style}[ {dt} ] '.format(
-        color=color,
-        style=Style.BRIGHT,
-        dt=_dt_full
-    )
+    if args.log_print:
+        log_out = '{color}{style}[ {dt} ] '.format(
+            color=color,
+            style=Style.BRIGHT,
+            dt=_dt_full
+        )
     if args.log_print:
         if extra_info:
             log_out += '[ {extra_info} ]'.format(
@@ -87,7 +90,6 @@ def log_function(
         else:
             log_out += str(log_in)
             if sameline:
-                # TODO Denne fungerer nok kanskje ikke helt som forventa?
                 try:
                     max_cols, max_rows = os.get_terminal_size(0)
                 except (OSError):
@@ -95,7 +97,7 @@ def log_function(
                 msg_len = len(str(log_out))
                 rem_len = max_cols - msg_len - 2
                 print('{}{}'.format(
-                    log_out, ' ' * rem_len
+                    log_out, ' '*rem_len
                 ), end='\r')
             else:
                 print(log_out)
@@ -105,7 +107,6 @@ def log_function(
         log_out += '[ {} ] '.format(function_name['name'])
         log_out += str(log_in)
     else:
-        log_out += '\n'
         dt = pendulum.now(config.TIMEZONE)
         _dt_rev = dt.format(f'YYYY-MM-DD HH.mm.ss')
         _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
