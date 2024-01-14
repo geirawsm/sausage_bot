@@ -540,7 +540,7 @@ async def setup(bot):
         file_io.remove_file(envs.rss_feeds_logs_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(RSSfeed(bot))
-    rss_parse.start()
+    RSSfeed.rss_parse.start()
 
 
 async def teardown(bot):
