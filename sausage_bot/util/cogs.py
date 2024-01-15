@@ -26,14 +26,20 @@ class Loading:
     '''
     async def change_cog_status(cog_name, status):
         '''
-        Change a cog status in the status file
+        Change a cog status
 
-        `cog_name` should be name of cog
-
-        `status` should be `enable` or `disable`
+        Parameters
+        ------------
+        cog_name: str
+            Name of cog (default: None)
+        status: str
+            `enable` or `disable` (default: None)
         #autodoc skip#
         '''
         accepted_status = ['enable', 'e', 'disable', 'd']
+        if cog_name is None:
+            log.log('Need a cog name')
+            return False
         if not any(status == ok_status for ok_status in accepted_status):
             log.log(
                 'This command only accept `enable` (e) or `disable` (d)'
@@ -186,19 +192,50 @@ async def cog(ctx, cmd_in=None, *cog_names):
 
     async def action_on_cog(cmd_in, cog_names):
         '#autodoc skip#'
+        cogs_in_db = await db_helper.get_output(
+            template_info=envs.cogs_db_schema,
+            order_by=[('cog_name', 'ASC')]
+        )
+        non_existing_cogs = []
+        existing_cogs = []
+        enabled_cogs = []
+        disabled_cogs = []
+        for cog_name in cog_names:
+            if cog_name not in [name[0] for name in cogs_in_db]:
+                if cog_name != 'all':
+                    non_existing_cogs.append(cog_name)
+            else:
+                existing_cogs.append(cog_name)
+        log.debug(f'`non_existing_cogs` is {non_existing_cogs}')
+        log.debug(f'`existing_cogs` is {existing_cogs}')
+        if len(non_existing_cogs) > 0:
+            # TODO var msg
+            await ctx.send(
+                'Cogs {} does not exist'.format(
+                    ', '.join(f'`{name}`' for name in non_existing_cogs)
+                )
+            )
+        if len(existing_cogs) <= 0:
+            log.debug('No cogs to process')
+            return None
         if cmd_in in ['enable', 'e']:
-            for cog_name in cog_names:
+            for cog_name in existing_cogs:
                 await Loading.load_cog(cog_name)
                 await Loading.change_cog_status(cog_name, 'enable')
+                enabled_cogs.append(cog_name)
         elif cmd_in in ['disable', 'd']:
-            for cog_name in cog_names:
+            for cog_name in existing_cogs:
                 await Loading.unload_cog(cog_name)
                 await Loading.change_cog_status(cog_name, 'disable')
+                disabled_cogs.append(cog_name)
         elif not cmd_in:
             await ctx.send(
                 envs.COGS_TOO_FEW_ARGUMENTS
             )
-            return
+        return {
+            'enabled_cogs': enabled_cogs,
+            'disabled_cogs': disabled_cogs
+        }
 
     if cmd_in in ['enable', 'e', 'disable', 'd']:
         if cmd_in == 'e':
@@ -221,12 +258,13 @@ async def cog(ctx, cmd_in=None, *cog_names):
         cogs_db = [name[0] for name in cogs_db]
         if cog_names[0] == 'all':
             # Use all names from cogs_db
-            await action_on_cog(cmd_in, cogs_db)
+            _action = await action_on_cog(cmd_in, cogs_db)
         else:
             # Only use given names in function
-            await action_on_cog(cmd_in, cog_names)
-        await ctx.send(conf_msg)
-        return True
+            _action = await action_on_cog(cmd_in, cog_names)
+        if _action is not None:
+            await ctx.send(conf_msg)
+            return True
     elif cmd_in == 'list':
         # List cogs and their status
         cogs_db = await db_helper.get_output(
