@@ -45,6 +45,92 @@ class Stats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.group(name='stats')
+    async def stats_cmd(self, ctx):
+        'Administer statistikk'
+        pass
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @stats_cmd.group(name='list', invoke_without_command=True)
+    async def list_settings(self, ctx):
+        '''
+        List the available settings for this cog
+        '''
+        settings_in_db = await db_helper.get_output(
+            template_info=envs.stats_db_schema,
+            select=('setting', 'value', 'value_help')
+        )
+        headers = ['Setting', 'Value', 'Value type']
+        await ctx.reply(
+            '```{}```'.format(
+                tabulate(settings_in_db, headers=headers)
+            )
+        )
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @stats_cmd.group(name='setting', invoke_without_command=True)
+    async def stats_setting(
+        self, ctx, name_of_setting: str = None, value_in: str = None
+    ):
+        '''
+        Change a setting for this cog
+
+        Parameters
+        ------------
+        name_of_setting: str
+            The names of the role to add (default: None)
+        value_in: str
+            The value of the settings (default: None)
+        '''
+        settings_in_db = await db_helper.get_output(
+            template_info=envs.stats_db_schema,
+            select=('setting', 'value', 'value_check')
+        )
+        if name_of_setting not in [name[0] for name in settings_in_db]:
+            await ctx.reply('Setting is not found')
+            return
+        for setting in settings_in_db:
+            if setting[0] == name_of_setting:
+                if setting[2] == 'bool':
+                    try:
+                        value_in = eval(str(value_in).capitalize())
+                    except NameError as e:
+                        log.log(f'Invalid input for `value_in`: {e}')
+                        # TODO var msg
+                        await ctx.reply(
+                            'Input `value_in` needs to be `True` or `False`'
+                        )
+                        return
+                log.debug(f'`value_in` is {value_in} ({type(value_in)})')
+                log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
+                if type(value_in) is eval(setting[2]):
+                    await db_helper.update_fields(
+                        template_info=envs.stats_db_schema,
+                        where=[('setting', name_of_setting)],
+                        updates=[('value', value_in)]
+                    )
+                await ctx.message.add_reaction('✅')
+                Stats.update_stats.restart()
+                break
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @stats_cmd.group(name='reload', invoke_without_command=True)
+    async def stats_reload(self, ctx):
+        '''Reload the stats task'''
+        await ctx.message.add_reaction('✅')
+        Stats.update_stats.restart()
+        return
+
     # Tasks
     @tasks.loop(
         minutes=config.env.int('STATS_LOOP', default=5)
@@ -122,7 +208,8 @@ class Stats(commands.Cog):
         log.log('Starting `update_stats`')
         stats_settings = dict(
             await db_helper.get_output(
-                template_info=envs.stats_db_schema
+                template_info=envs.stats_db_schema,
+                select=('setting', 'value')
             )
         )
         log.debug(f'`stats_settings` is {stats_settings}')

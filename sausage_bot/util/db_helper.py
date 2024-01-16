@@ -457,7 +457,7 @@ async def insert_single(
         log.log('`table_name` is None')
         return None
     _cmd = f'''INSERT INTO {table_name} ({field_name})
-              VALUES(?)'''
+               VALUES(?)'''
     log.db(f'Using this query: {_cmd}')
     if args.not_write_database:
         log.verbose('`not_write_database` activated')

@@ -194,16 +194,18 @@ stats_db_schema = {
     'name': 'settings',
     'items': [
         'setting TEXT NOT NULL',
-        'value TEXT NOT NULL'
+        'value TEXT NOT NULL',
+        'value_check TEXT',
+        'value_help TEXT'
     ],
     'inserts': [
-        ['channel', ''],
-        ['hide_role', ''],
-        ['hide_bot_roles', True],
-        ['show_code_stats', False],
-        ['show_role_stats', True],
-        ['sort_roles_abc', False],
-        ['sort_roles_321', False]
+        ['channel', '', 'str', 'Text'],
+        ['hide_role', '', 'str', 'Text'],
+        ['hide_bot_roles', 'True', 'bool', 'True/False'],
+        ['show_code_stats', 'False', 'bool', 'True/False'],
+        ['show_role_stats', 'True', 'bool', 'True/False'],
+        ['sort_roles_abc', 'True', 'bool', 'True/False'],
+        ['sort_roles_321', 'False', 'bool', 'True/False']
     ]
 }
 
