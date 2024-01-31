@@ -487,6 +487,10 @@ ROLES_KEY_PHRASES = [
     'Timed out'
 ]
 
+# COG - DILEMMAS
+DILEMMAS_NO_DILEMMAS_IN_DB = 'Fant ingen lagrede dilemmas'
+DILEMMAS_COUNT = 'Fant {} dilemma'
+
 
 if __name__ == "__main__":
     pass

@@ -61,8 +61,7 @@ async def prep_table(
             return None
     delete_json_ok = False
     if old_inserts:
-        db_rows = await get_row_ids(table_temp)
-        db_len = len(db_rows)
+        db_len = len(await get_row_ids(table_temp))
         if db_len <= 0:
             log.verbose('Inserting old info into db file')
             await insert_many_all(
@@ -295,13 +294,6 @@ def json_to_db_inserts(cog_name):
             'filter': yt_filter_inserts,
             'logs': yt_logs_inserts
         }
-    elif cog_name == 'cogs':
-        cogs_file = file_io.read_json(envs.cogs_status_file)
-        cogs_inserts = []
-        for cog in cogs_file:
-            cogs_inserts.append((cog, cogs_file[cog]))
-        log.verbose(f'Got this for `cogs_inserts`:\n{cogs_inserts}')
-        return cogs_inserts
     log.log('Converting done!')
 
 
@@ -418,14 +410,12 @@ async def insert_many_some(
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.executemany(_cmd, inserts)
-                db_last_row = None
                 await db.commit()
                 log.debug(
                     'Changed {} rows'.format(
                         db.total_changes
                     )
                 )
-            return db_last_row
         except aiosqlite.OperationalError as e:
             log.db(f'Error: {e}')
             return None
@@ -829,15 +819,18 @@ async def get_output_by_rowid(
         return None
 
 
-async def get_row_ids(template_info):
+async def get_row_ids(template_info, sort=False):
     db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'SELECT rowid FROM {table_name}'
+    if sort:
+        _cmd += ' ORDER BY rowid'
     log.db(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             out = await db.execute(_cmd)
             out = await out.fetchall()
+            return [id[0] for id in out]
             return out
     except aiosqlite.OperationalError:
         return None
