@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+import discord
 from discord.ext import commands
 from discord.ext.commands.errors import InvalidEndOfQuotedStringError
 import typing
@@ -11,15 +12,60 @@ from sausage_bot.util import config, envs, discord_commands, db_helper, file_io
 from sausage_bot.util.log import log
 
 
+class EditButtons(discord.ui.View):
+    def __init__(self, *, timeout=10):
+        super().__init__(timeout=None)
+        self.value = None
+
+    @discord.ui.button(
+        label="Yes, edit", style=discord.ButtonStyle.green,
+        custom_id='edit_yes'
+    )
+    async def edit_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.value = True
+        # Disable all buttons
+        buttons = [x for x in self.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        # Update message
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @discord.ui.button(
+        label="Do not edit!", style=discord.ButtonStyle.red
+    )
+    async def do_not_edit_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.value = False
+        # Disable all buttons
+        buttons = [x for x in self.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        # Update message
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+
 class Quotes(commands.Cog):
     'Administer or post quotes'
 
     def __init__(self, bot):
         self.bot = bot
+        super().__init__()
 
-    @commands.group(name='quote')
+    group = discord.app_commands.Group(
+        name="quote", description='Quotes'
+    )
+
+    @group.command(
+        name="post", description="Post a random dilemma"
+    )
     async def quote(
-            self, ctx, number: typing.Optional[int] = None
+            self, interaction: discord.Interaction,
+            number: typing.Optional[int] = None
     ):
         '''
         Post, add, edit, delete or count quotes
@@ -74,63 +120,67 @@ class Quotes(commands.Cog):
                 ('rowid', 'uuid', 'quote_text', 'datetime')
             )
 
-        if ctx.invoked_subcommand is None:
-            # If no `number` is given, get a random quote
-            if not number:
-                log.debug('No quote number given')
+        await interaction.response.defer()
+        # If no `number` is given, get a random quote
+        if not number:
+            log.debug('No quote number given')
+            random_quote = await get_random_quote()
+            if len(random_quote) == 0:
+                await db_helper.empty_table(envs.quote_db_log_schema)
                 random_quote = await get_random_quote()
-                if len(random_quote) == 0:
-                    await db_helper.empty_table(envs.quote_db_log_schema)
-                    random_quote = await get_random_quote()
-                log.db(f'Got `random_quote`: {random_quote}')
-                # Post quote
-                quote_number = random_quote[0][0]
-                quote_text = random_quote[0][2]
+            log.db(f'Got `random_quote`: {random_quote}')
+            # Post quote
+            quote_number = random_quote[0][0]
+            quote_text = random_quote[0][2]
+            quote_date = get_dt(
+                format='datetextfull',
+                dt=random_quote[0][3]
+            )
+            _quote = prettify(quote_number, quote_text, quote_date)
+            log.verbose(f'Posting this quote:\n{_quote}')
+            quote_post = await interaction.followup.send(_quote)
+            await db_helper.insert_many_some(
+                envs.quote_db_log_schema,
+                ('uuid', 'ctx_id'),
+                [
+                    (
+                        random_quote[0][1],
+                        quote_post.id
+                    )
+                ]
+            )
+            return
+        # If `number` is given, get that specific quote
+        elif number:
+            log.debug(f'Got quote number {number}')
+            quote = await db_helper.get_output_by_rowid(
+                envs.quote_db_schema, number
+            )
+            if len(quote) > 0:
+                quote_text = quote[0][2]
                 quote_date = get_dt(
                     format='datetextfull',
-                    dt=random_quote[0][3]
+                    dt=quote[0][3]
                 )
-                _quote = prettify(quote_number, quote_text, quote_date)
-                log.verbose(f'Posting this quote:\n{_quote}')
-                quote_post = await ctx.send(_quote)
-                await db_helper.insert_many_some(
-                    envs.quote_db_log_schema,
-                    ('uuid', 'ctx_id'),
-                    [
-                        (
-                            random_quote[0][1],
-                            quote_post.id
-                        )
-                    ]
+                _quote = prettify(number, quote_text, quote_date)
+                await interaction.followup.send(_quote)
+                return
+            else:
+                await interaction.followup.send(
+                    envs.QUOTE_DOES_NOT_EXIST.format(number)
                 )
                 return
-            # If `number` is given, get that specific quote
-            elif number:
-                log.debug(f'Got quote number {number}')
-                quote = await db_helper.get_output_by_rowid(
-                    envs.quote_db_schema, number
-                )
-                if len(quote) > 0:
-                    quote_text = quote[0][2]
-                    quote_date = get_dt(
-                        format='datetextfull',
-                        dt=quote[0][3]
-                    )
-                    _quote = prettify(number, quote_text, quote_date)
-                    await ctx.send(_quote)
-                    return
-                else:
-                    await ctx.send(envs.QUOTE_DOES_NOT_EXIST.format(number))
-                    return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @quote.group(name='add')
+    @group.command(
+        name="add", description="Add a quote"
+    )
     async def quote_add(
-        self, ctx, quote_text: str,
-        quote_date: str = None
+        self, interaction: discord.Interaction,
+        quote_text: str, quote_date: str = None
     ):
         '''
         Add a quote: `!quote add [quote_text] ([quote_date])`
@@ -148,6 +198,9 @@ class Quotes(commands.Cog):
         int or float
             Expected results.
         '''
+        await interaction.response.defer(
+            ephemeral=True
+        )
         # Datetime will be saved as ISO8601:
         # YYYY-MM-DD HH:MM:SS.SSS
         if quote_date is None:
@@ -155,18 +208,22 @@ class Quotes(commands.Cog):
         else:
             iso_date = get_dt(format='ISO8601', dt=quote_date)
         # Add the quote
-        row_id = await db_helper.insert_many_some(
+        await db_helper.insert_many_some(
             envs.quote_db_schema,
             ('uuid', 'quote_text', 'datetime'),
             [
                 (str(uuid.uuid4()), quote_text, iso_date)
             ]
         )
+        last_row_id = await db_helper.get_row_ids(
+            envs.quote_db_schema,
+        )
         # Confirm that the quote has been saved
-        await ctx.message.reply(
+        await interaction.followup.send(
             envs.QUOTE_ADD_CONFIRMATION.format(
-                row_id, quote_text, iso_date
-            )
+                last_row_id, quote_text, iso_date
+            ),
+            ephemeral=True
         )
         return
 
@@ -174,10 +231,12 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @quote.group(name='edit')
+    @group.command(
+        name="edit", description="Edit an existing quote"
+    )
     async def quote_edit(
-        self, ctx, quote_number: int = None,
-        quote_in: str = None, custom_date: str = None
+        self, interaction: discord.Interaction, quote_number: int,
+        quote_in: str, custom_date: str = None
     ):
         '''
         Edit an existing quote:
@@ -186,61 +245,136 @@ class Quotes(commands.Cog):
         Parameters
         ------------
         quote_number: int
-            The number of quote to edit (default: None)
+            The number of quote to edit
         quote_in: str
-            The quote text (must be enclosed in quotation marks)
-            (default: None)
+            The quote text
         custom_date: str
                 Set a different date and time (default: None)
         '''
+        await interaction.response.defer(ephemeral=True)
         # Typecheck `quote_number`
         if quote_number is None or 0 >= int(quote_number):
-            log.log(envs.QUOTE_EDIT_NO_NUMBER_GIVEN)
+            log.log(envs.QUOTE_NO_NUMBER_GIVEN)
+            await interaction.followup.send(
+                envs.QUOTE_NO_NUMBER_GIVEN,
+                ephemeral=True
+            )
             return
         if quote_in is None:
             log.log(envs.QUOTE_EDIT_NO_TEXT_GIVEN)
-            return
-        quote_check = await db_helper.get_output_by_rowid(
-            envs.quote_db_schema,
-            quote_number
-        )
-        if len(quote_check) <= 0:
-            await ctx.message.reply(
-                f'Sitat nummer {quote_number} finnes ikke.'
+            await interaction.followup.send(
+                envs.QUOTE_EDIT_NO_TEXT_GIVEN,
+                ephemeral=True
             )
             return
-        log.verbose('Endrer sitat nummer {}'.format(quote_number))
-        # If no date is specified through `custom_date`, use the existing
-        # date and time
-        if custom_date is None:
-            quote_date = quote_check[0][3]
-        else:
+        quote_row_check = await db_helper.get_row_ids(
+            envs.quote_db_schema, sort=True
+        )
+        if len(quote_row_check) <= 0:
+            await interaction.followup.send(
+                'Har ingen sitater', ephemeral=True)
+            return
+        quote_index = range(0, len(quote_row_check)-1)
+        proper_row_id = quote_row_check[quote_index[quote_number-1]]
+        show_quote = await db_helper.get_output_by_rowid(
+            envs.quote_db_schema, rowid=proper_row_id
+        )
+        if custom_date:
             quote_date = custom_date
-        old_qt = quote_check[0][2]
-        old_dt = quote_date
-        await ctx.message.reply(
-            envs.QUOTE_EDIT_CONFIRMATION.format(
-                quote_number, old_qt,
+        else:
+            quote_date = show_quote[0][3]
+        view_buttons = EditButtons()
+        await interaction.followup.send(
+            envs.QUOTE_EDIT_NEED_CONFIRMATION.format(
+                quote_number, show_quote[0][2],
                 get_dt(
                     format='datetextfull',
-                    dt=old_dt
+                    dt=show_quote[0][3]
                 ), quote_in,
                 get_dt(
                     format='datetextfull',
                     dt=quote_date
                 )
-            )
+            ),
+            view=view_buttons,
+            ephemeral=True
         )
-        # Update quote
-        await db_helper.update_fields(
-            template_info=envs.quote_db_schema,
-            where=[
-                ('rowid', quote_number)
-            ],
-            updates=[
-                ('quote_text', quote_in),
-                ('datetime', quote_date)
-            ]
+        await view_buttons.wait()
+        log.debug(f'Got `view_buttons.value`: {view_buttons.value}')
+        if view_buttons.value:
+            log.verbose('Endrer sitat nummer {}'.format(quote_number))
+            # Update quote
+            await db_helper.update_fields(
+                template_info=envs.quote_db_schema,
+                where=[
+                    ('rowid', quote_row_check[quote_index[quote_number-1]])
+                ],
+                updates=[
+                    ('quote_text', quote_in),
+                    ('datetime', quote_date)
+                ]
+            )
+            await interaction.followup.send(
+                envs.QUOTE_EDIT_CONFIRMED,
+                ephemeral=True
+            )
+        elif not view_buttons.value:
+            await interaction.followup.send(
+                envs.QUOTE_NO_EDIT_CONFIRMED,
+                ephemeral=True
+            )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @group.command(
+        name="show", description="Show an existing quote"
+    )
+    async def quote_show(
+        self, interaction: discord.Interaction, quote_number: int,
+        public: typing.Literal['Yes', 'No']
+    ):
+        '''
+        Show an existing quote:
+        `!quote show [quote_number]`
+
+        Parameters
+        ------------
+        quote_number: int
+            The number of quote to edit
+        '''
+        if public == 'Yes':
+            _ephemeral = False
+        elif public == 'No':
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
+        # Typecheck `quote_number`
+        if quote_number is None or 0 >= int(quote_number):
+            log.log(envs.QUOTE_NO_NUMBER_GIVEN)
+            await interaction.followup.send(
+                envs.QUOTE_NO_NUMBER_GIVEN,
+                ephemeral=_ephemeral
+            )
+            return
+        quote_row_check = await db_helper.get_row_ids(
+            envs.quote_db_schema, sort=True
+        )
+        quote_index = range(0, len(quote_row_check)-1)
+        old_quote = await db_helper.get_output_by_rowid(
+            envs.quote_db_schema, rowid=quote_row_check[quote_index[quote_number-1]]
+        )
+        await interaction.followup.send(
+            '```\n#{}\n{}\n({})```'.format(
+                quote_number,
+                old_quote[0][2],
+                get_dt(
+                    format='datetextfull',
+                    dt=old_quote[0][3]
+                )
+            ),
+            ephemeral=_ephemeral
         )
         return
 
@@ -248,9 +382,13 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @quote.group(name='delete', aliases=['del'])
+    @group.command(
+        name="delete", description="Delete a quote"
+    )
     async def quote_delete(
-            self, ctx, quote_number: int = None):
+            self, interaction: discord.Interaction,
+            quote_number: int = None
+    ):
         '''
         Delete an existing quote: `!quote delete [quote_number]`
 
@@ -259,6 +397,8 @@ class Quotes(commands.Cog):
         quote_number: int
             The number of quote to edit (default: None)
         '''
+        await interaction.response.defer()
+
         def check(reaction, user):
             '#autodoc skip#'
             return user == ctx.author and str(reaction.emoji) == '👍'
@@ -268,7 +408,7 @@ class Quotes(commands.Cog):
             quote_number
         )
         log.db(f'quote is: {quote}')
-        await ctx.message.reply(
+        await interaction.followup.send(
             envs.QUOTE_CONFIRM_DELETE.format(
                 quote_number, quote[0][2],
                 get_dt(
@@ -283,7 +423,7 @@ class Quotes(commands.Cog):
                 'reaction_add', timeout=15.0, check=check
             )
         except TimeoutError:
-            await ctx.send(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
+            await ctx.message.reply(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
             sleep(3)
             await discord_commands.delete_bot_msgs(ctx, envs.QUOTE_KEY_PHRASES)
             await ctx.message.delete()
@@ -302,15 +442,20 @@ class Quotes(commands.Cog):
             await ctx.message.delete()
             return
 
-    @quote.group(name='count')
-    async def quote_count(self, ctx):
+    @group.command(
+        name="count", description="Count the number of quotes"
+    )
+    async def quote_count(self, interaction: discord.Interaction):
         'Count the number of quotes available: `!quote count`'
+        await interaction.response.defer()
         quote_count = len(
             await db_helper.get_row_ids(
                 envs.quote_db_schema
             )
         )
-        await ctx.send(envs.QUOTE_COUNT.format(quote_count))
+        await interaction.followup.send(
+            envs.QUOTE_COUNT.format(quote_count)
+        )
         return
 
 
