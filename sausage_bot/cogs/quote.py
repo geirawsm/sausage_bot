@@ -153,8 +153,13 @@ class Quotes(commands.Cog):
         # If `number` is given, get that specific quote
         elif number:
             log.debug(f'Got quote number {number}')
+            quote_row_check = await db_helper.get_row_ids(
+                envs.quote_db_schema, sort=True
+            )
+            quote_index = range(0, len(quote_row_check)-1)
             quote = await db_helper.get_output_by_rowid(
-                envs.quote_db_schema, number
+                envs.quote_db_schema,
+                rowid=quote_row_check[quote_index[number-1]]
             )
             if len(quote) > 0:
                 quote_text = quote[0][2]
@@ -215,13 +220,16 @@ class Quotes(commands.Cog):
                 (str(uuid.uuid4()), quote_text, iso_date)
             ]
         )
-        last_row_id = await db_helper.get_row_ids(
-            envs.quote_db_schema,
+        _row_ids = await db_helper.get_row_ids(
+            envs.quote_db_schema, sort=True
         )
+        last_row_id = _row_ids[-1]
         # Confirm that the quote has been saved
         await interaction.followup.send(
             envs.QUOTE_ADD_CONFIRMATION.format(
-                last_row_id, quote_text, iso_date
+                last_row_id, quote_text, get_dt(
+                    format='datetextfull', dt=iso_date
+                )
             ),
             ephemeral=True
         )
@@ -249,10 +257,10 @@ class Quotes(commands.Cog):
         quote_in: str
             The quote text
         custom_date: str
-                Set a different date and time (default: None)
+                Set a different date and time. Handles several inputs
+                (check documentation) (default: None)
         '''
         await interaction.response.defer(ephemeral=True)
-        # Typecheck `quote_number`
         if quote_number is None or 0 >= int(quote_number):
             log.log(envs.QUOTE_NO_NUMBER_GIVEN)
             await interaction.followup.send(
@@ -270,14 +278,16 @@ class Quotes(commands.Cog):
         quote_row_check = await db_helper.get_row_ids(
             envs.quote_db_schema, sort=True
         )
+        quote_index = range(0, len(quote_row_check)-1)
+        log.debug(f'`quote_row_check`: {quote_row_check}')
+        # FIXME Denne koden kommer ikke lenger enn hit?
         if len(quote_row_check) <= 0:
             await interaction.followup.send(
                 'Har ingen sitater', ephemeral=True)
             return
-        quote_index = range(0, len(quote_row_check)-1)
-        proper_row_id = quote_row_check[quote_index[quote_number-1]]
         show_quote = await db_helper.get_output_by_rowid(
-            envs.quote_db_schema, rowid=proper_row_id
+            envs.quote_db_schema,
+            rowid=quote_row_check[quote_index[quote_number-1]]
         )
         if custom_date:
             quote_date = custom_date
@@ -307,11 +317,14 @@ class Quotes(commands.Cog):
             await db_helper.update_fields(
                 template_info=envs.quote_db_schema,
                 where=[
-                    ('rowid', quote_row_check[quote_index[quote_number-1]])
+                    ('rowid', quote_row_check[quote_number-1])
                 ],
                 updates=[
                     ('quote_text', quote_in),
-                    ('datetime', quote_date)
+                    ('datetime', get_dt(
+                        format='ISO8601',
+                        dt=quote_date
+                    ))
                 ]
             )
             await interaction.followup.send(
