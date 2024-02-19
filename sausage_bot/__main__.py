@@ -78,39 +78,56 @@ async def on_ready():
 
 
 # Commands
-@config.bot.command(name='ping')
-async def ping(ctx):
+@config.bot.tree.command(
+    name='ping', description='Sjekk latency'
+)
+async def ping(interaction: discord.Interaction):
     'Checks the bot latency'
-    await ctx.send(f'Pong! {round(config.bot.latency * 1000)} ms')
-    await ctx.message.add_reaction('✅')
+    await interaction.response.send_message(
+        f'Pong! {round(config.bot.latency * 1000)} ms',
+        ephemeral=True
+    )
 
 
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(manage_messages=True)
 )
-@config.bot.command(aliases=['del', 'cls'])
-async def delete(ctx, amount=0):
+@config.bot.tree.command(
+    name='delete',
+    description='Delete `amount` number of messages in the chat'
+)
+async def delete(interaction: discord.Interaction, amount: int):
     'Delete `amount` number of messages in the chat'
-    if amount == 0:
-        await ctx.message.add_reaction('❌')
-        await ctx.send(
-            'Please specify the number of messages you want to delete!'
+    if amount <= 0:
+        await interaction.response.send_message(
+            'The number must be bigger than 0',
+            ephemeral=True
         )
-    elif amount <= 0:  # lower than 0
-        await ctx.message.add_reaction('❌')
-        await ctx.send("The number must be bigger than 0!")
     else:
-        await ctx.message.add_reaction('✅')
-        await ctx.channel.purge(limit=amount + 1)
+        await interaction.response.defer(ephemeral=True)
+        await interaction.channel.purge(
+            limit=amount, reason='Massesletting via bot'
+        )
+        await interaction.followup.send(
+            f'Deleted {amount} messages',
+            ephemeral=True
+        )
+    return
 
 
-@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(kick_members=True)
 )
-async def kick(ctx, member: discord.Member = None, *, reason: str = None):
+@config.bot.tree.command(
+    name='kick',
+    description='Kick a user with reason'
+)
+async def kick(
+    interaction: discord.Interaction, member: discord.Member = None,
+    *, reason: str = None
+):
     '''
     Kick a member from the server
 
@@ -119,21 +136,34 @@ async def kick(ctx, member: discord.Member = None, *, reason: str = None):
     member: discord.Member
         Name of Discord user you want to kick (default: None)
     reason: str
-        Reason for kicking user (defautl: None)
+        Reason for kicking user (default: None)
     '''
+    await interaction.response.defer(ephemeral=True)
     try:
         await member.kick(reason=reason)
-        await ctx.send(f'{member} has been kicked')
+        await interaction.followup.send(
+            f'{member} has been kicked',
+            ephemeral=True
+        )
     except Exception as failkick:
-        await ctx.send(f'Failed to kick: {failkick}', delete_after=5)
+        await interaction.followup.send(
+            f'Failed to kick: {failkick}',
+            ephemeral=True
+        )
 
 
-@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(ban_members=True)
 )
-async def ban(ctx, member: discord.Member = None, *, reason: str = None):
+@config.bot.tree.command(
+    name='ban',
+    description='Ban a user with reason'
+)
+async def ban(
+    interaction: discord.Interaction, member: discord.Member = None,
+    *, reason: str = None
+):
     '''
     Ban a member from the server
 
@@ -144,54 +174,91 @@ async def ban(ctx, member: discord.Member = None, *, reason: str = None):
     reason: str
         Reason for banning user (default: None)
     '''
+    await interaction.response.defer(ephemeral=True)
     try:
         await member.ban(reason=reason)
-        await ctx.send(f'{member} has been banned!')
-    except Exception as e:
-        await ctx.send(f'Failed to ban: {e}', delete_after=5)
+        await interaction.followup.send(
+            f'{member} has been banned',
+            ephemeral=True
+        )
+    except Exception as failban:
+        await interaction.followup.send(
+            f'Failed to ban: {failban}',
+            ephemeral=True
+        )
 
 
-@config.bot.command()
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(manage_messages=True)
+@commands.check_any(commands.is_owner())
+@config.bot.tree.command(
+    name='say', description='Sender melding til en kanal. Fyll inn '
+    '`message_id` hvis det skal svares på en melding'
 )
-async def say(ctx, *, text):
-    'Make the bot say something'
-    await ctx.message.delete()
-    await ctx.send(f"{text}")
-    return
+async def say(
+    interaction: discord.Interaction, channel: discord.TextChannel,
+    message_id: str = None, *, message: str
+):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        async with channel.typing():
+            await asyncio.sleep(3)
+        if message_id:
+            reply_msg = await discord_commands.get_message_obj(
+                msg_id=message_id, channel=channel
+            )
+            log.debug(f'Got `reply_msg`: {reply_msg}')
+            await reply_msg.reply(message)
+        else:
+            await channel.send(message)
+        await interaction.followup.send(
+            f'Melding sent til `#{channel.name}`', ephemeral=True
+        )
+    except discord.Forbidden:
+        await interaction.followup.send(
+            'Jeg har ikke tilgang til å sende melding '
+            f'i `#{channel.name}`.',
+            ephemeral=True
+        )
+    except Exception as e:
+        await interaction.followup.send(
+            f'An error occurred: {e}', ephemeral=True
+        )
 
 
-@config.bot.command()
 @commands.check_any(
     commands.is_owner(),
     commands.has_permissions(administrator=True)
 )
-async def edit(ctx, *, text):
-    'Make the bot rephrase a previous message. Reply to it with `!edit [text]`'
-    if ctx.message.reference is None:
-        await ctx.message.reply(
-            'You have to reply to a message: `!edit [text]`'
-        )
-        return
-    elif ctx.message.reference.message_id:
-        msgid = ctx.message.reference.message_id
-        edit_msg = await ctx.fetch_message(msgid)
-        await edit_msg.edit(content=text)
-        await ctx.message.delete()
-        return
+@config.bot.tree.command(
+    name='sayagain',
+    description='Endre en tidligere melding sendt med /say'
+)
+async def say_again(
+    interaction: discord.Interaction, msg_id: str, *, text: str
+):
+    'Make the bot rephrase a previous message'
+    await interaction.response.defer(ephemeral=True)
+    guild = discord_commands.get_guild()
+    if guild is None:
+        return None
+    log.debug(f'`guild` is {guild}')
+    for channel in guild.text_channels:
+        async for message in channel.history(limit=25):
+            if str(message.id) == str(msg_id):
+                async with channel.typing():
+                    await asyncio.sleep(3)
+                old_text = message.content
+                new_message = await message.edit(
+                    content=text
+                )
+                new_text = new_message.content
+                await interaction.followup.send(
+                    f'Changed [message]({new_message.jump_url}) from:\n'
+                    f'```{old_text}```\nto\n```{new_text}```',
+                    ephemeral=True, suppress_embeds=True
+                )
 
 
 try:
     config.bot.run(config.DISCORD_TOKEN)
 except Exception as e:
     log.log(e)
-
-
-async def setup(bot):
-    @bot.event
-    async def on_command_error(ctx, exception):
-        # if the exception is of any of selected classes redirect to discord
-        if isinstance(exception, commands.InvalidEndOfQuotedStringError):
-            await ctx.message.reply('Sjekk bruken av anførselstegn')

@@ -78,7 +78,7 @@ def log_function(
         log_out += '{reset} '.format(reset=Style.RESET_ALL)
         if pretty:
             print(log_out)
-            if isinstance(pretty, (dict, list, tuple)):
+            if isinstance(pretty, (dict)):
                 log_out += f'{log_in} (prettifying...):'
                 print(
                     json.dumps(

@@ -280,7 +280,6 @@ class Quotes(commands.Cog):
         )
         quote_index = range(0, len(quote_row_check)-1)
         log.debug(f'`quote_row_check`: {quote_row_check}')
-        # FIXME Denne koden kommer ikke lenger enn hit?
         if len(quote_row_check) <= 0:
             await interaction.followup.send(
                 'Har ingen sitater', ephemeral=True)
@@ -347,7 +346,7 @@ class Quotes(commands.Cog):
     )
     async def quote_show(
         self, interaction: discord.Interaction, quote_number: int,
-        public: typing.Literal['Yes', 'No']
+        show_public: typing.Literal['Yes', 'No']
     ):
         '''
         Show an existing quote:
@@ -358,9 +357,9 @@ class Quotes(commands.Cog):
         quote_number: int
             The number of quote to edit
         '''
-        if public == 'Yes':
+        if show_public == 'Yes':
             _ephemeral = False
-        elif public == 'No':
+        elif show_public == 'No':
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         # Typecheck `quote_number`
@@ -376,7 +375,8 @@ class Quotes(commands.Cog):
         )
         quote_index = range(0, len(quote_row_check)-1)
         old_quote = await db_helper.get_output_by_rowid(
-            envs.quote_db_schema, rowid=quote_row_check[quote_index[quote_number-1]]
+            envs.quote_db_schema,
+            rowid=quote_row_check[quote_index[quote_number-1]]
         )
         await interaction.followup.send(
             '```\n#{}\n{}\n({})```'.format(

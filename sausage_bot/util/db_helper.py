@@ -558,7 +558,8 @@ async def update_fields(
 
 async def get_output(
     template_info, where: tuple = None, select: tuple = None,
-    order_by: list = None, get_row_ids: bool = False, single: bool = None
+    order_by: list = None, get_row_ids: bool = False, rowid_sort: bool = False,
+    single: bool = None
 ):
     '''
     Get output from a SELECT query from a specified
@@ -577,6 +578,8 @@ async def get_output(
         What fields to order by and if ordered by ASC or DESC
     get_row_ids: bool
         Also get rowid
+    rowid_sort: bool
+        Sort output by rowids
     '''
     db_file = template_info['db_file']
     table_name = template_info['name']
@@ -604,6 +607,11 @@ async def get_output(
     if order_by is not None:
         _cmd += ' ORDER BY '
         _cmd += ', ' .join(f'{order[0]} {order[1]}' for order in order_by)
+    if rowid_sort:
+        if order_by is None:
+            _cmd += ' ORDER BY rowid'
+        if order_by is not None:
+            _cmd += ', rowid'
     log.db(f'{db_file}: Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:

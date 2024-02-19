@@ -72,11 +72,12 @@ roles_template = {
 }
 
 # Cogs
-cogs_db_schema = {
-    'db_file': str(DB_DIR / 'cogs.sqlite'),
-    'name': 'cogs',
+tasks_db_schema = {
+    'db_file': str(DB_DIR / 'tasks.sqlite'),
+    'name': 'tasks',
     'items': [
-        'cog_name TEXT NOT NULL',
+        'cog TEXT NOT NULL',
+        'task TEXT NOT NULL',
         'status TEXT NOT NULL'
     ]
 }
@@ -352,7 +353,6 @@ COGS_ENABLED = 'Aktiverte `{}`'
 COGS_DISABLED = 'Deaktiverte `{}`'
 ALL_COGS_ENABLED = 'Aktiverte alle cogs'
 ALL_COGS_DISABLED = 'Deaktiverte alle cogs'
-ALL_COGS_RELOADED = 'Startet alle aktive cogs på nytt'
 
 # COG - GENERIC MESSAGES
 COG_STARTING = 'Starting cog: `{}`'
@@ -419,11 +419,13 @@ NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\
     'If this causes problems, you need to check the link.'
 
 # COG - QUOTE
-QUOTE_EDIT_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\
+QUOTE_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\
     'redigeres'
 QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
-QUOTE_EDIT_CONFIRMATION = 'Endret sitat #{} fra:\n```\n{}\n({})```\n...til:\n'\
+QUOTE_EDIT_NEED_CONFIRMATION = 'Endre sitat #{}?\nFra:\n```\n{}\n({})```\n...til:\n'\
     '```\n{}\n({})```'
+QUOTE_EDIT_CONFIRMED = 'Endret sitat'
+QUOTE_NO_EDIT_CONFIRMED = 'Endret *ikke* sitat'
 QUOTE_ADD_CONFIRMATION = 'La til følgende sitat: ```#{}\n{}\n({})```'
 QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat '\
     '(Svar med reaksjon 👍 eller 👎):\n```#{}\n{}\n({})```\n'
