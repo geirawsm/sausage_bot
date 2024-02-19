@@ -3,7 +3,7 @@
 from bs4 import BeautifulSoup
 import requests
 from discord.ext import commands, tasks
-from sausage_bot.util import config, envs, feeds_core
+from sausage_bot.util import config, envs, feeds_core, db_helper
 from sausage_bot.util.log import log
 
 team_channel_defaults = {
@@ -25,7 +25,7 @@ class scrape_and_post(commands.Cog):
         self.bot = bot
 
     # Tasks
-    @tasks.loop(minutes=config.env('FCB_LOOP', default=5))
+    @tasks.loop(minutes=int(config.env('FCB_LOOP', default=5)))
     async def post_fcb_news():
         '''
         Post news from https://www.fcbarcelona.com to specific team channels
@@ -115,7 +115,27 @@ class scrape_and_post(commands.Cog):
 async def setup(bot):
     log.log(envs.COG_STARTING.format('scrape_fcb_news'))
     await bot.add_cog(scrape_and_post(bot))
-    scrape_and_post.post_fcb_news.start()
+
+    task_list = await db_helper.get_output(
+        template_info=envs.tasks_db_schema,
+        select=('task', 'status'),
+        where=('cog', 'scrape_fcb_news')
+    )
+    if len(task_list) == 0:
+        await db_helper.insert_many_all(
+            template_info=envs.tasks_db_schema,
+            inserts=(
+                ('scrape_fcb_news', 'post_news', 'stopped')
+            )
+        )
+    for task in task_list:
+        if task[0] == 'post_news':
+            if task[1] == 'started':
+                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+                scrape_and_post.post_fcb_news.start()
+            elif task[1] == 'stopped':
+                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+                scrape_and_post.post_fcb_news.stop()
 
 
 async def teardown(bot):
