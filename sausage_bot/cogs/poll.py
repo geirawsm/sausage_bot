@@ -7,9 +7,10 @@ from time import sleep
 import re
 import pendulum
 import uuid
+import discord
 
 from sausage_bot.util import db_helper, config, envs
-from sausage_bot.util import discord_commands
+from sausage_bot.util import datetime_handling
 from sausage_bot.util.log import log
 
 _tz = 'local'
@@ -25,70 +26,68 @@ class Poll(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_messages=True)
     )
-    @commands.group(name='poll')
+    @discord.app_commands.command(
+        name="poll",
+        description='Make a poll for voting on something'
+    )
     async def poll(
-        self, ctx, channel: str = None, post_time: str = None,
-        lock_time: str = None, *poll_text
+        self, interaction: discord.Interaction, channel: discord.TextChannel,
+        post_time: str, lock_time: str, poll_text: str, alternatives: str
     ):
         '''
-        Make a poll for voting on something. After posting this command,
-        you will be asked to reply with the alternatives
-
-            !poll `channel` `post_time` `lock_time` `poll_text`
+        Make a poll for voting on something.
 
         Parameters
         ------------
-        channel: str
+        channel: discord.TextChannel
             Channel to post poll in
         post_time: str
             What to post the poll. Accepts time in 0000
         lock_time: str
             Lock poll after x m(inutes) or h(ours)
-        *poll_text
+        poll_text: str
             Input for the poll
-
-        Examples
-        ------------
-        >>> !poll general 2000 5minutes Who will win the next match?
-        Creates a poll in the channel "general" that will post "Who will
-        win the next match?" at 20.00 / 8 pm local time which will lock
-        for answers after 5 minutes
-
-        >>> !poll polls 1100 2h Who will win the Golden Boot?
-        Creates a poll in the channel "polls" that will post "Who will win
-        the Golden Boot" at 11.00 / 11 am local time which will lock
-        for answers after 2 hours
+        alternatives: str
+            Alternatives for the poll, separated by semicolon
         '''
-        # Check channel
-        if channel is None or not discord_commands.channel_exist(channel):
-            await ctx.reply(f'Channel {channel} does not exist')
-            return
-        # Check post_time
-        if post_time in [None, 'no']:
-            await ctx.reply('No post_time is given')
-            return
-        try:
-            if post_time == 'now':
-                dt_post = None
-            else:
-                log.verbose(f'`post_time`: {post_time}')
-                re_search = re.search(
-                    r'(\d{2})([,.\-;:_]+)?(\d{2})', post_time
+        await interaction.response.defer(ephemeral=True)
+        if post_time in [None, 'no', 'now']:
+            dt_post = None
+        elif re.match(r'^\d{2}([\D]+)?\d{2}$', post_time):
+            log.verbose(f'`post_time`: {post_time}')
+            re_search = re.search(
+                r'(\d{2})([,.\-;:_]+)?(\d{2})', post_time
+            )
+            post_time = post_time.replace(str(re_search.group(2)), '')
+            log.verbose(f'`post_time`: {post_time}')
+            dt_post = pendulum.from_format(
+                post_time, 'HHmm', 'local'
+            )
+            log.verbose(f'dt_post: {dt_post} ({type(dt_post)})')
+            dt_now = datetime_handling.get_dt()
+            dt_post_secs = datetime_handling.get_dt(dt=dt_post)
+            if dt_post_secs < dt_now:
+                await interaction.followup.send(
+                    'Posting time is in the past'
                 )
-                post_time = post_time.replace(str(re_search.group(2)), '')
-                log.verbose(f'`post_time`: {post_time}')
-                dt_post = pendulum.from_format(
-                    post_time, 'HHmm', 'local'
-                )
-                log.verbose(f'dt_post: {dt_post}')
-        except Exception as e:
-            log.log(f'Got error when parsing post_time: {e}')
+                return
+        else:
+            await interaction.followup.send(
+                f'`post_time` "{post_time}" gives error'
+            )
             return
         # Check lock_time
-        if lock_time in [None, 'no']:
-            await ctx.reply('No lock_time is given')
+        if lock_time in [None, 'no', 'now']:
+            await interaction.followup.send(
+                'No lock_time is given', ephemeral=True
+            )
             return
-        poll_text = ' '.join(_ for _ in poll_text)
+        lock_time_regex = r'^(\d+)(\s)?(h|m)$'
+        if not re.match(lock_time_regex, lock_time):
+            await interaction.followup.send(
+                'Error with given `lock_time`', ephemeral=True
+            )
+            return
         _uuid = str(uuid.uuid4())
         await db_helper.insert_many_some(
             envs.poll_db_polls_schema,
@@ -99,29 +98,22 @@ class Poll(commands.Cog):
             ),
             [
                 (
-                    _uuid, channel, post_time, str(lock_time),
+                    _uuid, channel.name, post_time, str(lock_time),
                     str(poll_text), 0, 0, 0, 0
                 )
             ]
         )
         random_emojis = [
-            '📕', '📺', '📀', '🪪', '🧲', '🧱', '🔧', '🔑', '🔒', '🎹',
-            '🎷', '🪗', '🎧', '🎸', '🎤', '🎵', '♣️', '🪅', '⏱', '💵',
-            '💎', '🩹', '💊', '🩸', '🪣', '🛌', '🪟', '🎁', '♻️', '🫎'
+            '📺', '🧱', '🔧', '🔑', '🔒', '🎹', '🎷', '🪗', '🎧',
+            '🎸', '🎤', '🎵', '♣️', '🪅', '⏱', '💎', '💊', '🩸',
+            '🪣', '🛌', '🪟', '🎁', '♻️', '🫎'
         ]
-        _msg_addalternatives = 'Svar på denne meldingen innen 60 sekunder '\
-            'med alternativene du ønsker skal være i pollen\nBruk shift + '\
-            'enter mellom hvert sett for å legge til flere om gangen.'
-        _msg_addalternatives_msg = await ctx.message.reply(
-            _msg_addalternatives
-        )
         try:
-            _msg_alts_in = await config.bot.wait_for('message', timeout=60.0)
-            await _msg_alts_in.add_reaction('✅')
             alts_in = []
             alts_in.extend(
-                line for line in str(_msg_alts_in.content).split('\n')
+                line.strip() for line in str(alternatives).split(';')
             )
+            log.verbose(f'Got `alts_in`: {alts_in}')
             needed_emojis = random.sample(random_emojis, k=len(alts_in))
             reactions = []
             alts_db = []
@@ -137,40 +129,37 @@ class Poll(commands.Cog):
             # Post info about when the post is coming
             if dt_post is None:
                 post_wait = 0
-                post_status_reply = await _msg_alts_in.reply(
+                coming_post = await interaction.followup.send(
                     'Avstemningen postes straks'
                 )
             else:
                 dt_now = pendulum.now('local')
                 post_wait = dt_now.diff(dt_post).in_seconds()
                 dt_post_epoch = dt_post.format('x')[0:-3]
-                post_status_reply = await _msg_alts_in.reply(
-                    f'Avstemningen postes om <t:{dt_post_epoch}:R>'
+                coming_post = await interaction.followup.send(
+                    f'Avstemningen postes om <t:{dt_post_epoch}:R>',
+                    ephemeral=False
                 )
             log.debug(f'post_wait: {post_wait}')
             desc_out = f'{poll_text}\n'
             for idx, line in enumerate(alts_in):
                 # TODO var msg
-                desc_out += '\n{} - "{}"'.format(
+                desc_out += '\n{} - *"{}"*'.format(
                     needed_emojis[idx], line
                 )
                 reactions.append(needed_emojis[idx])
-            lock_split = re.match(r'^(\d+)(\w).*', lock_time)
+            lock_split = re.match(lock_time_regex, lock_time)
             dt_lock = None
-            if lock_split.group(2)[0] not in ['h', 'm']:
-                log.debug(f'lock_time unit is `{lock_split.group(2)}`')
-                await ctx.reply('lock_time provided, but is not `h` or `m`')
-                return
             if dt_post is None:
                 dt_post = pendulum.now('local')
-            if lock_split.group(2) == "h":
+            if lock_split.group(3) == "h":
                 dt_lock = dt_post.add(
                     hours=int(lock_split.group(1))
                 ).in_tz(_tz)
                 dt_lock_text = f'{lock_split.group(1)} time'
                 if int(lock_split.group(1)) > 1:
                     dt_lock_text += 'r'
-            elif lock_split.group(2) == "m":
+            elif lock_split.group(3) == "m":
                 dt_lock = dt_post.add(
                     minutes=int(lock_split.group(1))
                 ).in_tz(_tz)
@@ -184,39 +173,43 @@ class Poll(commands.Cog):
             log.debug(
                 f'Converting `dt_lock` ({dt_lock}) to epoch: {dt_lock_epoch}'
             )
-            embed_json = {
-                'title': 'Avstemning',
-                'description': desc_out,
-            }
+            embed_json = discord.Embed.from_dict(
+                {
+                    'title': 'Avstemning',
+                    'description': desc_out,
+                }
+            )
         except TimeoutError:
             # TODO var msg
-            await ctx.reply('Timed out')
-            sleep(3)
-            await _msg_addalternatives_msg.delete()
-            await ctx.message.delete()
+            await interaction.followup.send(
+                'Timed out', ephemeral=True
+            )
             return
         # Post the poll message
         await db_helper.update_fields(
-            envs.poll_db_polls_schema,
-            ('uuid', _uuid),
-            [
+            template_info=envs.poll_db_polls_schema,
+            where=('uuid', _uuid),
+            updates=[
                 ('status_wait_post', 1)
             ]
         )
         await asyncio.sleep(post_wait)
         post_text = pendulum.now('local').format('DD.MM.YY, HH:mm')
-        await post_status_reply.edit(
-            content=f"Avstemningen ble postet {post_text}"
+        await coming_post.delete()
+        await interaction.followup.send(
+            content=f"Avstemningen ble postet {post_text}",
+            ephemeral=True
         )
         message_text = f'Avstemning blir stengt om <t:{dt_lock_epoch}:R>'
-        poll_msg = await discord_commands.post_to_channel(
-            channel, content_in=message_text,
-            content_embed_in=embed_json
+        poll_msg = await channel.send(
+            content=message_text,
+            embed=embed_json
         )
+        log.debug(f'Got `poll_msg`: {poll_msg}')
         await db_helper.update_fields(
-            envs.poll_db_polls_schema,
-            ('uuid', _uuid),
-            [
+            template_info=envs.poll_db_polls_schema,
+            where=('uuid', _uuid),
+            updates=[
                 ('msg_id', poll_msg.id),
                 ('status_posted', 1)
             ]
@@ -238,13 +231,8 @@ class Poll(commands.Cog):
         log.debug(f'`lock_diff` in seconds: {lock_diff}')
         await asyncio.sleep(lock_diff)
         log.debug('Ready to lock!')
-        _guild = discord_commands.get_guild()
-        _channels = discord_commands.get_text_channel_list()
-        _channel = _guild.get_channel(
-            _channels[channel]
-        )
         # Get all reactions
-        poll_cache = await _channel.fetch_message(poll_msg.id)
+        poll_cache = await channel.fetch_message(poll_msg.id)
         poll_reacts = poll_cache.reactions
         for alts in alts_db:
             for react in poll_reacts:
@@ -276,17 +264,18 @@ class Poll(commands.Cog):
         desc_out = f'{poll_text}\n'
         for reaction in sorted_reacts:
             desc_out += f'\n{reaction[0]}: {reaction[1]}'
-        embed_json = {
-            'title': 'Avstemning',
-            'description': desc_out,
-            'footer': {
-                # TODO var msg
-                'text': f'Avstemning ble stengt etter {dt_lock_text}'
+        embed_json = discord.Embed.from_dict(
+            {
+                'title': 'Avstemning',
+                'description': desc_out,
+                'footer': {
+                    # TODO var msg
+                    'text': f'Avstemning ble stengt etter {dt_lock_text}'
+                }
             }
-        }
-        await discord_commands.post_to_channel(
-            channel, content_in='',
-            content_embed_in=embed_json
+        )
+        await channel.send(
+            embed=embed_json
         )
         await db_helper.update_fields(
             envs.poll_db_polls_schema,
@@ -309,6 +298,3 @@ async def setup(bot):
     )
     log.verbose('Registering cog to bot')
     await bot.add_cog(Poll(bot))
-
-
-# Maintain active polls
