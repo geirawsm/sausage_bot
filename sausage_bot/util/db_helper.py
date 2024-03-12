@@ -580,6 +580,8 @@ async def get_output(
         Also get rowid
     rowid_sort: bool
         Sort output by rowids
+    single: bool
+        Only return one single result
     '''
     db_file = template_info['db_file']
     table_name = template_info['name']

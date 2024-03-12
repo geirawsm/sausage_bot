@@ -61,15 +61,14 @@ class Quotes(commands.Cog):
     )
 
     @group.command(
-        name="post", description="Post a random dilemma"
+        name="post", description="Post a random quote"
     )
     async def quote(
             self, interaction: discord.Interaction,
             number: typing.Optional[int] = None
     ):
         '''
-        Post, add, edit, delete or count quotes
-        To post a specific quote: `!quote ([number])`
+        Post quotes
 
         Parameters
         ------------

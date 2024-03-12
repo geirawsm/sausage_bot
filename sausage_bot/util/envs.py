@@ -336,8 +336,6 @@ CHANNEL_NOT_FOUND = 'Finner ikke kanalen `{}` på denne discord-serveren'
 POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
     'finnes ikke'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
-GOT_CHANNEL_LIST = 'Henter kanalliste:\n{}'
-GOT_SPECIFIC_CHANNEL = 'Fant kanal `{}` med id `{}`'
 COMPARING_IDS = 'Sammenligner med `{}` ({}) med `{}` ({})'
 CREATING_DB_FILES = 'Sjekker databasefil'
 BOT_NOT_SET_UP = 'The bot is not properly set up'

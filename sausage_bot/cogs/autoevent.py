@@ -67,7 +67,6 @@ class AutoEvent(commands.Cog):
         channel: discord.VoiceChannel, text: str = None,
         event_image: discord.Attachment = None
     ):
-        # TODO hvordan bruke `event_image`?
         '''
         Add a scheduled event
 
