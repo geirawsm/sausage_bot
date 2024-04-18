@@ -8,6 +8,36 @@ from sausage_bot.util.datetime_handling import get_dt
 from .log import log
 
 
+async def get_message_obj(
+        msg_id: str = None, channel: (str, discord.TextChannel) = None
+) -> dict:
+    '''
+    Get a message object
+
+    Parameters
+    ------------
+    msg_id: int/str
+        The message ID to look for, or name of the saved message in
+        settings file
+    channel: str or discsord.TextChannel
+        Channel to get message from (default: None)
+    '''
+
+    _guild = get_guild()
+    _channels = get_text_channel_list()
+    if isinstance(channel, str):
+        _channel = _guild.get_channel(
+            _channels[channel]
+        )
+    elif isinstance(channel, discord.TextChannel):
+        _channel = channel
+    try:
+        msg_out = await _channel.fetch_message(msg_id)
+    except discord.errors.NotFound:
+        msg_out = None
+    return msg_out
+
+
 def get_guild():
     '''
     Get the active guild object
