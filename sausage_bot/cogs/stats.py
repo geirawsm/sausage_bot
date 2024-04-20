@@ -2,11 +2,32 @@
 # -*- coding: UTF-8 -*-
 import os
 from discord.ext import commands, tasks
+import discord
 from tabulate import tabulate
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.log import log
+
+
+async def name_of_settings_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    db_settings = await db_helper.get_output(
+        template_info=envs.stats_db_schema,
+        select=('setting', 'value_help'),
+    )
+    settings = []
+    for setting in db_settings:
+        settings.append((setting[0], setting[1]))
+    log.debug(f'settings: {settings}')
+    return [
+        discord.app_commands.Choice(
+            name=f'{setting[0]} ({setting[1]})', value=str(setting[0])
+        )
+        for setting in settings if current.lower() in setting[0].lower()
+    ]
 
 
 def get_role_numbers(hide_bots: bool = None):
@@ -44,39 +65,48 @@ class Stats(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        super().__init__()
 
-    @commands.group(name='stats')
-    async def stats_cmd(self, ctx):
-        'Administer statistikk'
-        pass
+    stats_group = discord.app_commands.Group(
+        name="stats", description='Administer stats on the server'
+    )
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_cmd.group(name='list', invoke_without_command=True)
-    async def list_settings(self, ctx):
+    @stats_group.command(
+        name='list', description='List the available settings for this cog'
+    )
+    async def list_settings(
+        self, interaction: discord.Interaction
+    ):
         '''
         List the available settings for this cog
         '''
+        await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
             template_info=envs.stats_db_schema,
             select=('setting', 'value', 'value_help')
         )
         headers = ['Setting', 'Value', 'Value type']
-        await ctx.reply(
-            '```{}```'.format(
+        await interaction.followup.send(
+            content='```{}```'.format(
                 tabulate(settings_in_db, headers=headers)
-            )
+            ), ephemeral=True
         )
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_cmd.group(name='setting', invoke_without_command=True)
+    @discord.app_commands.autocomplete(name_of_setting=name_of_settings_autocomplete)
+    @stats_group.command(
+        name='setting', description='Change a setting for this cog'
+    )
     async def stats_setting(
-        self, ctx, name_of_setting: str = None, value_in: str = None
+        self, interaction: discord.Interaction, name_of_setting: str,
+        value_in: str
     ):
         '''
         Change a setting for this cog
@@ -88,13 +118,11 @@ class Stats(commands.Cog):
         value_in: str
             The value of the settings (default: None)
         '''
+        await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
             template_info=envs.stats_db_schema,
             select=('setting', 'value', 'value_check')
         )
-        if name_of_setting not in [name[0] for name in settings_in_db]:
-            await ctx.reply('Setting is not found')
-            return
         for setting in settings_in_db:
             if setting[0] == name_of_setting:
                 if setting[2] == 'bool':
@@ -103,7 +131,7 @@ class Stats(commands.Cog):
                     except NameError as e:
                         log.log(f'Invalid input for `value_in`: {e}')
                         # TODO var msg
-                        await ctx.reply(
+                        await interaction.followup.send(
                             'Input `value_in` needs to be `True` or `False`'
                         )
                         return
@@ -115,7 +143,9 @@ class Stats(commands.Cog):
                         where=[('setting', name_of_setting)],
                         updates=[('value', value_in)]
                     )
-                await ctx.message.add_reaction('✅')
+                await interaction.followup.send(
+                    content='Setting updated', ephemeral=True
+                )
                 Stats.update_stats.restart()
                 break
         return
@@ -124,11 +154,18 @@ class Stats(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_cmd.group(name='reload', invoke_without_command=True)
-    async def stats_reload(self, ctx):
+    @stats_group.command(
+        name='reload', description='Reload the stats task'
+    )
+    async def stats_reload(
+        self, interaction: discord.Interaction
+    ):
         '''Reload the stats task'''
-        await ctx.message.add_reaction('✅')
+        await interaction.response.defer(ephemeral=True)
         Stats.update_stats.restart()
+        await interaction.followup.send(
+                    content='Stats reloaded', ephemeral=True
+                )
         return
 
     # Tasks
