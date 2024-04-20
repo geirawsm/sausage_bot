@@ -4,9 +4,12 @@
 import discord
 from discord.ext import commands
 import os
+import asyncio
+from tabulate import tabulate
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper
+from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
 
 
@@ -43,23 +46,16 @@ async def on_ready():
             log.log('{} has connected to `{}`'.format(
                 config.bot.user, guild.name))
             break
-    # Create necessary databases before starting `cog`
-    cog_name = 'cogs'
-    log.verbose('Checking db')
-    # Convert json to sqlite db-files if exists
-    cogs_prep_is_ok = False
-    cogs_file_inserts = None
-    if not file_io.file_size(envs.cogs_db_schema['db_file']):
-        if file_io.file_size(envs.cogs_status_file):
-            log.verbose('Found old json file')
-            cogs_file_inserts = db_helper.json_to_db_inserts(cog_name)
-        cogs_prep_is_ok = await db_helper.prep_table(
-            envs.cogs_db_schema, cogs_file_inserts
-        )
-    # Delete old json files if they exist
-    if cogs_prep_is_ok:
+
+    log.verbose('Checking cog tasks db')
+    await db_helper.prep_table(
+        envs.tasks_db_schema
+    )
+    log.verbose('Deleting old json files')
+    if file_io.file_size(envs.cogs_status_file):
+        log.verbose('Found old json file')
         file_io.remove_file(envs.cogs_status_file)
-    await cogs.Loading.load_and_clean_cogs()
+    await cogs.Cogs.load_and_clean_cogs_internal()
     if args.maintenance:
         log.log('Maintenance mode activated', color='RED')
         await config.bot.change_presence(
@@ -256,6 +252,37 @@ async def say_again(
                     f'```{old_text}```\nto\n```{new_text}```',
                     ephemeral=True, suppress_embeds=True
                 )
+
+
+@commands.check_any(
+    commands.is_owner(),
+    commands.has_permissions(administrator=True)
+)
+@config.bot.tree.command(
+    name="tasks", description="List tasks and their status"
+)
+async def get_tasks_list(interaction: discord.Interaction):
+    '''
+    Get a pretty list of all the tasks
+    #autodoc skip#
+    '''
+    await interaction.response.defer()
+    tasks_in_db = await db_helper.get_output(
+        template_info=envs.tasks_db_schema,
+        order_by=[
+            ('cog', 'ASC'),
+            ('task', 'ASC')
+        ]
+    )
+    log.debug(f'Got this from `tasks_in_db`: {tasks_in_db}')
+    text_out = '```{}```'.format(
+        tabulate(
+            tasks_in_db, headers=['Cog', 'Task', 'Status']
+        )
+    )
+    log.debug(f'Returning:\n{text_out}')
+    await interaction.followup.send(text_out, ephemeral=True)
+    return
 
 
 try:
