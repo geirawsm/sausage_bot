@@ -140,7 +140,7 @@ class Quotes(commands.Cog):
             quote_post = await interaction.followup.send(_quote)
             await db_helper.insert_many_some(
                 envs.quote_db_log_schema,
-                ('uuid', 'ctx_id'),
+                ('uuid', 'msg_id'),
                 [
                     (
                         random_quote[0][1],
@@ -411,9 +411,9 @@ class Quotes(commands.Cog):
         '''
         await interaction.response.defer()
 
-        def check(reaction, user):
+        def check(interaction: discord.Interaction, reaction, user):
             '#autodoc skip#'
-            return user == ctx.author and str(reaction.emoji) == '👍'
+            return user == interaction.author and str(reaction.emoji) == '👍'
 
         quote = await db_helper.get_output_by_rowid(
             envs.quote_db_schema,
@@ -435,10 +435,10 @@ class Quotes(commands.Cog):
                 'reaction_add', timeout=15.0, check=check
             )
         except TimeoutError:
-            await ctx.message.reply(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
+            await interaction.message.reply(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
             sleep(3)
-            await discord_commands.delete_bot_msgs(ctx, envs.QUOTE_KEY_PHRASES)
-            await ctx.message.delete()
+            await discord_commands.delete_bot_msgs(interaction, envs.QUOTE_KEY_PHRASES)
+            await interaction.message.delete()
         else:
             # Remove the quote
             await db_helper.del_row_id(
@@ -446,12 +446,12 @@ class Quotes(commands.Cog):
                 quote_number
             )
             # Confirm that the quote has been deleted
-            await ctx.message.reply(
+            await interaction.message.reply(
                 envs.QUOTE_DELETE_CONFIRMED.format(quote_number)
             )
             sleep(3)
-            await discord_commands.delete_bot_msgs(ctx, envs.QUOTE_KEY_PHRASES)
-            await ctx.message.delete()
+            await discord_commands.delete_bot_msgs(interaction, envs.QUOTE_KEY_PHRASES)
+            await interaction.message.delete()
             return
 
     @group.command(

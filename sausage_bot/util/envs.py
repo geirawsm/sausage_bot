@@ -127,7 +127,7 @@ dilemmas_db_log_schema = {
     'name': 'log',
     'items': [
         'id TEXT NOT NULL',
-        'ctx_id TEXT'
+        'msg_id TEXT'
     ]
 }
 
@@ -149,7 +149,7 @@ quote_db_log_schema = {
     'name': 'log',
     'items': [
         'uuid TEXT NOT NULL',
-        'ctx_id TEXT'
+        'msg_id TEXT'
     ],
     'primary': None,
     'autoincrement': False
