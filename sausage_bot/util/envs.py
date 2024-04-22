@@ -362,9 +362,9 @@ RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal '\
     'du ønsker den skal publiseres til.'
 RSS_ADDED = '{} ble lag til i kanalen {}'
 RSS_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
-RSS_REMOVED = 'RSS-feeden {} ble fjernet'
-RSS_REMOVED_BOT = 'RSS-feeden {} ble fjernet av {}'
-RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden {}, '\
+RSS_REMOVED = 'RSS-feeden `{}` ble fjernet'
+RSS_REMOVED_BOT = 'RSS-feeden `{}` ble fjernet av {}'
+RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden `{}`, '\
     'men det oppsto en feil'
 RSS_COULD_NOT_REMOVE = 'Klarte ikke å fjerne RSS-feeden {}'
 RSS_FEED_CHANNEL_CHANGE = 'rss: {} endret kanalen til feeden `{}` til `{}`'
@@ -493,7 +493,7 @@ DILEMMAS_COUNT = 'Fant {} dilemma'
 
 
 # VARIABLES
-roles_split_regex = r'[\s\.\-_,;\\\/]+'
+input_split_regex = r'[\s\.\-_,;\\\/]+'
 roles_ensure_separator = ('><', '> <')
 
 ### DISCORD PERMISSIONS ###
