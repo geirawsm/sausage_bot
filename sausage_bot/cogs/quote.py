@@ -187,7 +187,7 @@ class Quotes(commands.Cog):
         quote_text: str, quote_date: str = None
     ):
         '''
-        Add a quote: `!quote add [quote_text] ([quote_date])`
+        Add a quote
 
         Parameters
         ------------
@@ -402,7 +402,7 @@ class Quotes(commands.Cog):
             quote_number: int = None
     ):
         '''
-        Delete an existing quote: `!quote delete [quote_number]`
+        Delete an existing quote
 
         Parameters
         ------------

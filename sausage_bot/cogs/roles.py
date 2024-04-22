@@ -437,12 +437,12 @@ async def emojis_autocomplete(
 def combine_roles_and_emojis(roles_in, emojis_in):
     # Do splits of roles and emojis to make sure the lengths are identical
     _roles = re.split(
-        envs.roles_split_regex, roles_in.replace(
+        envs.input_split_regex, roles_in.replace(
             envs.roles_ensure_separator[0], envs.roles_ensure_separator[1]
         )
     )
     _emojis = re.split(
-        envs.roles_split_regex, emojis_in.replace(
+        envs.input_split_regex, emojis_in.replace(
             envs.roles_ensure_separator[0], envs.roles_ensure_separator[1]
         )
     )
@@ -789,22 +789,22 @@ class Autoroles(commands.Cog):
             Indicate if the permissions also should be edited
         '''
         await interaction.response.defer(ephemeral=True)
-        changes_out = f'Did following changes on role `{role_name.name}`:'
+        changes = []
         if new_name:
             log.debug('Changed name')
-            changes_out += f'\n- Name: `{role_name}` -> `{new_name}`'
+            changes.append(f'\n- Name: `{role_name}` -> `{new_name}`')
             await role_name.edit(
                 name=new_name
             )
         if color:
             log.debug('Changed color')
-            changes_out += f'\n- Color: `{role_name.color}` -> `{color}`'
+            changes.append(f'\n- Color: `{role_name.color}` -> `{color}`')
             await role_name.edit(
                 color=discord.Color.from_str(color)
             )
         if hoist:
             log.debug('Changed hoist setting')
-            changes_out += f'\n- Hoist: `{role_name.hoist}` -> `{hoist}`'
+            changes.append(f'\n- Hoist: `{role_name.hoist}` -> `{hoist}`')
             await role_name.edit(
                 hoist=hoist
             )
@@ -825,14 +825,17 @@ class Autoroles(commands.Cog):
             perms_removed = [item for item in perms_out if item not in perms_in]
             if permissions:
                 if len(perms_added) > 0:
-                    changes_out += '\n- Permissions added: {}'.format(
+                    changes.append('\n- Permissions added: {}'.format(
                         ', '.join(perms_added)
-                    )
+                    ))
                 if len(perms_removed) > 0:
-                    changes_out += '\n- Permissions removed: {}'.format(
+                    changes.append('\n- Permissions removed: {}'.format(
                         ', '.join(perms_removed)
-                    )
-        if len(changes_out) > 0:
+                    ))
+        if len(changes) > 0:
+            changes_out = f'Did following changes on role `{role_name.name}`:'
+            for change in changes:
+                changes_out += change
             await interaction.followup.send(
                 changes_out
             )
