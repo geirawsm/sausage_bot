@@ -9,7 +9,7 @@ from .log import log
 
 
 async def get_message_obj(
-        msg_id: str = None, channel: (str, discord.TextChannel) = None
+        msg_id: str = None, channel: str = None
 ) -> dict:
     '''
     Get a message object
@@ -19,18 +19,15 @@ async def get_message_obj(
     msg_id: int/str
         The message ID to look for, or name of the saved message in
         settings file
-    channel: str or discsord.TextChannel
+    channel: str
         Channel to get message from (default: None)
     '''
 
     _guild = get_guild()
     _channels = get_text_channel_list()
-    if isinstance(channel, str):
-        _channel = _guild.get_channel(
-            _channels[channel]
-        )
-    elif isinstance(channel, discord.TextChannel):
-        _channel = channel
+    _channel = _guild.get_channel(
+        _channels[channel]
+    )
     try:
         msg_out = await _channel.fetch_message(msg_id)
     except discord.errors.NotFound:

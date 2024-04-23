@@ -420,8 +420,8 @@ NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\
 QUOTE_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\
     'redigeres'
 QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
-QUOTE_EDIT_NEED_CONFIRMATION = 'Endre sitat #{}?\nFra:\n```\n{}\n({})```\n...til:\n'\
-    '```\n{}\n({})```'
+QUOTE_EDIT_NEED_CONFIRMATION = 'Endre sitat #{}?\nFra:\n```\n{}\n({})```'\
+    '\n...til:\n```\n{}\n({})```'
 QUOTE_EDIT_CONFIRMED = 'Endret sitat'
 QUOTE_NO_EDIT_CONFIRMED = 'Endret *ikke* sitat'
 QUOTE_ADD_CONFIRMATION = 'La til følgende sitat: ```#{}\n{}\n({})```'
@@ -499,56 +499,84 @@ roles_ensure_separator = ('><', '> <')
 ### DISCORD PERMISSIONS ###
 SELECT_PERMISSIONS = {
     'general': {
-        'administrator': 'Allows all permissions and bypasses channel permission overwrites',
+        'administrator': 'Allows all permissions and bypasses channel '
+                         'permission overwrites',
         'ban_members': 'Allows banning members',
         'change_nickname': 'Allows for modification of own nickname',
-        'create_expressions': 'Allows for creating emojis, stickers, and soundboard sounds, and editing and deleting those created by the current user',
+        'create_expressions': 'Allows for creating emojis, stickers, and '
+                              'soundboard sounds, and editing and deleting '
+                              'those created by the current user',
         'create_instant_invite': 'Allows creation of instant invites',
         'kick_members': 'Allows kicking members',
         'manage_channels': 'Allows management and editing of channels',
         'manage_emojis': 'Allows for editing and deleting emojis',
-        'manage_events': 'Allows for creating, editing and deleting scheduled events created by all users',
-        'manage_expressions': 'Allows for creating, editing and deleting emojis, stickers, and soundboard sounds created by all users',
+        'manage_events': 'Allows for creating, editing and deleting '
+                         'scheduled events created by all users',
+        'manage_expressions': 'Allows for creating, editing and deleting '
+                              'emojis, stickers, and soundboard sounds '
+                              'created by all users',
         'manage_guild': 'Allows management and editing of the guild',
         'manage_nicknames': 'Allows for modification of other users nicknames',
         'manage_roles': 'Allows management and editing of roles',
         'manage_webhooks': 'Allows management and editing of webhooks',
-        'moderate_members': ' Allows for timing out users to prevent them from sending or reacting to messages in chat and threads, and from speaking in voice and stage channels',
+        'moderate_members': 'Allows for timing out users to prevent them '
+                            'from sending or reacting to messages in chat '
+                            'and threads, and from speaking in voice and '
+                            'stage channels',
         'view_audit_log': 'Allows for viewing of audit logs',
-        'view_channel': 'Allows guild members to view a channel, which includes reading messages in text channels and joining voice channels',
+        'view_channel': 'Allows guild members to view a channel, which '
+                        'includes reading messages in text channels and '
+                        'joining voice channels',
         'view_guild_insights': 'Allows for viewing guild insights',
     },
     'text': {
         'add_reactions': 'Allows for the addition of reactions to messages',
         'attach_files': 'Allows for uploading images and files',
         'create_private_threads': 'Allows for creating private threads',
-        'create_public_threads': 'Allows for creating public and announcement threads',
-        'embed_links': 'Links sent by users with this permission will be auto-embedded',
-        'external_emojis': 'Allows the usage of custom emojis from other servers',
-        'external_stickers': 'Allows the usage of custom stickers from other servers',
+        'create_public_threads': 'Allows for creating public and '
+                                 'announcement threads',
+        'embed_links': 'Links sent by users with this permission will be '
+                       'auto-embedded',
+        'external_emojis': 'Allows the usage of custom emojis from other '
+                           'servers',
+        'external_stickers': 'Allows the usage of custom stickers from '
+                             'other servers',
         'manage_messages': 'Allows for deletion of other users messages',
-        'manage_threads': 'Allows for deleting and archiving threads, and viewing all private threads',
-        'mention_everyone': 'Allows for using the @everyone tag to notify all users in a channel, and the @here tag to notify all online users in a channel',
+        'manage_threads': 'Allows for deleting and archiving threads, and '
+                          'viewing all private threads',
+        'mention_everyone': 'Allows for using the @everyone tag to notify '
+                            'all users in a channel, and the @here tag to '
+                            'notify all online users in a channel',
         'read_messages': 'Allows for reading of message history',
         'send_messages_in_threads': 'Allows for sending messages in threads',
-        'send_messages': 'Allows for sending messages in a channel and creating threads in a forum (does not allow sending messages in threads)',
+        'send_messages': 'Allows for sending messages in a channel and '
+                         'creating threads in a forum (does not allow sending '
+                         'messages in threads)',
         'send_tts_messages': 'Allows for sending of /tts messages',
-        'use_application_commands': 'Allows members to use application commands, including slash commands and context menu commands.'
+        'use_application_commands': 'Allows members to use application '
+                                    'commands, including slash commands and '
+                                    'context menu commands.'
     },
     'voice': {
         'connect': 'Allows for joining of a voice channel',
         'deafen_members': 'Allows for deafening of members in a voice channel',
         'move_members': 'Allows for moving of members between voice channels',
         'mute_members': 'Allows for muting members in a voice channel',
-        'priority_speaker': 'Allows for using priority speaker in a voice channel',
-        'request_to_speak': 'Allows for requesting to speak in stage channels.',
+        'priority_speaker': 'Allows for using priority speaker in a voice '
+                            'channel',
+        'request_to_speak': 'Allows for requesting to speak in stage '
+                            'channels.',
         'send_voice_messages': 'Allows sending voice messages',
         'speak': 'Allows for speaking in a voice channel',
         'stream': 'Allows the user to go live',
-        'use_embedded_activities': 'Allows for using Activities (applications with the EMBEDDED flag) in a voice channel',
-        'use_external_sounds': 'Allows the usage of custom soundboard sounds from other servers',
+        'use_embedded_activities': 'Allows for using Activities (applications '
+                                   'with the EMBEDDED flag) in a voice '
+                                   'channel',
+        'use_external_sounds': 'Allows the usage of custom soundboard sounds '
+                               'from other servers',
         'use_soundboard': 'Allows for using soundboard in a voice channel',
-        'use_voice_activation': 'Allows for using voice-activity-detection in a voice channel',
+        'use_voice_activation': 'Allows for using voice-activity-detection in '
+                                'a voice channel',
     }
 }
 

@@ -33,6 +33,7 @@ async def feed_name_autocomplete(
         for feed in feeds if current.lower() in feed[0].lower()
     ]
 
+
 async def rss_filter_autocomplete(
     interaction: discord.Interaction,
     current: str
@@ -53,7 +54,8 @@ async def rss_filter_autocomplete(
     log.debug(f'filters: {filters}')
     return [
         discord.app_commands.Choice(
-            name=f'{filter[0]} - {filter[1]} - {filter[2]}', value=str(filter[2])
+            name=f'{filter[0]} - {filter[1]} - {filter[2]}',
+            value=str(filter[2])
         )
         for filter in filters if current.lower() in filter[2].lower()
     ]
@@ -273,10 +275,10 @@ class RSSfeed(commands.Cog):
             Name of feed
         allow_deny: str
             Specify if the filter should `allow` or `deny`. Separate multiples
-            with any of the following characers: " .,;-_\/"
+            with any of the following characers: " .,;-_\\/"
         filters_in: str
             What to filter a post by. Separate multiple with any of the
-            following characers: " .,;-_\/"
+            following characers: " .,;-_\\/"
 
         '''
         await interaction.response.defer(ephemeral=True)
@@ -304,7 +306,7 @@ class RSSfeed(commands.Cog):
             await interaction.followup.send(msg_out, ephemeral=True)
         else:
             await interaction.followup.send(
-                f'Error when adding filter, check logs',
+                'Error when adding filter, check logs',
                 ephemeral=True
             )
         return
@@ -349,7 +351,6 @@ class RSSfeed(commands.Cog):
             template_info=envs.rss_db_filter_schema,
             where=(
                 ('uuid', _uuid),
-                #('allow_or_deny', allow_deny),
                 ('filter', filter_in)
             )
         )

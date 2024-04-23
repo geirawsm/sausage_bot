@@ -5,7 +5,6 @@ import sys
 from colorama import init, Fore, Style
 import pendulum
 from pathlib import Path
-import discord
 from .. import config, envs
 from ..args import args
 from time import sleep
@@ -58,7 +57,7 @@ def log_function(
                 in function_name['name']:
             color = Fore.RED
     dt = pendulum.now(config.TIMEZONE)
-    _dt_full = dt.format(f'DD.MM.YYYY HH.mm.ss')
+    _dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
     if args.log_print:
         log_out = '{color}{style}[ {dt} ] '.format(
             color=color,
@@ -108,7 +107,7 @@ def log_function(
         log_out += str(log_in)
     else:
         dt = pendulum.now(config.TIMEZONE)
-        _dt_rev = dt.format(f'YYYY-MM-DD HH.mm.ss')
+        _dt_rev = dt.format('YYYY-MM-DD HH.mm.ss')
         _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
@@ -173,8 +172,8 @@ def debug(
     '''
     if args.debug:
         log_function(
-            log_in, color=color, extra_info=envs.log_extra_info('debug'), pretty=pretty,
-            sameline=sameline
+            log_in, color=color, extra_info=envs.log_extra_info('debug'),
+            pretty=pretty, sameline=sameline
         )
     if args.log_slow:
         sleep(3)
@@ -242,8 +241,7 @@ async def log_to_bot_channel(content_in=None, content_embed_in=None):
     if log_channel in server_channels:
         channel_out = config.bot.get_channel(server_channels[log_channel])
         msg_out = await channel_out.send(
-            content=content_in,
-#            embed=discord.Embed.from_dict(content_embed_in) or None
+            content=content_in
         )
         return msg_out
     else:

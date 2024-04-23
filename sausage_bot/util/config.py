@@ -36,7 +36,7 @@ ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
 try:
     BOT_ID = env('BOT_ID')
 except EnvError as e:
-    print('Error: {e}')
+    print(f'Error: {e}')
     print('You need to set `BOT_ID` in .env for this to work')
 
 try:

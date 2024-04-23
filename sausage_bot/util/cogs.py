@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 from discord.ext import commands
-import discord
 
-from sausage_bot.util import envs, config, db_helper
+from sausage_bot.util import envs, config
 from .log import log
 
 

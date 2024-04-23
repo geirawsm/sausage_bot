@@ -3,8 +3,6 @@
 from discord.ext import commands
 import discord
 from tabulate import tabulate
-from asyncio import TimeoutError
-from time import sleep
 import re
 import typing
 
@@ -453,7 +451,6 @@ def combine_roles_and_emojis(roles_in, emojis_in):
         )
         return None
     # Process the splits
-    _guild = discord_commands.get_guild()
     return tuple(zip(_roles, _emojis))
 
 
@@ -822,7 +819,9 @@ class Autoroles(commands.Cog):
             await perm_view.wait()
             perms_out = perm_view.permissions_out
             perms_added = [item for item in perms_in if item not in perms_out]
-            perms_removed = [item for item in perms_out if item not in perms_in]
+            perms_removed = [
+                item for item in perms_out if item not in perms_in
+            ]
             if permissions:
                 if len(perms_added) > 0:
                     changes.append('\n- Permissions added: {}'.format(
@@ -981,10 +980,10 @@ class Autoroles(commands.Cog):
             Set order for the message in the channel
         roles: str
             Tagged roles separated by any of the following characers:
-            " .,;-_\/"
+            " .,;-_\\/"
         emojis: str
             Tagged emojis separated by any of the following characers:
-            " .,;-_\/"
+            " .,;-_\\/"
         '''
         await interaction.response.defer(ephemeral=True)
         msg_db_orders = await db_helper.get_output(

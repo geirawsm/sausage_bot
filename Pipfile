@@ -26,6 +26,7 @@ pytest = "*"
 pytest-mock = "*"
 autopep8 = "*"
 vulture = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3"

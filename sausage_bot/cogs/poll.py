@@ -3,20 +3,19 @@
 from discord.ext import commands
 import random
 import asyncio
-from time import sleep
 import re
 import pendulum
 import uuid
 import discord
 
-from sausage_bot.util import db_helper, config, envs
+from sausage_bot.util import db_helper, envs
 from sausage_bot.util import datetime_handling
 from sausage_bot.util.log import log
 
 _tz = 'local'
 
 
-class Poll(commands.Cog):
+class MakePoll(commands.Cog):
     'Make polls'
 
     def __init__(self, bot):
@@ -297,4 +296,4 @@ async def setup(bot):
         envs.poll_db_alternatives_schema
     )
     log.verbose('Registering cog to bot')
-    await bot.add_cog(Poll(bot))
+    await bot.add_cog(MakePoll(bot))

@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-from discord.ext.commands.errors import InvalidEndOfQuotedStringError
 import typing
 import uuid
 from time import sleep
@@ -435,9 +434,13 @@ class Quotes(commands.Cog):
                 'reaction_add', timeout=15.0, check=check
             )
         except TimeoutError:
-            await interaction.message.reply(envs.QUOTE_NO_CONFIRMATION_RECEIVED)
+            await interaction.message.reply(
+                envs.QUOTE_NO_CONFIRMATION_RECEIVED
+            )
             sleep(3)
-            await discord_commands.delete_bot_msgs(interaction, envs.QUOTE_KEY_PHRASES)
+            await discord_commands.delete_bot_msgs(
+                interaction, envs.QUOTE_KEY_PHRASES
+            )
             await interaction.message.delete()
         else:
             # Remove the quote
@@ -450,7 +453,9 @@ class Quotes(commands.Cog):
                 envs.QUOTE_DELETE_CONFIRMED.format(quote_number)
             )
             sleep(3)
-            await discord_commands.delete_bot_msgs(interaction, envs.QUOTE_KEY_PHRASES)
+            await discord_commands.delete_bot_msgs(
+                interaction, envs.QUOTE_KEY_PHRASES
+            )
             await interaction.message.delete()
             return
 

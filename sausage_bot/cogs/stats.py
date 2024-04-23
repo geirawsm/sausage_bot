@@ -100,7 +100,9 @@ class Stats(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @discord.app_commands.autocomplete(name_of_setting=name_of_settings_autocomplete)
+    @discord.app_commands.autocomplete(
+        name_of_setting=name_of_settings_autocomplete
+    )
     @stats_group.command(
         name='setting', description='Change a setting for this cog'
     )
