@@ -1,0 +1,9 @@
+version: "3"
+services:
+  sausage_bot:
+    container_name: sausage_bot
+    hostname: sausage_bot
+    image: geirawsm/sausage_bot:latest
+    restart: unless-stopped
+    volumes:
+      - /path/to/your/local/data-folder:/data
