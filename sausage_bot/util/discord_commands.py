@@ -45,7 +45,9 @@ def get_guild():
             log.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
-            log.log(envs.GUILD_NOT_FOUND)
+            log.log(envs.GUILD_NOT_FOUND.format(
+                str(config.env('DISCORD_GUILD'))
+            ))
             return None
 
 
