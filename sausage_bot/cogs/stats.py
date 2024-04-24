@@ -305,7 +305,7 @@ class Stats(commands.Cog):
             )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
-        log.debug('`show_role_stats` is {})'.format(
+        log.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
         ))
         if eval(stats_settings['show_role_stats']):
