@@ -34,6 +34,12 @@ LOCALE = env('LOCALE', default='nb_NO')
 ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
 
 try:
+    DISCORD_GUILD = env('DISCORD_GUILD')
+except EnvError as e:
+    print(f'Error: {e}')
+    print('You need to set `DISCORD_GUILD` in .env for this to work')
+
+try:
     BOT_ID = env('BOT_ID')
 except EnvError as e:
     print(f'Error: {e}')
