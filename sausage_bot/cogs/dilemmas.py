@@ -117,7 +117,7 @@ async def setup(bot):
     dilemmas_inserts = None
     if file_io.file_size(envs.dilemmas_file):
         log.verbose('Found old json file')
-        dilemmas_inserts = await db_helper.json_to_db_inserts(cog_name)
+        dilemmas_inserts = db_helper.json_to_db_inserts(cog_name)
     dilemmas_prep_is_ok = await db_helper.prep_table(
         envs.dilemmas_db_schema, dilemmas_inserts
     )
