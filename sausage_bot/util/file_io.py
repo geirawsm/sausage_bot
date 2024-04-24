@@ -41,8 +41,8 @@ def import_file_as_list(file_in):
         with open(file_in, 'r', encoding='utf-8') as f:
             list_out = eval(str(f.read()))
         return list_out
-    except:
-        log.log(f"Couldn't open file `{file_in}`")
+    except Exception as e:
+        log.log(f"Couldn't open file `{file_in}` ({e})")
         return None
 
 
@@ -162,8 +162,8 @@ def get_max_item_lengths(headers, dict_in):
 
 
 def check_similarity(
-        input1: str, input2: (str, list) = None,
-        ratio_floor: float = None, ratio_roof: float = None
+        input1: str, input2=None, ratio_floor: float = None,
+        ratio_roof: float = None
 ):
     '''
     Check similarities between `input1` and `input2` (str), or `input1` and
