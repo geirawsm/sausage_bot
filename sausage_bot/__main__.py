@@ -81,7 +81,11 @@ async def sync_global(interaction: discord.Interaction):
     await config.bot.tree.sync()
     _cmd = ''
     for command in config.bot.tree.get_commands():
-        _cmd += (f"- {command.name} (Type: {'Slash Command' if isinstance(command, discord.app_commands.Command) else 'Text Command'})")
+        _cmd += (f"- {command.name} (Type: "
+                 "{'Slash Command' if "
+                 "isinstance(command, discord.app_commands.Command) "
+                 "else 'Text Command'})"
+                 )
         if _cmd != '':
             _cmd += '\n'
     await interaction.response.send_message(
@@ -112,7 +116,6 @@ async def sync_dev(interaction: discord.Interaction):
             slash_cmds.append(command.name)
         else:
             text_cmds.append(command.name)
-        #_cmd += (f"- {command.name} (Type: {'Slash Command' if isinstance(command, discord.app_commands.Command) else 'Text Command'})")
     if len(slash_cmds) > 0:
         _cmd += 'Slash-commands:'
         for cmd in slash_cmds:
@@ -123,7 +126,6 @@ async def sync_dev(interaction: discord.Interaction):
         _cmd += 'Text-commands:'
         for cmd in text_cmds:
             _cmd += f'\n- {cmd}'
-        
 
     await interaction.followup.send(
         f'Commands synched!\n{_cmd}',
@@ -132,7 +134,8 @@ async def sync_dev(interaction: discord.Interaction):
     return
 
 
-# This is for the example purposes only and should only be used for debugging
+# This is for the example purposes only and should only be used for
+# debugging
 @config.bot.tree.command(
     name='synclocal'
 )
