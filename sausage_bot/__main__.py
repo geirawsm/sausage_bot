@@ -73,6 +73,82 @@ async def on_ready():
         )
 
 
+@commands.check_any(commands.is_owner())
+@config.bot.tree.command(
+    name='syncglobal', description='Owner only'
+)
+async def sync_global(interaction: discord.Interaction):
+    await config.bot.tree.sync()
+    _cmd = ''
+    for command in config.bot.tree.get_commands():
+        _cmd += (f"- {command.name} (Type: {'Slash Command' if isinstance(command, discord.app_commands.Command) else 'Text Command'})")
+        if _cmd != '':
+            _cmd += '\n'
+    await interaction.response.send_message(
+        f'Commands synched!\n{_cmd}',
+        ephemeral=True
+    )
+    return
+
+
+@commands.is_owner()
+@config.bot.tree.command(
+    name='syncdev', description='Owner only'
+)
+async def sync_dev(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    config.bot.tree.copy_global_to(
+        guild=discord_commands.get_guild()
+    )
+    await config.bot.tree.sync(
+        guild=discord_commands.get_guild()
+    )
+    _cmd = ''
+    slash_cmds = []
+    text_cmds = []
+    for command in config.bot.tree.get_commands():
+        log.debug(f'Checking {command.name}')
+        if isinstance(command, discord.app_commands.Command):
+            slash_cmds.append(command.name)
+        else:
+            text_cmds.append(command.name)
+        #_cmd += (f"- {command.name} (Type: {'Slash Command' if isinstance(command, discord.app_commands.Command) else 'Text Command'})")
+    if len(slash_cmds) > 0:
+        _cmd += 'Slash-commands:'
+        for cmd in slash_cmds:
+            _cmd += f'\n- {cmd}'
+    if len(text_cmds) > 0:
+        if len(_cmd) > 0:
+            _cmd += '\n'
+        _cmd += 'Text-commands:'
+        for cmd in text_cmds:
+            _cmd += f'\n- {cmd}'
+        
+
+    await interaction.followup.send(
+        f'Commands synched!\n{_cmd}',
+        ephemeral=True
+    )
+    return
+
+
+# This is for the example purposes only and should only be used for debugging
+@config.bot.tree.command(
+    name='synclocal'
+)
+async def synclocal(ctx):
+    # sync to the guild where the command was used
+    log.debug('Clearing commands...')
+    config.bot.tree.clear_commands(guild=ctx.guild)
+    log.debug('Copying global commands...')
+    config.bot.tree.copy_global_to(guild=ctx.guild)
+    for command in config.bot.tree.get_commands():
+        log.debug(f'Checking {command.name}')
+    log.debug('Syncing...')
+    await config.bot.tree.sync(guild=ctx.guild)
+    log.debug('Done')
+
+
 # Commands
 @config.bot.tree.command(
     name='ping', description='Sjekk latency'
