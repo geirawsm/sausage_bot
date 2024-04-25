@@ -28,22 +28,18 @@ def config():
 # Set basic env values
 PREFIX = env('PREFIX', default='!')
 BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='general')
-DISCORD_TOKEN = env('DISCORD_TOKEN', default='1234')
 TIMEZONE = env('TIMEZONE', default='Europe/Oslo')
 LOCALE = env('LOCALE', default='nb_NO')
 ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
 
 try:
     DISCORD_GUILD = env('DISCORD_GUILD')
-except EnvError as e:
-    print(f'Error: {e}')
-    print('You need to set `DISCORD_GUILD` in .env for this to work')
-
-try:
     BOT_ID = env('BOT_ID')
+    DISCORD_TOKEN = env('DISCORD_TOKEN')
 except EnvError as e:
     print(f'Error: {e}')
-    print('You need to set `BOT_ID` in .env for this to work')
+    print('You need to set environment variables for the bot to work')
+    sys.exit()
 
 try:
     intents = discord.Intents.all()
