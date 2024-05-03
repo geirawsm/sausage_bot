@@ -42,7 +42,7 @@ def import_file_as_list(file_in):
             list_out = eval(str(f.read()))
         return list_out
     except Exception as e:
-        log.log(f"Couldn't open file `{file_in}` ({e})")
+        log.error(f"Couldn't open file `{file_in}` ({e})")
         return None
 
 
@@ -68,10 +68,10 @@ def read_json(json_file):
         with open(json_file, encoding='utf-8') as f:
             return dict(json.load(f))
     except json.JSONDecodeError as e:
-        log.log(f"Error when reading json from {json_file}:\n{e}")
+        log.error(f"Error when reading json from {json_file}:\n{e}")
         return None
     except OSError as e:
-        log.log(f"File can't be read {json_file}:\n{e}")
+        log.error(f"File can't be read {json_file}:\n{e}")
         return None
 
 
@@ -199,10 +199,10 @@ def check_similarity(
 
     # Stop function if not correct input
     if type(input1) is not str:
-        log.debug('`input1` is not string')
+        log.error('`input1` is not string')
         return None
     elif input2 is None or not isinstance(input2, (str, list)):
-        log.debug(f'Incorrect input given to `input2`: {input2}')
+        log.error(f'Incorrect input given to `input2`: {input2}')
         return None
     elif isinstance(input2, list):
         for list_item in input2:

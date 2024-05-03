@@ -131,7 +131,7 @@ class Stats(commands.Cog):
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as e:
-                        log.log(f'Invalid input for `value_in`: {e}')
+                        log.error(f'Invalid input for `value_in`: {e}')
                         # TODO var msg
                         await interaction.followup.send(
                             'Input `value_in` needs to be `True` or `False`'

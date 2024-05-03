@@ -59,7 +59,7 @@ class scrape_and_post(commands.Cog):
                         news_dev = main_dev.find_all(
                             'div', attrs={'class': 'feed__items'})
                     except (AttributeError) as e:
-                        log.log(f'Fikk feil ved henting av nyhetssaker: {e}')
+                        log.error(f'Fikk feil ved henting av nyhetssaker: {e}')
                         return None
                     max_items = 2
                     index_items = 0
@@ -72,7 +72,7 @@ class scrape_and_post(commands.Cog):
                                 try:
                                     links[team].append(link)
                                 except Exception as e:
-                                    log.log(f'Kom over en feil: {e}')
+                                    log.error(f'Kom over en feil: {e}')
                                     links[team] = []
                                     links[team].append(link)
                                 index_items += 1
@@ -102,7 +102,7 @@ class scrape_and_post(commands.Cog):
                         CHANNEL
                     )
                 except AttributeError as e:
-                    log.log(str(e))
+                    log.error(str(e))
         return
 
     @post_fcb_news.before_loop

@@ -367,4 +367,4 @@ async def get_tasks_list(interaction: discord.Interaction):
 try:
     config.bot.run(config.DISCORD_TOKEN)
 except Exception as e:
-    log.log(e)
+    log.error(f'Could not start bot: {e}')

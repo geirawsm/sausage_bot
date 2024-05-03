@@ -16,7 +16,7 @@ def db_exist(db_file_in):
         file_io.file_exist(db_path)
         return True
     except Exception as e:
-        log.log(f'Could not find database {db_path}: {e}')
+        log.error(f'Could not find database {db_path}: {e}')
         return False
 
 
@@ -57,7 +57,7 @@ async def prep_table(
                     )
                 )
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
     delete_json_ok = False
     if old_inserts:
@@ -352,7 +352,7 @@ async def insert_many_all(
                 return True
             log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
 
 
@@ -376,10 +376,10 @@ async def insert_many_some(
     db_file = template_info['db_file']
     table_name = template_info['name']
     if db_file is None:
-        log.log('`db_file` is None')
+        log.error('`db_file` is None')
         return None
     if table_name is None:
-        log.log('`table_name` is None')
+        log.error('`table_name` is None')
         return None
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
@@ -417,7 +417,7 @@ async def insert_many_some(
                     )
                 )
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
 
 
@@ -441,10 +441,10 @@ async def insert_single(
     db_file = template_info['db_file']
     table_name = template_info['name']
     if db_file is None:
-        log.log('`db_file` is None')
+        log.error('`db_file` is None')
         return None
     if table_name is None:
-        log.log('`table_name` is None')
+        log.error('`table_name` is None')
         return None
     _cmd = f'''INSERT INTO {table_name} ({field_name})
                VALUES(?)'''
@@ -465,7 +465,7 @@ async def insert_single(
             return last_row
             log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
 
 
@@ -509,10 +509,10 @@ async def update_fields(
     db_file = template_info['db_file']
     table_name = template_info['name']
     if table_name is None:
-        log.log('Missing table_name')
+        log.error('Missing table_name')
         return
     if updates is None:
-        log.log('Missing updates')
+        log.error('Missing updates')
         return
     _cmd = f'UPDATE {table_name} SET '
     if isinstance(updates, dict):
@@ -552,7 +552,7 @@ async def update_fields(
                 await db.commit()
             log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
 
 
@@ -628,7 +628,7 @@ async def get_output(
                 out = await out.fetchall()
             return out
     except aiosqlite.OperationalError as e:
-        log.db(f'Error: {e}')
+        log.error(f'Error: {e}')
         return None
 
 
@@ -758,7 +758,7 @@ async def empty_table(template_info):
                 )
                 return out
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
 
 
@@ -918,7 +918,7 @@ async def del_row_by_OR_filters(
                 await db.commit()
             log.db('Done and commited!')
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None
 
 
@@ -959,5 +959,5 @@ async def del_row_by_AND_filter(
             log.db('Done and commited!')
             return True
         except aiosqlite.OperationalError as e:
-            log.db(f'Error: {e}')
+            log.error(f'Error: {e}')
             return None

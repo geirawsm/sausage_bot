@@ -14,8 +14,7 @@ async def get_link(url):
     'Get contents of requests object from a `url`'
     content_out = None
     if type(url) is not str:
-        log.debug('`url` is not string')
-        log.log(envs.RSS_INVALID_URL.format(url))
+        log.error(envs.RSS_INVALID_URL.format(url))
         return None
     if re.search(r'^http(s)?', url):
         log.debug('Found scheme in url')
@@ -31,10 +30,10 @@ async def get_link(url):
             content_out = await resp.text()
         await session.close()
     except Exception as e:
-        log.debug(f'Error when getting `url`: {e}')
+        log.error(f'Error when getting `url`: {e}')
         return None
     if 399 < int(url_status) < 600:
-        log.log(f'Got error code {url_status}')
+        log.error(f'Got error code {url_status}')
         return None
     if content_out is None:
         return None
@@ -60,7 +59,7 @@ def make_event_start_stop(date, time=None):
             start_dt = datetime_handling.make_dt(f'{date} {time}')
         log.debug(f'`start_dt` is {start_dt}')
     except Exception as e:
-        log.log(f'Got an error: {e}')
+        log.error(f'Got an error: {e}')
         return None
     try:
         start_date = datetime_handling.get_dt('date', dt=start_dt)
@@ -103,7 +102,7 @@ def make_event_start_stop(date, time=None):
             'end_dt': end_dt,
         }
     except Exception as e:
-        log.log(envs.ERROR_WITH_ERROR_MSG.format(e))
+        log.error(envs.ERROR_WITH_ERROR_MSG.format(e))
         return None
 
 
@@ -169,7 +168,7 @@ async def parse(url: str = None):
         _date_obj = datetime_handling.make_dt(date_in)
         dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
-            log.debug('Error with `dt_in`')
+            log.error('Error with `dt_in`')
             return None
         return {
             'teams': {
@@ -206,7 +205,7 @@ async def parse(url: str = None):
         _date_obj = datetime_handling.make_dt(date_in)
         dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
-            log.debug('Error with `dt_in`')
+            log.error('Error with `dt_in`')
             return None
         return {
             'teams': {
@@ -228,7 +227,7 @@ async def parse(url: str = None):
         }
 
     if url is None:
-        log.debug('Got None as url')
+        log.error('Got None as url')
         return None
     PARSER = None
     if 'nifs.no' in url:
@@ -243,7 +242,7 @@ async def parse(url: str = None):
     if PARSER == 'nifs':
         if 'matchId=' not in url:
             # todo var msg
-            log.log('The NISO url is not from a match page')
+            log.error('The NISO url is not from a match page')
             return None
         _id = re.match(r'.*matchId=(\d+)\b', url).group(1)
         base_url = 'https://api.nifs.no/matches/{}'
@@ -254,12 +253,12 @@ async def parse(url: str = None):
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
-            log.log(error_msg)
+            log.error(error_msg)
             return None
     elif PARSER == 'vglive':
         if '/kamp/' not in url:
             # todo var msg
-            log.log('The vglive url is not from a match page')
+            log.error('The vglive url is not from a match page')
             return None
         _id = re.match(r'.*/kamp/.*/(\d+)/.*', url).group(1)
         base_url = 'https://vglive.no/api/vg/events/{}'
@@ -270,12 +269,12 @@ async def parse(url: str = None):
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
-            log.log(error_msg)
+            log.error(error_msg)
             return None
     elif PARSER == 'tv2livesport':
         if '/kamper/' not in url:
             # todo var msg
-            log.log('The tv2 url is not from a match page')
+            log.error('The tv2 url is not from a match page')
             return None
         _id = re.match(
             r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url).group(1)
@@ -288,10 +287,10 @@ async def parse(url: str = None):
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
-            log.log(error_msg)
+            log.error(error_msg)
             return None
     else:
-        log.log('Linken er ikke kjent')
+        log.error('Linken er ikke kjent')
         return None
 
 if __name__ == "__main__":

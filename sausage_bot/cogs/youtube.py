@@ -231,7 +231,7 @@ class Youtube(commands.Cog):
             with YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(url)
         except Exception as _error:
-            log.debug(f'Could not extract youtube info: {_error}')
+            log.error(f'Could not extract youtube info: {_error}')
             return None
 
     # Tasks

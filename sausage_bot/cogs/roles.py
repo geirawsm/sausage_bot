@@ -215,7 +215,7 @@ async def sync_reaction_message_from_settings(
         try:
             await msg_obj.add_reaction(reaction[1])
         except Exception as e:
-            log.debug(f'Could not add reaction to message: {e}')
+            log.error(f'Could not add reaction to message: {e}')
             continue
         new_embed_content = db_message[0][3]
         if len(new_embed_desc) > 0:

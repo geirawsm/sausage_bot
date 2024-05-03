@@ -45,7 +45,7 @@ def get_guild():
             log.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
-            log.log(envs.GUILD_NOT_FOUND.format(
+            log.error(envs.GUILD_NOT_FOUND.format(
                 str(config.env('DISCORD_GUILD'))
             ))
             return None
@@ -140,7 +140,7 @@ def get_sorted_scheduled_events():
         log.debug(f'`event_dict` is sorted: {event_dict}')
     except Exception as e:
         # events_in/get_scheduled_events() already describes the error
-        log.log(str(e))
+        log.error(str(e))
         return None
     sched_dict = {
         'match': [],
@@ -236,7 +236,7 @@ async def replace_post(replace_content, replace_with, channel_in):
                     await msg.edit(content=replace_with)
                     return
     else:
-        log.log(
+        log.error(
             envs.CHANNEL_DOES_NOT_EXIST.format(
                 channel_out
             )

@@ -158,6 +158,28 @@ def verbose(
         sleep(3)
 
 
+def error(
+        log_in: str, color: str = 'red', pretty: bool = False,
+        sameline: bool = False
+):
+    '''
+    Log the input `log_in`. Used as more verbose than `log`
+
+    log_in          The text/input to log
+    color           Specify the color for highlighting the function name:
+                    black, red, green, yellow, blue, magenta, cyan, white.
+                    If `color` is not specified, it will highlight in red.
+    pretty          Prettify the output. Works on dict and list
+    '''
+    if args.log_error:
+        log_function(
+            log_in, color=color, pretty=pretty, sameline=sameline,
+            extra_info=envs.log_extra_info('error')
+        )
+    if args.log_slow:
+        sleep(3)
+
+
 def debug(
         log_in: str, color: str = None, pretty: bool = False,
         sameline: bool = False

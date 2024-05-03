@@ -316,7 +316,8 @@ def log_extra_info(type):
             'log': 'LOG',
             'verbose': 'VERBOSE',
             'database': 'DATABASES',
-            'debug': 'DEBUG'
+            'debug': 'DEBUG',
+            'error': 'ERROR'
         },
         'length': 9
     }
