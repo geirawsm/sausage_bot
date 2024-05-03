@@ -201,12 +201,13 @@ stats_db_schema = {
     ],
     'inserts': [
         ['channel', '', 'str', 'Text'],
-        ['hide_role', '', 'str', 'Text'],
+        ['hide_roles', '', 'str', 'Text'],
         ['hide_bot_roles', 'True', 'bool', 'True/False'],
         ['show_code_stats', 'False', 'bool', 'True/False'],
         ['show_role_stats', 'True', 'bool', 'True/False'],
         ['sort_roles_abc', 'True', 'bool', 'True/False'],
-        ['sort_roles_321', 'False', 'bool', 'True/False']
+        ['sort_roles_321', 'False', 'bool', 'True/False'],
+        ['sort_min_role_members', 0, 'int', 'Number']
     ]
 }
 

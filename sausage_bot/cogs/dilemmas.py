@@ -110,21 +110,31 @@ class Dilemmas(commands.Cog):
 
 
 async def setup(bot):
+    # Create necessary databases before starting
     cog_name = 'dilemmas'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
+
     # Convert json to sqlite db-files if exists
+    # Define inserts
     dilemmas_inserts = None
-    if file_io.file_size(envs.dilemmas_file):
+
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.dilemmas_file):
         log.verbose('Found old json file')
         dilemmas_inserts = db_helper.json_to_db_inserts(cog_name)
-    dilemmas_prep_is_ok = await db_helper.prep_table(
-        envs.dilemmas_db_schema, dilemmas_inserts
-    )
-    await db_helper.prep_table(
-        envs.dilemmas_db_log_schema
-    )
-    # Delete old json files if they exist
+        log.debug(f'`dilemmas_inserts` is {dilemmas_inserts}')
+
+    # Prep of DBs should only be done if the db files does not exist
+    dilemmas_prep_is_ok = False
+    if not file_io.file_exist(envs.dilemmas_db_schema['db_file']):
+        log.verbose('Dilemmas db does not exist')
+        dilemmas_prep_is_ok = await db_helper.prep_table(
+            envs.dilemmas_db_schema, dilemmas_inserts
+        )
+    else:
+        log.verbose('Dilemmas db exist!')
+    # Delete old json files if they are not necessary anymore
     if dilemmas_prep_is_ok:
         file_io.remove_file(envs.dilemmas_file)
     if file_io.file_size(envs.dilemmas_log_file):

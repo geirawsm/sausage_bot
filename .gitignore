@@ -9,5 +9,6 @@ sausage_bot/data/.env
 sausage_bot/testing
 sausage_bot/test/test_parse/*
 sausage_bot/cogs/testing_*
+sausage_bot/cogs/_*
 
 out

@@ -252,7 +252,7 @@ class Stats(commands.Cog):
             )
         )
         log.debug(f'`stats_settings` is {stats_settings}')
-        if stats_settings['channel']:
+        if len(stats_settings['channel']) > 0:
             stats_channel = stats_settings['channel']
         else:
             stats_channel = 'stats'
@@ -336,28 +336,53 @@ class Stats(commands.Cog):
 
 
 async def setup(bot):
+    # Create necessary databases before starting
     cog_name = 'stats'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
+
     # Convert json to sqlite db-files if exists
+    # Define inserts
     stats_file_inserts = None
-    stats_settings_inserts = envs.stats_db_schema['inserts']
     stats_log_inserts = None
-    if file_io.file_size(envs.stats_file):
-        log.verbose('Found old json file')
+    stats_settings_inserts = envs.stats_db_schema['inserts']
+    log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+    stats_prep_is_ok = False
+    stats_log_prep_is_ok = False
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.stats_file) or\
+            file_io.file_exist(envs.stats_logs_file):
+        log.verbose('Found old json files')
         stats_file_inserts = db_helper.json_to_db_inserts(cog_name)
         stats_settings_inserts = stats_file_inserts['stats_inserts']
         stats_log_inserts = stats_file_inserts['stats_logs_inserts']
-    stats_prep_is_ok = await db_helper.prep_table(
-        envs.stats_db_schema, stats_settings_inserts
-    )
-    stats_log_prep_is_ok = await db_helper.prep_table(
-        envs.stats_db_log_schema, stats_log_inserts
-    )
+    log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
+    log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+
+    # Prep of DBs should only be done if the db files does not exist
+    if not file_io.file_exist(envs.stats_db_schema['db_file']):
+        log.verbose('Stats db does not exist')
+        stats_prep_is_ok = await db_helper.prep_table(
+            table_in=envs.stats_db_schema,
+            old_inserts=stats_settings_inserts
+        )
+        log.verbose(f'`stats_prep_is_ok` is {stats_prep_is_ok}')
+    else:
+        log.verbose('Stats db exist!')
+    if not file_io.file_exist(envs.stats_db_log_schema['db_file']):
+        log.verbose('Stats log db does not exist')
+        stats_log_prep_is_ok = await db_helper.prep_table(
+            envs.stats_db_log_schema, stats_log_inserts
+        )
+    else:
+        log.verbose('Stats db log exist!')
+
     # Delete old json files if they exist
-    if stats_prep_is_ok and stats_log_prep_is_ok:
+    if stats_prep_is_ok and file_io.file_exist(envs.stats_file):
         file_io.remove_file(envs.stats_file)
+    if stats_log_prep_is_ok and file_io.file_exist(envs.stats_logs_file):
         file_io.remove_file(envs.stats_logs_file)
+
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
     Stats.update_stats.start()

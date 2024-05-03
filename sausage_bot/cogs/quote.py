@@ -477,24 +477,34 @@ class Quotes(commands.Cog):
 
 
 async def setup(bot):
+    # Create necessary databases before starting
     cog_name = 'quote'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
+
     # Convert json to sqlite db-files if exists
+    # Define inserts
     quote_inserts = None
-    if file_io.file_size(envs.quote_file):
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.quote_file):
         log.verbose('Found old json file')
         quote_inserts = db_helper.json_to_db_inserts(cog_name)
-    quote_prep_is_ok = await db_helper.prep_table(
-        envs.quote_db_schema, quote_inserts
-    )
-    await db_helper.prep_table(
-        envs.quote_db_log_schema
-    )
-    # Delete old json files if they are not necessary anymore
-    if quote_prep_is_ok:
+
+    # Prep of DB should only be done if the db files does not exist
+    quote_prep_is_ok = False
+    if not file_io.file_exist(envs.quote_db_schema['db_file']):
+        log.verbose('Quote db does not exist')
+        quote_prep_is_ok = await db_helper.prep_table(
+            envs.quote_db_schema, quote_inserts
+        )
+        log.verbose(f'`quote_prep_is_ok` is {quote_prep_is_ok}')
+    else:
+        log.verbose('Quote db exist')
+
+    # Delete old json files if they exist
+    if quote_prep_is_ok and file_io.file_exist(envs.quote_file):
         file_io.remove_file(envs.quote_file)
-    if file_io.file_size(envs.quote_log_file):
+    if quote_prep_is_ok and file_io.file_size(envs.quote_log_file):
         file_io.remove_file(envs.quote_log_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(Quotes(bot))

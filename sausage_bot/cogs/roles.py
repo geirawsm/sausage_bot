@@ -1387,31 +1387,52 @@ class Autoroles(commands.Cog):
 
 
 async def setup(bot):
+    # Create necessary databases before starting
     cog_name = 'roles'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
+
     # Convert json to sqlite db-files if exists
+    # Define inserts
     roles_inserts = None
     roles_inserts_msg = None
     roles_inserts_reactions = None
     roles_inserts_settings = None
-    if file_io.file_size(envs.roles_settings_file):
+    msgs_is_ok = False
+    reacts_is_ok = False
+    settings_is_ok = False
+
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.roles_settings_file):
         log.verbose('Found old json file')
         roles_inserts = db_helper.json_to_db_inserts(cog_name)
         roles_inserts_msg = roles_inserts['msg_inserts']
         roles_inserts_reactions = roles_inserts['reactions_inserts']
         roles_inserts_settings = roles_inserts['settings_inserts']
-    msgs_is_ok = await db_helper.prep_table(
-        envs.roles_db_msgs_schema, roles_inserts_msg
-    )
-    reacts_is_ok = await db_helper.prep_table(
-        envs.roles_db_roles_schema, roles_inserts_reactions
-    )
-    settings_is_ok = await db_helper.prep_table(
-        envs.roles_db_settings_schema, roles_inserts_settings
-    )
+        log.debug(f'`roles_inserts_msg` is {roles_inserts_msg}')
+        log.debug(f'`roles_inserts_reactions` is {roles_inserts_reactions}')
+        log.debug(f'`roles_inserts_settings` is {roles_inserts_settings}')
+
+    # Prep of DBs should only be done if the db files does not exist
+    if not file_io.file_exist(envs.roles_db_msgs_schema['db_file']):
+        log.verbose('Roles db does not exist')
+        msgs_is_ok = await db_helper.prep_table(
+            envs.roles_db_msgs_schema, roles_inserts_msg
+        )
+        log.verbose(f'`msgs_is_ok` is {msgs_is_ok}')
+        reacts_is_ok = await db_helper.prep_table(
+            envs.roles_db_roles_schema, roles_inserts_reactions
+        )
+        log.verbose(f'`reacts_is_ok` is {reacts_is_ok}')
+        settings_is_ok = await db_helper.prep_table(
+            envs.roles_db_settings_schema, roles_inserts_settings
+        )
+        log.verbose(f'`settings_is_ok` is {settings_is_ok}')
+
+    # Delete old json files if they exist
     if msgs_is_ok and reacts_is_ok and settings_is_ok:
         file_io.remove_file(envs.roles_settings_file)
+
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 
@@ -1547,10 +1568,11 @@ async def on_member_update(before, after):
         where=('setting', 'unique'),
         single=True
     )
-    if len(unique_role) <= 0:
+    if not unique_role:
         # TODO var msg
         log.log('No unique role provided or setting is not string')
-    if isinstance(unique_role[0], str):
+        return
+    if unique_role:
         # TODO var msg
         log.debug('Check for unique role')
         if str(before.id) == str(config.BOT_ID):

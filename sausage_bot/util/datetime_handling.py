@@ -6,7 +6,6 @@ import datetime
 
 from . import envs
 from .log import log
-# TODO: Fix log.log -> log.error
 
 # Set correct timezone and locale
 # TODO i18n

@@ -300,13 +300,17 @@ async def setup(bot):
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
     # Convert json to sqlite db-files if exists
+
+    # Define inserts
     yt_inserts = None
     yt_prep_is_ok = None
     yt_log_prep_is_ok = None
-    if not file_io.file_size(envs.youtube_db_schema['db_file']):
-        if file_io.file_size(envs.yt_feeds_file):
-            log.verbose('Found old json file - feeds')
-            yt_inserts = db_helper.json_to_db_inserts(cog_name)
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.yt_feeds_file) and \
+            file_io.file_exist(envs.yt_feeds_logs_file):
+        log.verbose('Found old json file - feeds')
+        yt_inserts = db_helper.json_to_db_inserts(cog_name)
+
         yt_prep_is_ok = await db_helper.prep_table(
             envs.youtube_db_schema,
             yt_inserts['feeds'] if yt_inserts is not None else yt_inserts
@@ -315,8 +319,8 @@ async def setup(bot):
             envs.youtube_db_filter_schema,
             yt_inserts['filter'] if yt_inserts is not None else yt_inserts
         )
-    if not file_io.file_size(envs.youtube_db_log_schema['db_file']):
-        if file_io.file_size(envs.yt_feeds_logs_file):
+    if not file_io.file_exist(envs.youtube_db_log_schema['db_file']):
+        if file_io.file_exist(envs.yt_feeds_logs_file):
             log.verbose('Found old json file - logs')
         yt_log_prep_is_ok = await db_helper.prep_table(
             envs.youtube_db_log_schema,

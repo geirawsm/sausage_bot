@@ -477,28 +477,43 @@ async def setup(bot):
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
     # Convert json to sqlite db-files if exists
+
+    # Define inserts
     rss_inserts = None
     rss_prep_is_ok = None
     rss_log_prep_is_ok = None
-    if not file_io.file_size(envs.rss_db_schema['db_file']):
-        if file_io.file_size(envs.rss_feeds_file):
-            log.verbose('Found old json file - feeds')
-            rss_inserts = db_helper.json_to_db_inserts(cog_name)
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.rss_feeds_file) or\
+            file_io.file_exist(envs.rss_feeds_logs_file):
+        log.verbose('Found old json files')
+        rss_inserts = db_helper.json_to_db_inserts(cog_name)
+    log.debug(f'Got these inserts:\n{rss_inserts}')
+
+    # Prep of DBs should only be done if the db files does not exist
+    if not file_io.file_exist(envs.rss_db_schema['db_file']):
+        log.verbose('RSS db does not exist')
         rss_prep_is_ok = await db_helper.prep_table(
-            envs.rss_db_schema,
-            rss_inserts['feeds'] if rss_inserts is not None else rss_inserts
+            table_in=envs.rss_db_schema,
+            old_inserts=rss_inserts['feeds'] if rss_inserts is not None
+            else rss_inserts
         )
-        await db_helper.prep_table(
+        rss_filter_prep_is_ok = await db_helper.prep_table(
             envs.rss_db_filter_schema,
             rss_inserts['filter'] if rss_inserts is not None else rss_inserts
         )
+        log.verbose(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
+        log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
+    else:
+        log.verbose('RSS db exist!')
     if not file_io.file_size(envs.rss_db_log_schema['db_file']):
-        if file_io.file_size(envs.rss_feeds_logs_file):
-            log.verbose('Found old json file - logs')
+        log.verbose('RSS logs db does not exist')
         rss_log_prep_is_ok = await db_helper.prep_table(
             envs.rss_db_log_schema,
             rss_inserts['logs'] if rss_inserts is not None else rss_inserts
         )
+    else:
+        log.verbose('RSS logs db exist!')
+
     # Delete old json files if they are not necessary anymore
     if rss_prep_is_ok:
         file_io.remove_file(envs.rss_feeds_file)

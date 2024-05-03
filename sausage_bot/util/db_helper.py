@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import aiosqlite
 from uuid import uuid4
+import re
 
 from sausage_bot.util import envs, file_io
 from sausage_bot.util.args import args
@@ -21,26 +22,24 @@ def db_exist(db_file_in):
 
 
 async def prep_table(
-            table_temp, old_inserts: list = None
+            table_in, old_inserts: list = None
         ):
-    log.verbose(f'Got `table_temp`: {table_temp}')
-    db_file = table_temp['db_file']
-    table_name = table_temp['name']
-    item_list = table_temp['items']
+    log.verbose(f'Got `table_in`: {table_in}')
+    db_file = table_in['db_file']
+    table_name = table_in['name']
+    item_list = table_in['items']
     if not file_io.file_size(db_file):
         log.verbose(f'Did not find db file `{db_file}`')
         file_io.ensure_folder(envs.DB_DIR)
-    else:
-        log.verbose('db file exist.')
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
     _cmd += ', '.join(item for item in item_list)
-    if 'primary' in table_temp and\
-            table_temp['primary'] is not None:
+    if 'primary' in table_in and\
+            table_in['primary'] is not None:
         _cmd += ', PRIMARY KEY({}'.format(
-            table_temp['primary']
+            table_in['primary']
         )
-        if 'autoincrement' in table_temp and\
-                table_temp['autoincrement'] is True:
+        if 'autoincrement' in table_in and\
+                table_in['autoincrement'] is True:
             _cmd += ' AUTOINCREMENT'
         _cmd += ')'
     _cmd += ');'
@@ -51,24 +50,21 @@ async def prep_table(
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
-                log.db(
-                    'Changed {} rows'.format(
-                        db.total_changes
-                    )
-                )
+                log.db(f'Changed {db.total_changes} rows')
         except aiosqlite.OperationalError as e:
             log.error(f'Error: {e}')
             return None
     delete_json_ok = False
     if old_inserts:
-        db_len = len(await get_row_ids(table_temp))
+        db_len = len(await get_row_ids(table_in))
         if db_len <= 0:
             log.verbose('Inserting old info into db file')
-            await insert_many_all(
-                template_info=table_temp,
+            # Make the returned status from `insert_many_all` decide
+            # whether the json file can be deleted or not
+            delete_json_ok = await insert_many_all(
+                template_info=table_in,
                 inserts=old_inserts
             )
-            delete_json_ok = True
         elif db_len == len(old_inserts):
             log.log(
                 'Length of table and inserts are the same '
@@ -95,7 +91,7 @@ async def prep_table(
 
 def json_to_db_inserts(cog_name):
     '''
-    This is a clean up function to be used for converting from old json
+    This is a cleanup function to be used for converting from old json
     files to sqlite files
     #autodoc skip#
     '''
@@ -159,30 +155,65 @@ def json_to_db_inserts(cog_name):
             quotes_inserts.append(
                 (
                     str(uuid4()), quote_file[quote]['quote'],
-                    quote_file[quote]['datetime']
+                    get_dt(
+                        format="ISO8601", dt=re.sub(
+                            r'[\(\)]+', '',
+                            quote_file[quote]['datetime']
+                        )
+                    )
                 )
             )
         log.verbose(f'Got this for `quotes_inserts`:\n{quotes_inserts}')
         return quotes_inserts
     elif cog_name == 'stats':
-        stats_file = file_io.read_json(envs.stats_file)
-        stats_logs_file = file_io.read_json(envs.stats_logs_file)
+        # Check stats file
         stats_inserts = []
-        stats_logs_inserts = []
-        for setting in stats_file:
-            stats_inserts.append((setting, stats_file[setting]))
-        log.verbose(f'Got this for `stats_inserts`:\n{stats_inserts}')
-        for _y in stats_logs_file:
-            for _m in stats_logs_file[_y]:
-                for _d in stats_logs_file[_y][_m]:
-                    stats_logs_inserts.append(
+        if file_io.file_exist(envs.stats_file):
+            stats_file = file_io.read_json(envs.stats_file)
+            stats_settings_inserts = envs.stats_db_schema['inserts']
+            for insert in stats_settings_inserts:
+                under_inserts = stats_file[insert[0]]
+                if isinstance(under_inserts, list):
+                    for under_insert in under_inserts:
+                        stats_inserts.append(
+                            (insert[0], under_insert, insert[2], insert[3])
+                        )
+                else:
+                    stats_inserts.append(
                         (
-                            f'{_y}-{_m}-{_d} 00:00:00.000',
-                            stats_logs_file[_y][_m][_d]['files_in_codebase'],
-                            stats_logs_file[_y][_m][_d]['lines_in_codebase'],
-                            stats_logs_file[_y][_m][_d]['members']['total']
+                            insert[0], stats_file[insert[0]], insert[2],
+                            insert[3]
                         )
                     )
+            log.verbose(f'Got this for `stats_inserts`:\n{stats_inserts}')
+        # Check stats log file
+        stats_logs_inserts = []
+        if file_io.file_exist(envs.stats_logs_file):
+            stats_logs_file = file_io.read_json(envs.stats_logs_file)
+            for _y in stats_logs_file:
+                for _m in stats_logs_file[_y]:
+                    for _d in stats_logs_file[_y][_m]:
+                        _stats_in = stats_logs_file[_y][_m][_d]
+                        if 'files_in_codebase' in _stats_in:
+                            files_in = _stats_in['files_in_codebase']
+                        else:
+                            files_in = 0
+                        if 'lines_in_codebase' in _stats_in:
+                            lines_in = _stats_in['lines_in_codebase']
+                        else:
+                            lines_in = 0
+                        if 'members' in _stats_in:
+                            members_in = _stats_in['members']['total']
+                        else:
+                            members_in = 0
+                        stats_logs_inserts.append(
+                            (
+                                f'{_y}-{_m}-{_d} 00:00:00.000',
+                                files_in,
+                                lines_in,
+                                members_in
+                            )
+                        )
         return {
             'stats_inserts': stats_inserts,
             'stats_logs_inserts': stats_logs_inserts
@@ -199,15 +230,15 @@ def json_to_db_inserts(cog_name):
             rss_logs_index[feed] = _uuid
             rss_inserts.append(
                 (
-                    _uuid, feed, rss_file[feed]['url'],
+                    _uuid,
+                    feed,
+                    rss_file[feed]['url'],
                     rss_file[feed]['channel'],
                     rss_file[feed]['added'],
                     rss_file[feed]['added by'],
                     rss_file[feed]['status_url'],
                     rss_file[feed]['status_url_counter'],
                     rss_file[feed]['status_channel'],
-                    rss_file[feed]['yt_id'] if 'yt_id' in rss_file[feed]
-                    else ''
                 )
             )
             filter_allow = rss_file[feed]['filter_allow']
@@ -325,7 +356,6 @@ async def insert_many_all(
     input_singles = False
     input_multiples = False
     _cmd = f'INSERT INTO {table_name} VALUES('
-    print(inserts)
     if isinstance(inserts[0], str):
         _cmd += ', '.join('?'*len(inserts))
         input_singles = True
@@ -349,11 +379,11 @@ async def insert_many_all(
                         db.total_changes
                     )
                 )
-                return True
             log.db('Done and commited!')
+            return True
         except aiosqlite.OperationalError as e:
             log.error(f'Error: {e}')
-            return None
+            return False
 
 
 async def insert_many_some(
@@ -462,8 +492,8 @@ async def insert_single(
                     )
                 )
                 last_row = db.lastinsertrow
-            return last_row
             log.db('Done and commited!')
+            return last_row
         except aiosqlite.OperationalError as e:
             log.error(f'Error: {e}')
             return None
