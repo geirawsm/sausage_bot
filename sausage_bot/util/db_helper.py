@@ -172,16 +172,24 @@ def json_to_db_inserts(cog_name):
             stats_file = file_io.read_json(envs.stats_file)
             stats_settings_inserts = envs.stats_db_schema['inserts']
             for insert in stats_settings_inserts:
-                under_inserts = stats_file[insert[0]]
-                if isinstance(under_inserts, list):
-                    for under_insert in under_inserts:
+                if insert[0] in stats_file:
+                    under_inserts = stats_file[insert[0]]
+                    if isinstance(under_inserts, list):
+                        for under_insert in under_inserts:
+                            stats_inserts.append(
+                                (insert[0], under_insert, insert[2], insert[3])
+                            )
+                    else:
                         stats_inserts.append(
-                            (insert[0], under_insert, insert[2], insert[3])
+                            (
+                                insert[0], stats_file[insert[0]], insert[2],
+                                insert[3]
+                            )
                         )
                 else:
                     stats_inserts.append(
                         (
-                            insert[0], stats_file[insert[0]], insert[2],
+                            insert[0], insert[1], insert[2],
                             insert[3]
                         )
                     )
