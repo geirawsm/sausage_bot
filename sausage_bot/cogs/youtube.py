@@ -319,6 +319,13 @@ async def setup(bot):
             envs.youtube_db_filter_schema,
             yt_inserts['filter'] if yt_inserts is not None else yt_inserts
         )
+    if not file_io.file_exist(envs.youtube_db_schema['db_file']):
+        if file_io.file_exist(envs.yt_feeds_file):
+            log.verbose('Found old json file - youtube feeds')
+        yt_prep_is_ok = await db_helper.prep_table(
+            envs.youtube_db_schema,
+            yt_inserts['feeds'] if yt_inserts is not None else yt_inserts
+        )
     if not file_io.file_exist(envs.youtube_db_log_schema['db_file']):
         if file_io.file_exist(envs.yt_feeds_logs_file):
             log.verbose('Found old json file - logs')
