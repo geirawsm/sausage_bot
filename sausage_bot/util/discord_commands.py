@@ -270,18 +270,5 @@ async def update_stats_post(stats_info, stats_channel):
             await channel_out.send(stats_info)
 
 
-async def delete_bot_msgs(ctx, keyphrases=None):
-    '#autodoc skip#'
-    async for msg in ctx.history(limit=20):
-        if str(msg.author.id) == config.BOT_ID:
-            if keyphrases is not None:
-                if any(phrase in msg.content for phrase in keyphrases):
-                    await msg.delete()
-            else:
-                # TODO var msg
-                await ctx.reply('Ingen nøkkelfraser oppgitt')
-    return
-
-
 if __name__ == "__main__":
     pass
