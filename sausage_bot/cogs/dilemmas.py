@@ -132,6 +132,9 @@ async def setup(bot):
         dilemmas_prep_is_ok = await db_helper.prep_table(
             envs.dilemmas_db_schema, dilemmas_inserts
         )
+        await db_helper.prep_table(
+            envs.dilemmas_db_log_schema
+        )
     else:
         log.verbose('Dilemmas db exist!')
     # Delete old json files if they are not necessary anymore
