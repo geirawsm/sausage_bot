@@ -498,6 +498,9 @@ async def setup(bot):
             envs.quote_db_schema, quote_inserts
         )
         log.verbose(f'`quote_prep_is_ok` is {quote_prep_is_ok}')
+        await db_helper.prep_table(
+            envs.quote_db_log_schema
+        )
     else:
         log.verbose('Quote db exist')
 
