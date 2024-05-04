@@ -2,11 +2,12 @@
 
 SausageBot - affectionately known as "pølsa" among its Norwegian users - is a Discord bot with some very specific functions.
 
+## Functions
+
+To be updated
+
+
 ## Usage
-
-This code is intended to be selfhosted and run on a server you have access to.
-
-## Installation
 
 Ok, so you want to run a Discord bot?
 
@@ -18,19 +19,17 @@ Follow the instructions on this page on *Creating a Discord Bot Account*: https:
 - Click on Bot on the left side settings menu.
 - Click "Add Bot" and confirm with "Yes, do it!".
 - Give your bot a cool name and a nice icon.
-- Activate all the intents under "Bot" -> "Privileged Gateway Intents" and click "Save Changes".
+- Activate all the intents under "Bot" -> "Privileged Gateway Intents" and click "Save Changes". **Important** Read up on what the specific intents do before you activate them
 
 
-### Running through Docker
+### Running the bot
 
-`docker build .`
+#### Docker-compose
 
-`docker run sausage_bot:latest -v [host path to a data folder]:/data`
+Use the [docker-compose file](https://github.com/geirawsm/sausage_bot/blob/main/docker-compose.yml).
 
+#### Running locally with python
 
-### Running locally
-
-#### Setup the python environment
 It is recommended to run the bot in a controlled environment, by using `pipenv` or similar services.
 
 - Using the terminal, navigate to the folder where you want to install the bot
@@ -55,9 +54,11 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 
 If you run `python -m sausage_bot -h` you can also see all the arguments you can add.
 
-## Functions
+#### Build docker image
 
-To be updated
+`docker build .`
+
+`docker run sausage_bot:latest -v [host path to a data folder]:/data`
 
 ---
 
