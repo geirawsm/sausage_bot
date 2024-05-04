@@ -427,16 +427,10 @@ QUOTE_EDIT_NEED_CONFIRMATION = 'Endre sitat #{}?\nFra:\n```\n{}\n({})```'\
 QUOTE_EDIT_CONFIRMED = 'Endret sitat'
 QUOTE_NO_EDIT_CONFIRMED = 'Endret *ikke* sitat'
 QUOTE_ADD_CONFIRMATION = 'La til følgende sitat: ```#{}\n{}\n({})```'
-QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat '\
-    '(Svar med reaksjon 👍 eller 👎):\n```#{}\n{}\n({})```\n'
-QUOTE_NO_CONFIRMATION_RECEIVED = 'Ikke fått svar på 15 sekunder, stopper '\
-    'sletting'
+QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat?'\
+    '\n```#{}\n{}\n({})```\n'
+QUOTE_DENY_DELETE = 'Sitatet slettes ikke'
 QUOTE_DELETE_CONFIRMED = 'Slettet sitat #{}'
-QUOTE_KEY_PHRASES = [
-    QUOTE_CONFIRM_DELETE[0:46],         # Er du sikker på at du vil slette f...
-    QUOTE_NO_CONFIRMATION_RECEIVED,     # Ikke fått svar på 15 sekunder, sto...
-    QUOTE_DELETE_CONFIRMED[0:14]        # Slettet sitat #
-]
 QUOTE_COUNT = 'Jeg har {} sitater på lager'
 QUOTE_DOES_NOT_EXIST = 'Sitat nummer {} finnes ikke'
 

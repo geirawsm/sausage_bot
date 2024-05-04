@@ -134,11 +134,10 @@ async def sync_dev(interaction: discord.Interaction):
     return
 
 
-# This is for the example purposes only and should only be used for
-# debugging
-@config.bot.tree.command(
-    name='synclocal'
-)
+# This needs to be used to init the first sync so
+# `syncglobal` and `syncdev` will be visible
+@commands.is_owner()
+@config.bot.command(name='synclocal')
 async def synclocal(ctx):
     # sync to the guild where the command was used
     log.debug('Clearing commands...')
@@ -152,7 +151,16 @@ async def synclocal(ctx):
     log.debug('Done')
 
 
+@commands.is_owner()
+@config.bot.command(name='clearcmds')
+async def clear_commands(ctx):
+    config.bot.tree.clear_commands(guild=ctx.guild)
+    await config.bot.tree.sync(guild=ctx.guild)
+    log.debug('Commands deleted')
+
+
 # Commands
+@commands.is_owner()
 @config.bot.tree.command(
     name='ping', description='Sjekk latency'
 )
