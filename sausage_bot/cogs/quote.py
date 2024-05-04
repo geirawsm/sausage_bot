@@ -48,6 +48,42 @@ class EditButtons(discord.ui.View):
         self.stop()
 
 
+class ConfirmButtons(discord.ui.View):
+    def __init__(self, *, timeout=10):
+        super().__init__(timeout=None)
+        self.value = None
+
+    @discord.ui.button(
+        label="Yes", style=discord.ButtonStyle.green
+    )
+    async def confirm_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.value = True
+        # Disable all buttons
+        buttons = [x for x in self.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        # Update message
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @discord.ui.button(
+        label="No", style=discord.ButtonStyle.red
+    )
+    async def deny_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.value = False
+        # Disable all buttons
+        buttons = [x for x in self.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        # Update message
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+
 class Quotes(commands.Cog):
     'Administer or post quotes'
 
@@ -408,7 +444,7 @@ class Quotes(commands.Cog):
         quote_number: int
             The number of quote to edit (default: None)
         '''
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         def check(interaction: discord.Interaction, reaction, user):
             '#autodoc skip#'
@@ -419,6 +455,7 @@ class Quotes(commands.Cog):
             quote_number
         )
         log.db(f'quote is: {quote}')
+        confirm_buttons = ConfirmButtons()
         await interaction.followup.send(
             envs.QUOTE_CONFIRM_DELETE.format(
                 quote_number, quote[0][2],
@@ -426,37 +463,28 @@ class Quotes(commands.Cog):
                     format='datetextfull',
                     dt=quote[0][3]
                 )
-            )
+            ),
+            view=confirm_buttons,
+            ephemeral=True
         )
-
-        try:
-            reaction, user = await config.bot.wait_for(
-                'reaction_add', timeout=15.0, check=check
-            )
-        except TimeoutError:
-            await interaction.message.reply(
-                envs.QUOTE_NO_CONFIRMATION_RECEIVED
-            )
-            sleep(3)
-            await discord_commands.delete_bot_msgs(
-                interaction, envs.QUOTE_KEY_PHRASES
-            )
-            await interaction.message.delete()
-        else:
+        await confirm_buttons.wait()
+        log.debug(f'Got `confirm_buttons.value`: {confirm_buttons.value}')
+        if confirm_buttons.value:
             # Remove the quote
             await db_helper.del_row_id(
                 envs.quote_db_schema,
                 quote_number
             )
             # Confirm that the quote has been deleted
-            await interaction.message.reply(
-                envs.QUOTE_DELETE_CONFIRMED.format(quote_number)
+            await interaction.followup.send(
+                envs.QUOTE_DELETE_CONFIRMED.format(quote_number),
+                ephemeral=True
             )
-            sleep(3)
-            await discord_commands.delete_bot_msgs(
-                interaction, envs.QUOTE_KEY_PHRASES
+        else:
+            await interaction.followup.send(
+                envs.QUOTE_DENY_DELETE,
+                ephemeral=True
             )
-            await interaction.message.delete()
             return
 
     @group.command(
