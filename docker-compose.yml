@@ -7,3 +7,7 @@ services:
     restart: unless-stopped
     volumes:
       - /path/to/your/local/data-folder:/data
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_GUILD=${DISCORD_GUILD}
+      - BOT_ID=${BOT_ID}
