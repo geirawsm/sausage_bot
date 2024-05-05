@@ -266,7 +266,7 @@ def json_to_db_inserts(cog_name):
                                 _uuid, 'deny', line
                             )
                         )
-        if len(rss_logs_file) > 0:
+        if rss_logs_file is not None:
             for feed in rss_logs_file:
                 if feed in rss_logs_index:
                     for link in rss_logs_file[feed]:
