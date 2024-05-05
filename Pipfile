@@ -12,12 +12,12 @@ colorama = "*"
 html5lib = "*"
 bs4 = "*"
 astpretty = "*"
-yt-dlp = ">=2023.09.24"
+yt-dlp = ">=2024.04.09"
 tabulate = "*"
 environs = "*"
-aiohttp = "*"
+aiohttp = ">=3.9.4"
 discord = "*"
-tqdm = "*"
+tqdm = ">=4.66.3"
 aiosqlite = "*"
 
 [dev-packages]
@@ -26,6 +26,7 @@ pytest = "*"
 pytest-mock = "*"
 autopep8 = "*"
 vulture = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3"

@@ -8,6 +8,8 @@ from discord.ext import commands
 import discord
 import os
 import re
+import typing
+import asyncio
 
 from sausage_bot.util import envs, config, datetime_handling, net_io
 from sausage_bot.util import discord_commands
@@ -25,80 +27,75 @@ for folder in check_and_create_folders:
         pass
 
 
+async def event_names_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    _guild = discord_commands.get_guild()
+    log.debug(f'_guild: {_guild}')
+    events = []
+    for event in _guild.scheduled_events:
+        events.append((event.name, event.id))
+    log.debug(f'events: {events}')
+    return [
+        discord.app_commands.Choice(name=str(event[0]), value=str(event[1]))
+        for event in events if current.lower() in event[0].lower()
+    ]
+
+
 class AutoEvent(commands.Cog):
     '#autodoc skip#'
     def __init__(self, bot):
         self.bot = bot
+        super().__init__()
 
-    @commands.group(name='autoevent', aliases=['e', 'event'])
-    async def autoevent(self, ctx):
-        '''
-        Administer match events on the discord server based on a url from a
-        supported website.
-        '''
-        pass
+    group = discord.app_commands.Group(
+        name="autoevent",
+        description='Administer match events on the '
+                    'discord server based on a url from a supported website.'
+    )
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='add', aliases=['a'])
+    @group.command(
+        name="add", description="Add a scheduled event"
+    )
     async def event_add(
-        self, ctx, url: str = None, channel: str = None, text: str = None,
+        self, interaction: discord.Interaction, url: str,
+        channel: discord.VoiceChannel, text: str = None,
+        event_image: discord.Attachment = None
     ):
         '''
-        Add a scheduled event: `!autoevent add [url] [channel] [text]`
+        Add a scheduled event
 
         Parameters
         ------------
         url: str
             URL to match page from nifs, vglive or tv2.no/livesport
-            (default: None)
-        channel: str
-            Voice channel to run event on (default: None)
+        channel: discord.VoiceChannel
+            Voice channel to run event on
         text: str
             Additional text to the event's description (default: None)
+        event_image
+            Image for event (800 x 320)
         '''
-        autoevent_img = envs.STATIC_DIR / config.env.str(
-            'AUTOEVENT_EVENT_IMAGE', default=None
-        )
-        SCRAPE_OK = False
-        CHANNEL_OK = False
-        if url is None or\
-                channel is None:
+        await interaction.response.defer(ephemeral=True)
+        if url is None:
             # Delete command message
-            await ctx.reply(envs.TOO_FEW_ARGUMENTS, delete_after=5)
-            await ctx.message.delete()
+            await interaction.followup.send(
+                envs.TOO_FEW_ARGUMENTS
+            )
             return
         else:
             scraped_info = await net_io.parse(url)
             if scraped_info is None:
-                SCRAPE_OK = False
                 log.debug('scrape is NOT ok')
             else:
-                SCRAPE_OK = True
                 log.debug('scrape is ok, this is the output:\n{}'.format(
                     scraped_info
                 ))
-            voice_channels = discord_commands.get_voice_channel_list()
-            log.verbose(envs.GOT_CHANNEL_LIST.format(voice_channels))
-            if channel in voice_channels:
-                CHANNEL_OK = True
-                log.debug('channel is ok')
-                channel_id = voice_channels[channel]
-                log.verbose(
-                    envs.GOT_SPECIFIC_CHANNEL.format(
-                        channel, channel_id
-                    )
-                )
-            else:
-                CHANNEL_OK = False
-                log.debug('channel is NOT ok')
-                # Delete command message
-                await ctx.send(envs.CHANNEL_NOT_FOUND, delete_after=5)
-                return
-            if SCRAPE_OK and CHANNEL_OK:
-                log.debug('Both scrape and channel is ok')
                 scr = scraped_info
                 # Start creating the event
                 _t = scr['teams']
@@ -121,14 +118,20 @@ class AutoEvent(commands.Cog):
                     'før kampstart'
                 if text:
                     description += f'\n\n{text}'
-                with open(autoevent_img, 'rb') as f:
-                    image_in = f.read()
+                if event_image:
+                    image_in = await event_image.read()
+                else:
+                    autoevent_img = envs.STATIC_DIR / config.env.str(
+                        'AUTOEVENT_EVENT_IMAGE', default=None
+                    )
+                    with open(autoevent_img, 'rb') as f:
+                        image_in = f.read()
                 guild = discord_commands.get_guild()
                 try:
                     created_event = await guild.create_scheduled_event(
                         name=f'{home} - {away}',
                         description=description,
-                        channel=config.bot.get_channel(channel_id),
+                        channel=channel,
                         entity_type=discord.EntityType.voice,
                         image=image_in,
                         start_time=start_event,
@@ -136,18 +139,19 @@ class AutoEvent(commands.Cog):
                         privacy_level=discord.PrivacyLevel(2),
                         reason='autogenerated event'
                     )
-                    await ctx.reply(
+                    await interaction.followup.send(
                         f'Opprettet event for {home} - {away} (id: '
-                        f'{created_event.id})'
+                        f'{created_event.id})',
+                        ephemeral=True
                     )
                 except (discord.HTTPException) as e:
-                    log.log(envs.AUTOEVENT_HTTP_EXCEPTION_ERROR.format(e.text))
+                    log.error(envs.AUTOEVENT_HTTP_EXCEPTION_ERROR.format(e.text))
                     if 'Cannot schedule event in the past' in str(e):
                         log.log(envs.AUTOEVENT_EVENT_START_IN_PAST)
                         # Delete command message
-                        await ctx.reply(
+                        await interaction.followup.send(
                             envs.AUTOEVENT_EVENT_START_IN_PAST,
-                            delete_after=5
+                            ephemeral=True
                         )
                         return
 
@@ -155,76 +159,64 @@ class AutoEvent(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='remove', aliases=['r', 'delete', 'del'])
-    async def event_remove(self, ctx, event_id_in=None):
+    @discord.app_commands.autocomplete(event=event_names_autocomplete)
+    @group.command(
+        name="remove", description="Remove a scheduled event"
+    )
+    async def event_remove(
+        self, interaction: discord.Interaction,
+        event: str = None, remove_all: typing.Literal['Yes'] = None
+    ):
         '''
-        Removes a scheduled event that has not started yet:
-        `!autoevent remove [event_id_in]`
+        Removes a scheduled event that has not started yet
 
         Parameters
         ------------
-        event_id_in:
-            ID for the event to remove (default: None)
-            Get ID's from `!autoevent list`
-            Also accept 'all' to remove all events
+        event:
+            The  event to remove (default: None)
+        remove_all:
+            Use if you want to remove all events
         '''
-
+        await interaction.response.defer(ephemeral=True)
         event_dict = discord_commands.get_scheduled_events()
         log.debug(f'Got `event_dict`: {event_dict}')
         # Delete all events
-        if event_id_in == 'all':
-            _guild = discord_commands.get_guild()
-            for event in event_dict:
-                _id = event_dict[event]['id']
-                # Delete event
-                _event = _guild.get_scheduled_event(int(_id))
-                await _event.delete()
-            # TODO var msg
-            await ctx.reply('All events removed')
-            return
-        # Delete selected event
-        else:
-            for event in event_dict:
-                _id = event_dict[event]['id']
-                log.verbose(
-                    envs.COMPARING_IDS.format(
-                        event_id_in, type(event_id_in),
-                        _id, type(_id)
-                    )
-                )
-                event_id_in = str(event_id_in).strip()
-                if event_id_in == str(event_dict[event]['id']):
-                    log.log(
-                        envs.AUTOEVENT_EVENT_FOUND.format(
-                            event_dict[event]['name']
-                        )
-                    )
+        _guild = discord_commands.get_guild()
+        if remove_all:
+            if remove_all.lower() == 'yes':
+                for event in event_dict:
+                    _id = event_dict[event]['id']
                     # Delete event
-                    guild = discord_commands.get_guild()
-                    _event = guild.get_scheduled_event(int(event_id_in))
+                    _event = _guild.get_scheduled_event(int(_id))
                     await _event.delete()
-                    # TODO var msg
-                    await ctx.reply('Event removed')
-                    return
-            await ctx.reply('Did not find the event')
-            log.log(envs.AUTOEVENT_EVENT_NOT_FOUND)
-            return
+                # TODO var msg
+                await interaction.followup.send('All events removed')
+        if event is not None:
+            # Delete event
+            _event = _guild.get_scheduled_event(int(event))
+            await _event.delete()
+            # TODO var msg
+            await interaction.followup.send('Event removed')
+        return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='list', aliases=['l'])
-    async def list_events(self, ctx):
+    @group.command(
+        name="list", description="List all the planned events"
+    )
+    async def list_events(self, interaction: discord.Interaction):
         '''
         Lists all the planned events: `!autoevent list`
         '''
+        await interaction.response.defer(ephemeral=True)
         events = discord_commands.get_sorted_scheduled_events()
         if events is None:
             msg_out = envs.AUTOEVENT_NO_EVENTS_LISTED
         else:
             msg_out = events
-        await ctx.reply(
+        await interaction.followup.send(
             msg_out
         )
 
@@ -232,42 +224,47 @@ class AutoEvent(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='sync', aliases=['s'])
+    @group.command(
+        name="sync", description="Create a timer for an event"
+    )
     async def event_sync(
-        self, ctx, start_time: str = None, countdown: int = None
+        self, interaction: discord.Interaction, start_time: str,
+        countdown: int
     ):
         '''
         Create a timer in the active channel to make it easier for
         people attending an event to sync something that they're
-        watching: `!autoevent timesync [start_time] [countdown]`
+        watching
 
         Parameters
         ------------
         start_time: str
             A start time for the timer or a command for deleting
-            the timer (default: None)
+            the timer
         countdown: int
             How many seconds should it count down before hitting the
             `start_time`
 
         Examples
         ------------
-        >>> !autoevent timesync 02:00 10
-        Sync til 02:00 [om 10 sekunder]
+        >>> /autoevent sync 02:00 10
+        Countdown to 02:00 with 10 seconds to go
         '''
+        await interaction.response.defer(ephemeral=True)
         # Check that `start_time` is a decent time
-        if re.match(r'^\d{1,2}[-:.,;_]+\d{1,2}', str(start_time)):
+        re_check = re.match(r'^(\d{1,2})[-:.,;_]+(\d{1,2})', str(start_time))
+        if re_check:
             timer_epoch = datetime_handling.get_dt() + int(countdown)
             rel_start = f'<t:{timer_epoch}:R>'
-            await ctx.message.delete()
-            await ctx.send(
-                f'Sync til {start_time} {rel_start}',
-                delete_after=int(countdown)-1
+            timer_msg = await interaction.followup.send(
+                f'Sync til {re_check.group(1)}:{re_check.group(2)} {rel_start}'
             )
+            await asyncio.sleep(int(countdown)-1)
+            await timer_msg.delete()
         else:
-            await ctx.send(
+            await interaction.followup.send(
                 envs.AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT,
-                delete_after=3
+                ephemeral=True
             )
         return
 
@@ -275,9 +272,13 @@ class AutoEvent(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_events=True)
     )
-    @autoevent.group(name='announce', aliases=['ann'])
+    @discord.app_commands.autocomplete(event=event_names_autocomplete)
+    @group.command(
+        name="announce", description="Announce an event"
+    )
     async def event_announce(
-        self, ctx, event_id: str = None, channel: str = None
+        self, interaction: discord.Interaction, event: str,
+        channel: discord.TextChannel
     ):
         '''
         Announce an event in a specific channel
@@ -289,31 +290,39 @@ class AutoEvent(commands.Cog):
         channel: str
             The channel to announce in (default: None)
         '''
-        # Get events
+        await interaction.response.defer(ephemeral=True)
+        # Get event
         _guild = discord_commands.get_guild()
-        for event in _guild.scheduled_events:
-            if int(event_id) == event.id:
-                rel_start = '<t:{}:R>'.format(
-                    datetime_handling.get_dt(
-                        format='epoch',
-                        dt=event.start_time.astimezone()
-                    )
-                )
-                announce_text = 'Minner om eventen som '\
-                    'begynner {}, 30 min før kampstart'.format(
-                        rel_start
-                    )
-                break
-
-        # Announce to channel
-        await discord_commands.post_to_channel(
-            channel_in=channel,
-            content_in=event.url
+        _event = _guild.get_scheduled_event(int(event))
+        rel_start = '<t:{}:R>'.format(
+            datetime_handling.get_dt(
+                format='epoch',
+                dt=_event.start_time.astimezone()
+            )
         )
-        await discord_commands.post_to_channel(
-            channel_in=channel,
-            content_in=announce_text
-        )
+        announce_text = 'Minner om eventen som '\
+            'begynner {}, 30 min før kampstart'.format(
+                rel_start
+            )
+        try:
+            # Announce to channel
+            async with channel.typing():
+                await asyncio.sleep(3)
+            await channel.send(announce_text)
+            await channel.send(_event.url)
+            await interaction.followup.send(
+                f'Melding sent til `#{channel.name}`', ephemeral=True
+            )
+        except discord.Forbidden:
+            await interaction.followup.send(
+                'Jeg har ikke tilgang til å sende melding '
+                f'i `#{channel.name}`.',
+                ephemeral=True
+            )
+        except Exception as e:
+            await interaction.followup.send(
+                f'An error occurred: {e}', ephemeral=True
+            )
         return
 
 

@@ -8,6 +8,33 @@ from sausage_bot.util.datetime_handling import get_dt
 from .log import log
 
 
+async def get_message_obj(
+        msg_id: str = None, channel: str = None
+) -> dict:
+    '''
+    Get a message object
+
+    Parameters
+    ------------
+    msg_id: int/str
+        The message ID to look for, or name of the saved message in
+        settings file
+    channel: str
+        Channel to get message from (default: None)
+    '''
+
+    _guild = get_guild()
+    _channels = get_text_channel_list()
+    _channel = _guild.get_channel(
+        _channels[channel]
+    )
+    try:
+        msg_out = await _channel.fetch_message(msg_id)
+    except discord.errors.NotFound:
+        msg_out = None
+    return msg_out
+
+
 def get_guild():
     '''
     Get the active guild object
@@ -18,7 +45,9 @@ def get_guild():
             log.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
-            log.log(envs.GUILD_NOT_FOUND)
+            log.error(envs.GUILD_NOT_FOUND.format(
+                str(config.env('DISCORD_GUILD'))
+            ))
             return None
 
 
@@ -111,7 +140,7 @@ def get_sorted_scheduled_events():
         log.debug(f'`event_dict` is sorted: {event_dict}')
     except Exception as e:
         # events_in/get_scheduled_events() already describes the error
-        log.log(str(e))
+        log.error(str(e))
         return None
     sched_dict = {
         'match': [],
@@ -207,7 +236,7 @@ async def replace_post(replace_content, replace_with, channel_in):
                     await msg.edit(content=replace_with)
                     return
     else:
-        log.log(
+        log.error(
             envs.CHANNEL_DOES_NOT_EXIST.format(
                 channel_out
             )
@@ -239,19 +268,6 @@ async def update_stats_post(stats_info, stats_channel):
             # TODO var msg
             log.debug('Found post with `Serverstats:`, editing...')
             await channel_out.send(stats_info)
-
-
-async def delete_bot_msgs(ctx, keyphrases=None):
-    '#autodoc skip#'
-    async for msg in ctx.history(limit=20):
-        if str(msg.author.id) == config.BOT_ID:
-            if keyphrases is not None:
-                if any(phrase in msg.content for phrase in keyphrases):
-                    await msg.delete()
-            else:
-                # TODO var msg
-                await ctx.reply('Ingen nøkkelfraser oppgitt')
-    return
 
 
 if __name__ == "__main__":

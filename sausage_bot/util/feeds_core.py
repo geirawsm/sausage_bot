@@ -58,7 +58,7 @@ async def check_feed_validity(url):
         BeautifulSoup(req, features='xml')
         return True
     except (etree.XMLSyntaxError) as e:
-        log.verbose(envs.ERROR_WITH_ERROR_MSG.format(e))
+        log.error(envs.ERROR_WITH_ERROR_MSG.format(e))
         return False
 
 
@@ -68,7 +68,7 @@ async def get_items_from_rss(
     try:
         soup = BeautifulSoup(req, features='xml')
     except Exception as e:
-        log.log(envs.FEEDS_SOUP_ERROR.format(url, e))
+        log.error(envs.FEEDS_SOUP_ERROR.format(url, e))
         return None
     links_out = []
     # If used for testing feeds, only get one article
@@ -118,7 +118,7 @@ async def get_items_from_rss(
         elif len(soup.find_all('entry')) > 0:
             article_method = 'entry'
         else:
-            log.log('Klarte ikke finne ut av feed?')
+            log.error('Klarte ikke finne ut av feed?')
             return None
         all_items = soup.find_all(article_method)
         for item in all_items[0:max_items]:
@@ -222,7 +222,7 @@ async def add_to_feed_db(
     '''
 
     if feed_type not in ['rss', 'youtube']:
-        log.log('Function requires `feed_type`')
+        log.error('Function requires `feed_type`')
         return None
     # Test the link first
     test_link = await net_io.get_link(feed_link)
@@ -404,7 +404,7 @@ async def get_feed_list(
         maxcolwidths = [None, None, None, None, None]
     elif list_type == 'filter':
         if db_filter_in is None:
-            log.log('`db_filter_in` is not specified')
+            log.error('`db_filter_in` is not specified')
             return None
         feeds_db = await db_helper.get_output(
             template_info=db_in,
@@ -461,7 +461,7 @@ async def review_feeds_status(feed_type: str = None):
         Can be `rss` or `youtube` (default: None)
     '''
     if feed_type not in ['rss', 'youtube']:
-        log.log('`feed_type` must be `rss` or `youtube`')
+        log.error('`feed_type` must be `rss` or `youtube`')
         return False
     if feed_type == 'rss':
         feed_db = envs.rss_db_schema
@@ -508,7 +508,7 @@ async def review_feeds_status(feed_type: str = None):
             if URL_STATUS_COUNTER >= envs.FEEDS_URL_ERROR_LIMIT:
                 _url_e_msg = f'Error when getting feed for {FEED_NAME}'\
                     f' (strike {envs.FEEDS_URL_ERROR_LIMIT})'
-                log.log(_url_e_msg)
+                log.error(_url_e_msg)
                 log.log_to_bot_channel(_url_e_msg)
                 if URL_STATUS != envs.FEEDS_URL_ERROR:
                     if 'status_url' not in db_updates:
@@ -593,7 +593,7 @@ def link_is_in_log(link, log_in):
             log.verbose(f'Found link logs ({link})')
             return True
     except Exception as e:
-        log.debug(
+        log.error(
             f'Error: {e}:', pretty=log_in)
         return None
 
@@ -619,7 +619,7 @@ async def process_links_for_posting_or_editing(
         sameline=True
     )
     if feed_type not in ['rss', 'youtube']:
-        log.log('Function requires `feed_type`')
+        log.error('Function requires `feed_type`')
         return None
     if feed_type == 'rss':
         feed_db_log = envs.rss_db_log_schema

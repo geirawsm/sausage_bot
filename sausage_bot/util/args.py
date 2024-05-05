@@ -23,6 +23,11 @@ logging_args.add_argument('--verbose', '-V',
                           action='store_true',
                           default=False,
                           dest='log_verbose')
+logging_args.add_argument('--error', '-e',
+                          help='Log errors',
+                          action='store_true',
+                          default=False,
+                          dest='log_error')
 logging_args.add_argument('--log-print', '-lp',
                           help='Print logging instead of writing to file',
                           action='store_true',

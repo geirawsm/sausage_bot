@@ -2,7 +2,7 @@ name: Build, test and deploy bot
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 permissions:
   contents: read
@@ -54,4 +54,4 @@ jobs:
         context: .
         push: true
         file: ./dockerfile
-        tags: ${{secrets.DOCKER_USER}}/sausage_bot:${{ github.run_number }}
+        tags: ${{secrets.DOCKER_USER}}/sausage_bot:${{ github.ref_name }}

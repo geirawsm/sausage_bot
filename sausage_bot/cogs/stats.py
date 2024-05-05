@@ -2,11 +2,32 @@
 # -*- coding: UTF-8 -*-
 import os
 from discord.ext import commands, tasks
+import discord
 from tabulate import tabulate
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.log import log
+
+
+async def name_of_settings_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    db_settings = await db_helper.get_output(
+        template_info=envs.stats_db_schema,
+        select=('setting', 'value_help'),
+    )
+    settings = []
+    for setting in db_settings:
+        settings.append((setting[0], setting[1]))
+    log.debug(f'settings: {settings}')
+    return [
+        discord.app_commands.Choice(
+            name=f'{setting[0]} ({setting[1]})', value=str(setting[0])
+        )
+        for setting in settings if current.lower() in setting[0].lower()
+    ]
 
 
 def get_role_numbers(hide_bots: bool = None):
@@ -44,39 +65,50 @@ class Stats(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        super().__init__()
 
-    @commands.group(name='stats')
-    async def stats_cmd(self, ctx):
-        'Administer statistikk'
-        pass
+    stats_group = discord.app_commands.Group(
+        name="stats", description='Administer stats on the server'
+    )
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_cmd.group(name='list', invoke_without_command=True)
-    async def list_settings(self, ctx):
+    @stats_group.command(
+        name='list', description='List the available settings for this cog'
+    )
+    async def list_settings(
+        self, interaction: discord.Interaction
+    ):
         '''
         List the available settings for this cog
         '''
+        await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
             template_info=envs.stats_db_schema,
             select=('setting', 'value', 'value_help')
         )
         headers = ['Setting', 'Value', 'Value type']
-        await ctx.reply(
-            '```{}```'.format(
+        await interaction.followup.send(
+            content='```{}```'.format(
                 tabulate(settings_in_db, headers=headers)
-            )
+            ), ephemeral=True
         )
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_cmd.group(name='setting', invoke_without_command=True)
+    @discord.app_commands.autocomplete(
+        name_of_setting=name_of_settings_autocomplete
+    )
+    @stats_group.command(
+        name='setting', description='Change a setting for this cog'
+    )
     async def stats_setting(
-        self, ctx, name_of_setting: str = None, value_in: str = None
+        self, interaction: discord.Interaction, name_of_setting: str,
+        value_in: str
     ):
         '''
         Change a setting for this cog
@@ -88,22 +120,20 @@ class Stats(commands.Cog):
         value_in: str
             The value of the settings (default: None)
         '''
+        await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
             template_info=envs.stats_db_schema,
             select=('setting', 'value', 'value_check')
         )
-        if name_of_setting not in [name[0] for name in settings_in_db]:
-            await ctx.reply('Setting is not found')
-            return
         for setting in settings_in_db:
             if setting[0] == name_of_setting:
                 if setting[2] == 'bool':
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as e:
-                        log.log(f'Invalid input for `value_in`: {e}')
+                        log.error(f'Invalid input for `value_in`: {e}')
                         # TODO var msg
-                        await ctx.reply(
+                        await interaction.followup.send(
                             'Input `value_in` needs to be `True` or `False`'
                         )
                         return
@@ -115,7 +145,9 @@ class Stats(commands.Cog):
                         where=[('setting', name_of_setting)],
                         updates=[('value', value_in)]
                     )
-                await ctx.message.add_reaction('✅')
+                await interaction.followup.send(
+                    content='Setting updated', ephemeral=True
+                )
                 Stats.update_stats.restart()
                 break
         return
@@ -124,11 +156,18 @@ class Stats(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_cmd.group(name='reload', invoke_without_command=True)
-    async def stats_reload(self, ctx):
+    @stats_group.command(
+        name='reload', description='Reload the stats task'
+    )
+    async def stats_reload(
+        self, interaction: discord.Interaction
+    ):
         '''Reload the stats task'''
-        await ctx.message.add_reaction('✅')
+        await interaction.response.defer(ephemeral=True)
         Stats.update_stats.restart()
+        await interaction.followup.send(
+                    content='Stats reloaded', ephemeral=True
+                )
         return
 
     # Tasks
@@ -213,7 +252,7 @@ class Stats(commands.Cog):
             )
         )
         log.debug(f'`stats_settings` is {stats_settings}')
-        if stats_settings['channel']:
+        if len(stats_settings['channel']) > 0:
             stats_channel = stats_settings['channel']
         else:
             stats_channel = 'stats'
@@ -266,7 +305,7 @@ class Stats(commands.Cog):
             )
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
-        log.debug('`show_role_stats` is {})'.format(
+        log.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
         ))
         if eval(stats_settings['show_role_stats']):
@@ -297,28 +336,53 @@ class Stats(commands.Cog):
 
 
 async def setup(bot):
+    # Create necessary databases before starting
     cog_name = 'stats'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
+
     # Convert json to sqlite db-files if exists
+    # Define inserts
     stats_file_inserts = None
-    stats_settings_inserts = envs.stats_db_schema['inserts']
     stats_log_inserts = None
-    if file_io.file_size(envs.stats_file):
-        log.verbose('Found old json file')
+    stats_settings_inserts = envs.stats_db_schema['inserts']
+    log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+    stats_prep_is_ok = False
+    stats_log_prep_is_ok = False
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.stats_file) or\
+            file_io.file_exist(envs.stats_logs_file):
+        log.verbose('Found old json files')
         stats_file_inserts = db_helper.json_to_db_inserts(cog_name)
         stats_settings_inserts = stats_file_inserts['stats_inserts']
         stats_log_inserts = stats_file_inserts['stats_logs_inserts']
-    stats_prep_is_ok = await db_helper.prep_table(
-        envs.stats_db_schema, stats_settings_inserts
-    )
-    stats_log_prep_is_ok = await db_helper.prep_table(
-        envs.stats_db_log_schema, stats_log_inserts
-    )
+    log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
+    log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+
+    # Prep of DBs should only be done if the db files does not exist
+    if not file_io.file_exist(envs.stats_db_schema['db_file']):
+        log.verbose('Stats db does not exist')
+        stats_prep_is_ok = await db_helper.prep_table(
+            table_in=envs.stats_db_schema,
+            old_inserts=stats_settings_inserts
+        )
+        log.verbose(f'`stats_prep_is_ok` is {stats_prep_is_ok}')
+    else:
+        log.verbose('Stats db exist!')
+    if not file_io.file_exist(envs.stats_db_log_schema['db_file']):
+        log.verbose('Stats log db does not exist')
+        stats_log_prep_is_ok = await db_helper.prep_table(
+            envs.stats_db_log_schema, stats_log_inserts
+        )
+    else:
+        log.verbose('Stats db log exist!')
+
     # Delete old json files if they exist
-    if stats_prep_is_ok and stats_log_prep_is_ok:
+    if stats_prep_is_ok and file_io.file_exist(envs.stats_file):
         file_io.remove_file(envs.stats_file)
+    if stats_log_prep_is_ok and file_io.file_exist(envs.stats_logs_file):
         file_io.remove_file(envs.stats_logs_file)
+
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
     Stats.update_stats.start()

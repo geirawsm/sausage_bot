@@ -3,39 +3,109 @@
 from discord.ext import commands
 import discord
 from tabulate import tabulate
-from asyncio import TimeoutError
-from time import sleep
 import re
+import typing
 
 from sausage_bot.util import config, envs, file_io, discord_commands, db_helper
 from sausage_bot.util.log import log
 
 
-async def get_message_obj(
-        msg_id: str = None, channel: str = None
-) -> dict:
-    '''
-    Get a message object
+class DropdownPermissions(discord.ui.Select):
+    def __init__(
+            self, placeholder_in, options_out, options_in
+    ):
+        super().__init__(
+            placeholder=placeholder_in, min_values=0,
+            max_values=len(options_in),
+            options=options_in
+        )
+        self.options_out = options_out
+        self.options_in = options_in
 
-    Parameters
-    ------------
-    msg_id: int/str
-        The message ID to look for, or name of the saved message in
-        settings file
-    channel: str
-        Channel to get message from (default: None)
-    '''
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        for opt in self.options_in:
+            if opt.label in self.values:
+                opt.default = True
+            else:
+                opt.default = False
+        await interaction.response.edit_message(view=self.view)
+        self.options_out += self.values
 
-    _guild = discord_commands.get_guild()
-    _channels = discord_commands.get_text_channel_list()
-    _channel = _guild.get_channel(
-        _channels[channel]
-    )
-    try:
-        msg_out = await _channel.fetch_message(msg_id)
-    except discord.errors.NotFound:
-        msg_out = None
-    return msg_out
+
+class ButtonConfirm(discord.ui.Button):
+    def __init__(self, label):
+        super().__init__(style=discord.ButtonStyle.green, label=label)
+        self.value = False
+
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        self.disabled = True
+        buttons = [x for x in self.view.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        await interaction.response.edit_message(view=self.view)
+        self.view.stop()
+
+
+class PermissionsView(discord.ui.View):
+    def __init__(self, permissions_in=None):
+        def prep_dropdown(perm_name, permissions_in):
+            list_out = []
+            for perm in envs.SELECT_PERMISSIONS[perm_name]:
+                _desc = envs.SELECT_PERMISSIONS[perm_name][perm]
+                if len(_desc) >= 100:
+                    _desc = f'{str(_desc):.90}...'
+                if perm in permissions_in:
+                    list_out.append(
+                        discord.SelectOption(
+                            label=perm,
+                            description=_desc,
+                            value=perm,
+                            default=True
+                        )
+                    )
+                else:
+                    list_out.append(
+                        discord.SelectOption(
+                            label=perm,
+                            description=_desc,
+                            value=perm
+                        )
+                    )
+            return list_out
+
+        super().__init__(timeout=120)
+        self.permissions_out = []
+        self.permissions_in = permissions_in
+
+        general_perms = prep_dropdown(
+            'general', self.permissions_in
+        )
+        text_perms = prep_dropdown(
+            'text', self.permissions_in
+        )
+        voice_perms = prep_dropdown(
+            'voice', self.permissions_in
+        )
+
+        general_dropdown = DropdownPermissions(
+            'Select general permissions', self.permissions_out, general_perms
+        )
+        text_dropdown = DropdownPermissions(
+            'Select text permissions', self.permissions_out, text_perms
+        )
+        voice_dropdown = DropdownPermissions(
+            'Select voice permissions', self.permissions_out, voice_perms
+        )
+
+        self.add_item(general_dropdown)
+        self.add_item(text_dropdown)
+        self.add_item(voice_dropdown)
+        button_ok = ButtonConfirm('OK')
+        self.add_item(button_ok)
 
 
 async def get_msg_id_and_name(msg_id_or_name):
@@ -73,7 +143,7 @@ async def sync_reaction_message_from_settings(
     msg_id = msg_info['id']
     msg_channel = msg_info['channel']
     log.verbose(f'`msg_info` is {msg_info}')
-    msg_obj = await get_message_obj(
+    msg_obj = await discord_commands.get_message_obj(
         msg_id=msg_id,
         channel=msg_channel
     )
@@ -81,7 +151,7 @@ async def sync_reaction_message_from_settings(
     if msg_obj is None:
         # If the message has been deleted, it needs to be recreated,
         # and msg_id in databases must be updated
-        log.verbose('Creating av new message')
+        log.verbose('Creating a new message')
         db_message = await db_helper.get_output(
             template_info=envs.roles_db_msgs_schema,
             where=[
@@ -138,78 +208,175 @@ async def sync_reaction_message_from_settings(
     )
     log.verbose(f'db_reactions: {db_reactions}', color='yellow')
     # Recreate the embed
-    _roles = discord_commands.get_roles()
     new_embed_desc = ''
     new_embed_content = ''
     await msg_obj.clear_reactions()
-    _errors_out = ''
-    removals = []
     for reaction in db_reactions:
         try:
             await msg_obj.add_reaction(reaction[1])
         except Exception as e:
-            log.debug(f'Could not add reaction to message: {e}')
-            if len(_errors_out) > 0:
-                _errors_out += '\n'
-            _errors_out += 'Could not add reaction {} to message'.format(
-                reaction[1]
-            )
-            removals.append(('emoji', reaction[1]))
+            log.error(f'Could not add reaction to message: {e}')
             continue
         new_embed_content = db_message[0][3]
         if len(new_embed_desc) > 0:
             new_embed_desc += '\n'
-        if reaction[0].lower() in _roles:
-            new_embed_desc += '{} <@&{}>'.format(
-                reaction[1], _roles[reaction[0].lower()]['id']
-            )
-        else:
-            log.log('Could not find `{}` in roles'.format(
-                reaction[0]
-            ))
-            if len(_errors_out) > 0:
-                _errors_out += '\n'
-            _errors_out += 'Could not find role {}'.format(
-                reaction[0]
-            )
-            removals.append(('role_name', reaction[0]))
-            continue
+        new_embed_desc += '{} {}'.format(
+            reaction[1], reaction[0]
+        )
+        continue
     embed_json = {
         'description': new_embed_desc,
         'content': new_embed_content
     }
     # Edit discord message if it exist
-    log.debug(f'`db_message` is {db_message}')
     await msg_obj.edit(
         content=db_message[0][3],
         embed=discord.Embed.from_dict(embed_json)
     )
-    # Remove roles/reactions with errors (if needed)
-    if len(removals) > 0:
-        log.log('Cleaning removals from db...')
-        await db_helper.del_row_by_OR_filters(
-            template_info=envs.roles_db_roles_schema,
-            where=removals
+    return
+
+
+def tabulate_emoji(dict_in):
+    content = {
+        'emoji': {
+            'length': 7,
+            'header': 'Emoji'
+        },
+        'name': {
+            'length': 0,
+            'header': 'Navn'
+        },
+        'id': {
+            'length': 20,
+            'header': 'ID'
+        },
+        'animated': {
+            'length': 11,
+            'header': 'Animert?'
+        },
+        'managed': {
+            'length': 17,
+            'header': 'Auto-håndtert?'
+        }
+    }
+    for dict_item in dict_in:
+        for item in dict_in[dict_item]:
+            if len(str(item)) > content[dict_item]['length']:
+                content[dict_item]['length'] = len(str(item)) + 1
+    header = '`    {:>{}} {:>{}} {:>{}} {:>{}}`'.format(
+        content['name']['header'],
+        content['name']['length'],
+        content['id']['header'],
+        content['id']['length'],
+        content['animated']['header'],
+        content['animated']['length'],
+        content['managed']['header'],
+        content['managed']['length'],
+    )
+    paginated = []
+    temp_out = header
+    counter = 0
+    while counter < len(dict_in['name']):
+        line_out = '{}  `{:>{}} {:>{}} {:>{}} {:>{}}`'.format(
+            dict_in['emoji'][counter],
+            dict_in['name'][counter],
+            content['name']['length'],
+            dict_in['id'][counter],
+            content['id']['length'],
+            dict_in['animated'][counter],
+            content['animated']['length'],
+            dict_in['managed'][counter],
+            content['managed']['length'],
         )
-    return _errors_out
+        if len(temp_out) + len(line_out) > 1900:
+            log.debug('Hit 1900 mark')
+            paginated.append(temp_out)
+            temp_out = header
+            temp_out += f'\n{line_out}'
+        else:
+            temp_out += f'\n{line_out}'
+        counter += 1
+    paginated.append(temp_out)
+    return paginated
+
+
+def tabulate_roles(dict_in):
+    content = {
+        'emoji': {
+            'length': 7,
+            'header': 'Emoji'
+        },
+        'name': {
+            'length': 0,
+            'header': 'Navn'
+        },
+        'id': {
+            'length': 20,
+            'header': 'ID'
+        },
+        'members': {
+            'length': 8,
+            'header': 'Members'
+        },
+        'managed': {
+            'length': 17,
+            'header': 'Auto-håndtert?'
+        }
+    }
+    for dict_item in dict_in:
+        for item in dict_in[dict_item]:
+            if len(str(item)) > content[dict_item]['length']:
+                content[dict_item]['length'] = len(str(item)) + 1
+    header = '`    {:>{}} {:>{}} {:>{}} {:>{}}`'.format(
+        content['name']['header'],
+        content['name']['length'],
+        content['id']['header'],
+        content['id']['length'],
+        content['members']['header'],
+        content['members']['length'],
+        content['managed']['header'],
+        content['managed']['length'],
+    )
+    paginated = []
+    temp_out = header
+    counter = 0
+    while counter < len(dict_in['name']):
+        line_out = '{}  `{:>{}} {:>{}} {:>{}} {:>{}}`'.format(
+            dict_in['emoji'][counter],
+            dict_in['name'][counter],
+            content['name']['length'],
+            dict_in['id'][counter],
+            content['id']['length'],
+            dict_in['members'][counter],
+            content['members']['length'],
+            dict_in['managed'][counter],
+            content['managed']['length'],
+        )
+        if len(temp_out) + len(line_out) > 1900:
+            log.debug('Hit 1900 mark')
+            paginated.append(temp_out)
+            temp_out = header
+            temp_out += f'\n{line_out}'
+        else:
+            temp_out += f'\n{line_out}'
+        counter += 1
+    paginated.append(temp_out)
+    return paginated
 
 
 def paginate_tabulate(tabulated):
-    # Test that this works as intended
     log.debug(f'Length of `tabulated` is {len(tabulated)}')
     paginated = []
     temp_out = ''
-    if len(tabulated) >= 1800:
+    if len(tabulated) >= 1900:
         tabulated_split = tabulated.splitlines(keepends=True)
         temp_out += tabulated_split[0]
-        temp_out += tabulated_split[1]
-        for line in tabulated_split[2:]:
-            if len(temp_out) + len(line) > 1800:
-                log.debug('Hit 1800 mark')
+        for line in tabulated_split[1:]:
+            if len(temp_out) + len(line) > 1900:
+                log.debug('Hit 1900 mark')
                 paginated.append(temp_out)
                 temp_out = ''
                 temp_out += tabulated_split[0]
-                temp_out += tabulated_split[1]
                 temp_out += line
             else:
                 temp_out += line
@@ -219,47 +386,345 @@ def paginate_tabulate(tabulated):
     return paginated
 
 
+async def reaction_msgs_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    db_reactions = await db_helper.get_output(
+        template_info=envs.roles_db_msgs_schema,
+        select=('name', 'msg_id'),
+        order_by=[
+            ('name', 'ASC')
+        ]
+    )
+    reactions = []
+    for reaction in db_reactions:
+        reactions.append((reaction[0], reaction[1]))
+    log.debug(f'reactions: {reactions}')
+    return [
+        discord.app_commands.Choice(
+            name=str(reaction[0]), value=str(reaction[1])
+        )
+        for reaction in reactions if current.lower() in reaction[0].lower()
+    ]
+
+
+async def emojis_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    _guild = discord_commands.get_guild()
+    _emojis = _guild.emojis
+    _emojis_list = []
+    for emoji in _emojis:
+        _emojis_list.append((
+            emoji.name, '<:{}:{}>'.format(
+                emoji.name, emoji.id
+            )
+        ))
+    log.debug(f'_emojis_list: {_emojis_list}')
+    return [
+        discord.app_commands.Choice(
+            name=str(emoji[0]),
+            value=str(emoji[1])
+        )
+        for emoji in _emojis_list if current.lower() in emoji[0].lower()
+    ]
+
+
+def combine_roles_and_emojis(roles_in, emojis_in):
+    # Do splits of roles and emojis to make sure the lengths are identical
+    _roles = re.split(
+        envs.input_split_regex, roles_in.replace(
+            envs.roles_ensure_separator[0], envs.roles_ensure_separator[1]
+        )
+    )
+    _emojis = re.split(
+        envs.input_split_regex, emojis_in.replace(
+            envs.roles_ensure_separator[0], envs.roles_ensure_separator[1]
+        )
+    )
+    if len(_roles) != len(_emojis):
+        log.log(
+            f'Number of roles ({len(_roles)}) and emojis ({len(_emojis)})'
+            'are not the same'
+        )
+        return None
+    # Process the splits
+    return tuple(zip(_roles, _emojis))
+
+
 class Autoroles(commands.Cog):
     'Manage roles and settings'
 
     def __init__(self, bot):
         self.bot = bot
+        super().__init__()
+
+    roles_group = discord.app_commands.Group(
+        name="roles", description='Control roles on the server'
+    )
+
+    roles_reaction_group = discord.app_commands.Group(
+        name="reaction", description='Control reaction messages on the server',
+        parent=roles_group
+    )
+
+    roles_reaction_add_group = discord.app_commands.Group(
+        name="reaction_add", description='Add reaction message to the server',
+        parent=roles_group
+    )
+
+    roles_reaction_remove_group = discord.app_commands.Group(
+        name="reaction_remove",
+        description='Remove reaction message from the server',
+        parent=roles_group
+    )
+
+    roles_manage_group = discord.app_commands.Group(
+        name="manage", description='Control roles on the server',
+        parent=roles_group
+    )
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @commands.group(name='roles')
-    async def guildroles(self, ctx):
+    @roles_group.command(
+        name='info', description='Get info about a specific role'
+    )
+    async def role_info(
+        self, interaction: discord.Interaction,
+        public: typing.Literal['Yes', 'No'], role_in: discord.Role
+    ):
         '''
-        Control roles on the server
-        If no subcommand is given, list all roles
+        Get info about a specific role (`role_in`)
+
+        Parameters
+        ------------
+        role_name: str
+            The role name to get info about (default: None)
         '''
-        if ctx.invoked_subcommand is None:
-            out = {
-                'name': [],
-                'members': [],
-                'bot_managed': []
-            }
-            for role in discord_commands.get_guild().roles:
-                if role.name == '@everyone':
-                    continue
-                out['name'].append(role.name)
-                out['members'].append(len(role.members))
-                _bot_rolle = role.is_bot_managed()
-                if _bot_rolle:
-                    _bot_rolle = 'Ja'
-                else:
-                    _bot_rolle = 'Nei'
-                out['bot_managed'].append(_bot_rolle)
-            _tab = '```{}```'.format(
-                tabulate(
-                    # TODO i18n?
-                    out, headers=['Rolle', 'Ant.medl.', 'Bot-rolle'],
-                    numalign='center'
-                )
+        if public.lower() == 'yes':
+            _ephemeral = False
+        elif public.lower() == 'no':
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
+        _guild = discord_commands.get_guild()
+        embed = discord.Embed(color=role_in.color)
+        embed.set_thumbnail(url=role_in.icon)
+        embed.add_field(name="ID", value=role_in.id, inline=True)
+        embed.add_field(
+            name="Farge", value=role_in.color, inline=True
+        )
+        if role_in.is_bot_managed():
+            embed.add_field(
+                name="Autohåndteres",
+                value='Ja, av {}'.format(
+                    _guild.get_member(
+                        role_in.tags.integration_id
+                    ).name
+                ),
+                inline=True
             )
-            await ctx.reply(_tab)
+        elif role_in.is_integration():
+            embed.add_field(
+                name="Autohåndteres",
+                value='Ja, av {}'.format(
+                    _guild.get_member(role_in.tags.bot_id).name
+                ),
+                inline=True
+            )
+        else:
+            embed.add_field(
+                name="Autohåndteres", value="Nei", inline=True
+            )
+        embed.add_field(
+            name="Spesielt synlig",
+            value='Ja' if role_in.hoist else 'Nei',
+            inline=True
+        )
+        embed.add_field(
+            name="Brukere med rollen",
+            value=len(role_in.members), inline=True
+        )
+        permissions = ", ".join(
+            [permission for permission, value in
+                iter(role_in.permissions) if value is True]
+        )
+        embed.add_field(
+            name="Tillatelser",
+            value=permissions if permissions else 'Ingen',
+            inline=False
+        )
+        await interaction.followup.send(
+            embed=embed, ephemeral=_ephemeral
+        )
+        return
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @roles_group.command(
+        name='list', description='List roles or emojis'
+    )
+    async def roles_list(
+        self, interaction: discord.Interaction,
+        public: typing.Literal['Yes', 'No'],
+        type: typing.Literal['Roles', 'Emojis'],
+        sort: typing.Literal['By name', 'By ID']
+    ):
+        async def roles_list_roles():
+            _guild = discord_commands.get_guild()
+            tabulate_dict = {
+                'emoji': [],
+                'name': [],
+                'id': [],
+                'members': [],
+                'managed': []
+            }
+            if sort.lower() == 'by name':
+                _roles = tuple(sorted(
+                    _guild.roles, key=lambda role: role.name.lower()
+                ))
+            elif sort.lower() == 'by id':
+                _roles = tuple(sorted(
+                    _guild.roles, key=lambda role: role.id
+                ))
+            for role in _roles:
+                tabulate_dict['emoji'].append(role.display_icon)
+                tabulate_dict['name'].append(role.name)
+                tabulate_dict['id'].append(role.id)
+                tabulate_dict['members'].append(len(role.members))
+                if role.managed:
+                    # TODO i18n?
+                    tabulate_dict['managed'].append('Ja')
+                elif not role.managed:
+                    # TODO i18n?
+                    tabulate_dict['managed'].append('Nei')
+            return tabulate_roles(tabulate_dict)
+
+        async def roles_list_emojis():
+            _guild = discord_commands.get_guild()
+            tabulate_dict = {
+                'emoji': [],
+                'name': [],
+                'id': [],
+                'animated': [],
+                'managed': []
+            }
+            if sort.lower() == 'by name':
+                _emojis = tuple(sorted(
+                    _guild.emojis, key=lambda emoji: emoji.name.lower()
+                ))
+            elif sort.lower() == 'by id':
+                _emojis = tuple(sorted(
+                    _guild.emojis, key=lambda emoji: emoji.id
+                ))
+            for emoji in _emojis:
+                tabulate_dict['emoji'].append(
+                    f'<:{emoji.name}:{emoji.id}>'
+                )
+                tabulate_dict['name'].append(emoji.name)
+                tabulate_dict['id'].append(emoji.id)
+                if emoji.animated:
+                    tabulate_dict['animated'].append('Ja')
+                else:
+                    tabulate_dict['animated'].append('Nei')
+                if emoji.managed:
+                    tabulate_dict['managed'].append('Ja')
+                else:
+                    tabulate_dict['managed'].append('Nei')
+            # Returning pagination
+            return tabulate_emoji(tabulate_dict)
+
+        if public.lower() == 'yes':
+            _ephemeral = False
+        elif public.lower() == 'no':
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
+        if type.lower() == 'roles':
+            pages = await roles_list_roles()
+        elif type.lower() == 'emojis':
+            pages = await roles_list_emojis()
+        for page in pages:
+            log.verbose(f'{page}')
+            await interaction.followup.send(f'{page}')
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @roles_group.command(
+        name='add', description='Add a role'
+    )
+    async def add_role(
+        self, interaction: discord.Interaction, role_name: str,
+        hoist: bool, mentionable: bool, color: str = None,
+        display_icon: discord.Attachment = None
+    ):
+        '''
+        Add role to the server
+
+        Parameters
+        ------------
+        role_name: str
+            The names of the role to add
+        color: str
+            Set color for the role (accepts `0x<hex>`, `#<hex>`, `0x#<hex>`,
+            or `rgb(<number>, <number>, <number>)`)
+        hoist: str (yes/no)
+            Set if the role should be mentionable or not
+        mentionable: str (yes/no)
+            Set if the role should be mentionable or not
+        display_icon: discord.Attachment
+            Set a display icon for the role. Only possible if the guild
+            has enough boosts
+        '''
+        await interaction.response.defer(ephemeral=True)
+        # TODO i18n
+        if not color:
+            color = discord.Color.random()
+        else:
+            color = discord.Color.from_str(color)
+        if display_icon:
+            display_icon = await display_icon.read()
+        perm_view = PermissionsView()
+        await interaction.followup.send(
+            "Set permissions", view=perm_view
+        )
+        await perm_view.wait()
+        # Get new permissions and add to role
+        perms = perm_view.permissions_out
+        perms_in = ''
+        if len(perms) > 0:
+            perms_in = ', '.join(f'{perm}=True' for perm in perms)
+        # Create role in guild
+        guild = discord_commands.get_guild()
+        try:
+            await guild.create_role(
+                name=role_name,
+                permissions=eval(f'discord.Permissions({perms_in})'),
+                color=color,
+                hoist=hoist,
+                mentionable=mentionable,
+                display_icon=display_icon
+            )
+            await interaction.followup.send(
+                'Role is created'
+            )
+        except discord.errors.Forbidden as e:
+            await interaction.followup.send(
+                f'Error when creating role: {e.text}'
+            )
+            return
+        except ValueError as e:
+            await interaction.followup.send(
+                f'Error when creating role: {e}'
+            )
             return
         return
 
@@ -267,214 +732,136 @@ class Autoroles(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @guildroles.group(name='info', aliases=['i'])
-    async def role_info(self, ctx, role_name: str = None):
+    @roles_group.command(
+        name='remove', description='Remove a role from the server'
+    )
+    async def remove_role(
+        self, interaction: discord.Interaction, role_name: discord.Role
+    ):
         '''
-        Get info about a specific role (`role_name`)
+        Remove a role from the server
+
+        Parameters
+        ------------
+        role_name: discord.Role
+            The name of the role to remove
+        '''
+        await interaction.response.defer(ephemeral=True)
+        _guild = discord_commands.get_guild()
+        _rolename = role_name.name
+        await _guild.get_role(int(role_name.id)).delete()
+        await interaction.followup.send(
+            f'Role `{_rolename}` has been deleted'
+        )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @roles_group.command(
+        name='edit', description='Edit a role on the server'
+    )
+    async def edit_role(
+        self, interaction: discord.Interaction, role_name: discord.Role,
+        permissions: bool, new_name: str = None, color: str = None,
+        hoist: bool = None
+    ):
+        '''
+        Edit a role on the server
 
         Parameters
         ------------
         role_name: str
-            The role name to get info about (default: None)
+            The name of the role to edit
+        new_name: str
+            Name for the role (default: None)
+        color: str
+            Color for the role. Accepts 0x<hex>, #<hex>, 0x#<hex>,
+            rgb(<number>, <number>, <number>)
+        hoist: bool
+            Indicates if the role will be displayed separately from other
+            members.
+        permissions: bool
+            Indicate if the permissions also should be edited
         '''
-
-        _guild = discord_commands.get_guild()
-        if role_name is not None and len(role_name) > 0:
-            _roles = _guild.roles
-            for _role in _roles:
-                log.verbose(f'Sjekker `_role`: {_role}')
-                if str(_role.name).lower() == role_name.lower():
-                    log.debug(f'Fant `{role_name}`')
-                    embed = discord.Embed(color=_role.color)
-                    embed.set_thumbnail(url=_role.icon)
-                    embed.add_field(name="ID", value=_role.id, inline=True)
-                    embed.add_field(
-                        name="Farge", value=_role.color, inline=True
-                    )
-                    if _role.is_bot_managed():
-                        embed.add_field(
-                            name="Autohåndteres",
-                            value='Ja, av {}'.format(
-                                _guild.get_member(
-                                    _role.tags.integration_id
-                                ).name
-                            ),
-                            inline=True
-                        )
-                    elif _role.is_integration():
-                        embed.add_field(
-                            name="Autohåndteres",
-                            value='Ja, av {}'.format(
-                                _guild.get_member(_role.tags.bot_id).name
-                            ),
-                            inline=True
-                        )
-                    else:
-                        embed.add_field(
-                            name="Autohåndteres", value="Nei", inline=True
-                        )
-                    if _role.hoist:
-                        embed.add_field(
-                            name="Spesielt synlig",
-                            value='Ja',
-                            inline=True
-                        )
-                    else:
-                        embed.add_field(
-                            name="Spesielt synlig",
-                            value='Nei',
-                            inline=True
-                        )
-                    embed.add_field(
-                        name="Brukere med rollen",
-                        value=len(_role.members), inline=True
-                    )
-                    permissions = ", ".join(
-                        [permission for permission, value in
-                            iter(_role.permissions) if value is True]
-                    )
-                    if permissions:
-                        embed.add_field(
-                            name="Tillatelser", value=permissions,
-                            inline=False
-                        )
-                    else:
-                        embed.add_field(
-                            name="Tillatelser", value='Ingen',
-                            inline=False
-                        )
-                    await ctx.reply(embed=embed)
-                    return
-            # TODO var msg
-            _var_msg = f'Fant ikke rollen `{role_name}`'
-            log.debug(_var_msg)
-            await ctx.reply(_var_msg)
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @guildroles.group(name='list', aliases=['l'])
-    async def role_list(self, ctx):
-        'List roles, emojis or reactions'
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @role_list.group(name='roles', aliases=['r'])
-    async def list_roles(self, ctx, sort: str = None):
-        '''
-        List roles
-
-        Parameters
-        ------------
-        sort: str
-            Sort roles alphabetically
-        '''
-        _guild = discord_commands.get_guild()
-        tabulate_dict = {
-            'name': [],
-            'id': [],
-            'members': [],
-            'bot_managed': []
-        }
-        if sort is not None:
-            _roles = tuple(sorted(
-                _guild.roles, key=lambda role: role.name.lower()
-            ))
-        else:
-            _roles = _guild.roles
-        for role in _roles:
-            tabulate_dict['name'].append(role.name)
-            tabulate_dict['id'].append(role.id)
-            tabulate_dict['members'].append(len(role.members))
-            if role.managed:
-                # TODO i18n?
-                tabulate_dict['bot_managed'].append('Ja')
-            elif not role.managed:
-                # TODO i18n?
-                tabulate_dict['bot_managed'].append('Nei')
-        tabulated = tabulate(
-            # TODO var msg i18n?
-            tabulate_dict, headers=[
-                'Navn', 'ID', 'Medl.', 'Bot-rolle'
+        await interaction.response.defer(ephemeral=True)
+        changes = []
+        if new_name:
+            log.debug('Changed name')
+            changes.append(f'\n- Name: `{role_name}` -> `{new_name}`')
+            await role_name.edit(
+                name=new_name
+            )
+        if color:
+            log.debug('Changed color')
+            changes.append(f'\n- Color: `{role_name.color}` -> `{color}`')
+            await role_name.edit(
+                color=discord.Color.from_str(color)
+            )
+        if hoist:
+            log.debug('Changed hoist setting')
+            changes.append(f'\n- Hoist: `{role_name.hoist}` -> `{hoist}`')
+            await role_name.edit(
+                hoist=hoist
+            )
+        if permissions:
+            perms_in = []
+            for perm in role_name.permissions:
+                if perm[1] is True:
+                    perms_in.append(perm[0])
+            perm_view = PermissionsView(
+                permissions_in=perms_in
+            )
+            await interaction.followup.send(
+                "Change permissions", view=perm_view
+            )
+            await perm_view.wait()
+            perms_out = perm_view.permissions_out
+            perms_added = [item for item in perms_in if item not in perms_out]
+            perms_removed = [
+                item for item in perms_out if item not in perms_in
             ]
-        )
-        paginated = paginate_tabulate(tabulated)
-        for page in paginated:
-            log.verbose(f'`{page}`')
-            await ctx.reply(f'```{page}```')
+            if permissions:
+                if len(perms_added) > 0:
+                    changes.append('\n- Permissions added: {}'.format(
+                        ', '.join(perms_added)
+                    ))
+                if len(perms_removed) > 0:
+                    changes.append('\n- Permissions removed: {}'.format(
+                        ', '.join(perms_removed)
+                    ))
+        if len(changes) > 0:
+            changes_out = f'Did following changes on role `{role_name.name}`:'
+            for change in changes:
+                changes_out += change
+            await interaction.followup.send(
+                changes_out
+            )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @role_list.group(name='emojis', aliases=['e'])
-    async def list_emojis(self, ctx, sort: str = None):
-        '''
-        List server emojis
-
-        Parameters
-        ------------
-        sort: str
-            Sort emojis alphabetically
-        '''
-        _guild = discord_commands.get_guild()
-        tabulate_dict = {
-            'name': [],
-            'id': [],
-            'animated': [],
-            'managed': []
-        }
-        if sort is not None:
-            _emojis = tuple(sorted(
-                _guild.emojis, key=lambda emoji: emoji.name.lower()
-            ))
-        else:
-            _emojis = _guild.emojis
-        for emoji in _emojis:
-            tabulate_dict['name'].append(emoji.name)
-            tabulate_dict['id'].append(emoji.id)
-            if emoji.animated:
-                tabulate_dict['animated'].append('Ja')
-            else:
-                tabulate_dict['animated'].append('Nei')
-            if emoji.managed:
-                tabulate_dict['managed'].append('Ja')
-            else:
-                tabulate_dict['managed'].append('Nei')
-        tabulated = tabulate(
-            # TODO var msg i18n?
-            tabulate_dict, headers=[
-                'Navn', 'ID', 'Animert?', 'Auto-håndtert?'
-            ]
-        )
-        paginated = paginate_tabulate(tabulated)
-        for page in paginated:
-            await ctx.reply(f'```{page}```')
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @roles_reaction_group.command(
+        name='list', description='List all reactions'
     )
-    @role_list.group(name='reactions', aliases=['reac'])
-    async def list_reactions(self, ctx, reaction_msg_name: str = None):
+    async def list_reactions(
+        self, interaction: discord.Interaction,
+        reaction_msg: str = None
+    ):
         '''
         List reactions
-
-        If reaction_msg_name is not provided, list all messages
 
         Parameters
         ------------
         reaction_msg_name: str
             The names of the reaction message to list (default: None)
         '''
-        if reaction_msg_name:
+        await interaction.response.defer(ephemeral=True)
+        if reaction_msg:
             db_reactions = await db_helper.get_combined_output(
                 envs.roles_db_msgs_schema,
                 envs.roles_db_roles_schema,
@@ -488,11 +875,13 @@ class Autoroles(commands.Cog):
                     'emoji'
                 ],
                 where=[
-                    ('A.name', reaction_msg_name)
+                    ('A.msg_id', reaction_msg)
                 ]
             )
             if len(db_reactions) <= 0:
-                await ctx.reply(f'Did not find `{reaction_msg_name}`')
+                await interaction.followup.send(
+                    f'Did not find `{reaction_msg}`'
+                )
                 return
             tabulate_dict = {
                 'role': [],
@@ -502,7 +891,7 @@ class Autoroles(commands.Cog):
                 tabulate_dict['role'].append(reaction[4])
                 tabulate_dict['emoji'].append(reaction[5])
             # TODO i18n?
-            await ctx.reply(
+            await interaction.followup.send(
                 'Navn: `{}`\nKanal: `{}`\nMeldings-ID: `{}`\n'
                 'Tekst: `{}`\n\n```{}```'.format(
                     db_reactions[0][0],
@@ -512,7 +901,7 @@ class Autoroles(commands.Cog):
                     tabulate(tabulate_dict, headers=['Rolle', 'Emoji'])
                 )
             )
-        elif not reaction_msg_name:
+        elif not reaction_msg:
             tabulate_dict = {
                 'name': [],
                 'channel': [],
@@ -539,7 +928,9 @@ class Autoroles(commands.Cog):
                 ]
             )
             if sorted_reacts is None:
-                await ctx.reply('Ingen meldinger i databasen')
+                await interaction.followup.send(
+                    'Ingen meldinger i databasen'
+                )
                 return
             for _sort in sorted_reacts:
                 tabulate_dict['name'].append(_sort[0])
@@ -552,7 +943,7 @@ class Autoroles(commands.Cog):
                     )
                 )
                 tabulate_dict['reactions'].append(_sort[5])
-            await ctx.reply(
+            await interaction.followup.send(
                 '```{}```'.format(
                     tabulate(
                         # TODO i18n?
@@ -565,345 +956,13 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
+    @roles_reaction_add_group.command(
+        name='message', description='Add reaction message'
     )
-    @guildroles.group(name='manage', aliases=['m'])
-    async def role_manage(self, ctx):
-        'Manage specific roles on the server'
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @role_manage.group(name='add', aliases=['a'])
-    async def add_role(
-        self, ctx, role_name: str, permissions: str,
-        color: str, hoist: str, mentionable: str
-    ):
-        '''
-        Add role to the server
-
-        Parameters
-        ------------
-        role_name: str
-            The names of the role to add (default: None)
-        permissions: str
-            Permissions to give this role
-        color: str
-            Set color for the role
-        hoist: str (yes/no)
-            Set if the role should be mentionable or not
-        mentionable: str (yes/no)
-            Set if the role should be mentionable or not
-        '''
-        if role_name is None:
-            # todo var msg
-            log.log('Role has no name')
-            await ctx.message.reply('Role has no name')
-            return
-        # TODO i18n
-        if str(permissions).lower() in ['ingen', 'none', 'no', '0']:
-            permissions = discord.Permissions(permissions=0)
-        if color.lower() in ['ingen', 'none', 'no']:
-            color = discord.Color.random()
-        else:
-            color = discord.Color.from_str(color)
-        _yes = ['yes', 'y']
-        _no = ['no', 'n']
-        if hoist in _yes:
-            hoist = True
-        elif hoist in _no:
-            hoist = False
-        else:
-            await ctx.message.reply(
-                'Parameter `hoist` needs a `yes` or a `no`'
-            )
-            return
-        if mentionable in _yes:
-            mentionable = True
-        elif mentionable in _no:
-            mentionable = False
-        else:
-            await ctx.message.reply(
-                'Parameter `mentionable` needs a `yes` or a `no`'
-            )
-            return
-        guild = discord_commands.get_guild()
-        await guild.create_role(
-            name=role_name,
-            permissions=permissions,
-            color=color,
-            hoist=hoist,
-            mentionable=mentionable,
-        )
-        await ctx.message.reply('Role is created')
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @role_manage.group(name='remove', aliases=['delete', 'r', 'd'])
-    async def remove_role(self, ctx, role_name):
-        '''
-        Remove a role from the server
-
-        Parameters
-        ------------
-        role_name: str
-            The name of the role to remove (default: None)
-        '''
-
-        if role_name is None:
-            # todo var msg
-            log.log('Give a role name or ID')
-            await ctx.message.reply('Give a role name or ID')
-            return
-        _guild = discord_commands.get_guild()
-        _roles = _guild.roles
-        for _role in _roles:
-            log.debug(f'Sjekker `_role`: {_role}')
-            if _role.name == role_name:
-                log.debug(f'Fant {role_name}, sletter...')
-                await _guild.get_role(int(_role.id)).delete()
-                await ctx.message.reply('Role has been deleted')
-                return
-        log.log(f'Fant ikke `{role_name}`')
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @role_manage.group(name='edit', aliases=['e'])
-    async def edit_role(
-        self, ctx, role_name: str = None,
-        setting: str = None,
-        value: str = None
-    ):
-        '''
-        Edit a role on the server
-
-        Parameters
-        ------------
-        role_name: str
-            The name of the role to edit (default: None)
-        setting: str
-            The setting to change (default: None)
-            Available settings:
-                name (str)
-                color (hex)
-                hoist (Bool)
-                mentionable (Bool)
-        value: str
-            The new value (default: None)
-        '''
-        if role_name is not None and len(role_name) > 0:
-            _guild = discord_commands.get_guild()
-            _roles = _guild.roles
-            _role_edit = None
-            for _role in _roles:
-                log.debug(f'role_name.lower(): {role_name.lower()}')
-                log.debug(f'_role: {_role}')
-                if role_name.lower() == str(_role).lower():
-                    _role_edit = _guild.get_role(_role.id)
-                    continue
-            if _role_edit is None:
-                # TODO var msg
-                log.debug(f'role_name `{role_name}` is not found')
-                return
-            if setting == 'name':
-                await _role_edit.edit(name=value)
-                # TODO var msg
-                log.debug('Changed name')
-                await ctx.reply(
-                    f'Changed name on role `{role_name}` -> `{value}`'
-                )
-                return
-            elif setting == 'color':
-                await _role_edit.edit(color=discord.Colour.from_str(value))
-                # TODO var msg
-                log.debug('Changed color')
-                await ctx.reply(
-                    f'Changed color on role `{role_name}` to `{value}`'
-                )
-                return
-            elif setting == 'hoist':
-                await _role_edit.edit(hoist=value)
-                # TODO var msg
-                log.debug('Changed hoist')
-                await ctx.reply(
-                    f'Set hoist on role `{role_name}` to `{value}`'
-                )
-                return
-            elif setting == 'mentionable':
-                await _role_edit.edit(mentionable=value)
-                # TODO var msg
-                log.debug('Changed hoist')
-                await ctx.reply(
-                    f'Set hoist on role `{role_name}` to `{value}`'
-                )
-                return
-            else:
-                # TODO var msg
-                log.debug('`setting` not recognized')
-                await ctx.reply(f'setting `{value}` not recognized')
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @guildroles.group(name='user')
-    async def user_role(self, ctx):
-        '''
-        Manage a user\'s roles
-        '''
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @user_role.group(name='add', aliases=['a'])
-    async def user_add_role(self, ctx, user_name: str, *role_names):
-        '''
-        Add role(s) to a user
-
-        Parameters
-        ------------
-        user_name: str
-            Username to be given role(s)
-        *role_names: str
-            The names of the role to add (default: None)
-        '''
-        if role_names is None or user_name is None:
-            # todo var msg
-            var_msg = '`Role names` and `User name` is mandatory'
-            log.log(var_msg)
-            await ctx.message.reply(var_msg)
-            return
-        _guild = discord_commands.get_guild()
-        _roles = _guild.roles
-        log.debug(f'_roles: {_roles}')
-        _var_roles = []
-        _var_roles.extend([str(_role.name).lower() for _role in _roles])
-        ok_roles = []
-        similar_roles = []
-        not_found_roles = []
-        log.debug(f'_var_roles: {_var_roles}')
-        for chosen_role in role_names:
-            if chosen_role.lower() in _var_roles:
-                ok_roles.append(chosen_role)
-                log.debug('Found role')
-            else:
-                # Check for typos
-                typo_check = file_io.check_similarity(
-                    chosen_role, _var_roles, ratio_floor=0.8
-                )
-                if typo_check is False or typo_check is None:
-                    not_found_roles.append(chosen_role)
-                else:
-                    not_found_roles.append(chosen_role)
-                    similar_roles.append(typo_check)
-        log.debug(f'ok_roles: {ok_roles}')
-        log.debug(f'not_found_roles: {not_found_roles}')
-        log.debug(f'similar_roles: {similar_roles}')
-        out_msg = ''
-        if len(ok_roles) > 0:
-            # TODO var msg
-            out_msg += 'Legger til {}'.format(', '.join(
-                ['`{}`'.format(_role) for _role in ok_roles])
-            )
-            for _role in ok_roles:
-                for __role in ctx.guild.roles:
-                    if __role.name.lower() == _role.lower():
-                        await _guild.get_member_named(user_name).add_roles(
-                            __role
-                        )
-                        break
-        if len(not_found_roles) > 0:
-            # TODO var msg
-            out_msg += ', men disse finnes ikke: {}'.format(', '.join(
-                ['`{}`'.format(_role) for _role in not_found_roles])
-            )
-        if len(similar_roles) > 0:
-            # TODO var msg
-            out_msg += '\nMente du egentlig {}?'.format(', '.join(
-                ['`{}`'.format(_role) for _role in similar_roles]
-            ))
-        await ctx.message.reply(out_msg)
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @user_role.group(name='remove', aliases=['delete', 'r', 'd'])
-    async def user_remove_role(self, ctx, user_name, *role_names):
-        '''
-        Remove roles from a user
-
-        Parameters
-        ------------
-        user_name: str
-            Username to remove role(s) from
-        *role_names: str
-            The names of the role to remove (default: None)
-        '''
-        if role_names is None or user_name is None:
-            # todo var msg
-            var_msg = '`Role names` and `User name` is mandatory'
-            log.log(var_msg)
-            await ctx.message.reply(var_msg)
-            return
-        _guild = discord_commands.get_guild()
-        _member = _guild.get_member_named(user_name)
-        if _member is None:
-            log.log(f'Could not find user {user_name}')
-            return
-        for _role in role_names:
-            for __role in _member.roles:
-                if __role.name.lower() == _role.lower():
-                    await _member.remove_roles(__role)
-        # TODO var msg
-        var_msg = 'Fjernet `{}` fra følgende roller: {}'.format(
-            user_name, ', '.join(role_names)
-        )
-        await ctx.message.reply(var_msg)
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @guildroles.group(name='reaction', aliases=['reac'])
-    async def role_reaction(self, ctx):
-        'Manage reaction roles and messages on the server'
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @role_reaction.group(name='add', aliases=['a'])
-    async def add_reaction_item(self, ctx):
-        '''
-        Add a reaction message or a role to existing message
-        '''
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
-    )
-    @add_reaction_item.group(name='message', aliases=['msg', 'm'])
     async def add_reaction_message(
-        self, ctx, msg_name: str = None, message_text: str = '',
-        channel: str = None, order: int = None
+        self, interaction: discord.Interaction,
+        msg_name: str, message_text: str, order: int,
+        channel: discord.TextChannel, roles: str, emojis: str,
     ):
         '''
         Add a reaction message
@@ -911,31 +970,30 @@ class Autoroles(commands.Cog):
         Parameters
         ------------
         msg_name: str
-            Name of the message for the reaction roles (default: None)
+            Name of the message for the reaction roles
         message_text: str
-            The text for the message (default: '')
-        channel: str
+            The text for the message
+        channel: discord.TextChannel
             Channel to post reaction message to. If not specified, it will
             use the channel in settings
         order: int
             Set order for the message in the channel
+        roles: str
+            Tagged roles separated by any of the following characers:
+            " .,;-_\\/"
+        emojis: str
+            Tagged emojis separated by any of the following characers:
+            " .,;-_\\/"
         '''
-        if channel is None:
-            channel = config.ROLE_CHANNEL
+        await interaction.response.defer(ephemeral=True)
         msg_db_orders = await db_helper.get_output(
             envs.roles_db_msgs_schema,
             where=('channel', channel),
             select=('msg_order', 'name')
         )
-        if order is None:
+        if order in [msg_order[0] for msg_order in msg_db_orders]:
             # TODO var msg
-            await ctx.reply(
-                'Order is necessary'
-            )
-            return
-        elif order in [msg_order[0] for msg_order in msg_db_orders]:
-            # TODO var msg
-            await ctx.reply(
+            await interaction.followup.send(
                 f'That order number already exist for {channel}, '
                 f'try {len(msg_db_orders)+1}'
             )
@@ -949,86 +1007,45 @@ class Autoroles(commands.Cog):
         )
         if len(msg_db) == 1:
             # TODO var msg
-            await ctx.reply(
+            await interaction.followup.send(
                 f'Reaction message `{msg_name}` is already registered...'
             )
             return
-        # TODO var msg
-        _msg_addroles = 'Svar på denne meldingen innen 60 sekunder med '\
-            'navnet på en rolle og navnet på en emoji:\n`rollenavn med '\
-            'mellomrom;emojinavn`\nBruk shift + enter mellom hvert sett '\
-            'for å legge til flere om gangen.'
-        _msg_addroles_msg = await ctx.message.reply(_msg_addroles)
-        _guild = discord_commands.get_guild()
-        try:
-            _msg = await config.bot.wait_for('message', timeout=60.0)
-            desc_out = ''
-            errors = []
-            reactions = []
-            _roles = _guild.roles
-            _roles_list = []
-            _roles_list.extend([role.name.lower() for role in _roles])
-            log.verbose(f'_roles_list: {_roles_list}')
-            _emojis = _guild.emojis
-            _emojis_list = []
-            _emojis_list.extend([emoji.name.lower() for emoji in _emojis])
-            log.verbose(f'_emojis_list: {_emojis_list}')
-            content_split = []
-            content_split.extend(
-                line for line in str(_msg.content).split('\n')
+        desc_out = ''
+        reactions = []
+        merged_roles_emojis = combine_roles_and_emojis(roles, emojis)
+        for combo in merged_roles_emojis:
+            log.debug(f'Checking combo `{combo}`')
+            if len(desc_out) > 0:
+                desc_out += ''
+            desc_out += '\n{} {}'.format(
+                combo[1], combo[0]
             )
-            for line in content_split:
-                role, emoji = line.strip().split(';')
-                # Use this for reporting non-existing roles
-                if role.lower() not in _roles_list:
-                    log.debug(f'Could not find role `{role}`')
-                    errors.append(f'{role} does not exist')
-                    continue
-                else:
-                    for _role in _roles:
-                        if role == _role.name:
-                            _role_id = _role.id
-                            break
-                if len(desc_out) > 0:
-                    desc_out += ''
-                desc_out += '{} <@&{}>'.format(
-                    emoji, _role_id
-                )
-                reactions.append((role, emoji))
-            embed_json = {
-                'description': desc_out
-            }
-        except TimeoutError:
-            # TODO var msg
-            await ctx.reply('Timed out')
-            sleep(3)
-            await _msg_addroles_msg.delete()
-            await ctx.message.delete()
-            return
-        # Inform about role/emoji errors
-        if errors:
-            await ctx.reply(errors)
+            reactions.append((combo[0], combo[1]))
+        if desc_out == '':
+            embed_json = None
+        else:
+            embed_json = discord.Embed.from_dict(
+                {
+                    'description': desc_out
+                }
+            )
         # Post the reaction message
-        reaction_msg = await discord_commands.post_to_channel(
-            channel, content_in=message_text,
-            content_embed_in=embed_json
+        reaction_msg = await channel.send(
+            content=message_text,
+            embed=embed_json
         )
         # Save to DB
         reactions_in = []
         for reac in reactions:
+            log.debug(
+                '{} ({})'.format(
+                    reac[0], type(reac[0])
+                )
+            )
             reactions_in.append(
                 (reaction_msg.id, reac[0], reac[1])
             )
-        # Add to messages DB
-        await db_helper.insert_many_all(
-            envs.roles_db_msgs_schema,
-            inserts=[
-                (
-                    reaction_msg.id, channel, msg_name, message_text,
-                    embed_json['description'], order
-                )
-            ]
-        )
         await db_helper.insert_many_all(
             envs.roles_db_roles_schema,
             inserts=reactions_in
@@ -1037,38 +1054,45 @@ class Autoroles(commands.Cog):
         for reaction in reactions_in:
             log.debug(f'Adding emoji {reaction[2]}')
             await reaction_msg.add_reaction(reaction[2])
+        # Add to messages DB
+        await db_helper.insert_many_all(
+            envs.roles_db_msgs_schema,
+            inserts=[
+                (
+                    reaction_msg.id, channel.name, msg_name, message_text,
+                    desc_out, order
+                )
+            ]
+        )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @add_reaction_item.group(name='role', aliases=['r'])
+    @roles_reaction_add_group.command(
+        name='role', description='Add roles to a reaction message')
+    @discord.app_commands.autocomplete(
+        msg_name=reaction_msgs_autocomplete
+    )
     async def add_reaction_role(
-        self, ctx, msg_id_or_name=None, *role_emoji_combo
+        self, interaction: discord.Interaction, msg_name: str,
+        roles: str, emojis: str
     ):
         '''
-        Add a reaction role to an existing message
+        Add reaction roles to an existing message
 
         Parameters
         ------------
-        msg_id_or_name: int/str
-            The message ID to look for, or name of the saved message
-        role_emoji_combo: str
-            Name of a role and an actual emoji, separated by a semicolon:
-            `testrole;❓`
-            Multiple sets can be added, using newline (shift-Enter).
+        msg_name: int/str
+            Name of the saved message
+        roles: str
+            The roles to add
+        emojis: str
+            The emojis to add
         '''
-        await ctx.message.add_reaction('✅')
-        if not msg_id_or_name:
-            ctx.reply('You need to reference a message ID or name')
-            return
-        if not role_emoji_combo:
-            ctx.reply('You need to reference roles and emojis')
-            return
-        log.verbose(f'Got `role_emoji_combo:` {role_emoji_combo}', color='red')
-        msg_info = await get_msg_id_and_name(msg_id_or_name)
-        _roles = discord_commands.get_roles()
+        await interaction.response.defer(ephemeral=True)
+        msg_info = await get_msg_id_and_name(msg_name)
         reactions_db_in = await db_helper.get_output(
             template_info=envs.roles_db_roles_schema,
             where=(
@@ -1077,168 +1101,129 @@ class Autoroles(commands.Cog):
             select=('role_name', 'emoji')
         )
         log.verbose(f'Got `reactions_db_in:` {reactions_db_in}', color='red')
-        reactions_out = []
-        reaction_role_check = [reaction[0] for reaction in reactions_db_in]
-        log.verbose(f'`reaction_role_check`: {reaction_role_check}')
-        reaction_emoji_check = [reaction[1] for reaction in reactions_db_in]
-        log.verbose(f'`reaction_emoji_check`: {reaction_emoji_check}')
-        errors = []
-        for combo in role_emoji_combo:
-            log.debug(f'combo: {combo}')
-            if ';' not in str(combo):
-                _error_msg = f'{combo} has an error'
-                log.debug(_error_msg)
-                errors.append(_error_msg)
-                continue
-            role, emoji = str(combo).split(';')
-            # Check roles
-            if role in reaction_role_check:
-                _error_msg = f'Role {role} has already been added'
-                log.debug(_error_msg)
-                errors.append(_error_msg)
-            elif role.lower() not in _roles:
-                _error_msg = f'Could not find `role` {role}'
-                log.debug(_error_msg)
-                errors.append(_error_msg)
-            # Check emojis
-            if emoji in reaction_emoji_check:
-                _error_msg = f'Emoji {emoji} has already been added'
-                log.debug(_error_msg)
-                errors.append(_error_msg)
-            elif emoji not in reaction_emoji_check:
-                try:
-                    reactions_out.append((msg_info['id'], role, emoji))
-                    log.debug(f'Adding role {role}, emoji {emoji}')
-                except Exception as e:
-                    _error_msg = f'Error when getting emoji {emoji}: '\
-                        f'{type(e)}: {e}'
-                    log.debug(_error_msg)
-                    errors.append(_error_msg)
-        if len(reactions_out) <= 0:
-            await ctx.reply(
-                'No role-emoji-combos to add, check errors:\n{}'.format(
-                    '\n'.join(f'- {error}' for error in errors)
-                )
-            )
-            return
-        else:
-            await db_helper.insert_many_all(
-                envs.roles_db_roles_schema,
-                inserts=reactions_out
-            )
-        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
-        # Inform about role/emoji errors
-        _error_msg = ''
-        if sync_errors:
-            _error_msg += sync_errors
-            _error_msg += '\n\n'
-        # TODO i18n
-        if len(errors) > 0:
-            await ctx.reply(_error_msg)
+
+        merged_roles_emojis = combine_roles_and_emojis(roles, emojis)
+        new_inserts = []
+        for item in merged_roles_emojis:
+            temp_item = [msg_info['id']]
+            for unit in item:
+                temp_item.append(unit)
+            new_inserts.append(temp_item)
+        await db_helper.insert_many_all(
+            envs.roles_db_roles_schema,
+            inserts=new_inserts
+        )
+        await sync_reaction_message_from_settings(msg_name)
+        await interaction.followup.send(
+            'Roles added', ephemeral=True
+        )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @role_reaction.group(name='sync', aliases=['s'])
-    async def sync_reaction_items(self, ctx, msg_id_or_name=None):
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @roles_reaction_group.command(
+        name='sync', description='Synchronize reactions messages with database'
+    )
+    async def sync_reaction_items(
+        self, interaction: discord.Interaction, reaction_msg: str
+    ):
         '''
         Synchronize a reaction message with the settings file
 
         Parameters
         ------------
-        msg_id_or_name: int/str
+        reaction_msg: int/str
             The message ID to look for, or name of the saved message in
             settings file
         '''
-        if not msg_id_or_name:
-            # TODO var msg
-            await ctx.reply(
-                'Du må oppgi navn eller ID til en melding som skal synces'
-            )
-            return
-        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
+        await interaction.response.defer(ephemeral=True)
+        sync_errors = await sync_reaction_message_from_settings(reaction_msg)
         if sync_errors:
-            await ctx.reply(sync_errors)
+            await interaction.followup.send(
+                sync_errors, ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                'Reaction message synced', ephemeral=True
+            )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @role_reaction.group(name='sort')
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @roles_reaction_group.command(name='sort')
     async def sort_reaction_items(
-        self, ctx, msg_id_or_name=None
+        self, interaction: discord.Interaction, reaction_msg: str
     ):
         '''
         Sort items in a reaction message alphabetically
 
         Parameters
         ------------
-        msg_id_or_name: int/str
-            The message ID from Discord or name in the database
+        reaction_msg: str
+            The message ID from database
         '''
-        await ctx.message.add_reaction('✅')
-        if not msg_id_or_name:
-            # TODO var msg
-            ctx.reply('I need the ID or name of the reaction message')
-            return
-        msg_info = await get_msg_id_and_name(msg_id_or_name)
+        await interaction.response.defer(ephemeral=True)
         # Get message object
-        _msg = await get_message_obj(
+        msg_info = await get_msg_id_and_name(reaction_msg)
+        _msg = await discord_commands.get_message_obj(
             msg_info['id'], msg_info['channel']
         )
         if _msg is None:
             # TODO var msg
-            await ctx.reply('Could not find reaction message')
+            await interaction.followup.send(
+                'Could not find reaction message'
+            )
             return
         sync_errors = await sync_reaction_message_from_settings(
-            msg_id_or_name,
+            reaction_msg,
             sorting=[('B.role_name', 'ASC')]
         )
         if sync_errors:
-            ctx.reply(sync_errors)
+            await interaction.followup.send(
+                sync_errors, ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                'Roles sorted', ephemeral=True
+            )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @role_reaction.group(name='remove', aliases=['r', 'delete', 'del'])
-    async def remove_reaction(self, ctx):
-        '''
-        Remove a reaction message or a role to existing message
-        '''
-        return
-
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_roles=True)
+    @roles_reaction_group.command(
+        name='remove_message', description='Remove a reaction message'
     )
-    @remove_reaction.group(name='message', aliases=['msg', 'm'])
-    async def remove_reaction_message(self, ctx, msg_id_or_name=None):
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    async def remove_reaction_message(
+        self, interaction: discord.Interaction, reaction_msg: str
+    ):
         '''
         Remove a reaction message
 
         Parameters
         ------------
-        msg_id_or_name: int/str
+        reaction_msg: int/str
             The message ID from Discord or name in the database
         '''
-        await ctx.message.add_reaction('✅')
-        if not msg_id_or_name:
-            # TODO var msg
-            ctx.reply('I need the ID or name of the reaction message')
-            return
-        msg_info = await get_msg_id_and_name(msg_id_or_name)
+        await interaction.response.defer(ephemeral=True)
         # Get message object
-        _msg = await get_message_obj(
+        msg_info = await get_msg_id_and_name(reaction_msg)
+        _msg = await discord_commands.get_message_obj(
             msg_info['id'], msg_info['channel']
         )
         if _msg is None:
             # TODO var msg
-            await ctx.reply('Could not find reaction message')
+            await interaction.followup.send(
+                'Could not find reaction message'
+            )
             return
         # Remove reaction message from database
         await db_helper.del_row_by_AND_filter(
@@ -1250,16 +1235,22 @@ class Autoroles(commands.Cog):
         # Remove message from guild
         await _msg.delete()
         # TODO var msg
-        await ctx.reply('Reaction message removed')
+        await interaction.followup.send(
+            'Reaction message removed'
+        )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @remove_reaction.group(name='role', aliases=['r'])
-    async def remove_reaction_from_message(
-        self, ctx, msg_id_or_name: str = None, role_name: str = None
+    @roles_reaction_remove_group.command(
+        name='role', description='Remove a reaction from reaction message'
+    )
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    async def remove_reaction_role(
+        self, interaction: discord.Interaction, reaction_msg: str,
+        role_name: discord.Role
     ):
         '''
         Remove a reaction from reaction message
@@ -1273,21 +1264,11 @@ class Autoroles(commands.Cog):
             Name of a role that is connected to a reaction
             in the message
         '''
-        await ctx.message.add_reaction('✅')
-        if not msg_id_or_name:
-            # TODO var msg
-            ctx.reply('I need the ID or name of the reaction message')
-            return
-        msg_info = await get_msg_id_and_name(msg_id_or_name)
+        await interaction.response.defer(ephemeral=True)
         # Get message object
-        _msg = await get_message_obj(
-            msg_info['id'], msg_info['channel']
-        )
-        if _msg is None:
-            # TODO var msg
-            await ctx.reply('Could not find reaction message')
-            return
+        msg_info = await get_msg_id_and_name(reaction_msg)
         # Delete reaction from db
+        role_name = f'<@&{role_name.id}>'
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
             where=[
@@ -1295,28 +1276,32 @@ class Autoroles(commands.Cog):
                 ('role_name', role_name)
             ]
         )
-        # Sync settings and inform of any role/emoji errors
-        sync_errors = await sync_reaction_message_from_settings(msg_id_or_name)
-        if sync_errors:
-            ctx.reply(sync_errors)
+        # Sync settings
+        await sync_reaction_message_from_settings(reaction_msg)
+        await interaction.followup.send(
+            'Role removed', ephemeral=True
+        )
         return
 
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @role_reaction.group(name='reorder')
+    @roles_reaction_group.command(
+        name='reorder', description='Check reaction messages order in a '
+        'discord channel and recreate them based on settings'
+    )
     async def reorder_reaction_messages(
-        self, ctx, channel: str = None
+        self, interaction: discord.Interaction, channel: discord.TextChannel
     ):
         '''
-        Check reaction messages order in a discord channel, discover any
-        errors, and recreate them based on settings
+        Check reaction messages order in a discord channel and recreate them
+        based on settings
 
         Parameters
         ------------
         channel: str
-            What channel to check (default: None)
+            What channel to check
         '''
 
         '''
@@ -1325,27 +1310,17 @@ class Autoroles(commands.Cog):
         Avsjekk at rekkefølge stemmer
         Hvis ikke stemmer, fjern alle meldinger for kanalen og lag nye
         '''
-        if not channel:
-            # TODO var msg
-            await ctx.message.reply(
-                'Du må oppgi kanalen som skal sorteres på nytt'
-            )
-            return
+        await interaction.response.defer(ephemeral=True)
         # Get all reaction messages in order from database
         react_msgs = await db_helper.get_output(
             envs.roles_db_msgs_schema,
-            where=('channel', channel),
+            where=('channel', channel.name),
             order_by=[
                 ('msg_order', 'ASC')
             ]
         )
         log.debug(f'Got `react_msgs`: {react_msgs}')
-        _guild = discord_commands.get_guild()
-        _channels = discord_commands.get_text_channel_list()
-        channel_object = _guild.get_channel(
-            _channels[channel]
-        )
-        discord_msgs = [message async for message in channel_object.history(
+        discord_msgs = [message async for message in channel.history(
             limit=20, oldest_first=True
         )]
         trigger_reordering = False
@@ -1375,7 +1350,7 @@ class Autoroles(commands.Cog):
             # Delete the old message and recreate messages
             for react_msg in react_msgs:
                 log.verbose(f'Getting object for react_msg: {react_msg}')
-                old_react_msg = await get_message_obj(
+                old_react_msg = await discord_commands.get_message_obj(
                     react_msg[0],
                     react_msg[1]
                 )
@@ -1407,35 +1382,57 @@ class Autoroles(commands.Cog):
                 await sync_reaction_message_from_settings(
                     str(new_reaction_msg.id)
                 )
+            await interaction.followup.send("Reaction messages reordered")
         return
 
 
 async def setup(bot):
+    # Create necessary databases before starting
     cog_name = 'roles'
     log.log(envs.COG_STARTING.format(cog_name))
     log.verbose('Checking db')
+
     # Convert json to sqlite db-files if exists
+    # Define inserts
     roles_inserts = None
     roles_inserts_msg = None
     roles_inserts_reactions = None
     roles_inserts_settings = None
-    if file_io.file_size(envs.roles_settings_file):
+    msgs_is_ok = False
+    reacts_is_ok = False
+    settings_is_ok = False
+
+    # Populate the inserts if json file exist
+    if file_io.file_exist(envs.roles_settings_file):
         log.verbose('Found old json file')
         roles_inserts = db_helper.json_to_db_inserts(cog_name)
         roles_inserts_msg = roles_inserts['msg_inserts']
         roles_inserts_reactions = roles_inserts['reactions_inserts']
         roles_inserts_settings = roles_inserts['settings_inserts']
-    msgs_is_ok = await db_helper.prep_table(
-        envs.roles_db_msgs_schema, roles_inserts_msg
-    )
-    reacts_is_ok = await db_helper.prep_table(
-        envs.roles_db_roles_schema, roles_inserts_reactions
-    )
-    settings_is_ok = await db_helper.prep_table(
-        envs.roles_db_settings_schema, roles_inserts_settings
-    )
+        log.debug(f'`roles_inserts_msg` is {roles_inserts_msg}')
+        log.debug(f'`roles_inserts_reactions` is {roles_inserts_reactions}')
+        log.debug(f'`roles_inserts_settings` is {roles_inserts_settings}')
+
+    # Prep of DBs should only be done if the db files does not exist
+    if not file_io.file_exist(envs.roles_db_msgs_schema['db_file']):
+        log.verbose('Roles db does not exist')
+        msgs_is_ok = await db_helper.prep_table(
+            envs.roles_db_msgs_schema, roles_inserts_msg
+        )
+        log.verbose(f'`msgs_is_ok` is {msgs_is_ok}')
+        reacts_is_ok = await db_helper.prep_table(
+            envs.roles_db_roles_schema, roles_inserts_reactions
+        )
+        log.verbose(f'`reacts_is_ok` is {reacts_is_ok}')
+        settings_is_ok = await db_helper.prep_table(
+            envs.roles_db_settings_schema, roles_inserts_settings
+        )
+        log.verbose(f'`settings_is_ok` is {settings_is_ok}')
+
+    # Delete old json files if they exist
     if msgs_is_ok and reacts_is_ok and settings_is_ok:
         file_io.remove_file(envs.roles_settings_file)
+
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 
@@ -1571,10 +1568,11 @@ async def on_member_update(before, after):
         where=('setting', 'unique'),
         single=True
     )
-    if len(unique_role) <= 0:
+    if not unique_role:
         # TODO var msg
         log.log('No unique role provided or setting is not string')
-    if isinstance(unique_role[0], str):
+        return
+    if unique_role:
         # TODO var msg
         log.debug('Check for unique role')
         if str(before.id) == str(config.BOT_ID):
