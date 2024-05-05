@@ -266,15 +266,16 @@ def json_to_db_inserts(cog_name):
                                 _uuid, 'deny', line
                             )
                         )
-        for feed in rss_logs_file:
-            if feed in rss_logs_index:
-                for link in rss_logs_file[feed]:
-                    rss_logs_inserts.append(
-                        (
-                            rss_logs_index[feed], link,
-                            str(get_dt(format='ISO8601'))
+        if len(rss_logs_file) > 0:
+            for feed in rss_logs_file:
+                if feed in rss_logs_index:
+                    for link in rss_logs_file[feed]:
+                        rss_logs_inserts.append(
+                            (
+                                rss_logs_index[feed], link,
+                                str(get_dt(format='ISO8601'))
+                            )
                         )
-                    )
         return {
             'feeds': rss_inserts,
             'filter': rss_filter_inserts,
