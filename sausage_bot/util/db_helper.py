@@ -228,7 +228,9 @@ def json_to_db_inserts(cog_name):
         }
     elif cog_name == 'rss':
         rss_file = file_io.read_json(envs.rss_feeds_file)
+        log.debug('Got `rss_file`: {}'.format(str(rss_file)[0:100]))
         rss_logs_file = file_io.read_json(envs.rss_feeds_logs_file)
+        log.debug('Got `rss_logs_file`: {}'.format(str(rss_logs_file)[0:100]))
         rss_inserts = []
         rss_filter_inserts = []
         rss_logs_inserts = []
