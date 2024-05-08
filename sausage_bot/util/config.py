@@ -27,7 +27,7 @@ def config():
 
 # Set basic env values
 PREFIX = env('PREFIX', default='!')
-BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='general')
+BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='bot-log')
 TIMEZONE = env('TIMEZONE', default='Europe/Oslo')
 LOCALE = env('LOCALE', default='nb_NO')
 ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')

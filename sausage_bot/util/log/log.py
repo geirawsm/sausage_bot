@@ -262,14 +262,12 @@ async def log_to_bot_channel(content_in=None, content_embed_in=None):
     debug(f'Got these channels: {server_channels}')
     if log_channel in server_channels:
         channel_out = config.bot.get_channel(server_channels[log_channel])
-        msg_out = await channel_out.send(
-            content=content_in
-        )
-        return msg_out
     else:
-        log(
-            envs.POST_TO_NON_EXISTING_CHANNEL.format(
-                log_channel
-            )
+        channel_out = await guild.create_text_channel(
+            name=str(config.BOT_CHANNEL),
+            topic=f'Incoming log messages from {config.bot.user.name}',
         )
-        return None
+    msg_out = await channel_out.send(
+        content=content_in
+    )
+    return msg_out
