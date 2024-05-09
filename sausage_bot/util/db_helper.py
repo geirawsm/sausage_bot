@@ -246,9 +246,9 @@ def json_to_db_inserts(cog_name):
                     rss_file[feed]['channel'],
                     rss_file[feed]['added'],
                     rss_file[feed]['added by'],
-                    rss_file[feed]['status_url'],
+                    str(rss_file[feed]['status_url']).upper(),
                     rss_file[feed]['status_url_counter'],
-                    rss_file[feed]['status_channel'],
+                    str(rss_file[feed]['status_channel']).upper(),
                 )
             )
             filter_allow = rss_file[feed]['filter_allow']
