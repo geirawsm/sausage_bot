@@ -53,9 +53,12 @@ def log_function(
             extra_color = eval('Fore.{}'.format(extra_color.upper()))
     function_name = log_func_name()
     if args.log_print:
-        if args.log_highlight is not None and str(args.log_highlight)\
-                in function_name['name']:
-            color = Fore.RED
+        if args.log_highlight is not None:
+            if str(args.log_highlight) in function_name['name'] or\
+                    str(args.log_highlight) in log_in:
+                color = eval('Fore.{}'.format(
+                    args.log_highlight_color.upper()
+                ))
     dt = pendulum.now(config.TIMEZONE)
     _dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
     if args.log_print:

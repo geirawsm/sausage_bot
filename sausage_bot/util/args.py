@@ -54,6 +54,11 @@ logging_args.add_argument('--highlight', '-hl',
                           action='store',
                           default=None,
                           dest='log_highlight')
+logging_args.add_argument('--highlight-color', '-hlc',
+                          help='Chose color to Highlight',
+                          action='store',
+                          default='red',
+                          dest='log_highlight_color')
 logging_args.add_argument('--log-all',
                           help='Log all levels (log, verbose, log-print, '
                                'log-database and debug)',
