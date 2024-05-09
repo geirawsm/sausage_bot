@@ -1,4 +1,1 @@
-sausage_bot/data/json/*
-sausage_bot/data/db/*
-sausage_bot/data/logs/*
-sausage_bot/data/.env
+sausage_bot/data/*
