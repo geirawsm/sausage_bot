@@ -168,7 +168,7 @@ def check_similarity(
     '''
     Check similarities between `input1` and `input2` (str), or `input1` and
     items in `input2` (list). As standard it will check if the similarity
-    has a ratio between 98 % and 99.999999999999999999999999995 %. If that
+    has a ratio between 95 % and 99.999999999999999999999999995 %. If that
     ratio hits, it will return the object it is similar with.
     Otherwise, return False.
 
@@ -181,7 +181,7 @@ def check_similarity(
         ratio = float(SequenceMatcher(a=input1, b=input2).ratio())
         # Our "similarity" is defined by the following equation:
         if ratio_floor is None:
-            ratio_floor = 0.98
+            ratio_floor = 0.95
         if ratio_roof is None:
             ratio_roof = 0.99999999999999999999999999995
         if ratio_floor <= ratio <= ratio_roof:
