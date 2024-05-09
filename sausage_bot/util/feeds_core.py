@@ -132,6 +132,7 @@ async def get_items_from_rss(
                 temp_info['title'] = item.find('title').text
                 temp_info['description'] = item.find('content').text
                 temp_info['link'] = item.find('link')['href']
+            log.debug(f'Got `temp_info`: {temp_info}')
             items_out['items'].append(temp_info)
     links_out = filter_links(items_out)
     links_out.reverse()
@@ -147,28 +148,53 @@ def filter_links(items):
         allow = []
         deny = []
         for filter_in in filters_in:
-            if filter_in[0] == 'allow':
+            if filter_in[0].lower() == 'allow':
                 allow.append(filter_in[1])
-            elif filter_in[0] == 'deny':
+            elif filter_in[0].lower() == 'deny':
                 deny.append(filter_in[1])
         filter_priority = eval(config.env(
             'RSS_FILTER_PRIORITY', default='deny'))
-        if len(filter_priority) >= 1:
-            for filter_out in filter_priority:
-                log.debug(f'Using filter: {filter_out}')
-                if item['title']:
-                    if filter_out.lower() in item['title'].lower():
+        for filter_out in filter_priority:
+            log.debug(f'Using filter: {filter_out}')
+            try:
+                if item['title'] is not None:
+                    log.debug(
+                        'Checking filter against title `{}`'.format(
+                            item['title'].lower()
+                        )
+                    )
+                    if filter_out.lower() in str(item['title']).lower():
                         log.debug(
-                            f'Fant filter `{filter_out}` i '
-                            'tittel ({})'.format(item['title'])
+                            f'Found filter `{filter_out}` in '
+                            'title ({}) - not posting!'.format(item['title'])
                         )
                         return False
+            except TypeError:
+                log.error(
+                    'Title is not correct type: {} ({})'.format(
+                        item['title'], type(item['title'])
+                    )
+                )
+            try:
                 if item['description']:
-                    if filter_out.lower() in item['description'].lower():
+                    log.debug(
+                        'Checking filter against description`{}`'.format(
+                            item['description'].lower()
+                        )
+                    )
+                    if filter_out.lower() in str(item['description']).lower():
                         log.debug(
-                            f'Fant filter `{filter_out}` i '
-                            'beskrivelse ({})').format(item['description'])
+                            f'Found filter `{filter_out}` in '
+                            'description ({}) - not posting!').format(
+                                item['description']
+                            )
                         return False
+            except TypeError:
+                log.error(
+                    'Description is not correct type: {} ({})'.format(
+                        item['description'], type(item['description'])
+                    )
+                )
             log.debug(
                 'Fant ikke noe filter i tittel eller beskrivelse'
             )
@@ -183,6 +209,7 @@ def filter_links(items):
     for item in items['items']:
         log.verbose(f'Checking item: {item}')
         if item['type'] == 'youtube':
+            log.debug('Checking Youtube item')
             if not config.env('YT_INCLUDE_SHORTS', default='true'):
                 shorts_keywords = ['#shorts', '(shorts)']
                 if any(kw in str(item['title']).lower()
@@ -198,6 +225,7 @@ def filter_links(items):
                     continue
         log.debug('Filters: {}'.format(items['filters']))
         if items['filters'] is not None and len(items['filters']) > 0:
+            log.debug('Found active filters, checking...')
             link_filter = post_based_on_filter(item, items['filters'])
             if link_filter:
                 links_out.append(item['link'])
@@ -426,10 +454,13 @@ async def get_feed_list(
         for feed in feeds_db:
             filter_uuid = [filter_item for filter_item in feeds_filter
                            if filter_item[0] == feed[0]]
+            log.debug(f'`filter_uuid` is {filter_uuid}')
             filter_allow = [filter_item[2] for filter_item in filter_uuid
-                            if filter_item[1] == 'allow']
+                            if filter_item[1].lower() == 'allow']
+            log.debug(f'`filter_allow` is {filter_allow}')
             filter_deny = [filter_item[2] for filter_item in filter_uuid
-                           if filter_item[1] == 'deny']
+                           if filter_item[1].lower() == 'deny']
+            log.debug(f'`filter_deny` is {filter_deny}')
             temp_list = []
             for item in feed[1:]:
                 temp_list.append(item)
@@ -440,6 +471,7 @@ async def get_feed_list(
                 ', '.join(item for item in filter_deny)
             )
             feeds_out.append(temp_list)
+            log.debug(f'`temp_list` is {temp_list}')
         headers = ('Feed', 'Channel', 'Allow', 'Deny')
         maxcolwidths = [None, None, 30, 30]
     table_out = tabulate(
