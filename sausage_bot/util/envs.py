@@ -58,7 +58,8 @@ stats_template = {
     'hide_bot_roles': False,
     'sort_roles_abc': True,
     'sort_roles_321': False,
-    'show_code_stats': True
+    'show_code_stats': True,
+    'hide_empty_roles': False
 }
 
 # Roles

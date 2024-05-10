@@ -30,11 +30,14 @@ async def name_of_settings_autocomplete(
     ]
 
 
-def get_role_numbers(hide_bots: bool = None):
+def get_role_numbers(
+    hide_bots: bool = None,
+    hide_empties: bool = None
+):
     'Get roles and number of members'
     log.debug(f'`hide_bots` is {hide_bots}')
     roles_info = discord_commands.get_roles(
-        filter_zeroes=False, filter_bots=hide_bots
+        hide_empties=hide_empties, filter_bots=hide_bots
     )
     num_members = discord_commands.get_guild().member_count
     return {
@@ -264,7 +267,8 @@ class Stats(commands.Cog):
         files_in_codebase = _codebase['total_files']
         # Get server members
         members = get_role_numbers(
-            hide_bots=eval(stats_settings['hide_bot_roles'])
+            hide_bots=eval(stats_settings['hide_bot_roles']),
+            hide_empties=eval(stats_settings['hide_empty_roles'])
         )
         # Update log database if not already this day
         log.debug('Logging stats')
