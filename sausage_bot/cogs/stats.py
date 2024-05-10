@@ -74,6 +74,52 @@ class Stats(commands.Cog):
     stats_group = discord.app_commands.Group(
         name="stats", description='Administer stats on the server'
     )
+    stats_posting_group = discord.app_commands.Group(
+        name="posting", description='Posting stats',
+        parent=stats_group
+    )
+
+    @stats_posting_group.command(
+        name='start', description='Start posting'
+    )
+    async def stats_posting_start(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        log.log('Task started')
+        Stats.update_stats.start()
+        await db_helper.update_fields(
+            template_info=envs.tasks_db_schema,
+            where=[
+                ('cog', 'stats'),
+                ('task', 'post_stats')
+            ],
+            updates=('status', 'started')
+        )
+        await interaction.followup.send(
+            'Stats posting started'
+        )
+
+    @stats_posting_group.command(
+        name='stop', description='Stop posting'
+    )
+    async def stats_posting_stop(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        log.log('Task stopped')
+        Stats.update_stats.stop()
+        await db_helper.update_fields(
+            template_info=envs.tasks_db_schema,
+            where=[
+                ('task', 'post_stats'),
+                ('cog', 'stats'),
+            ],
+            updates=('status', 'stopped')
+        )
+        await interaction.followup.send(
+            'Stats posting stopped'
+        )
 
     @commands.check_any(
         commands.is_owner(),
@@ -391,6 +437,27 @@ async def setup(bot):
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
     Stats.update_stats.start()
+
+    task_list = await db_helper.get_output(
+        template_info=envs.tasks_db_schema,
+        select=('task', 'status'),
+        where=('cog', 'stats')
+    )
+    if len(task_list) == 0:
+        await db_helper.insert_many_all(
+            template_info=envs.tasks_db_schema,
+            inserts=(
+                ('stats', 'post_stats', 'stopped')
+            )
+        )
+    for task in task_list:
+        if task[0] == 'post_stats':
+            if task[1] == 'started':
+                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+                Stats.update_stats.start()
+            elif task[1] == 'stopped':
+                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+                Stats.update_stats.stop()
 
 
 async def teardown(bot):
