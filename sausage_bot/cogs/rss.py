@@ -115,7 +115,7 @@ class RSSfeed(commands.Cog):
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
-                ('task', 'posting'),
+                ('task', 'post_feeds'),
                 ('cog', 'rss'),
             ],
             updates=('status', 'stopped')
