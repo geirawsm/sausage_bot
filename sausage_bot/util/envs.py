@@ -208,7 +208,8 @@ stats_db_schema = {
         ['show_role_stats', 'True', 'bool', 'True/False'],
         ['sort_roles_abc', 'True', 'bool', 'True/False'],
         ['sort_roles_321', 'False', 'bool', 'True/False'],
-        ['sort_min_role_members', 0, 'int', 'Number']
+        ['sort_min_role_members', 0, 'int', 'Number'],
+        ['hide_empty_roles', 'False', 'bool', 'True/False']
     ]
 }
 
