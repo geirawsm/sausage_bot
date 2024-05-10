@@ -34,10 +34,11 @@ def get_role_numbers(hide_bots: bool = None):
     'Get roles and number of members'
     log.debug(f'`hide_bots` is {hide_bots}')
     roles_info = discord_commands.get_roles(
-        filter_zeroes=True, filter_bots=hide_bots
+        filter_zeroes=False, filter_bots=hide_bots
     )
+    num_members = discord_commands.get_guild().member_count
     return {
-        'member_count': len(roles_info),
+        'member_count': num_members,
         'roles': roles_info
     }
 
