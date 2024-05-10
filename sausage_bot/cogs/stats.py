@@ -188,7 +188,7 @@ class Stats(commands.Cog):
             hide_roles = await db_helper.get_output(
                 template_info=envs.stats_db_schema,
                 select=('value'),
-                where=[('setting', 'hide_role')]
+                where=[('setting', 'hide_roles')]
             )
             hide_roles_lower = [x[0].lower() for x in hide_roles]
             # TODO var msg
