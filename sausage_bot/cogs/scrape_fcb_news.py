@@ -3,6 +3,7 @@
 from bs4 import BeautifulSoup
 import requests
 from discord.ext import commands, tasks
+import discord
 from sausage_bot.util import config, envs, feeds_core, db_helper
 from sausage_bot.util.log import log
 
@@ -24,6 +25,52 @@ class scrape_and_post(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    fcb_group = discord.app_commands.Group(
+        name="barca", description='Administer Barcelona-scraping'
+    )
+
+    @fcb_group.command(
+        name='start', description='Start posting'
+    )
+    async def barca_posting_start(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        log.log('Task started')
+        scrape_and_post.post_fcb_news.start()
+        await db_helper.update_fields(
+            template_info=envs.tasks_db_schema,
+            where=[
+                ('cog', 'barca'),
+                ('task', 'post_feeds')
+            ],
+            updates=('status', 'started')
+        )
+        await interaction.followup.send(
+            'Barca posting started'
+        )
+
+    @fcb_group.command(
+        name='stop', description='Stop posting'
+    )
+    async def barca_posting_stop(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        log.log('Task stopped')
+        scrape_and_post.post_fcb_news.stop()
+        await db_helper.update_fields(
+            template_info=envs.tasks_db_schema,
+            where=[
+                ('task', 'post_feeds'),
+                ('cog', 'barca'),
+            ],
+            updates=('status', 'stopped')
+        )
+        await interaction.followup.send(
+            'Barca posting stopped'
+        )
+
     # Tasks
     @tasks.loop(minutes=int(config.env('FCB_LOOP', default=5)))
     async def post_fcb_news():
@@ -36,7 +83,7 @@ class scrape_and_post(commands.Cog):
             soup = BeautifulSoup(scrape.content, features='html5lib')
             return soup
 
-        def scrape_fcb_news_links():
+        def barca_news_links():
             'Find links for specific team news and return it as a dict'
             root_url = 'https://www.fcbarcelona.com/en/football/'
             wanted_links = {
@@ -81,7 +128,7 @@ class scrape_and_post(commands.Cog):
             return links
 
         feed = 'FCB news'
-        FEED_POSTS = scrape_fcb_news_links()
+        FEED_POSTS = barca_news_links()
         if FEED_POSTS is None:
             return
         if len(FEED_POSTS) < 1:
@@ -98,8 +145,7 @@ class scrape_and_post(commands.Cog):
                     default=team_channel_defaults[team.upper()])
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
-                        feed, FEED_POSTS[team], envs.scrape_logs_file,
-                        CHANNEL
+                        'rss', 'BARCA', FEED_POSTS[team], CHANNEL
                     )
                 except AttributeError as e:
                     log.error(str(e))
@@ -113,19 +159,19 @@ class scrape_and_post(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('scrape_fcb_news'))
+    log.log(envs.COG_STARTING.format('barca_news'))
     await bot.add_cog(scrape_and_post(bot))
 
     task_list = await db_helper.get_output(
         template_info=envs.tasks_db_schema,
         select=('task', 'status'),
-        where=('cog', 'scrape_fcb_news')
+        where=('cog', 'barca_news')
     )
     if len(task_list) == 0:
         await db_helper.insert_many_all(
             template_info=envs.tasks_db_schema,
             inserts=(
-                ('scrape_fcb_news', 'post_news', 'stopped')
+                ('barca_news', 'post_news', 'stopped')
             )
         )
     for task in task_list:
