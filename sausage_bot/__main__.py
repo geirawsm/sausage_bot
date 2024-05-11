@@ -81,11 +81,12 @@ async def sync_global(interaction: discord.Interaction):
     await config.bot.tree.sync()
     _cmd = ''
     for command in config.bot.tree.get_commands():
-        _cmd += (f"- {command.name} (Type: "
-                 "{'Slash Command' if "
-                 "isinstance(command, discord.app_commands.Command) "
-                 "else 'Text Command'})"
-                 )
+        slash_or_text = 'Slash Command' if isinstance(
+            command, discord.app_commands.Command
+        ) else 'Text Command'
+        _cmd += (
+            f'- {command.name} (Type: {slash_or_text})'
+        )
         if _cmd != '':
             _cmd += '\n'
     await interaction.response.send_message(
