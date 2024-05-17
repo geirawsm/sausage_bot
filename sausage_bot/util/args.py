@@ -77,6 +77,11 @@ testing_args.add_argument('--not-write-database', '-nwd',
                           action='store_true',
                           default=False,
                           dest='not_write_database')
+testing_args.add_argument('--single-cog', '-c',
+                          help='Load only one cog for testing purposes',
+                          action='store',
+                          default=False,
+                          dest='single_cog')
 
 maintenance_args = parser.add_argument_group('Maintenance')
 maintenance_args.add_argument('--maintenance',

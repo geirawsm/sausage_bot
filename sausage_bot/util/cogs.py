@@ -4,6 +4,7 @@ import os
 from discord.ext import commands
 
 from sausage_bot.util import envs, config
+from sausage_bot.util.args import args
 from .log import log
 
 
@@ -67,11 +68,21 @@ class Cogs(commands.Cog):
         Load cogs from the cog-dir
         #autodoc skip#
         '''
-        log.debug(
-            f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
-        )
-        for filename in os.listdir(envs.COGS_DIR):
-            if filename.endswith('.py') and not filename.startswith('_'):
-                cog_name = filename[:-3]
-                log.log('Loading cog: {}'.format(cog_name))
-                await Cogs.load_cog_internal(cog_name)
+        if args.single_cog:
+            cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
+            testing_cog = args.single_cog
+            if testing_cog in cog_files:
+                log.log('Loading cog: {}'.format(testing_cog))
+                await Cogs.load_cog_internal(testing_cog)
+            log.debug(
+                f'Loading a single cog for testing purposes: {testing_cog}'
+            )
+        else:
+            log.debug(
+                f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
+            )
+            for filename in os.listdir(envs.COGS_DIR):
+                if filename.endswith('.py') and not filename.startswith('_'):
+                    cog_name = filename[:-3]
+                    log.log('Loading cog: {}'.format(cog_name))
+                    await Cogs.load_cog_internal(cog_name)
