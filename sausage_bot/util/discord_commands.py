@@ -266,8 +266,33 @@ async def update_stats_post(stats_info, stats_channel):
                     return
         if found_stats_msg is False:
             # TODO var msg
-            log.debug('Found post with `Serverstats:`, editing...')
+            log.debug('Creating stats message')
             await channel_out.send(stats_info)
+
+
+async def remove_stats_post(stats_channel):
+    '''
+    Remove stats-post
+    #autodoc skip#
+    '''
+    server_channels = get_text_channel_list()
+    if stats_channel in server_channels:
+        log.debug(f'Found stats channel {stats_channel}')
+        channel_out = config.bot.get_channel(server_channels[stats_channel])
+        found_stats_msg = False
+        async for msg in channel_out.history(limit=10):
+            # TODO var msg
+            log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
+            if str(msg.author.id) == config.BOT_ID:
+                if 'Serverstats sist' in str(msg.content):
+                    # TODO var msg
+                    log.debug('Found post with `Serverstats sist`, removing...')
+                    await msg.delete()
+                    found_stats_msg = True
+                    return
+        if found_stats_msg is False:
+            # TODO var msg
+            log.debug('No stats post found')
 
 
 if __name__ == "__main__":

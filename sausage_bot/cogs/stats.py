@@ -4,6 +4,7 @@ import os
 from discord.ext import commands, tasks
 import discord
 from tabulate import tabulate
+import typing
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
@@ -104,7 +105,8 @@ class Stats(commands.Cog):
         name='stop', description='Stop posting'
     )
     async def stats_posting_stop(
-        self, interaction: discord.Interaction
+        self, interaction: discord.Interaction,
+        remove_post: typing.Literal['Yes', 'No']
     ):
         await interaction.response.defer(ephemeral=True)
         log.log('Task stopped')
@@ -117,6 +119,18 @@ class Stats(commands.Cog):
             ],
             updates=('status', 'stopped')
         )
+        if remove_post.lower() == 'yes':
+            stats_settings = dict(
+                await db_helper.get_output(
+                    template_info=envs.stats_db_schema,
+                    select=('setting', 'value')
+                )
+            )
+            if len(stats_settings['channel']) > 0:
+                stats_channel = stats_settings['channel']
+            else:
+                stats_channel = 'stats'
+            await discord_commands.remove_stats_post(stats_channel)
         await interaction.followup.send(
             'Stats posting stopped'
         )
@@ -289,12 +303,13 @@ class Stats(commands.Cog):
                         dict_out, headers=headers, numalign='center'
                     )
                 )
-                log.debug(f'Returning: {text_out}')
+                log.debug(f'Returning: {text_out[0:100]}...')
                 return text_out
             else:
                 log.more('`dict_in` is not a dict. Check the input.')
 
-        log.log('Starting `update_stats`')
+        upd_mins = config.env.int('STATS_LOOP', default=5)
+        log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
         stats_settings = dict(
             await db_helper.get_output(
                 template_info=envs.stats_db_schema,
@@ -373,7 +388,7 @@ class Stats(commands.Cog):
         stats_msg += f'```(Serverstats sist oppdatert: {dt_log})```\n'
         log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'
-            f'{stats_msg}'
+            f'{stats_msg[0:100]}...'
         )
         await discord_commands.update_stats_post(
             stats_msg, stats_channel
@@ -436,7 +451,6 @@ async def setup(bot):
 
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
-    Stats.update_stats.start()
 
     task_list = await db_helper.get_output(
         template_info=envs.tasks_db_schema,
