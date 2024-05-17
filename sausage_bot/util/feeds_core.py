@@ -409,7 +409,7 @@ async def get_feed_list(
             ]
         )
         # Return None if empty db
-        if len(feeds_out) <= 0:
+        if feeds_out is None:
             log.log('No feeds in database')
             return None
         headers = ('Feed', 'URL', 'Channel')
