@@ -11,7 +11,8 @@ To be updated
 
 Ok, so you want to run a Discord bot?
 
-## Register Discord bot
+### Register Discord bot
+
 Follow the instructions on this page on *Creating a Discord Bot Account*: https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account
 - Navigate to https://discord.com/developers/applications and log in.
 - Click on New Application.
@@ -20,6 +21,14 @@ Follow the instructions on this page on *Creating a Discord Bot Account*: https:
 - Click "Add Bot" and confirm with "Yes, do it!".
 - Give your bot a cool name and a nice icon.
 - Activate all the intents under "Bot" -> "Privileged Gateway Intents" and click "Save Changes". **Important** Read up on what the specific intents do before you activate them
+
+### Want Spotify branding on your podcast-feeds?
+
+You need to register with Spotify API first:
+
+- Follow the instructions on this page on *Getting started*: https://developer.spotify.com/documentation/web-api
+- Add "Client ID" and "Client secret" in .env file or as environment argument in docker
+
 
 
 ### Running the bot

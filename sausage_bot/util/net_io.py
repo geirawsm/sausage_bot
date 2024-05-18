@@ -4,10 +4,23 @@ import discord
 import re
 import aiohttp
 from datetime import datetime
-from sausage_bot.util import envs, datetime_handling
+from sausage_bot.util import config, envs, datetime_handling, db_helper, file_io
 from sausage_bot.util.args import args
 from .log import log
+
 import json
+
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
+try:
+    _spotipy = spotipy.Spotify(
+        auth_manager=SpotifyClientCredentials(
+            client_id=config.SPOTIFY_ID,
+            client_secret=config.SPOTIFY_SECRET
+        )
+    )
+except SpotifyOauthError:
+    _spotify = None
 
 
 async def get_link(url):
@@ -26,8 +39,9 @@ async def get_link(url):
         session = aiohttp.ClientSession()
         async with session.get(url) as resp:
             url_status = resp.status
-            log.debug(f'Got status: {url_status}')
             content_out = await resp.text()
+            log.debug(f'Got status: {url_status}')
+            log.debug(f'Got content_out: {content_out}')
         await session.close()
     except Exception as e:
         log.error(f'Error when getting `url`: {e}')
@@ -39,6 +53,146 @@ async def get_link(url):
         return None
     else:
         return content_out
+
+
+async def get_spotify_podcast_links(feed):
+    if _spotipy is None:
+        log.log('Spotipy has no credentials. Check README')
+        return None
+    UUID = feed[0]
+    URL = feed[2]
+    pod_id = re.search(r'.*/show/([a-zA-z0-9]+).*', URL).group(1)
+    _show = _spotipy.show(pod_id)
+    filters_db = await db_helper.get_output(
+        template_info=envs.rss_db_filter_schema,
+        select=('allow_or_deny', 'filter'),
+        where=[('uuid', UUID)]
+    )
+    log_db = await db_helper.get_output(
+        template_info=envs.rss_db_log_schema,
+        where=[('uuid', UUID)]
+    )
+    episodes = _show['episodes']['items']
+    items_out = {
+        'filters': filters_db,
+        'items': [],
+        'log': log_db
+    }
+    items_info = {
+        'type': '',
+        'title': '',
+        'description': '',
+        'link': '',
+        'img': '',
+        'id': ''
+    }
+    temp_info = []
+    for ep in episodes:
+        temp_info = items_info.copy()
+        temp_info['type'] = 'spotify'
+        temp_info['title'] = ep['name'],
+        temp_info['description'] = ep['description'],
+        temp_info['link'] = ep['external_urls'],
+        temp_info['img'] = ep['images'][0]['url'],
+        temp_info['id'] = ep['id']
+        items_out['items'].append(temp_info)
+    items_out = filter_links(items_out)
+    return items_out
+
+
+def filter_links(items):
+    '''
+    Filter incoming links based on active filters
+    '''
+
+    def post_based_on_filter(item, filters_in):
+        allow = []
+        deny = []
+        for filter_in in filters_in:
+            if filter_in[0].lower() == 'allow':
+                allow.append(filter_in[1])
+            elif filter_in[0].lower() == 'deny':
+                deny.append(filter_in[1])
+        filter_priority = eval(config.env(
+            'RSS_FILTER_PRIORITY', default='deny'))
+        for filter_out in filter_priority:
+            log.debug(f'Using filter: {filter_out}')
+            try:
+                if item['title'] is not None:
+                    log.debug(
+                        'Checking filter against title `{}`'.format(
+                            item['title'].lower()
+                        )
+                    )
+                    if filter_out.lower() in str(item['title']).lower():
+                        log.debug(
+                            f'Found filter `{filter_out}` in '
+                            'title ({}) - not posting!'.format(item['title'])
+                        )
+                        return False
+            except TypeError:
+                log.error(
+                    'Title is not correct type: {} ({})'.format(
+                        item['title'], type(item['title'])
+                    )
+                )
+            try:
+                if item['description']:
+                    log.debug(
+                        'Checking filter against description`{}`'.format(
+                            item['description'].lower()
+                        )
+                    )
+                    if filter_out.lower() in str(item['description']).lower():
+                        log.debug(
+                            f'Found filter `{filter_out}` in '
+                            'description ({}) - not posting!').format(
+                                item['description']
+                            )
+                        return False
+            except TypeError:
+                log.error(
+                    'Description is not correct type: {} ({})'.format(
+                        item['description'], type(item['description'])
+                    )
+                )
+            log.debug(
+                'Fant ikke noe filter i tittel eller beskrivelse'
+            )
+            return True
+
+    log.debug(
+        'Got `items` (sample): {}'.format(
+            items['items'][0]
+        )
+    )
+    links_out = []
+    for item in items['items']:
+        log.verbose(f'Checking item: {item}')
+        if item['type'] == 'youtube':
+            log.debug('Checking Youtube item')
+            if not config.env('YT_INCLUDE_SHORTS', default='true'):
+                shorts_keywords = ['#shorts', '(shorts)']
+                if any(kw in str(item['title']).lower()
+                        for kw in shorts_keywords) or\
+                        any(kw in str(item['description']).lower()
+                            for kw in shorts_keywords):
+                    log.debug(
+                        'Skipped {} because of `#Shorts` '
+                        'or `(shorts)`'.format(
+                            item['title']
+                        )
+                    )
+                    continue
+        log.debug('Filters: {}'.format(items['filters']))
+        if items['filters'] is not None and len(items['filters']) > 0:
+            log.debug('Found active filters, checking...')
+            link_filter = post_based_on_filter(item, items['filters'])
+            if link_filter:
+                links_out.append(item)
+        else:
+            links_out.append(item)
+        return links_out
 
 
 def make_event_start_stop(date, time=None):

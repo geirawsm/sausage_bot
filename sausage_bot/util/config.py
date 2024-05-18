@@ -31,6 +31,8 @@ BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='bot-log')
 TIMEZONE = env('TIMEZONE', default='Europe/Oslo')
 LOCALE = env('LOCALE', default='nb_NO')
 ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
+SPOTIFY_ID = env('SPOTIFY_ID', default=None)
+SPOTIFY_SECRET = env('SPOTIFY_SECRET', default=None)
 
 try:
     DISCORD_GUILD = env('DISCORD_GUILD')

@@ -6,7 +6,7 @@ import typing
 from time import sleep
 import re
 
-from sausage_bot.util import config, envs, feeds_core, file_io
+from sausage_bot.util import config, envs, feeds_core, file_io, net_io
 from sausage_bot.util import db_helper
 from sausage_bot.util.log import log
 
@@ -150,15 +150,16 @@ class RSSfeed(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         AUTHOR = interaction.user.name
         # Verify that the url is a proper feed
-        valid_feed = await feeds_core.check_feed_validity(feed_link)
-        if not valid_feed:
-            # TODO var msg
-            await interaction.followup.send(
-                'Urlen er ikke en RSS/XML feed', ephemeral=True
-            )
-            return
+        if "open.spotify.com" not in feed_link:
+            valid_feed = await feeds_core.check_feed_validity(feed_link)
+            if not valid_feed:
+                # TODO var msg
+                await interaction.followup.send(
+                    'Urlen er ikke en RSS/XML feed', ephemeral=True
+                )
+                return
         await feeds_core.add_to_feed_db(
-            'rss', str(feed_name), str(feed_link), channel.name, AUTHOR
+            'spotify', str(feed_name), str(feed_link), channel.name, AUTHOR
         )
         await log.log_to_bot_channel(
             envs.RSS_ADDED_BOT.format(
@@ -444,13 +445,24 @@ class RSSfeed(commands.Cog):
         for feed in feeds:
             UUID = feed[0]
             FEED_NAME = feed[1]
+            URL = feed[2]
             CHANNEL = feed[3]
             log.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
-            FEED_POSTS = await feeds_core.get_feed_links(
-                feed_type='rss', feed_info=feed
-            )
+            if "open.spotify.com" in URL:
+                log.debug('Is a spotify-link')
+                FEED_POSTS = await net_io.get_spotify_podcast_links(feed)
+                log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
+                await feeds_core.process_links_for_posting_or_editing(
+                    'rss', UUID, FEED_POSTS, CHANNEL
+                )        
+                log.log('Done with posting')
+                return
+            else:
+                FEED_POSTS = await feeds_core.get_feed_links(
+                    feed_type='rss', feed_info=feed
+                )
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))

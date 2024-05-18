@@ -41,12 +41,12 @@ def get_guild():
     #autodoc skip#
     '''
     for guild in config.bot.guilds:
-        if str(guild.name).lower() == config.env('DISCORD_GUILD').lower():
+        if str(guild.name).lower() == config.DISCORD_GUILD.lower():
             log.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
             log.error(envs.GUILD_NOT_FOUND.format(
-                str(config.env('DISCORD_GUILD'))
+                str(config.DISCORD_GUILD)
             ))
             return None
 

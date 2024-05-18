@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from lxml import etree
 from tabulate import tabulate
 from uuid import uuid4
+import re
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper, config
@@ -134,104 +135,86 @@ async def get_items_from_rss(
                 temp_info['link'] = item.find('link')['href']
             log.debug(f'Got `temp_info`: {temp_info}')
             items_out['items'].append(temp_info)
-    links_out = filter_links(items_out)
+    links_out = net_io.filter_links(items_out)
     links_out.reverse()
     return links_out
 
 
-def filter_links(items):
-    '''
-    Filter incoming links based on active filters
-    '''
-
-    def post_based_on_filter(item, filters_in):
-        allow = []
-        deny = []
-        for filter_in in filters_in:
-            if filter_in[0].lower() == 'allow':
-                allow.append(filter_in[1])
-            elif filter_in[0].lower() == 'deny':
-                deny.append(filter_in[1])
-        filter_priority = eval(config.env(
-            'RSS_FILTER_PRIORITY', default='deny'))
-        for filter_out in filter_priority:
-            log.debug(f'Using filter: {filter_out}')
-            try:
-                if item['title'] is not None:
-                    log.debug(
-                        'Checking filter against title `{}`'.format(
-                            item['title'].lower()
-                        )
-                    )
-                    if filter_out.lower() in str(item['title']).lower():
-                        log.debug(
-                            f'Found filter `{filter_out}` in '
-                            'title ({}) - not posting!'.format(item['title'])
-                        )
-                        return False
-            except TypeError:
-                log.error(
-                    'Title is not correct type: {} ({})'.format(
-                        item['title'], type(item['title'])
-                    )
-                )
-            try:
-                if item['description']:
-                    log.debug(
-                        'Checking filter against description`{}`'.format(
-                            item['description'].lower()
-                        )
-                    )
-                    if filter_out.lower() in str(item['description']).lower():
-                        log.debug(
-                            f'Found filter `{filter_out}` in '
-                            'description ({}) - not posting!').format(
-                                item['description']
-                            )
-                        return False
-            except TypeError:
-                log.error(
-                    'Description is not correct type: {} ({})'.format(
-                        item['description'], type(item['description'])
-                    )
-                )
-            log.debug(
-                'Fant ikke noe filter i tittel eller beskrivelse'
-            )
-            return True
-
-    log.debug(
-        'Got `items` (sample): {}'.format(
-            items['items'][0]
-        )
-    )
+async def get_items_from_spotify(
+    url, filters_in=None, log_in=None, test: bool = False
+) -> list:
+    try:
+        soup = BeautifulSoup(req, features='xml')
+    except Exception as e:
+        log.error(envs.FEEDS_SOUP_ERROR.format(url, e))
+        return None
     links_out = []
-    for item in items['items']:
-        log.verbose(f'Checking item: {item}')
-        if item['type'] == 'youtube':
-            log.debug('Checking Youtube item')
-            if not config.env('YT_INCLUDE_SHORTS', default='true'):
-                shorts_keywords = ['#shorts', '(shorts)']
-                if any(kw in str(item['title']).lower()
-                        for kw in shorts_keywords) or\
-                        any(kw in str(item['description']).lower()
-                            for kw in shorts_keywords):
-                    log.debug(
-                        'Skipped {} because of `#Shorts` '
-                        'or `(shorts)`'.format(
-                            item['title']
-                        )
-                    )
-                    continue
-        log.debug('Filters: {}'.format(items['filters']))
-        if items['filters'] is not None and len(items['filters']) > 0:
-            log.debug('Found active filters, checking...')
-            link_filter = post_based_on_filter(item, items['filters'])
-            if link_filter:
-                links_out.append(item['link'])
+    # If used for testing feeds, only get one article
+    if test:
+        max_items = 1
+    else:
+        max_items = 3
+    items_out = {
+        'filters': filters_in,
+        'items': [],
+        'log': log_in
+    }
+    items_info = {
+        'type': '',
+        'title': '',
+        'description': '',
+        'link': ''
+    }
+    # Gets podcast feed
+    if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
+        log.debug('Found podcast feed')
+        all_items = soup.find_all('item')
+        for item in all_items[0:max_items]:
+            temp_info = items_info.copy()
+            temp_info['type'] = 'podcast'
+            temp_info['title'] = item.find('title').text
+            temp_info['description'] = item.find('description').text
+            temp_info['link'] = item.find('link').text
+            items_out['items'].append(temp_info)
+    # Gets Youtube feed
+    elif soup.find('yt:channelId'):
+        log.debug('Found Youtube feed')
+        all_entries = soup.find_all('entry')
+        for item in all_entries[0:max_items]:
+            temp_info = items_info.copy()
+            temp_info['type'] = 'youtube'
+            temp_info['title'] = item.find('title').text
+            temp_info['description'] = item.find('media:description').text
+            temp_info['link'] = item.find('link')['href']
+            items_out['items'].append(temp_info)
+    # Gets plain articles
+    else:
+        log.debug('Found normal RSS feed')
+        article_method = False
+        if len(soup.find_all('item')) > 0:
+            article_method = 'item'
+        elif len(soup.find_all('entry')) > 0:
+            article_method = 'entry'
         else:
-            links_out.append(item['link'])
-        return links_out
+            log.error('Klarte ikke finne ut av feed?')
+            return None
+        all_items = soup.find_all(article_method)
+        for item in all_items[0:max_items]:
+            temp_info = items_info.copy()
+            temp_info['type'] = 'rss'
+            if article_method == 'item':
+                temp_info['title'] = item.find('title').text
+                temp_info['description'] = item.find('media:keywords')
+                temp_info['link'] = item.find('link').text
+            elif article_method == 'entry':
+                temp_info['title'] = item.find('title').text
+                temp_info['description'] = item.find('content').text
+                temp_info['link'] = item.find('link')['href']
+            log.debug(f'Got `temp_info`: {temp_info}')
+            items_out['items'].append(temp_info)
+    links_out = net_io.filter_links(items_out)
+    links_out.reverse()
+    return links_out
 
 
 async def add_to_feed_db(
@@ -331,26 +314,29 @@ async def get_feed_links(feed_type, feed_info):
         URL = envs.YOUTUBE_RSS_LINK.format(feed_info[9])
         feed_db_filter = envs.youtube_db_filter_schema
         feed_db_log = envs.youtube_db_log_schema
-    # Get the url and make it parseable
-    req = await net_io.get_link(URL)
-    if req is not None:
-        filters_db = await db_helper.get_output(
-            template_info=feed_db_filter,
-            select=('allow_or_deny', 'filter'),
-            where=[('uuid', UUID)]
-        )
-        log_db = await db_helper.get_output(
-            template_info=feed_db_log,
-            where=[('uuid', UUID)]
-        )
-        links_out = await get_items_from_rss(
-            req=req, url=URL, filters_in=filters_db,
-            log_in=log_db
-        )
-        log.debug(f'Got this from `get_items_from_rss`: {links_out}')
-        return links_out
     else:
-        return None
+        URL = feed_info[2]
+    # Get the url and make it parseable
+    if feed_type in ['rss', 'youtube']:
+        req = await net_io.get_link(URL)
+        if req is not None:
+            filters_db = await db_helper.get_output(
+                template_info=feed_db_filter,
+                select=('allow_or_deny', 'filter'),
+                where=[('uuid', UUID)]
+            )
+            log_db = await db_helper.get_output(
+                template_info=feed_db_log,
+                where=[('uuid', UUID)]
+            )
+            links_out = await get_items_from_rss(
+                req=req, url=URL, filters_in=filters_db,
+                log_in=log_db
+            )
+            log.debug(f'Got this from `get_items_from_rss`: {links_out}')
+            return links_out
+        else:
+            return None
 
 
 async def get_feed_list(
@@ -634,8 +620,8 @@ async def process_links_for_posting_or_editing(
     feed_type: str, uuid, FEED_POSTS, CHANNEL
 ):
     '''
-    Compare `FEED_POSTS` to posts belonging to `feed` to see if they already
-    have been posted or not.
+    Compare links in `FEED_POSTS` items  to posts belonging to `feed` to see
+    if they already have been posted or not.
     - If not posted, post to `CHANNEL`
     - If posted, make a similarity check just to make sure we are not posting
     duplicate links because someone's aggregation systems can't handle
@@ -653,7 +639,7 @@ async def process_links_for_posting_or_editing(
     if feed_type not in ['rss', 'youtube']:
         log.error('Function requires `feed_type`')
         return None
-    if feed_type == 'rss':
+    if feed_type in ['rss', 'spotify']:
         feed_db_log = envs.rss_db_log_schema
     elif feed_type == 'youtube':
         feed_db_log = envs.youtube_db_log_schema
@@ -663,7 +649,8 @@ async def process_links_for_posting_or_editing(
         select='url',
         where=[('uuid', uuid)]
     )
-    for feed_link in FEED_POSTS:
+    for item in FEED_POSTS:
+        feed_link = item['link']
         log.debug(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
         link_in_log = link_is_in_log(feed_link, FEED_LOG)
@@ -674,7 +661,15 @@ async def process_links_for_posting_or_editing(
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
                 log.verbose(f'Posting link `{feed_link}`')
-                await discord_commands.post_to_channel(CHANNEL, feed_link)
+                if 'img' in item:
+                    log.debug('Found a post that should be embedded')
+
+                    await discord_commands.post_to_channel(
+                        CHANNEL, content_embed_in=''
+                    )
+                else:
+                    log.debug('Found a regular text post')
+                    await discord_commands.post_to_channel(CHANNEL, feed_link)
                 # Add link to log
                 await db_helper.insert_many_all(
                     template_info=feed_db_log,

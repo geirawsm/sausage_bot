@@ -72,7 +72,7 @@ roles_template = {
     }
 }
 
-# Cogs
+# Cogs.env
 tasks_db_schema = {
     'db_file': str(DB_DIR / 'tasks.sqlite'),
     'name': 'tasks',
