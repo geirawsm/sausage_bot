@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from lxml import etree
 from tabulate import tabulate
 from uuid import uuid4
-import re
+import discord
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper, config
@@ -140,83 +140,6 @@ async def get_items_from_rss(
     return links_out
 
 
-async def get_items_from_spotify(
-    url, filters_in=None, log_in=None, test: bool = False
-) -> list:
-    try:
-        soup = BeautifulSoup(req, features='xml')
-    except Exception as e:
-        log.error(envs.FEEDS_SOUP_ERROR.format(url, e))
-        return None
-    links_out = []
-    # If used for testing feeds, only get one article
-    if test:
-        max_items = 1
-    else:
-        max_items = 3
-    items_out = {
-        'filters': filters_in,
-        'items': [],
-        'log': log_in
-    }
-    items_info = {
-        'type': '',
-        'title': '',
-        'description': '',
-        'link': ''
-    }
-    # Gets podcast feed
-    if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
-        log.debug('Found podcast feed')
-        all_items = soup.find_all('item')
-        for item in all_items[0:max_items]:
-            temp_info = items_info.copy()
-            temp_info['type'] = 'podcast'
-            temp_info['title'] = item.find('title').text
-            temp_info['description'] = item.find('description').text
-            temp_info['link'] = item.find('link').text
-            items_out['items'].append(temp_info)
-    # Gets Youtube feed
-    elif soup.find('yt:channelId'):
-        log.debug('Found Youtube feed')
-        all_entries = soup.find_all('entry')
-        for item in all_entries[0:max_items]:
-            temp_info = items_info.copy()
-            temp_info['type'] = 'youtube'
-            temp_info['title'] = item.find('title').text
-            temp_info['description'] = item.find('media:description').text
-            temp_info['link'] = item.find('link')['href']
-            items_out['items'].append(temp_info)
-    # Gets plain articles
-    else:
-        log.debug('Found normal RSS feed')
-        article_method = False
-        if len(soup.find_all('item')) > 0:
-            article_method = 'item'
-        elif len(soup.find_all('entry')) > 0:
-            article_method = 'entry'
-        else:
-            log.error('Klarte ikke finne ut av feed?')
-            return None
-        all_items = soup.find_all(article_method)
-        for item in all_items[0:max_items]:
-            temp_info = items_info.copy()
-            temp_info['type'] = 'rss'
-            if article_method == 'item':
-                temp_info['title'] = item.find('title').text
-                temp_info['description'] = item.find('media:keywords')
-                temp_info['link'] = item.find('link').text
-            elif article_method == 'entry':
-                temp_info['title'] = item.find('title').text
-                temp_info['description'] = item.find('content').text
-                temp_info['link'] = item.find('link')['href']
-            log.debug(f'Got `temp_info`: {temp_info}')
-            items_out['items'].append(temp_info)
-    links_out = net_io.filter_links(items_out)
-    links_out.reverse()
-    return links_out
-
-
 async def add_to_feed_db(
     feed_type, name, feed_link=None, channel=None, user_add=None,
     yt_id=None
@@ -232,15 +155,16 @@ async def add_to_feed_db(
     `yt_id`:        yt-id
     '''
 
-    if feed_type not in ['rss', 'youtube']:
+    if feed_type not in ['rss', 'youtube', 'spotify']:
         log.error('Function requires `feed_type`')
         return None
     # Test the link first
     test_link = await net_io.get_link(feed_link)
     if test_link is None:
+        log.verbose(f'`test_link` is None')
         return None
     date_now = datetime_handling.get_dt(format='datetime')
-    if feed_type == 'rss':
+    if feed_type in ['rss', 'spotify']:
         await db_helper.insert_many_some(
             envs.rss_db_schema,
             rows=(
@@ -620,7 +544,7 @@ async def process_links_for_posting_or_editing(
     feed_type: str, uuid, FEED_POSTS, CHANNEL
 ):
     '''
-    Compare links in `FEED_POSTS` items  to posts belonging to `feed` to see
+    Compare links in `FEED_POSTS` items to posts belonging to `feed` to see
     if they already have been posted or not.
     - If not posted, post to `CHANNEL`
     - If posted, make a similarity check just to make sure we are not posting
@@ -636,7 +560,7 @@ async def process_links_for_posting_or_editing(
         'Starting `process_links_for_posting_or_editing`',
         sameline=True
     )
-    if feed_type not in ['rss', 'youtube']:
+    if feed_type not in ['rss', 'youtube', 'spotify']:
         log.error('Function requires `feed_type`')
         return None
     if feed_type in ['rss', 'spotify']:
@@ -650,6 +574,7 @@ async def process_links_for_posting_or_editing(
         where=[('uuid', uuid)]
     )
     for item in FEED_POSTS:
+        log.verbose(f'Got this item:\n{item}')
         feed_link = item['link']
         log.debug(f'Got feed_link `{feed_link}`')
         # Check if the link is in the log
@@ -661,15 +586,40 @@ async def process_links_for_posting_or_editing(
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
                 log.verbose(f'Posting link `{feed_link}`')
-                if 'img' in item:
-                    log.debug('Found a post that should be embedded')
-
+                if item['type'] == 'spotify':
+                    log.debug(
+                        'Found a podcast that should be embedded:',
+                        pretty=item
+                    )
+                    embed_color = await net_io.get_main_color_from_image_url(
+                            item['img']
+                        )
+                    embed = discord.Embed(
+                        title=item['title'],
+                        url=item['link'],
+                        description='{}\n\n{}'.format(
+                            item['description'],
+                            '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
+                                item['link']
+                            )
+                        ),
+                        colour=discord.Color(embed_color)
+                    )
+                    embed.set_author(name=item['pod_name'])
+                    embed.set_image(url=item['img'])
+                    embed.set_thumbnail(url=item['img'])
+                    embed.set_footer(text=item['pod_description'])
+                    log.debug(
+                        f'Sending this embed to channel: ', pretty=embed
+                    )
                     await discord_commands.post_to_channel(
-                        CHANNEL, content_embed_in=''
+                        CHANNEL, embed_in=embed
                     )
                 else:
                     log.debug('Found a regular text post')
-                    await discord_commands.post_to_channel(CHANNEL, feed_link)
+                    await discord_commands.post_to_channel(
+                        CHANNEL, feed_link
+                    )
                 # Add link to log
                 await db_helper.insert_many_all(
                     template_info=feed_db_log,

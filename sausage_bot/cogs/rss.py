@@ -158,6 +158,7 @@ class RSSfeed(commands.Cog):
                     'Urlen er ikke en RSS/XML feed', ephemeral=True
                 )
                 return
+        log.verbose('Adding feed to db')
         await feeds_core.add_to_feed_db(
             'spotify', str(feed_name), str(feed_link), channel.name, AUTHOR
         )
@@ -455,8 +456,8 @@ class RSSfeed(commands.Cog):
                 FEED_POSTS = await net_io.get_spotify_podcast_links(feed)
                 log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
                 await feeds_core.process_links_for_posting_or_editing(
-                    'rss', UUID, FEED_POSTS, CHANNEL
-                )        
+                    'spotify', UUID, FEED_POSTS, CHANNEL
+                )
                 log.log('Done with posting')
                 return
             else:

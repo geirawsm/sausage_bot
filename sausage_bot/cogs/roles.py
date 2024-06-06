@@ -1359,7 +1359,7 @@ class Autoroles(commands.Cog):
                 new_reaction_msg = await discord_commands.post_to_channel(
                     react_msg[1],
                     content_in=react_msg[3],
-                    content_embed_in={
+                    embed_in={
                         'description': react_msg[4]
                     }
                 )

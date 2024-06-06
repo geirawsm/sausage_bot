@@ -79,9 +79,9 @@ def log_function(
         )
         log_out += '{reset} '.format(reset=Style.RESET_ALL)
         if pretty:
-            print(log_out)
             if isinstance(pretty, (dict)):
                 log_out += f'{log_in} (prettifying...):'
+                print(log_out)
                 print(
                     json.dumps(
                         pretty, indent=4, ensure_ascii=False
@@ -247,7 +247,7 @@ def log_func_name() -> dict:
         }
 
 
-async def log_to_bot_channel(content_in=None, content_embed_in=None):
+async def log_to_bot_channel(content_in=None, embed_in=None):
     'Messages you want to send directly to a specific channel'
     log_channel = config.BOT_CHANNEL
     server_channels = {}

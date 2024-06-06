@@ -195,23 +195,31 @@ def get_roles(hide_empties=None, filter_bots=None):
 
 async def post_to_channel(
     channel_in, content_in=None,
-    content_embed_in=None
+    embed_in=None
 ) -> discord.message.Message:
     '''
-    Post `content_in` in plain text or `content_embed_in` to channel
+    Post `content_in` in plain text or `embed_in` to channel
     `channel_in`
     '''
-    if content_embed_in:
-        content_embed_in = discord.Embed.from_dict(content_embed_in)
+    if embed_in:
+        if isinstance(embed_in, dict):
+            embed_in = discord.Embed.from_dict(embed_in)
     server_channels = get_text_channel_list()
     log.debug(f'Got these channels: {server_channels}')
     if channel_in in server_channels:
         channel_out = config.bot.get_channel(server_channels[channel_in])
-        msg_out = await channel_out.send(
-            content=content_in,
-            embed=content_embed_in
-        )
-        return msg_out
+        try:
+            msg_out = await channel_out.send(
+                content=content_in,
+                embed=embed_in
+            )
+            return msg_out
+        except discord.errors.HTTPException as e:
+            log.error(
+                f'{e} - this is the offending message:\n'
+                f'`content`: {content_in}\n`embed`: {embed_in}'
+            )
+            return None
     else:
         log.log(
             envs.POST_TO_NON_EXISTING_CHANNEL.format(

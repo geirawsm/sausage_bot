@@ -3,12 +3,14 @@
 import discord
 import re
 import aiohttp
+import aiofiles
 from datetime import datetime
 from sausage_bot.util import config, envs, datetime_handling, db_helper, file_io
 from sausage_bot.util.args import args
 from .log import log
 
 import json
+import colorgram
 
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
@@ -41,7 +43,7 @@ async def get_link(url):
             url_status = resp.status
             content_out = await resp.text()
             log.debug(f'Got status: {url_status}')
-            log.debug(f'Got content_out: {content_out}')
+            log.debug(f'Got content_out: {content_out[0:500]}...')
         await session.close()
     except Exception as e:
         log.error(f'Error when getting `url`: {e}')
@@ -79,22 +81,26 @@ async def get_spotify_podcast_links(feed):
         'log': log_db
     }
     items_info = {
-        'type': '',
+        'pod_name': _show['name'],
+        'pod_description': _show['description'],
+        'pod_img': _show['images'][0]['url'],
         'title': '',
         'description': '',
         'link': '',
         'img': '',
-        'id': ''
+        'id': '',
+        'duration': '',
+        'type': 'spotify',
     }
-    temp_info = []
     for ep in episodes:
         temp_info = items_info.copy()
-        temp_info['type'] = 'spotify'
-        temp_info['title'] = ep['name'],
-        temp_info['description'] = ep['description'],
-        temp_info['link'] = ep['external_urls'],
-        temp_info['img'] = ep['images'][0]['url'],
+        temp_info['title'] = ep['name']
+        temp_info['description'] = ep['description']
+        temp_info['link'] = ep['external_urls']['spotify']
+        temp_info['img'] = ep['images'][0]['url']
         temp_info['id'] = ep['id']
+        temp_info['duration'] = ep['duration_ms'] * 1000
+        log.verbose(f'Populated `temp_info`: ', pretty=temp_info)
         items_out['items'].append(temp_info)
     items_out = filter_links(items_out)
     return items_out
@@ -446,6 +452,39 @@ async def parse(url: str = None):
     else:
         log.error('Linken er ikke kjent')
         return None
+
+
+async def download_pod_image(img_url):
+    session = aiohttp.ClientSession()
+    async with session.get(img_url) as resp:
+        if resp.status == 200:
+            file_io.ensure_file(f'{envs.TEMP_DIR}/temp_img.png')
+            f = await aiofiles.open(
+                f'{envs.TEMP_DIR}/temp_img.png', mode='wb'
+            )
+            await f.write(await resp.read())
+            await f.close()
+    await session.close()
+
+
+async def get_main_color_from_image_url(image_url):
+    def rgb_to_hex(value1, value2, value3):
+        """
+        Convert RGB color to hex color
+        """
+        for value in (value1, value2, value3):
+            if not 0 <= value <= 255:
+                raise ValueError('Value each slider must be ranges from 0 to 255')
+        return int('{0:02X}{1:02X}{2:02X}'.format(value1, value2, value3))
+
+    log.verbose(f'Downloading image: {image_url}')
+    await download_pod_image(image_url)
+    log.verbose('Extracting color')
+    color = colorgram.extract(f'{envs.TEMP_DIR}/temp_img.png', 1)[0]
+    log.verbose('Converting color to hex')
+    color_out = rgb_to_hex(color.rgb.r, color.rgb.g, color.rgb.b)
+    log.verbose(f'Returning: {color_out}')
+    return color_out
 
 if __name__ == "__main__":
     pass

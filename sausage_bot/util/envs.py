@@ -17,6 +17,7 @@ JSON_DIR = DATA_DIR / 'json'
 DB_DIR = DATA_DIR / 'db'
 LOG_DIR = DATA_DIR / 'logs'
 STATIC_DIR = DATA_DIR / 'static'
+TEMP_DIR = ROOT_DIR / 'tempfiles'
 MERMAID_DIR = ROOT_DIR / 'docs' / 'mermaid_charts'
 
 # Relative paths

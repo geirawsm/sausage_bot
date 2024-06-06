@@ -19,6 +19,9 @@ aiohttp = ">=3.9.4"
 discord = "*"
 tqdm = ">=4.66.3"
 aiosqlite = "*"
+"colorgram.py" = "*"
+spotipy = "*"
+aiofiles = "*"
 
 [dev-packages]
 requests-testadapter = "*"
