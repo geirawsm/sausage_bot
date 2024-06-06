@@ -384,6 +384,8 @@ async def get_feed_list(
             log.debug(f'`temp_list` is {temp_list}')
         headers = ('Feed', 'Channel', 'Allow', 'Deny')
         maxcolwidths = [None, None, 30, 30]
+    if len(feeds_out) <= 0:
+        return None
     table_out = tabulate(
         tabular_data=feeds_out,
         headers=headers,
