@@ -575,6 +575,9 @@ async def process_links_for_posting_or_editing(
         select='url',
         where=[('uuid', uuid)]
     )
+    if FEED_POSTS is None:
+        log.debug('`FEED_POSTS` is None')
+        return None
     for item in FEED_POSTS:
         log.verbose(f'Got this item:\n{item}')
         feed_link = item['link']
@@ -651,7 +654,6 @@ async def process_links_for_posting_or_editing(
                 )
         elif link_in_log:
             log.verbose(f'Link `{feed_link}` already logged. Skipping.')
-    log.verbose('Stopping `process_links_for_posting_or_editing`')
 
 
 if __name__ == "__main__":
