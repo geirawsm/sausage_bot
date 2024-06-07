@@ -22,7 +22,7 @@ try:
         )
     )
 except SpotifyOauthError:
-    _spotify = None
+    _spotipy = None
 
 
 async def get_link(url):
