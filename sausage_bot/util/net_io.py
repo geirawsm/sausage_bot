@@ -59,7 +59,9 @@ async def get_link(url):
 
 async def get_spotify_podcast_links(feed):
     if _spotipy is None:
-        log.log('Spotipy has no credentials. Check README')
+        _spotipy_error = 'Spotipy has no credentials. Check README'
+        log.log(_spotipy_error)
+        await log.log_to_bot_channel(_spotipy_error)
         return None
     UUID = feed[0]
     URL = feed[2]
