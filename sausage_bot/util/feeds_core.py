@@ -36,23 +36,27 @@ async def check_url_validity(url):
         return True
 
 
-async def check_feed_validity(url):
-    'Make sure that `url` is a valid link'
-    log.verbose(f'Checking `{url}`')
-    req = await net_io.get_link(url)
+async def check_feed_validity(URL):
+    'Make sure that `URL` is a valid link with feed items'
+    log.verbose(f'Checking `URL`: {URL}')
+    req = await net_io.get_link(URL)
     log.debug(f'req is ({type(req)})')
     if req is None:
-        return None
-    sample_item = await get_items_from_rss(
-        req=req,
-        url=url,
-        test=True
-    )
-    log.debug(f'`sample_item`: {sample_item}')
-    if req is None:
         log.verbose('Returned None')
+        return None
+    if 'open.spotify.com/show/' in URL:
+        log.verbose('Discovered Spotify branded link')
+        sample_item = await net_io.check_spotify_podcast(URL)
+    else:
+        log.verbose('Discovered normal link')
+        sample_item = await get_items_from_rss(
+            req=req,
+            url=URL,
+            test=True
+        )
+    log.debug(f'`sample_item`: {sample_item}')
+    if sample_item is None:
         return False
-
     try:
         log.verbose(f'`req` is a {type(req)}')
         # etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
@@ -402,12 +406,12 @@ async def review_feeds_status(feed_type: str = None):
     Parameters
     ------------
     feed_type: str
-        Can be `rss` or `youtube` (default: None)
+        Can be `rss`, `youtube` or `spotify` (default: None)
     '''
-    if feed_type not in ['rss', 'youtube']:
+    if feed_type not in ['rss', 'youtube', 'spotify']:
         log.error('`feed_type` must be `rss` or `youtube`')
         return False
-    if feed_type == 'rss':
+    if feed_type in ['rss', 'spotify']:
         feed_db = envs.rss_db_schema
     elif feed_type == 'youtube':
         feed_db = envs.youtube_db_schema
@@ -423,7 +427,7 @@ async def review_feeds_status(feed_type: str = None):
         log.debug('Got this feed: ', pretty=feed)
         UUID = feed[0]
         FEED_NAME = feed[1]
-        if feed_type == 'rss':
+        if feed_type in ['rss', 'spotify']:
             URL = feed[2]
         elif feed_type == 'youtube':
             URL = envs.YOUTUBE_RSS_LINK.format(feed[9])
@@ -431,7 +435,13 @@ async def review_feeds_status(feed_type: str = None):
         URL_STATUS_COUNTER = feed[4]
         if not isinstance(URL_STATUS_COUNTER, int):
             URL_STATUS_COUNTER = 0
-        is_valid_feed = await check_feed_validity(URL)
+        log.debug(f'Checking `URL`: {URL}')
+        if "open.spotify.com/show/" in URL:
+            log.verbose('Discovered a Spotify url')
+            is_valid_feed = await net_io.check_spotify_podcast(URL)
+        else:
+            log.verbose('Discovered a normal url')
+            is_valid_feed = await check_feed_validity(URL)
         if is_valid_feed:
             log.log('Feed url for {} is ok!'.format(FEED_NAME))
             if URL_STATUS != envs.FEEDS_URL_SUCCESS:
@@ -462,7 +472,7 @@ async def review_feeds_status(feed_type: str = None):
                     )
             elif URL_STATUS_COUNTER < envs.FEEDS_URL_ERROR_LIMIT:
                 log.log(
-                    f'Problems with url for {feed}, marking it as `Stale` and'
+                    f'Problems with url for {feed}, marking it as `Stale` and '
                     'starting counting'
                 )
                 if URL_STATUS != envs.FEEDS_URL_STALE:
@@ -608,11 +618,11 @@ async def process_links_for_posting_or_editing(
                                 item['link']
                             )
                         ),
-                        colour=discord.Color(embed_color)
+                        colour=discord.Color.from_str(f'#{embed_color}')
                     )
                     embed.set_author(name=item['pod_name'])
                     embed.set_image(url=item['img'])
-                    embed.set_thumbnail(url=item['img'])
+                    #embed.set_thumbnail(url=item['img'])
                     embed.set_footer(text=item['pod_description'])
                     log.debug(
                         f'Sending this embed to channel: ', pretty=embed

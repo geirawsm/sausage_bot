@@ -150,7 +150,7 @@ class RSSfeed(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         AUTHOR = interaction.user.name
         # Verify that the url is a proper feed
-        if "open.spotify.com" not in feed_link:
+        if "open.spotify.com/show/" not in feed_link:
             valid_feed = await feeds_core.check_feed_validity(feed_link)
             if not valid_feed:
                 # TODO var msg
@@ -423,7 +423,7 @@ class RSSfeed(commands.Cog):
         # Make sure that the feed links aren't stale / 404
         review_feeds = await feeds_core.review_feeds_status('rss')
         if review_feeds in [None, False]:
-            log.log('No videos to post')
+            log.log('No feeds to post')
             return
         # Start processing feeds
         feeds = await db_helper.get_output(
@@ -451,10 +451,10 @@ class RSSfeed(commands.Cog):
             log.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
-            if "open.spotify.com" in URL:
+            if "open.spotify.com/show/" in URL:
                 log.debug('Is a spotify-link')
                 FEED_POSTS = await net_io.get_spotify_podcast_links(feed)
-                log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
+                log.debug(f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: {FEED_POSTS}')
                 await feeds_core.process_links_for_posting_or_editing(
                     'spotify', UUID, FEED_POSTS, CHANNEL
                 )

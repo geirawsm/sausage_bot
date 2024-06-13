@@ -57,6 +57,22 @@ async def get_link(url):
         return content_out
 
 
+async def check_spotify_podcast(url):
+    if _spotipy is None:
+        _spotipy_error = 'Spotipy has no credentials. Check README'
+        log.log(_spotipy_error)
+        await log.log_to_bot_channel(_spotipy_error)
+        return None
+    pod_id = re.search(r'.*/show/([a-zA-z0-9]+).*', url).group(1)
+    try:
+        _show = _spotipy.show(pod_id)
+        log.debug(f'`_show`: ', pretty=_show)
+        return True
+    except Exception as e:
+        log.error(f'ERROR: {e}')
+        return False
+
+
 async def get_spotify_podcast_links(feed):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
@@ -104,6 +120,11 @@ async def get_spotify_podcast_links(feed):
         temp_info['duration'] = ep['duration_ms'] * 1000
         log.verbose(f'Populated `temp_info`: ', pretty=temp_info)
         items_out['items'].append(temp_info)
+        log.debug(
+            'len of `items_out[\'items\']` is {}'.format(
+                len(items_out['items'])
+            )
+        )
     items_out = filter_links(items_out)
     return items_out
 
@@ -170,7 +191,8 @@ def filter_links(items):
             return True
 
     log.debug(
-        'Got `items` (sample): {}'.format(
+        'Got {} `items` (sample): {}'.format(
+            len(items['items']),
             items['items'][0]
         )
     )
@@ -476,8 +498,10 @@ async def get_main_color_from_image_url(image_url):
         """
         for value in (value1, value2, value3):
             if not 0 <= value <= 255:
-                raise ValueError('Value each slider must be ranges from 0 to 255')
-        return int('{0:02X}{1:02X}{2:02X}'.format(value1, value2, value3))
+                raise ValueError(
+                    'Value each slider must be ranges from 0 to 255'
+                )
+        return str('{0:02X}{1:02X}{2:02X}'.format(value1, value2, value3))
 
     log.verbose(f'Downloading image: {image_url}')
     await download_pod_image(image_url)

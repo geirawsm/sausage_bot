@@ -13,3 +13,4 @@ sausage_bot/cogs/testing_*
 sausage_bot/cogs/_*
 
 out
+sausage_bot/tempfiles/*
