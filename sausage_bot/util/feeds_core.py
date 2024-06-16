@@ -211,11 +211,11 @@ async def remove_feed_from_db(feed_type, feed_name):
         feed_db = envs.youtube_db_schema
         feed_db_filter = envs.youtube_db_filter_schema
     uuid_from_db = await db_helper.get_output(
-            template_info=feed_db,
-            select=('uuid'),
-            where=[('feed_name', feed_name)],
-            single=True
-        )
+        template_info=feed_db,
+        select=('uuid'),
+        where=[('feed_name', feed_name)],
+        single=True
+    )
     removal = await db_helper.del_row_by_AND_filter(
         feed_db,
         where=('uuid', uuid_from_db)
@@ -268,7 +268,7 @@ async def get_feed_links(feed_type, feed_info):
 
 
 async def get_feed_list(
-        db_in: str = None, db_filter_in: str = None, list_type: str = None
+    db_in: str = None, db_filter_in: str = None, list_type: str = None
 ):
     '''
     Get a prettified list of feeds.
@@ -282,7 +282,8 @@ async def get_feed_list(
     list_type: str
         If specified, should show that specific list_type
     '''
-    def split_lengthy_list(table_in):
+
+    async def split_lengthy_list(table_in):
         def split_list(lst, chunk_size):
             chunks = [[] for _ in range(
                 (len(lst) + chunk_size - 1) // chunk_size
@@ -290,7 +291,6 @@ async def get_feed_list(
             for i, item in enumerate(lst):
                 chunks[i // chunk_size].append(item)
             return chunks
-
         log.debug(f'length of table_in: {len(table_in)}')
         max_post_limit = 1900
         paginated = []
@@ -319,7 +319,7 @@ async def get_feed_list(
                 'feed_name', 'url', 'channel'
             ),
             order_by=[
-                ('feed_name', 'DESC')
+                ('feed_name', 'ASC')
             ]
         )
         # Return None if empty db
@@ -335,7 +335,7 @@ async def get_feed_list(
                 'feed_name', 'url', 'channel', 'added', 'added_by'
             ),
             order_by=[
-                ('feed_name', 'DESC')
+                ('feed_name', 'ASC')
             ]
         )
         # Return None if empty db
@@ -354,7 +354,7 @@ async def get_feed_list(
                 'uuid', 'feed_name', 'channel'
             ),
             order_by=[
-                ('feed_name', 'DESC')
+                ('feed_name', 'ASC')
             ]
         )
         feeds_filter = await db_helper.get_output(
@@ -607,8 +607,8 @@ async def process_links_for_posting_or_editing(
                         pretty=item
                     )
                     embed_color = await net_io.get_main_color_from_image_url(
-                            item['img']
-                        )
+                        item['img']
+                    )
                     embed = discord.Embed(
                         title=item['title'],
                         url=item['link'],
@@ -622,7 +622,6 @@ async def process_links_for_posting_or_editing(
                     )
                     embed.set_author(name=item['pod_name'])
                     embed.set_image(url=item['img'])
-                    #embed.set_thumbnail(url=item['img'])
                     embed.set_footer(text=item['pod_description'])
                     log.debug(
                         f'Sending this embed to channel: ', pretty=embed
