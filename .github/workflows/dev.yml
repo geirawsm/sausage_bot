@@ -54,4 +54,7 @@ jobs:
         context: .
         push: true
         file: ./dockerfile
-        tags: ${{secrets.DOCKER_USER}}/sausage_bot:${{ github.ref_name }}
+        tags: ${{ secrets.DOCKER_USER }}/sausage_bot:${{ github.ref_name }}
+        labels: |
+          Last run number=${{ github.run_number }}
+          Last commit=${{ github.sha }}
