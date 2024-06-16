@@ -1,1 +1,3 @@
 sausage_bot/data/*
+sausage_bot/tempfiles/*
+.cache
