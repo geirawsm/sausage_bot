@@ -590,8 +590,10 @@ async def process_links_for_posting_or_editing(
         return None
     for item in FEED_POSTS:
         log.verbose(f'Got this item:\n{item}')
-        feed_link = item['link']
-        log.debug(f'Got feed_link `{feed_link}`')
+        if isinstance(item, str):
+            feed_link = item
+        elif isinstance(item, dict):
+            feed_link = item['link']
         # Check if the link is in the log
         link_in_log = link_is_in_log(feed_link, FEED_LOG)
         if not link_in_log:
@@ -601,7 +603,7 @@ async def process_links_for_posting_or_editing(
             if not feed_link_similar:
                 # Consider this a whole new post and post link to channel
                 log.verbose(f'Posting link `{feed_link}`')
-                if item['type'] == 'spotify':
+                if isinstance(item, dict) and item['type'] == 'spotify':
                     log.debug(
                         'Found a podcast that should be embedded:',
                         pretty=item
