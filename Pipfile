@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 "discord.py" = "*"
 lxml = "*"
-requests = "*"
+requests = ">=2.32.0"
 pendulum = "*"
 colorama = "*"
 html5lib = "*"

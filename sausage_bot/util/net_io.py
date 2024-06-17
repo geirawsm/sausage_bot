@@ -63,7 +63,7 @@ async def check_spotify_podcast(url):
         log.log(_spotipy_error)
         await log.log_to_bot_channel(_spotipy_error)
         return None
-    pod_id = re.search(r'.*/show/([a-zA-z0-9]+).*', url).group(1)
+    pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', url).group(1)
     try:
         _show = _spotipy.show(pod_id)
         log.debug(f'`_show`: ', pretty=_show)
@@ -81,7 +81,7 @@ async def get_spotify_podcast_links(feed):
         return None
     UUID = feed[0]
     URL = feed[2]
-    pod_id = re.search(r'.*/show/([a-zA-z0-9]+).*', URL).group(1)
+    pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', URL).group(1)
     _show = _spotipy.show(pod_id)
     filters_db = await db_helper.get_output(
         template_info=envs.rss_db_filter_schema,
