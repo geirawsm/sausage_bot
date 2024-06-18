@@ -41,8 +41,8 @@ class scrape_and_post(commands.Cog):
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
-                ('cog', 'barca'),
-                ('task', 'post_feeds')
+                ('cog', 'barca_news'),
+                ('task', 'post_news')
             ],
             updates=('status', 'started')
         )
@@ -62,8 +62,8 @@ class scrape_and_post(commands.Cog):
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
-                ('task', 'post_feeds'),
-                ('cog', 'barca'),
+                ('cog', 'barca_news'),
+                ('task', 'post_news'),
             ],
             updates=('status', 'stopped')
         )
@@ -159,22 +159,27 @@ class scrape_and_post(commands.Cog):
 
 
 async def setup(bot):
+    async def get_tasks():
+        return await db_helper.get_output(
+            template_info=envs.tasks_db_schema,
+            select=('task', 'status'),
+            where=('cog', 'barca_news')
+        )
+
     log.log(envs.COG_STARTING.format('barca_news'))
     await bot.add_cog(scrape_and_post(bot))
-
-    task_list = await db_helper.get_output(
-        template_info=envs.tasks_db_schema,
-        select=('task', 'status'),
-        where=('cog', 'barca_news')
-    )
-    if len(task_list) == 0:
+    task_list = await get_tasks()
+    log.debug(f'Got `task_list`: {task_list}')
+    if task_list is None:
         await db_helper.insert_many_all(
             template_info=envs.tasks_db_schema,
             inserts=(
                 ('barca_news', 'post_news', 'stopped')
             )
         )
+        task_list = await get_tasks()
     for task in task_list:
+        log.debug(f'checking task: {task}')
         if task[0] == 'post_news':
             if task[1] == 'started':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
