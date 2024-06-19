@@ -24,6 +24,7 @@ MERMAID_DIR = ROOT_DIR / 'docs' / 'mermaid_charts'
 COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Files
+version_file = ROOT_DIR / 'version.json'
 env_file = DATA_DIR / '.env'
 rss_feeds_file = JSON_DIR / 'rss-feeds.json'
 rss_feeds_logs_file = JSON_DIR / 'rss-feeds-log.json'

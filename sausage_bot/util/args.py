@@ -82,6 +82,16 @@ testing_args.add_argument('--single-cog', '-c',
                           action='store',
                           default=False,
                           dest='single_cog')
+testing_args.add_argument('--last-commit',
+                          help='Load info about last commit this bot runs on',
+                          action='store',
+                          default="",
+                          dest='last_commit')
+testing_args.add_argument('--last-run-number',
+                          help='Load info about last run number from Github this bot runs on',
+                          action='store',
+                          default="",
+                          dest='last_run_number')
 
 maintenance_args = parser.add_argument_group('Maintenance')
 maintenance_args.add_argument('--maintenance',

@@ -12,5 +12,10 @@ RUN pipenv install --system --deploy --ignore-pipfile
 
 VOLUME [ "/data" ]
 
+ARG LAST_RUN_NUMBER="testrun"
+ARG LAST_COMMIT="testcommit"
+
+RUN echo -e "{\"LAST_RUN_NUMBER\": \"${LAST_RUN_NUMBER}\"", \"LAST_COMMIT\": \"${LAST_COMMIT}\""}" > /app/sausage_bot/version.json
+
 # Run bot
 CMD ["python", "-m", "sausage_bot", "--log", "--verbose", "--log-print", "--log-database", "--debug", "--data-dir", "/data"]

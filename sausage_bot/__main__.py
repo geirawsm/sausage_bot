@@ -160,6 +160,22 @@ async def clear_commands(ctx):
     log.debug('Commands deleted')
 
 
+@commands.is_owner()
+@config.bot.tree.command(
+    name='version', description='Owner only'
+)
+async def get_version(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    version_in = file_io.read_json(envs.version_file)
+    await interaction.followup.send(
+        'Last run number: {}\nLast commit: {}'.format(
+            version_in['LAST_RUN_NUMBER'], version_in['LAST_COMMIT']
+        ),
+        ephemeral=True
+    )
+    return
+
+
 # Commands
 @commands.is_owner()
 @config.bot.tree.command(
