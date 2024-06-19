@@ -395,7 +395,7 @@ async def get_feed_list(
         headers=headers,
         maxcolwidths=maxcolwidths
     )
-    return split_lengthy_list(table_out)
+    return await split_lengthy_list(table_out)
 
 
 async def review_feeds_status(feed_type: str = None):
