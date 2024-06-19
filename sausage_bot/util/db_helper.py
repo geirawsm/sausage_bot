@@ -639,12 +639,12 @@ async def get_output(
     _cmd += f' FROM {table_name}'
     if isinstance(where, tuple):
         log.verbose(f'`where` is tuple: {where}')
-        _cmd += f" WHERE {where[0]} = '{where[1]}'"
+        _cmd += f" WHERE LOWER({where[0]}) = LOWER('{where[1]}')"
     elif isinstance(where, list) and isinstance(where[0], tuple):
         log.verbose(f'`where` is tuple inside a list: {where}')
         _cmd += " WHERE "
         for id in where:
-            _cmd += f"{id[0]} = '{id[1]}'"
+            _cmd += f"LOWER({id[0]}) = LOWER('{id[1]}')"
             if id != where[-1]:
                 _cmd += ' AND '
     if order_by is not None:
