@@ -58,3 +58,6 @@ jobs:
         labels: |
           Last run number=${{ github.run_number }}
           Last commit=${{ github.sha }}
+        build-args: |
+          LAST_RUN_NUMBER=${{ github.run_number }}
+          LAST_COMMIT=${{ github.sha }}
