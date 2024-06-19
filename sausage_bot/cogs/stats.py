@@ -110,7 +110,7 @@ class Stats(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log('Task stopped')
-        Stats.update_stats.stop()
+        Stats.update_stats.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -471,8 +471,8 @@ async def setup(bot):
                 Stats.update_stats.start()
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
-                Stats.update_stats.stop()
+                Stats.update_stats.cancel()
 
 
 async def teardown(bot):
-    Stats.update_stats.stop()
+    Stats.update_stats.cancel()

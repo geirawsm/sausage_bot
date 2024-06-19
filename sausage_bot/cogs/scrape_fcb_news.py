@@ -58,7 +58,7 @@ class scrape_and_post(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log('Task stopped')
-        scrape_and_post.post_fcb_news.stop()
+        scrape_and_post.post_fcb_news.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -186,8 +186,8 @@ async def setup(bot):
                 scrape_and_post.post_fcb_news.start()
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
-                scrape_and_post.post_fcb_news.stop()
+                scrape_and_post.post_fcb_news.cancel()
 
 
 async def teardown(bot):
-    scrape_and_post.post_fcb_news.stop()
+    scrape_and_post.post_fcb_news.cancel()

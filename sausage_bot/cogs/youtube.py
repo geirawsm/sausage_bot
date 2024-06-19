@@ -71,7 +71,7 @@ class Youtube(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log('Task stopped')
-        Youtube.post_videos.stop()
+        Youtube.post_videos.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -360,8 +360,8 @@ async def setup(bot):
                 Youtube.post_videos.start()
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
-                Youtube.post_videos.stop()
+                Youtube.post_videos.cancel()
 
 
 async def teardown(bot):
-    Youtube.post_videos.stop()
+    Youtube.post_videos.cancel()

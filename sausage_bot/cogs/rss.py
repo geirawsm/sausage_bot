@@ -111,7 +111,7 @@ class RSSfeed(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log('Task stopped')
-        RSSfeed.post_feeds.stop()
+        RSSfeed.post_feeds.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -550,8 +550,8 @@ async def setup(bot):
                 RSSfeed.post_feeds.start()
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
-                RSSfeed.post_feeds.stop()
+                RSSfeed.post_feeds.cancel()
 
 
 async def teardown(bot):
-    RSSfeed.post_feeds.stop()
+    RSSfeed.post_feeds.cancel()
