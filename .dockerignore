@@ -1,3 +1,5 @@
 sausage_bot/data/*
 sausage_bot/tempfiles/*
 .cache
+*.code-workspace
+sausage_bot/version.json

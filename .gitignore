@@ -2,6 +2,7 @@ __pycache__/
 .pytest_cache
 *.code-*
 .vscode/
+*.code-workspace
 
 sausage_bot/data/json
 sausage_bot/data/db
@@ -14,4 +15,5 @@ sausage_bot/cogs/_*
 
 out
 sausage_bot/tempfiles/*
+sausage_bot/version.json
 .cache
