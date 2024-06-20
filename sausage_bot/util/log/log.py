@@ -245,32 +245,3 @@ def log_func_name() -> dict:
             'name': f'{func_file}.{func_name}',
             'line': str(frame_line)
         }
-
-
-async def log_to_bot_channel(content_in=None, embed_in=None):
-    'Messages you want to send directly to a specific channel'
-    log_channel = config.BOT_CHANNEL
-    server_channels = {}
-
-    for guild in config.bot.guilds:
-        if str(guild.name).lower() == config.env('DISCORD_GUILD').lower():
-            debug(f'Got guild {guild} ({type(guild)})')
-        else:
-            log(envs.GUILD_NOT_FOUND)
-            guild = None
-
-    # Get all channels and their IDs
-    for channel in guild.text_channels:
-        server_channels[channel.name] = channel.id
-    debug(f'Got these channels: {server_channels}')
-    if log_channel in server_channels:
-        channel_out = config.bot.get_channel(server_channels[log_channel])
-    else:
-        channel_out = await guild.create_text_channel(
-            name=str(config.BOT_CHANNEL),
-            topic=f'Incoming log messages from {config.bot.user.name}',
-        )
-    msg_out = await channel_out.send(
-        content=content_in
-    )
-    return msg_out

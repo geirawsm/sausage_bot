@@ -303,5 +303,18 @@ async def remove_stats_post(stats_channel):
             log.debug('No stats post found')
 
 
+async def log_to_bot_channel(content_in=None):
+    'Messages you want to send directly to a specific channel'
+    log_channel = config.BOT_CHANNEL
+    log.debug(f'`log_channel` er {log_channel}')
+    guild = get_guild()
+
+    channel_out = guild.get_channel(int(get_text_channel_list()[log_channel]))
+    msg_out = await channel_out.send(
+        content=content_in
+    )
+    return msg_out
+
+
 if __name__ == "__main__":
     pass

@@ -71,6 +71,23 @@ async def on_ready():
                 )
             )
         )
+    # Make sure that the BOT_CHANNEL is present
+    if config.BOT_CHANNEL not in discord_commands.get_text_channel_list():
+        bot_channel = config.BOT_CHANNEL
+        log.debug(f'Bot channel `{bot_channel}` does not exist, creating...')
+        guild = discord_commands.get_guild()
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(
+                read_messages=False
+            ),
+            guild.me: discord.PermissionOverwrite(read_messages=True)
+        }
+        channel_out = await guild.create_text_channel(
+            name=str(bot_channel),
+            topic=f'Incoming log messages from {config.bot.user.name}',
+            overwrites=overwrites
+        )
+        channel_out.set_permissions()
 
 
 @commands.check_any(commands.is_owner())
