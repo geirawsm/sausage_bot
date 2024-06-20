@@ -80,7 +80,7 @@ async def get_items_from_rss(
     if test:
         max_items = 1
     else:
-        max_items = 3
+        max_items = 5
     items_out = {
         'filters': filters_in,
         'items': [],
@@ -106,8 +106,8 @@ async def get_items_from_rss(
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
         log.debug('Found Youtube feed')
-        all_entries = soup.find_all('entry')
-        for item in all_entries[0:max_items]:
+        all_entries = soup.find_all('entry')[0:max_items]
+        for item in all_entries:
             temp_info = items_info.copy()
             temp_info['type'] = 'youtube'
             temp_info['title'] = item.find('title').text

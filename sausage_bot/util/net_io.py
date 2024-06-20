@@ -222,7 +222,7 @@ def filter_links(items):
                 links_out.append(item)
         else:
             links_out.append(item)
-        return links_out
+    return links_out
 
 
 def make_event_start_stop(date, time=None):
