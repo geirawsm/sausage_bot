@@ -7,7 +7,7 @@ from time import sleep
 from yt_dlp import YoutubeDL
 
 from sausage_bot.util import config, envs, feeds_core, file_io
-from sausage_bot.util import db_helper
+from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.log import log
 
 
@@ -130,7 +130,7 @@ class Youtube(commands.Cog):
                     'youtube', str(feed_name), str(yt_link), channel.name,
                     AUTHOR, yt_info['channel_id']
                 )
-                await log.log_to_bot_channel(
+                await discord_commands.log_to_bot_channel(
                     envs.YOUTUBE_ADDED_BOT.format(
                         AUTHOR, feed_name, yt_link, channel.name
                     )
@@ -157,7 +157,7 @@ class Youtube(commands.Cog):
                 feed_type='youtube', feed_name=feed_name
             )
             if removal:
-                await log.log_to_bot_channel(
+                await discord_commands.log_to_bot_channel(
                     envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
                 )
                 await interaction.followup.send(
@@ -169,7 +169,7 @@ class Youtube(commands.Cog):
                     envs.YOUTUBE_COULD_NOT_REMOVE.format(feed_name)
                 )
                 # Also log and send error to either a bot-channel or admin
-                await log.log_to_bot_channel(
+                await discord_commands.log_to_bot_channel(
                     envs.YOUTUBE_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
                 )
             return
@@ -277,7 +277,7 @@ class Youtube(commands.Cog):
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(envs.YOUTUBE_FEED_POSTS_IS_NONE.format(feed))
-                await log.log_to_bot_channel(
+                await discord_commands.log_to_bot_channel(
                     envs.YOUTUBE_FEED_POSTS_IS_NONE.format(FEED_NAME)
                 )
             else:

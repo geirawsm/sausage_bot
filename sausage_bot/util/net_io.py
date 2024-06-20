@@ -61,7 +61,7 @@ async def check_spotify_podcast(url):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         log.log(_spotipy_error)
-        await log.log_to_bot_channel(_spotipy_error)
+        await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
     pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', url).group(1)
     try:
@@ -77,7 +77,7 @@ async def get_spotify_podcast_links(feed):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         log.log(_spotipy_error)
-        await log.log_to_bot_channel(_spotipy_error)
+        await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
     UUID = feed[0]
     URL = feed[2]

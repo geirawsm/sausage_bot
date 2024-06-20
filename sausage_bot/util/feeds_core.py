@@ -463,7 +463,7 @@ async def review_feeds_status(feed_type: str = None):
                 _url_e_msg = f'Error when getting feed for {FEED_NAME}'\
                     f' (strike {envs.FEEDS_URL_ERROR_LIMIT})'
                 log.error(_url_e_msg)
-                log.log_to_bot_channel(_url_e_msg)
+                discord_commands.log_to_bot_channel(_url_e_msg)
                 if URL_STATUS != envs.FEEDS_URL_ERROR:
                     if 'status_url' not in db_updates:
                         db_updates['status_url'] = []
@@ -506,7 +506,7 @@ async def review_feeds_status(feed_type: str = None):
             db_updates['status_channel'].append(
                 ('uuid', UUID, envs.CHANNEL_STATUS_ERROR)
             )
-            await log.log_to_bot_channel(
+            await discord_commands.log_to_bot_channel(
                 f'{FEED_NAME} skal poste i #{CHANNEL} men den finnes ikke'
             )
     if len(db_updates) == 0:

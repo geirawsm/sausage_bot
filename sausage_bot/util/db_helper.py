@@ -78,7 +78,7 @@ async def prep_table(
                 'Inserts given, but db file already has input. '
                 'This should be looked into, so messaging the bot-dump'
             )
-            await log.log_to_bot_channel(
+            await discord_commands.log_to_bot_channel(
                 content_in='Want to insert info from old json into '
                 f'{table_name}, but something is wrong'
                 '({} vs {})'.format(

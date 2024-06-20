@@ -162,7 +162,7 @@ class RSSfeed(commands.Cog):
         await feeds_core.add_to_feed_db(
             'spotify', str(feed_name), str(feed_link), channel.name, AUTHOR
         )
-        await log.log_to_bot_channel(
+        await discord_commands.log_to_bot_channel(
             envs.RSS_ADDED_BOT.format(
                 AUTHOR, feed_name, feed_link, channel.name
             )
@@ -197,7 +197,7 @@ class RSSfeed(commands.Cog):
             feed_type='rss', feed_name=feed_name
         )
         if removal:
-            await log.log_to_bot_channel(
+            await discord_commands.log_to_bot_channel(
                 envs.RSS_REMOVED_BOT.format(feed_name, AUTHOR)
             )
             await interaction.followup.send(
@@ -209,7 +209,7 @@ class RSSfeed(commands.Cog):
                 envs.RSS_COULD_NOT_REMOVE.format(feed_name)
             )
             # Also log and send error to bot-channel
-            await log.log_to_bot_channel(
+            await discord_commands.log_to_bot_channel(
                 envs.RSS_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
             )
         return
@@ -467,7 +467,7 @@ class RSSfeed(commands.Cog):
             log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
-                await log.log_to_bot_channel(
+                await discord_commands.log_to_bot_channel(
                     envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME)
                 )
             else:
