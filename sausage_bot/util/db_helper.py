@@ -4,7 +4,7 @@ import aiosqlite
 from uuid import uuid4
 import re
 
-from sausage_bot.util import envs, file_io
+from sausage_bot.util import envs, file_io, discord_commands
 from sausage_bot.util.args import args
 from sausage_bot.util.log import log
 from sausage_bot.util.datetime_handling import get_dt
