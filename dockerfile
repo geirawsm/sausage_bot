@@ -18,8 +18,8 @@ ARG BRANCH="testbranch"
 
 RUN echo -e \
     "{\"BRANCH\": \"${BRANCH}\", "\
-    "\"LAST_RUN_NUMBER\": \"${LAST_RUN_NUMBER}\"", "\
-    "\"LAST_COMMIT\": \"${LAST_COMMIT}\""}"\
+    "\"LAST_RUN_NUMBER\": \"${LAST_RUN_NUMBER}\", "\
+    "\"LAST_COMMIT\": \"${LAST_COMMIT}\"}"\
     > /app/sausage_bot/version.json
 
 # Run bot
