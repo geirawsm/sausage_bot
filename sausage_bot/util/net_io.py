@@ -6,7 +6,8 @@ import aiohttp
 import aiofiles
 from datetime import datetime
 from sausage_bot.util import config, envs, datetime_handling, db_helper
-from sausage_bot.util.args import args, file_io, discord_commands
+from sausage_bot.util import file_io, discord_commands
+from sausage_bot.util.args import args
 from .log import log
 
 import json
