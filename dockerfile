@@ -14,6 +14,7 @@ VOLUME [ "/data" ]
 
 ARG LAST_RUN_NUMBER="testrun"
 ARG LAST_COMMIT="testcommit"
+ARG BRANCH="testbranch"
 
 RUN echo -e \
     "{\"BRANCH\": \"${BRANCH}\", "\

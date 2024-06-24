@@ -58,8 +58,8 @@ jobs:
         labels: |
           Last run number=${{ github.run_number }}
           Last commit=${{ github.sha }}
-          Branch=${{ github.ref_name}}
+          Branch=${{ github.ref_name }}
         build-args: |
           LAST_RUN_NUMBER=${{ github.run_number }}
           LAST_COMMIT=${{ github.sha }}
-          BRANCH=${{ github.ref_name}}
+          BRANCH=${{ github.ref_name }}
