@@ -7,7 +7,7 @@ from time import sleep
 import re
 
 from sausage_bot.util import config, envs, feeds_core, file_io, net_io
-from sausage_bot.util import db_helper
+from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.log import log
 
 
