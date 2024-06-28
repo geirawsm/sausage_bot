@@ -264,7 +264,7 @@ async def get_feed_links(feed_type, feed_info):
             log.debug(f'Got this from `get_items_from_rss`: {links_out}')
             return links_out
         else:
-            return None
+            return
 
 
 async def get_feed_list(
