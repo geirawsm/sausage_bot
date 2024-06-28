@@ -454,7 +454,10 @@ class RSSfeed(commands.Cog):
             if "open.spotify.com/show/" in URL:
                 log.debug('Is a spotify-link')
                 FEED_POSTS = await net_io.get_spotify_podcast_links(feed)
-                log.debug(f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: {FEED_POSTS}')
+                log.debug(
+                    f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
+                    f'{FEED_POSTS}'
+                )
                 await feeds_core.process_links_for_posting_or_editing(
                     'spotify', UUID, FEED_POSTS, CHANNEL
                 )
