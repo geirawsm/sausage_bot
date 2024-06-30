@@ -525,7 +525,7 @@ async def setup(bot):
         log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
         log.verbose(f'`rss_log_prep_is_ok` is {rss_log_prep_is_ok}')
     else:
-        log.verbose('RSS db exist!')
+        log.verbose('rss db exist!')
     # Delete old json files if they are not necessary anymore
     if rss_prep_is_ok:
         file_io.remove_file(envs.rss_feeds_file)

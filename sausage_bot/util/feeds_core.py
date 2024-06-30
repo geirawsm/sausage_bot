@@ -220,12 +220,14 @@ async def remove_feed_from_db(feed_type, feed_name):
         feed_db,
         where=('uuid', uuid_from_db)
     )
+    log.debug(f'`removal` is {removal}')
     if not removal:
         removal_ok = False
     removal_filters = await db_helper.del_row_by_AND_filter(
         feed_db_filter,
         where=('uuid', uuid_from_db)
     )
+    log.debug(f'`removal_filters` is {removal_filters}')
     if not removal_filters:
         removal_ok = False
     return removal_ok

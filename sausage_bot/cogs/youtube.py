@@ -3,6 +3,7 @@
 from discord.ext import commands, tasks
 import discord
 import typing
+import re
 from time import sleep
 from yt_dlp import YoutubeDL
 
@@ -11,7 +12,7 @@ from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.log import log
 
 
-async def feed_names_autocomplete(
+async def feed_name_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
@@ -26,6 +27,33 @@ async def feed_names_autocomplete(
     ]
 
 
+async def youtube_filter_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[discord.app_commands.Choice[str]]:
+    db_filters = await db_helper.get_combined_output(
+        template_info_1=envs.youtube_db_schema,
+        template_info_2=envs.youtube_db_filter_schema,
+        key='uuid',
+        select=['feed_name', 'allow_or_deny', 'filter'],
+        order_by=[
+            ('allow_or_deny', 'ASC'),
+            ('filter', 'ASC')
+        ]
+    )
+    filters = []
+    for filter in db_filters:
+        filters.append((filter[0], filter[1], filter[2]))
+    log.debug(f'filters: {filters}')
+    return [
+        discord.app_commands.Choice(
+            name=f'{filter[0]} - {filter[1]} - {filter[2]}',
+            value=str(filter[2])
+        )
+        for filter in filters if current.lower() in filter[2].lower()
+    ]
+
+
 class Youtube(commands.Cog):
     'Autopost new videos from given Youtube channels'
 
@@ -33,19 +61,24 @@ class Youtube(commands.Cog):
         self.bot = bot
         super().__init__()
 
-    yt_group = discord.app_commands.Group(
-        name="youtube", description='Administer YouTube-feeds'
+    youtube_group = discord.app_commands.Group(
+        name="youtube", description='Administer YouTube feeds'
     )
 
-    yt_posting_group = discord.app_commands.Group(
+    youtube_filter_group = discord.app_commands.Group(
+        name="filter", description='Filter YouTube feeds',
+        parent=youtube_group
+    )
+
+    youtube_posting_group = discord.app_commands.Group(
         name="posting", description='Posting from YouTube feeds',
-        parent=yt_group
+        parent=youtube_group
     )
 
-    @yt_posting_group.command(
+    @youtube_posting_group.command(
         name='start', description='Start posting'
     )
-    async def yt_posting_start(
+    async def youtube_posting_start(
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
@@ -63,10 +96,10 @@ class Youtube(commands.Cog):
             'Youtube posting started'
         )
 
-    @yt_posting_group.command(
+    @youtube_posting_group.command(
         name='stop', description='Stop posting'
     )
-    async def yt_posting_stop(
+    async def youtube_posting_stop(
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
@@ -88,93 +121,210 @@ class Youtube(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @discord.app_commands.autocomplete(feed_name=feed_names_autocomplete)
-    @yt_group.command(
-        name='manage', description='Manage a YouTube-feed'
+    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @youtube_group.command(
+        name='add', description='Add a YouTube-feed'
     )
-    async def youtube_manage(
-        self, interaction: discord.Interaction,
-        feed_name: str, manage: typing.Literal['Add', 'Remove'],
-        yt_link: str = None, channel: discord.TextChannel = None
+    async def youtube_add(
+        self, interaction: discord.Interaction, feed_name: str,
+        youtube_link: str, channel: discord.TextChannel
     ):
         '''
-        Add or remove a Youtube feed
+        Add a Youtube feed
 
         Parameters
         ------------
         feed_name: str
             Name of feed to manage
-        yt_link: str
+        youtube_link: str
             The link for the YouTube-channel
         channel: str
             The Discord channel to post from the feed
         '''
         await interaction.response.defer()
         AUTHOR = interaction.user.name
-        if manage.lower() == 'add':
-            if yt_link is None or channel is None:
-                await interaction.followup.send(
-                    envs.TOO_FEW_ARGUMENTS,
-                    ephemeral=True
-                )
-                return
-            else:
-                # Get yt-id
-                yt_info = await Youtube.get_yt_info(yt_link)
-                if yt_info is None:
-                    await interaction.followup.send(
-                        envs.YOUTUBE_EMPTY_LINK.format(yt_link)
-                    )
-                    return
-                await feeds_core.add_to_feed_db(
-                    'youtube', str(feed_name), str(yt_link), channel.name,
-                    AUTHOR, yt_info['channel_id']
-                )
-                await discord_commands.log_to_bot_channel(
-                    envs.YOUTUBE_ADDED_BOT.format(
-                        AUTHOR, feed_name, yt_link, channel.name
-                    )
-                )
-                await interaction.followup.send(
-                    envs.YOUTUBE_ADDED.format(feed_name, channel.name)
-                )
-                return
-        elif manage.lower() == 'remove':
-            _uuid = await db_helper.get_output(
-                template_info=envs.youtube_db_schema,
-                select=('uuid'),
-                where=(('feed_name', feed_name)),
-                single=True
+        # Get yt-id
+        youtube_info = await Youtube.get_youtube_info(youtube_link)
+        if youtube_info is None:
+            await interaction.followup.send(
+                envs.YOUTUBE_EMPTY_LINK.format(youtube_link)
             )
-            if _uuid is None:
-                _error_msg = f'The feed `{feed_name}` does not exist'
-                log.debug(_error_msg)
-                await interaction.followup.send(
-                    _error_msg
-                )
-                return
-            removal = await feeds_core.remove_feed_from_db(
-                feed_type='youtube', feed_name=feed_name
-            )
-            if removal:
-                await discord_commands.log_to_bot_channel(
-                    envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
-                )
-                await interaction.followup.send(
-                    envs.YOUTUBE_REMOVED.format(feed_name)
-                )
-            elif removal is False:
-                # Couldn't remove the feed
-                await interaction.followup.send(
-                    envs.YOUTUBE_COULD_NOT_REMOVE.format(feed_name)
-                )
-                # Also log and send error to either a bot-channel or admin
-                await discord_commands.log_to_bot_channel(
-                    envs.YOUTUBE_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
-                )
             return
+        await feeds_core.add_to_feed_db(
+            'youtube', str(feed_name), str(youtube_link), channel.name,
+            AUTHOR, youtube_info['channel_id']
+        )
+        await discord_commands.log_to_bot_channel(
+            envs.YOUTUBE_ADDED_BOT.format(
+                AUTHOR, feed_name, youtube_link, channel.name
+            )
+        )
+        await interaction.followup.send(
+            envs.YOUTUBE_ADDED.format(feed_name, channel.name)
+        )
+        return
 
-    @yt_group.command(
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @youtube_group.command(
+        name='remove', description='Remove a YouTube-feed'
+    )
+    async def youtube_remove(
+        self, interaction: discord.Interaction, feed_name: str
+    ):
+        '''
+        Remove a Youtube feed
+
+        Parameters
+        ------------
+        feed_name: str
+            Name of feed to manage
+        '''
+        await interaction.response.defer()
+        AUTHOR = interaction.user.name
+        _uuid = await db_helper.get_output(
+            template_info=envs.youtube_db_schema,
+            select=('uuid'),
+            where=(('feed_name', feed_name)),
+            single=True
+        )
+        if _uuid is None:
+            _error_msg = f'The feed `{feed_name}` does not exist'
+            log.debug(_error_msg)
+            await interaction.followup.send(
+                _error_msg
+            )
+            return
+        removal = await feeds_core.remove_feed_from_db(
+            feed_type='youtube', feed_name=feed_name
+        )
+        if removal:
+            await discord_commands.log_to_bot_channel(
+                envs.YOUTUBE_REMOVED_BOT.format(feed_name, AUTHOR)
+            )
+            await interaction.followup.send(
+                envs.YOUTUBE_REMOVED.format(feed_name)
+            )
+        elif removal is False:
+            # Couldn't remove the feed
+            await interaction.followup.send(
+                envs.YOUTUBE_COULD_NOT_REMOVE.format(feed_name)
+            )
+            # Also log and send error to either a bot-channel or admin
+            await discord_commands.log_to_bot_channel(
+                envs.YOUTUBE_TRIED_REMOVED_BOT.format(AUTHOR, feed_name)
+            )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @youtube_filter_group.command(
+        name='add', description='Add filters on an Youtube feed'
+    )
+    async def youtube_filter_add(
+        self, interaction: discord.Interaction, feed_name: str,
+        allow_deny: typing.Literal['Allow', 'Deny'], filters_in: str
+    ):
+        '''
+        Add filter for feed (deny/allow)
+
+        Parameters
+        ------------
+        feed_name: str
+            Name of feed
+        allow_deny: str
+            Specify if the filter should `allow` or `deny`. Separate multiples
+            with any of the following characers: " .,;-_\\/"
+        filters_in: str
+            What to filter a post by. Separate multiple with any of the
+            following characers: " .,;-_\\/"
+
+        '''
+        await interaction.response.defer(ephemeral=True)
+        # Make sure that the filter input can be split
+        _filters_in = re.split(
+            envs.input_split_regex, filters_in
+        )
+        _uuid = await db_helper.get_output(
+            template_info=envs.youtube_db_schema,
+            select=('uuid'),
+            where=(('feed_name', feed_name)),
+            single=True
+        )
+        temp_inserts = []
+        for _index, filter in enumerate(_filters_in):
+            temp_inserts.append((_uuid, allow_deny, filter))
+        adding_filter = await db_helper.insert_many_all(
+            template_info=envs.youtube_db_filter_schema,
+            inserts=temp_inserts
+        )
+        if adding_filter:
+            msg_out = f'Added filters as {allow_deny}:'
+            for filter in _filters_in:
+                msg_out += f'\n- {filter}'
+            await interaction.followup.send(msg_out, ephemeral=True)
+        else:
+            await interaction.followup.send(
+                'Error when adding filter, check logs',
+                ephemeral=True
+            )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @discord.app_commands.autocomplete(filter_in=youtube_filter_autocomplete)
+    @youtube_filter_group.command(
+        name='remove', description='Remove filters on an Youtube feed'
+    )
+    async def youtube_filter_remove(
+        self, interaction: discord.Interaction, feed_name: str, filter_in: str
+    ):
+        '''
+        Remove filter for feed
+
+        Parameters
+        ------------
+        feed_name: str
+            Name of feed
+        filter_in: str
+            What filter to look for
+        '''
+        await interaction.response.defer(ephemeral=True)
+        _uuid = await db_helper.get_output(
+            template_info=envs.youtube_db_schema,
+            select=('uuid'),
+            where=(('feed_name', feed_name)),
+            single=True
+        )
+        removing_filter = await db_helper.del_row_by_AND_filter(
+            template_info=envs.youtube_db_filter_schema,
+            where=(
+                ('uuid', _uuid),
+                ('filter', filter_in)
+            )
+        )
+        if removing_filter:
+            await interaction.followup.send(
+                f'Removed filter `{filter_in}`',
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f'Error when removing filter `{filter_in}`, check logs',
+                ephemeral=True
+            )
+        return
+
+    @youtube_group.command(
         name='list', description='List all active YouTube feeds'
     )
     async def youtube_list(
@@ -216,7 +366,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    async def get_yt_info(url):
+    async def get_youtube_info(url):
         'Use yt-dlp to get info about a channel'
         # Get more yt-dlp opts here:
         # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
@@ -236,7 +386,7 @@ class Youtube(commands.Cog):
 
     # Tasks
     @tasks.loop(
-        minutes=config.env.int('YT_LOOP', default=5)
+        minutes=config.env.int('YOUTUBE_LOOP', default=5)
     )
     async def post_videos():
         log.log('Starting `post_videos`')
@@ -302,42 +452,44 @@ async def setup(bot):
     # Convert json to sqlite db-files if exists
 
     # Define inserts
-    yt_inserts = None
-    yt_prep_is_ok = None
-    yt_log_prep_is_ok = None
-    # Populate the inserts if json file exist
-    if file_io.file_exist(envs.yt_feeds_file) and \
-            file_io.file_exist(envs.yt_feeds_logs_file):
+    youtube_inserts = None
+    youtube_prep_is_ok = None
+    youtube_log_prep_is_ok = None
+    # Populate the inserts if feed and logs json files exist
+    if file_io.file_exist(envs.youtube_feeds_file) and \
+            file_io.file_exist(envs.youtube_feeds_logs_file):
         log.verbose('Found old json file - feeds')
-        yt_inserts = db_helper.json_to_db_inserts(cog_name)
+        youtube_inserts = db_helper.json_to_db_inserts(cog_name)
+    log.debug(f'Got these inserts:\n{youtube_inserts}')
 
-        yt_prep_is_ok = await db_helper.prep_table(
-            envs.youtube_db_schema,
-            yt_inserts['feeds'] if yt_inserts is not None else yt_inserts
-        )
-        await db_helper.prep_table(
-            envs.youtube_db_filter_schema,
-            yt_inserts['filter'] if yt_inserts is not None else yt_inserts
-        )
+    # Prep of DBs should only be done if the db files does not exist
     if not file_io.file_exist(envs.youtube_db_schema['db_file']):
-        if file_io.file_exist(envs.yt_feeds_file):
-            log.verbose('Found old json file - youtube feeds')
-        yt_prep_is_ok = await db_helper.prep_table(
-            envs.youtube_db_schema,
-            yt_inserts['feeds'] if yt_inserts is not None else yt_inserts
+        log.verbose('Youtube db does not exist')
+        youtube_prep_is_ok = await db_helper.prep_table(
+            table_in=envs.youtube_db_schema,
+            old_inserts=youtube_inserts['feeds'] if youtube_inserts is not None
+            else youtube_inserts
         )
-    if not file_io.file_exist(envs.youtube_db_log_schema['db_file']):
-        if file_io.file_exist(envs.yt_feeds_logs_file):
-            log.verbose('Found old json file - logs')
-        yt_log_prep_is_ok = await db_helper.prep_table(
+        youtube_filter_prep_is_ok = await db_helper.prep_table(
+            envs.youtube_db_filter_schema,
+            youtube_inserts['filter'] if youtube_inserts is not None else youtube_inserts
+        )
+        youtube_log_prep_is_ok = await db_helper.prep_table(
             envs.youtube_db_log_schema,
-            yt_inserts['logs'] if yt_inserts is not None else yt_inserts
+            youtube_inserts['logs'] if youtube_inserts is not None else youtube_inserts
         )
+        log.verbose(f'`youtube_prep_is_ok` is {youtube_prep_is_ok}')
+        log.verbose(
+            f'`youtube_filter_prep_is_ok` is {youtube_filter_prep_is_ok}'
+        )
+        log.verbose(f'`youtube_log_prep_is_ok` is {youtube_log_prep_is_ok}')
+    else:
+        log.verbose('youtube db exist!')
     # Delete old json files if they are not necessary anymore
-    if yt_prep_is_ok:
-        file_io.remove_file(envs.yt_feeds_file)
-    if yt_log_prep_is_ok:
-        file_io.remove_file(envs.yt_feeds_logs_file)
+    if youtube_prep_is_ok:
+        file_io.remove_file(envs.youtube_feeds_file)
+    if youtube_log_prep_is_ok:
+        file_io.remove_file(envs.youtube_feeds_logs_file)
     log.verbose('Registering cog to bot')
     await bot.add_cog(Youtube(bot))
 

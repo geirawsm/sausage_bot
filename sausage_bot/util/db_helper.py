@@ -284,8 +284,8 @@ def json_to_db_inserts(cog_name):
             'logs': rss_logs_inserts
         }
     elif cog_name == 'youtube':
-        yt_file = file_io.read_json(envs.yt_feeds_file)
-        yt_logs_file = file_io.read_json(envs.yt_feeds_logs_file)
+        yt_file = file_io.read_json(envs.youtube_feeds_file)
+        yt_logs_file = file_io.read_json(envs.youtube_feeds_logs_file)
         yt_inserts = []
         yt_filter_inserts = []
         yt_logs_inserts = []
