@@ -109,6 +109,7 @@ def log_function(
     log_out += '[ {} ] '.format(function_name['name'])
     log_out += str(log_in)
     if args.log_file:
+        log_out += '\n'
         dt = pendulum.now(config.TIMEZONE)
         _dt_rev = dt.format('YYYY-MM-DD')
         _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
