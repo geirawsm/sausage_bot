@@ -100,7 +100,7 @@ def file_exist(filename):
     False
     '''
     try:
-        os.stat(filename, follow_symlinks=True)
+        os.stat(str(filename), follow_symlinks=True)
         return True
     except FileNotFoundError:
         return False

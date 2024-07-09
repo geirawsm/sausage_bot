@@ -105,12 +105,12 @@ def log_function(
                 print(log_out)
         if extra_info:
             log_out = '[ {} ] '.format(extra_info)
-        log_out += '[ {} ] '.format(function_name['line'])
-        log_out += '[ {} ] '.format(function_name['name'])
-        log_out += str(log_in)
-    else:
+    log_out += '[ {} ] '.format(function_name['line'])
+    log_out += '[ {} ] '.format(function_name['name'])
+    log_out += str(log_in)
+    if args.log_file:
         dt = pendulum.now(config.TIMEZONE)
-        _dt_rev = dt.format('YYYY-MM-DD HH.mm.ss')
+        _dt_rev = dt.format('YYYY-MM-DD')
         _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
