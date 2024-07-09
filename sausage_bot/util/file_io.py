@@ -94,6 +94,36 @@ def file_size(filename):
         return False
 
 
+def folder_size(path_to_folder, human=False):
+    '''
+    Checks the size of files in a folder. If it can't find the folder it will
+    return False
+    '''
+    # Check if path exist
+    log.debug(f'Checking `path_to_folder`: {path_to_folder}')
+    if file_exist(str(path_to_folder)):
+        path_files = os.listdir(path_to_folder)
+        log.debug(f'Got files: {path_files}')
+        temp_size = 0
+        for _file in path_files:
+            _size = os.stat(
+                f'{path_to_folder}/{_file}', follow_symlinks=True
+            )[stat.ST_SIZE]
+            temp_size += _size
+        if human:
+            return size_in_human(temp_size)
+        else:
+            return temp_size
+
+
+def size_in_human(num, suffix="B"):
+    for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
+
+
 def file_exist(filename):
     '''
     Checks if the file exist. If it can't find the file it will return

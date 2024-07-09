@@ -29,10 +29,15 @@ logging_args.add_argument('--error', '-e',
                           default=False,
                           dest='log_error')
 logging_args.add_argument('--log-print', '-lp',
-                          help='Print logging instead of writing to file',
+                          help='Print logging to output',
                           action='store_true',
                           default=False,
                           dest='log_print')
+logging_args.add_argument('--log-file', '-lf',
+                          help='Write log to files',
+                          action='store_true',
+                          default=False,
+                          dest='log_file')
 logging_args.add_argument('--log-database', '-ld',
                           help='Log database actions',
                           action='store_true',

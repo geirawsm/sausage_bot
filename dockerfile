@@ -23,4 +23,4 @@ RUN echo -e \
     > /app/sausage_bot/version.json
 
 # Run bot
-CMD ["python", "-m", "sausage_bot", "--log", "--verbose", "--log-print", "--log-database", "--debug", "--data-dir", "/data"]
+CMD ["python", "-m", "sausage_bot", "--log", "--verbose", "--log-print", "--log-database", "--debug", "--log-file", "--data-dir", "/data"]

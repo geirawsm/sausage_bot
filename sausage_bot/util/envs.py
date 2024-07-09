@@ -495,6 +495,8 @@ DILEMMAS_COUNT = 'Fant {} dilemma'
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'
 roles_ensure_separator = ('><', '> <')
+LOG_LIMIT_TYPE_DEFAULT = 'size'
+LOG_LIMIT_DEFAULT = 1073741824  # Default is 1 GB
 
 ### DISCORD PERMISSIONS ###
 SELECT_PERMISSIONS = {
