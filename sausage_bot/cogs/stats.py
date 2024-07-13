@@ -266,8 +266,12 @@ class Stats(commands.Cog):
                 )
                 if not eval(stats_settings['sort_roles_abc']) and\
                         not eval(stats_settings['sort_roles_321']):
+                    log.debug(
+                        'Could not decide whether sorting by `abc` or `123`. '
+                        'Defaulting to `abc`.'
+                    )
                     stats_settings['sort_roles_abc'] = True
-                if stats_settings['sort_roles_abc']:
+                if eval(stats_settings['sort_roles_abc']):
                     dict_in = dict(sorted(
                         dict_in.items(), key=lambda x: x[1]['name']
                     ))
@@ -292,12 +296,19 @@ class Stats(commands.Cog):
                 for role in dict_in:
                     if role.lower() not in hide_roles_lower:
                         if role != '@everyone':
-                            # Add an if to check for filter bot roles
-
-                            dict_out['name'].append(dict_in[role]['name'])
-                            dict_out['members'].append(
-                                dict_in[role]['members']
-                            )
+                            # Check for `sort_min_role_members`
+                            if stats_settings['sort_min_role_members']:
+                                min_members = stats_settings['sort_min_role_members']
+                                if dict_in[role]['members'] >= int(min_members):
+                                    dict_out['name'].append(dict_in[role]['name'])
+                                    dict_out['members'].append(
+                                        dict_in[role]['members']
+                                    )
+                            else:
+                                dict_out['name'].append(dict_in[role]['name'])
+                                dict_out['members'].append(
+                                    dict_in[role]['members']
+                                )
                 text_out = '{}'.format(
                     tabulate(
                         dict_out, headers=headers, numalign='center'
