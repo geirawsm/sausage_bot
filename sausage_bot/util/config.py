@@ -33,8 +33,6 @@ LOCALE = env('LOCALE', default='nb_NO')
 ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
 SPOTIFY_ID = env('SPOTIFY_ID', default=None)
 SPOTIFY_SECRET = env('SPOTIFY_SECRET', default=None)
-LOG_LIMIT_TYPE = env('LOG_LIMIT_TYPE', default=envs.LOG_LIMIT_TYPE_DEFAULT)  # Default is 'size' but can also be 'days'
-LOG_LIMIT = env.int('LOG_LIMIT', default=envs.LOG_LIMIT_DEFAULT)  # Default equals 1 GB
 
 try:
     DISCORD_GUILD = env('DISCORD_GUILD')

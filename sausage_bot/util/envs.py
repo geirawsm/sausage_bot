@@ -193,6 +193,21 @@ roles_db_settings_schema = {
 }
 
 # Stats
+log_db_schema = {
+    'db_file': str(DB_DIR / 'log.sqlite'),
+    'name': 'log',
+    'items': [
+        'setting TEXT NOT NULL',
+        'value TEXT NOT NULL',
+        'value_check TEXT',
+        'value_help TEXT'
+    ],
+    'inserts': [
+        ['type', 'size', 'str', '`size` or `days`'],
+        ['limit', '1073741824', 'int', 'Size in bytes or number of days']
+    ]
+}
+
 stats_db_schema = {
     'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'settings',
@@ -495,8 +510,7 @@ DILEMMAS_COUNT = 'Fant {} dilemma'
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'
 roles_ensure_separator = ('><', '> <')
-LOG_LIMIT_TYPE_DEFAULT = 'size'
-LOG_LIMIT_DEFAULT = 1073741824  # Default is 1 GB
+
 
 ### DISCORD PERMISSIONS ###
 SELECT_PERMISSIONS = {
