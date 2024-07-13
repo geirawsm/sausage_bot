@@ -1460,7 +1460,7 @@ async def on_raw_reaction_add(payload):
     log.verbose(f'`reaction_messages`: {reaction_messages}')
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
-        if str(payload.message_id) == reaction_message[0]:
+        if str(payload.message_id) == str(reaction_message[0]):
             # TODO var msg
             log.debug('Found message, checking add reactions...')
             reactions = await db_helper.get_combined_output(
@@ -1477,14 +1477,13 @@ async def on_raw_reaction_add(payload):
             )
             log.verbose(f'`reactions` in add: {reactions}')
             for reaction in reactions:
+                log.debug(f'`reaction` is {reaction}')
                 incoming_emoji = payload.emoji.name
                 log.debug(f'incoming_emoji: {incoming_emoji}')
-                log.debug('reaction[1]: {}'.format(
-                    reaction[1]
-                ))
+                log.debug('reaction[1]: {}'.format(reaction[1]))
                 if incoming_emoji in reaction[1]:
                     for _role in _guild.roles:
-                        if _role.name.lower() == reaction[0].lower():
+                        if str(_role.id) in reaction[0].lower():
                             log.debug(
                                 f'Adding role {reaction[0]} to user'
                             )
@@ -1534,14 +1533,13 @@ async def on_raw_reaction_remove(payload):
             )
             log.verbose(f'`reactions` in remove: {reactions}')
             for reaction in reactions:
+                log.debug(f'`reaction` is {reaction}')
                 incoming_emoji = payload.emoji.name
                 log.debug(f'incoming_emoji: {incoming_emoji}')
-                log.debug('reaction[1]: {}'.format(
-                    reaction[1]
-                ))
+                log.debug('reaction[1]: {}'.format(reaction[1]))
                 if incoming_emoji in reaction[1]:
                     for _role in _guild.roles:
-                        if _role.name.lower() == reaction[0].lower():
+                        if str(_role.id) in reaction[0].lower():
                             log.debug(
                                 f'Removing role {reaction[0]} from user'
                             )
