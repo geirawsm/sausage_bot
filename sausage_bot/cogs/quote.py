@@ -7,7 +7,7 @@ import uuid
 from time import sleep
 from asyncio import TimeoutError
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util import config, envs, discord_commands, db_helper, file_io
+from sausage_bot.util import envs, db_helper, file_io
 from sausage_bot.util.log import log
 
 
@@ -412,6 +412,7 @@ class Quotes(commands.Cog):
             envs.quote_db_schema,
             rowid=quote_row_check[quote_index[quote_number-1]]
         )
+        log.debug(f'`old_quote` is: {old_quote}')
         await interaction.followup.send(
             '```\n#{}\n{}\n({})```'.format(
                 quote_number,
