@@ -667,8 +667,6 @@ async def get_output(
                     out = out[0]
             else:
                 out = await out.fetchall()
-            while len(out) == 1 and isinstance(out, (list, tuple)):
-                out = out[0]
             return out
     except aiosqlite.OperationalError as e:
         log.error(f'Error: {e}')

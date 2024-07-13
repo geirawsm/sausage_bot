@@ -1064,6 +1064,10 @@ class Autoroles(commands.Cog):
                 )
             ]
         )
+        await interaction.followup.send(
+            'Message added', ephemeral=True
+        )
+        return
         return
 
     @commands.check_any(

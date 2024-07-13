@@ -6,8 +6,9 @@ from tabulate import tabulate
 from uuid import uuid4
 import discord
 
+
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
-from sausage_bot.util import net_io, db_helper, config
+from sausage_bot.util import net_io, db_helper
 
 from .log import log
 
@@ -216,6 +217,7 @@ async def remove_feed_from_db(feed_type, feed_name):
         where=[('feed_name', feed_name)],
         single=True
     )
+    log.debug(f'`uuid_from_db` is {uuid_from_db}')
     removal = await db_helper.del_row_by_AND_filter(
         feed_db,
         where=('uuid', uuid_from_db)
@@ -324,6 +326,7 @@ async def get_feed_list(
                 ('feed_name', 'ASC')
             ]
         )
+        log.debug(f'`feeds_out` is {feeds_out}')
         # Return None if empty db
         if feeds_out is None:
             log.log('No feeds in database')
@@ -590,7 +593,7 @@ async def process_links_for_posting_or_editing(
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
-    for item in FEED_POSTS:
+    for item in FEED_POSTS[0:3]:
         log.verbose(f'Got this item:\n{item}')
         if isinstance(item, str):
             feed_link = item

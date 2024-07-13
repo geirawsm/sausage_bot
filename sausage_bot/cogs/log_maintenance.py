@@ -190,6 +190,7 @@ class LogMaintenance(commands.Cog):
             select=('value'),
             where=('setting', 'limit')
         )
+        settings_limit = int(settings_limit)
         log.debug(f'Got `settings_limit`: {settings_limit}')
         log.debug(
             f'Log limit is {settings_limit} in {settings_type}'
