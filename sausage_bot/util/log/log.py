@@ -26,8 +26,8 @@ if args.log_all:
 
 def log_function(
         log_in: str, color: str = None, extra_info: str = None,
-        extra_color: str = None, pretty: bool = False,
-        sameline: bool = False, pre: str = None
+        extra_color: str = None, pretty: dict | list | tuple = None,
+        sameline: bool = False
 ):
     '''
     Include the name of the function in logging.
@@ -60,56 +60,51 @@ def log_function(
                     args.log_highlight_color.upper()
                 ))
     dt = pendulum.now(config.TIMEZONE)
-    _dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
-    if args.log_print:
-        log_out = '{color}{style}[ {dt} ] '.format(
-            color=color,
-            style=Style.BRIGHT,
-            dt=_dt_full
-        )
-    if args.log_print:
-        if extra_info:
-            log_out += '[ {extra_info} ]'.format(
-                extra_info=extra_info
-            )
-        log_out += '{color}{style}[ {func_name} ({func_line}) ]'.format(
-            color=color, style=Style.BRIGHT,
+    dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
+    log_out = '[ {dt} ]{extra_info} [ {func_name} ({func_line}) '\
+        '] {log_in}'.format(
+            dt=dt_full,
+            extra_info=f' [ {extra_info} ]' if extra_info else '',
+            func_name=function_name['name'],
             func_line=function_name['line'],
-            func_name=function_name['name']
+            log_in=str(log_in)
         )
-        log_out += '{reset} '.format(reset=Style.RESET_ALL)
-        if pretty:
-            if isinstance(pretty, (dict)):
-                log_out += f'{log_in} (prettifying...):'
-                print(log_out)
-                print(
-                    json.dumps(
-                        pretty, indent=4, ensure_ascii=False
-                    )
-                )
-            else:
-                print('input is not dict, list nor tuple')
-        else:
-            log_out += str(log_in)
-            if sameline:
-                try:
-                    max_cols, max_rows = os.get_terminal_size(0)
-                except (OSError):
-                    max_cols = 0
-                msg_len = len(str(log_out))
-                rem_len = max_cols - msg_len - 2
-                print('{}{}'.format(
-                    log_out, ' '*rem_len
-                ), end='\r')
-            else:
-                print(log_out)
-        if extra_info:
-            log_out = '[ {} ] '.format(extra_info)
-    log_out += '[ {} ] '.format(function_name['line'])
-    log_out += '[ {} ] '.format(function_name['name'])
-    log_out += str(log_in)
+    log_out_print = '{color}{style}[ {dt} ]{extra_info}{color}{style}'\
+        ' [ {func_name} ({func_line}) ]{reset} {log_in}'.format(
+            color=color if args.log_print else '',
+            style=Style.BRIGHT if args.log_print else '',
+            dt=dt_full,
+            extra_info=f' [ {extra_info} ]' if extra_info else '',
+            func_name=function_name['name'],
+            func_line=function_name['line'],
+            reset=Style.RESET_ALL if args.log_print else '',
+            log_in=str(log_in)
+        )
+    # Get remaining terminal width for spacing
+    if sameline and args.log_print:
+        try:
+            max_cols, max_rows = os.get_terminal_size(0)
+        except (OSError):
+            max_cols = 0
+        msg_len = len(str(log_out))
+        rem_len = max_cols - msg_len - 2
+        log_out_print += ' ' * rem_len
+    if pretty and isinstance(pretty, (dict, list, tuple)):
+        pretty_log = json.dumps(
+                pretty, indent=4, ensure_ascii=False
+            )
+    else:
+        pretty_log = None
+    if args.log_print:
+        print(log_out_print)
+        if pretty_log:
+            print(pretty_log)
+            print('-'*20)
     if args.log_file:
         log_out += '\n'
+        if pretty_log:
+            log_out += '\n'
+            log_out += pretty_log
         dt = pendulum.now(config.TIMEZONE)
         _dt_rev = dt.format('YYYY-MM-DD')
         _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
@@ -119,7 +114,7 @@ def log_function(
 
 
 def log(
-    log_in: str, color: str = None, pretty: bool = False,
+    log_in: str, color: str = None, pretty: dict | list | tuple = None,
     sameline: bool = False
 ):
     '''
@@ -129,19 +124,20 @@ def log(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in green.
-    pretty          Prettify the output. Works on dict and list
+    pretty          Prettify specific output. Works on dict, list and tuple
+    sameline        When printing log, reuse the same line
     '''
     if args.log:
         log_function(
-            log_in, color=color, pretty=pretty, sameline=sameline,
-            extra_info=envs.log_extra_info('log')
+            log_in, color=color, sameline=sameline,
+            extra_info=envs.log_extra_info('log'), pretty=pretty if pretty else None
         )
     if args.log_slow:
         sleep(3)
 
 
 def verbose(
-        log_in: str, color: str = None, pretty: bool = False,
+        log_in: str, color: str = None, pretty: dict | list | tuple = None,
         sameline: bool = False
 ):
     '''
@@ -151,19 +147,22 @@ def verbose(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in green.
-    pretty          Prettify the output. Works on dict and list
+    pretty          Prettify specific output. Works on dict, list and tuple
+    sameline        When printing log, reuse the same line
     '''
     if args.log_verbose:
         log_function(
-            log_in, color=color, pretty=pretty, sameline=sameline,
-            extra_info=envs.log_extra_info('verbose')
+            log_in, color=color, sameline=sameline,
+            extra_info=envs.log_extra_info('verbose'),
+            pretty=pretty if pretty else None
+            
         )
     if args.log_slow:
         sleep(3)
 
 
 def error(
-        log_in: str, color: str = 'red', pretty: bool = False,
+        log_in: str, color: str = 'red', pretty: dict | list | tuple = None,
         sameline: bool = False
 ):
     '''
@@ -173,19 +172,21 @@ def error(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in red.
-    pretty          Prettify the output. Works on dict and list
+    pretty          Prettify specific output. Works on dict, list and tuple
+    sameline        When printing log, reuse the same line
     '''
     if args.log_error:
         log_function(
-            log_in, color=color, pretty=pretty, sameline=sameline,
-            extra_info=envs.log_extra_info('error')
+            log_in, color=color, sameline=sameline,
+            extra_info=envs.log_extra_info('error'),
+            pretty=pretty if pretty else None
         )
     if args.log_slow:
         sleep(3)
 
 
 def debug(
-        log_in: str, color: str = None, pretty: bool = False,
+        log_in: str, color: str = None, pretty: dict | list | tuple = None,
         sameline: bool = False
 ):
     '''
@@ -193,20 +194,22 @@ def debug(
 
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
-                    If `color` is not specified, it will highlight in gre
-    pretty          Prettify the output. Works on dict and list
+                    If `color` is not specified, it will highlight in green
+    pretty          Prettify specific output. Works on dict, list and tuple
+    sameline        When printing log, reuse the same line
     '''
     if args.debug:
         log_function(
             log_in, color=color, extra_info=envs.log_extra_info('debug'),
-            pretty=pretty, sameline=sameline
+            sameline=sameline, pretty=pretty if pretty else None
         )
     if args.log_slow:
         sleep(3)
 
 
 def db(
-        log_in: str, color: str = 'magenta', extra_color: str = None
+        log_in: str, color: str = 'magenta', extra_color: str = None,
+        pretty: dict | list | tuple = None, sameline: bool = False
 ):
     '''
     Log database input specifically
@@ -216,13 +219,14 @@ def db(
                     If `color` is not specified, it will highlight in magenta.
     extra_info      Used to specify extra information in the logging
     extra_color     Color for the `extra_info`
-    pretty          Prettify the output. Works on dict and list
+    pretty          Prettify specific output. Works on dict, list and tuple
+    sameline        When printing log, reuse the same line
     '''
     if args.log_db:
         log_function(
             log_in, color=color, extra_color=extra_color,
-
-            extra_info=envs.log_extra_info('database')
+            extra_info=envs.log_extra_info('database'),
+            sameline=sameline, pretty=pretty if pretty else None
         )
     if args.log_slow:
         sleep(3)
