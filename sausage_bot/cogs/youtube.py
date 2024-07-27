@@ -386,7 +386,7 @@ class Youtube(commands.Cog):
 
     # Tasks
     @tasks.loop(
-        minutes=config.env.int('YOUTUBE_LOOP', default=5)
+        minutes=config.env.int('YT_LOOP', default=5)
     )
     async def post_videos():
         log.log('Starting `post_videos`')

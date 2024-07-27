@@ -39,6 +39,7 @@ async def check_url_validity(url):
 
 async def check_feed_validity(URL):
     'Make sure that `URL` is a valid link with feed items'
+    sample_item = None
     log.verbose(f'Checking `URL`: {URL}')
     req = await net_io.get_link(URL)
     log.debug(f'req is ({type(req)})')
@@ -50,11 +51,12 @@ async def check_feed_validity(URL):
         sample_item = await net_io.check_spotify_podcast(URL)
     else:
         log.verbose('Discovered normal link')
-        sample_item = await get_items_from_rss(
+        _items = await get_items_from_rss(
             req=req,
-            url=URL,
-            test=True
+            url=URL
         )
+    if isinstance(_items, list):
+        sample_item = _items[0]
     log.debug(f'`sample_item`: {sample_item}')
     if sample_item is None:
         return False
@@ -69,7 +71,7 @@ async def check_feed_validity(URL):
 
 
 async def get_items_from_rss(
-    req, url, filters_in=None, log_in=None, test: bool = False
+    req, url, filters_in=None, log_in=None
 ) -> list:
     try:
         soup = BeautifulSoup(req, features='xml')
@@ -77,11 +79,6 @@ async def get_items_from_rss(
         log.error(envs.FEEDS_SOUP_ERROR.format(url, e))
         return None
     links_out = []
-    # If used for testing feeds, only get one article
-    if test:
-        max_items = 1
-    else:
-        max_items = 5
     items_out = {
         'filters': filters_in,
         'items': [],
@@ -97,7 +94,7 @@ async def get_items_from_rss(
     if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
         log.debug('Found podcast feed')
         all_items = soup.find_all('item')
-        for item in all_items[0:max_items]:
+        for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'podcast'
             temp_info['title'] = item.find('title').text
@@ -107,7 +104,7 @@ async def get_items_from_rss(
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
         log.debug('Found Youtube feed')
-        all_entries = soup.find_all('entry')[0:max_items]
+        all_entries = soup.find_all('entry')
         for item in all_entries:
             temp_info = items_info.copy()
             temp_info['type'] = 'youtube'
@@ -127,7 +124,7 @@ async def get_items_from_rss(
             log.error('Klarte ikke finne ut av feed?')
             return None
         all_items = soup.find_all(article_method)
-        for item in all_items[0:max_items]:
+        for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'rss'
             if article_method == 'item':
@@ -141,7 +138,6 @@ async def get_items_from_rss(
             log.debug(f'Got `temp_info`: {temp_info}')
             items_out['items'].append(temp_info)
     links_out = net_io.filter_links(items_out)
-    links_out.reverse()
     return links_out
 
 
@@ -265,7 +261,7 @@ async def get_feed_links(feed_type, feed_info):
                 req=req, url=URL, filters_in=filters_db,
                 log_in=log_db
             )
-            log.debug(f'Got this from `get_items_from_rss`: {links_out}')
+            log.debug(f'Got {len(links_out)} items from `get_items_from_rss`')
             return links_out
         else:
             return
@@ -424,6 +420,8 @@ async def review_feeds_status(feed_type: str = None):
         template_info=feed_db,
         order_by=[('feed_name', 'DESC')]
     )
+    failed_feeds = []
+    failed_channels = []
     if feeds_status_db_in is None:
         log.log('No feeds to review')
         return None
@@ -432,12 +430,12 @@ async def review_feeds_status(feed_type: str = None):
         log.debug('Got this feed: ', pretty=feed)
         UUID = feed[0]
         FEED_NAME = feed[1]
+        URL_STATUS = feed[6]
+        URL_STATUS_COUNTER = feed[7]
         if feed_type in ['rss', 'spotify']:
             URL = feed[2]
         elif feed_type == 'youtube':
             URL = envs.YOUTUBE_RSS_LINK.format(feed[9])
-        URL_STATUS = feed[3]
-        URL_STATUS_COUNTER = feed[4]
         if not isinstance(URL_STATUS_COUNTER, int):
             URL_STATUS_COUNTER = 0
         log.debug(f'Checking `URL`: {URL}')
@@ -447,10 +445,15 @@ async def review_feeds_status(feed_type: str = None):
         else:
             log.verbose('Discovered a normal url')
             is_valid_feed = await check_feed_validity(URL)
+        log.debug(f'`is_valid_feed` is {is_valid_feed}')
         if is_valid_feed:
             log.log('Feed url for {} is ok!'.format(FEED_NAME))
-            if URL_STATUS != envs.FEEDS_URL_SUCCESS:
-                log.verbose('status_url is not OK, fixing...')
+            if URL_STATUS.lower() != envs.FEEDS_URL_SUCCESS.lower():
+                log.verbose(
+                    'status_url is not OK, fixing...\n'
+                    f'`URL_STATUS`: {URL_STATUS}\n'
+                    f'`envs.FEEDS_URL_SUCCESS`: {envs.FEEDS_URL_SUCCESS}'
+                )
                 if 'status_url' not in db_updates:
                     db_updates['status_url'] = []
                 db_updates['status_url'].append(
@@ -463,24 +466,35 @@ async def review_feeds_status(feed_type: str = None):
                 db_updates['status_url_counter'].append(
                     ('uuid', UUID, 0)
                 )
+            if URL_STATUS_COUNTER > 0:
+                log.verbose('Resetting status_url_counter to 0')
+                db_updates['status_url_counter'].append(
+                    ('uuid', UUID, 0)
+                )
         elif not is_valid_feed:
-            if URL_STATUS_COUNTER >= envs.FEEDS_URL_ERROR_LIMIT:
-                _url_e_msg = f'Error when getting feed for {FEED_NAME}'\
-                    f' (strike {envs.FEEDS_URL_ERROR_LIMIT})'
-                log.error(_url_e_msg)
-                discord_commands.log_to_bot_channel(_url_e_msg)
-                if URL_STATUS != envs.FEEDS_URL_ERROR:
+            log.debug(
+                f'`URL_STATUS_COUNTER` ({URL_STATUS_COUNTER}) vs '
+                f'`envs.FEEDS_URL_ERROR_LIMIT` ({envs.FEEDS_URL_ERROR_LIMIT})'
+            )
+            if int(URL_STATUS_COUNTER) >= int(envs.FEEDS_URL_ERROR_LIMIT):
+                # TODO i18n
+                log.error(
+                    f'Error when getting feed for `{FEED_NAME}`, '
+                    f'tried {envs.FEEDS_URL_ERROR_LIMIT} times'
+                )
+                failed_feeds.append(FEED_NAME)
+                if URL_STATUS.lower() != envs.FEEDS_URL_ERROR.lower():
                     if 'status_url' not in db_updates:
                         db_updates['status_url'] = []
                     db_updates['status_url'].append(
                         ('uuid', UUID, envs.FEEDS_URL_ERROR)
                     )
-            elif URL_STATUS_COUNTER < envs.FEEDS_URL_ERROR_LIMIT:
+            elif int(URL_STATUS_COUNTER) < int(envs.FEEDS_URL_ERROR_LIMIT):
                 log.log(
                     f'Problems with url for {feed}, marking it as `Stale` and '
                     'starting counting'
                 )
-                if URL_STATUS != envs.FEEDS_URL_STALE:
+                if URL_STATUS.lower() != envs.FEEDS_URL_STALE.lower():
                     if 'status_url' not in db_updates:
                         db_updates['status_url'] = []
                     db_updates['status_url'].append(
@@ -511,9 +525,21 @@ async def review_feeds_status(feed_type: str = None):
             db_updates['status_channel'].append(
                 ('uuid', UUID, envs.CHANNEL_STATUS_ERROR)
             )
-            await discord_commands.log_to_bot_channel(
-                f'{FEED_NAME} skal poste i #{CHANNEL} men den finnes ikke'
+            failed_channels.append([FEED_NAME, CHANNEL])
+    if len(failed_feeds) > 0:
+        # TODO i18n
+        feed_error_msg = f'Følgende feeds hadde feil ved henting av '\
+            'linker:\n- {}'.format(
+                '\n- '.join(failed_feeds)
             )
+        await discord_commands.log_to_bot_channel(feed_error_msg)
+    if len(failed_channels) > 0:
+        # TODO i18n
+        channel_error_msg = f'Følgende feeds hadde feil ved posting til '\
+            'valgte kanaler:\n- {}'.format(
+                '\n- '.join(f'{failed_channels[0]}: {failed_channels[1]}')
+            )
+        await discord_commands.log_to_bot_channel(channel_error_msg)
     if len(db_updates) == 0:
         log.verbose('All feeds are OK, nothing to update')
         return True
@@ -532,11 +558,11 @@ def link_similar_to_logged_post(link: str, feed_log: list):
     If similiar, return the similar link from log.
     If no links are found to be similar, return None.
     '''
-    if feed_log is None:
-        return False
     for log_item in feed_log:
         if file_io.check_similarity(log_item[0], link):
+            log.debug(f'Found similar link log)')
             return True
+        log.debug(f'No similar link found')
     return False
 
 
@@ -566,7 +592,7 @@ async def process_links_for_posting_or_editing(
     - If not posted, post to `CHANNEL`
     - If posted, make a similarity check just to make sure we are not posting
     duplicate links because someone's aggregation systems can't handle
-    editing urls with spelling mistakes. If it is simliar, but not identical,
+    editing urls with spelling mistakes. If it is similar, but not identical,
     replace the logged link and edit the previous post with the new link.
 
     `feed`:             Name of the feed to process
@@ -593,7 +619,9 @@ async def process_links_for_posting_or_editing(
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
-    for item in FEED_POSTS[0:3]:
+    FEED_POSTS = FEED_POSTS[0:3]
+    FEED_POSTS.reverse()
+    for item in FEED_POSTS:
         log.verbose(f'Got this item:\n{item}')
         if isinstance(item, str):
             feed_link = item
@@ -601,7 +629,10 @@ async def process_links_for_posting_or_editing(
             feed_link = item['link']
         # Check if the link is in the log
         link_in_log = link_is_in_log(feed_link, FEED_LOG)
-        if not link_in_log:
+        if link_in_log:
+            log.verbose(f'Link `{feed_link}` already logged. Skipping.')
+            continue
+        elif not link_in_log:
             log.debug('Checking if link is similar to log')
             feed_link_similar = link_similar_to_logged_post(
                 feed_link, FEED_LOG)
@@ -668,8 +699,6 @@ async def process_links_for_posting_or_editing(
                         ('url', feed_link)
                     ]
                 )
-        elif link_in_log:
-            log.verbose(f'Link `{feed_link}` already logged. Skipping.')
 
 
 if __name__ == "__main__":

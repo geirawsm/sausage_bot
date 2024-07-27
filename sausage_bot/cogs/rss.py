@@ -462,7 +462,7 @@ class RSSfeed(commands.Cog):
                     'spotify', UUID, FEED_POSTS, CHANNEL
                 )
                 log.log('Done with posting')
-                return
+                continue
             else:
                 FEED_POSTS = await feeds_core.get_feed_links(
                     feed_type='rss', feed_info=feed
