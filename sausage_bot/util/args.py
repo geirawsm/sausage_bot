@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 'Arguments to use for running the bot in the terminal'
 import argparse
+from pprint import pprint
 
 parser = argparse.ArgumentParser()
 
@@ -66,12 +67,17 @@ logging_args.add_argument('--highlight-color', '-hlc',
                           dest='log_highlight_color')
 logging_args.add_argument('--log-all',
                           help='Log all levels (log, verbose, log-print, '
-                               'log-database and debug)',
+                               'log-database, debug and error)',
                           action='store_true',
                           default=False,
                           dest='log_all')
 
 testing_args = parser.add_argument_group('Testing')
+testing_args.add_argument('--testmode', '-t',
+                          help='Run some functions in testmode',
+                          action='store_true',
+                          default=False,
+                          dest='testmode')
 testing_args.add_argument('--force-parser',
                           help='Force what parser to use in `autoevent`',
                           action='store',
@@ -87,16 +93,19 @@ testing_args.add_argument('--single-cog', '-c',
                           action='store',
                           default=False,
                           dest='single_cog')
-testing_args.add_argument('--last-commit',
-                          help='Load info about last commit this bot runs on',
-                          action='store',
-                          default="",
-                          dest='last_commit')
-testing_args.add_argument('--last-run-number',
-                          help='Load info about last run number from Github this bot runs on',
-                          action='store',
-                          default="",
-                          dest='last_run_number')
+version_info_args = parser.add_argument_group('Version info')
+version_info_args.add_argument('--last-commit',
+                               help='Load info about last commit this bot '
+                                    'runs on',
+                               action='store',
+                               default="",
+                               dest='last_commit')
+version_info_args.add_argument('--last-run-number',
+                               help='Load info about last run number from '
+                                    'Github this bot runs on',
+                               action='store',
+                               default="",
+                               dest='last_run_number')
 
 maintenance_args = parser.add_argument_group('Maintenance')
 maintenance_args.add_argument('--maintenance',
@@ -132,4 +141,4 @@ args, unknown = parser.parse_known_args()
 
 
 if __name__ == "__main__":
-    print(args)
+    pprint(args)

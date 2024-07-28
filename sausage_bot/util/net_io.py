@@ -68,7 +68,7 @@ async def check_spotify_podcast(url):
     try:
         _show = _spotipy.show(pod_id)
         log.debug(f'`_show`: ', pretty=_show)
-        return True
+        return _show
     except Exception as e:
         log.error(f'ERROR: {e}')
         return False
@@ -194,12 +194,14 @@ def filter_links(items):
     log.debug(
         'Got {} `items` (sample): {}'.format(
             len(items['items']),
-            items['items'][0]
+            items['items'][0]['title']
         )
     )
     links_out = []
     for item in items['items']:
-        log.verbose(f'Checking item: {item}')
+        log.verbose('Checking item: {}'.format(
+            item['title']
+        ))
         if item['type'] == 'youtube':
             log.debug('Checking Youtube item')
             if not config.env('YT_INCLUDE_SHORTS', default='true'):

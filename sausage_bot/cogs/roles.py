@@ -1460,6 +1460,10 @@ async def on_raw_reaction_add(payload):
     log.verbose(f'`reaction_messages`: {reaction_messages}')
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
+        log.debug(
+            '`payload.message_id`: {payload.message_id} vs '
+            '`reaction_message[0]`: {reaction_message[0]}'
+        )
         if str(payload.message_id) == str(reaction_message[0]):
             # TODO var msg
             log.debug('Found message, checking add reactions...')
