@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 from discord.ext import commands
+from discord.utils import get
 import discord
 from tabulate import tabulate
 import re
@@ -1457,49 +1458,39 @@ async def on_raw_reaction_add(payload):
         envs.roles_db_msgs_schema,
         select=('msg_id')
     )
-    log.verbose(f'`reaction_messages`: {reaction_messages}')
     _guild = discord_commands.get_guild()
-    for reaction_message in reaction_messages:
-        log.debug(
-            '`payload.message_id`: {payload.message_id} vs '
-            '`reaction_message[0]`: {reaction_message[0]}'
+    log.debug(f'reaction_messages[0]: {list(reaction_messages[0])}')
+    log.debug(f'payload.message_id: {payload.message_id}')
+    if str(payload.message_id) in list(reaction_messages[0]):
+        # TODO var msg
+        log.debug('Found message, checking add reactions...')
+        emoji_string = f'<:{payload.emoji.name}:{payload.emoji.id}>'
+        reactions = await db_helper.get_combined_output(
+            envs.roles_db_roles_schema,
+            envs.roles_db_msgs_schema,
+            key='msg_id',
+            select=[
+                'emoji',
+                'role_name'
+            ],
+            where=[
+                ('A.msg_id', payload.message_id)
+            ]
         )
-        if str(payload.message_id) == str(reaction_message[0]):
-            # TODO var msg
-            log.debug('Found message, checking add reactions...')
-            reactions = await db_helper.get_combined_output(
-                envs.roles_db_roles_schema,
-                envs.roles_db_msgs_schema,
-                key='msg_id',
-                select=[
-                    'role_name',
-                    'emoji'
-                ],
-                where=[
-                    ('A.msg_id', reaction_message[0])
-                ]
-            )
-            log.verbose(f'`reactions` in add: {reactions}')
-            for reaction in reactions:
-                log.debug(f'`reaction` is {reaction}')
-                incoming_emoji = payload.emoji.name
-                log.debug(f'incoming_emoji: {incoming_emoji}')
-                log.debug('reaction[1]: {}'.format(reaction[1]))
-                if incoming_emoji in reaction[1]:
-                    for _role in _guild.roles:
-                        if str(_role.id) in reaction[0].lower():
-                            log.debug(
-                                f'Adding role {reaction[0]} to user'
-                            )
-                            await _guild.get_member(
-                                payload.user_id
-                            ).add_roles(
-                                _role,
-                                reason='Added in accordance with  '
-                                'reaction message '
-                                f'{reaction_message}'
-                            )
-                            break
+        log.debug(f'emoji_string is {emoji_string}')
+        log.debug(f'reactions is {reactions}')
+        for reaction in reactions:
+            if emoji_string in reaction[0]:
+                role_id = re.search(
+                    r'<@&(\d+)>', reaction[1])[1]
+                await _guild.get_member(
+                    payload.user_id
+                ).add_roles(
+                    get(discord_commands.get_guild().roles, id=int(role_id)),
+                    reason='Added in accordance with  '
+                    'reaction messages'
+                )
+                break
     return
 
 
@@ -1517,7 +1508,6 @@ async def on_raw_reaction_remove(payload):
         envs.roles_db_msgs_schema,
         select=('msg_id')
     )
-    log.verbose(f'`reaction_messages`: {reaction_messages}')
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message[0]):
