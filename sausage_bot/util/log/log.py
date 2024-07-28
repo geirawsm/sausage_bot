@@ -20,8 +20,10 @@ if args.log_all:
     args.log = True
     args.log_verbose = True
     args.log_print = True
+    args.log_file = True
     args.log_db = True
     args.debug = True
+    args.log_error = True
 
 
 def log_function(
@@ -96,7 +98,10 @@ def log_function(
     else:
         pretty_log = None
     if args.log_print:
-        print(log_out_print)
+        if sameline:
+            print(log_out_print, end='\r')
+        else:
+            print(log_out_print)
         if pretty_log:
             print(pretty_log)
             print('-'*20)
@@ -161,30 +166,6 @@ def verbose(
         sleep(3)
 
 
-def error(
-        log_in: str, color: str = 'red', pretty: dict | list | tuple = None,
-        sameline: bool = False
-):
-    '''
-    Log the input `log_in`. Used as more verbose than `log`
-
-    log_in          The text/input to log
-    color           Specify the color for highlighting the function name:
-                    black, red, green, yellow, blue, magenta, cyan, white.
-                    If `color` is not specified, it will highlight in red.
-    pretty          Prettify specific output. Works on dict, list and tuple
-    sameline        When printing log, reuse the same line
-    '''
-    if args.log_error:
-        log_function(
-            log_in, color=color, sameline=sameline,
-            extra_info=envs.log_extra_info('error'),
-            pretty=pretty if pretty else None
-        )
-    if args.log_slow:
-        sleep(3)
-
-
 def debug(
         log_in: str, color: str = None, pretty: dict | list | tuple = None,
         sameline: bool = False
@@ -232,6 +213,29 @@ def db(
         sleep(3)
 
 
+def error(
+        log_in: str, color: str = 'red', pretty: dict | list | tuple = None,
+        sameline: bool = False
+):
+    '''
+    Log the input `log_in`. Used as more verbose than `log`
+
+    log_in          The text/input to log
+    color           Specify the color for highlighting the function name:
+                    black, red, green, yellow, blue, magenta, cyan, white.
+                    If `color` is not specified, it will highlight in red.
+    pretty          Prettify specific output. Works on dict, list and tuple
+    sameline        When printing log, reuse the same line
+    '''
+    if args.log_error:
+        log_function(
+            log_in, color=color, extra_info=envs.log_extra_info('error'),
+            sameline=sameline, pretty=pretty if pretty else None
+        )
+    if args.log_slow:
+        sleep(3)
+
+
 def log_func_name() -> dict:
     'Get the function name that the `log`-function is used within'
     frame_line = sys._getframe(3).f_lineno
@@ -250,3 +254,17 @@ def log_func_name() -> dict:
             'name': f'{func_file}.{func_name}',
             'line': str(frame_line)
         }
+
+
+if __name__ == "__main__":
+    args.log_print = True
+    args.log = True
+    log('This is a log')
+    args.log_verbose = True
+    verbose('This is a verbose')
+    args.debug = True
+    debug('This is a debug')
+    args.log_db = True
+    db('This is a db')
+    args.log_error = True
+    error('This is an error')
