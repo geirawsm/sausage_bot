@@ -1491,6 +1491,7 @@ async def on_raw_reaction_add(payload):
             log.debug(f'emoji_string is {emoji_string}')
             log.debug(f'reactions is {reactions}')
             for reaction in reactions:
+                log.debug(f'`reaction` is {reaction}')
                 if emoji_string in reaction[0]:
                     role_id = re.search(
                         r'<@&(\d+)>', reaction[1]
@@ -1506,7 +1507,6 @@ async def on_raw_reaction_add(payload):
                         'reaction messages'
                     )
                     break
-                break
     return
 
 
@@ -1562,7 +1562,6 @@ async def on_raw_reaction_remove(payload):
                                 f'{reaction_message}'
                             )
                             break
-                break
             break
     return
 
