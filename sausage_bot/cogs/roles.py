@@ -1054,7 +1054,14 @@ class Autoroles(commands.Cog):
         # TODO Gå over fra posting til reordering?
         for reaction in reactions_in:
             log.debug(f'Adding emoji {reaction[2]}')
-            await reaction_msg.add_reaction(reaction[2])
+            await reaction_msg.add_reaction(
+                get(
+                    discord_commands.get_guild().emojis,
+                    id=int(re.search(
+                        r'<:.*:(\d+)>', reaction[2]
+                    )[1])
+                )
+            )
         # Add to messages DB
         await db_helper.insert_many_all(
             envs.roles_db_msgs_schema,
@@ -1407,30 +1414,35 @@ async def setup(bot):
     reacts_is_ok = False
     settings_is_ok = False
 
-    # Populate the inserts if json file exist
-    if file_io.file_exist(envs.roles_settings_file):
-        log.verbose('Found old json file')
-        roles_inserts = db_helper.json_to_db_inserts(cog_name)
-        roles_inserts_msg = roles_inserts['msg_inserts']
-        roles_inserts_reactions = roles_inserts['reactions_inserts']
-        roles_inserts_settings = roles_inserts['settings_inserts']
+    # Populate the inserts
+    roles_inserts = None
+    roles_inserts_msg = None
+    roles_inserts_reactions = None
+    roles_inserts_settings = None
+    # Convert the inserts from json if file exist
+    if not file_io.file_exist(envs.roles_db_roles_schema['db_file']):
+        if file_io.file_exist(envs.roles_settings_file):
+            log.verbose('Found old json file')
+            roles_inserts = db_helper.json_to_db_inserts(cog_name)
+            roles_inserts_msg = roles_inserts['msg_inserts']
+            roles_inserts_reactions = roles_inserts['reactions_inserts']
+            roles_inserts_settings = roles_inserts['settings_inserts']
         log.debug(f'`roles_inserts_msg` is {roles_inserts_msg}')
         log.debug(f'`roles_inserts_reactions` is {roles_inserts_reactions}')
         log.debug(f'`roles_inserts_settings` is {roles_inserts_settings}')
-
-    # Prep of DBs should only be done if the db files does not exist
-    if not file_io.file_exist(envs.roles_db_msgs_schema['db_file']):
-        log.verbose('Roles db does not exist')
         msgs_is_ok = await db_helper.prep_table(
-            envs.roles_db_msgs_schema, roles_inserts_msg
+            table_in=envs.roles_db_msgs_schema,
+            old_inserts=roles_inserts_msg
         )
         log.verbose(f'`msgs_is_ok` is {msgs_is_ok}')
         reacts_is_ok = await db_helper.prep_table(
-            envs.roles_db_roles_schema, roles_inserts_reactions
+            table_in=envs.roles_db_roles_schema,
+            old_inserts=roles_inserts_reactions
         )
         log.verbose(f'`reacts_is_ok` is {reacts_is_ok}')
         settings_is_ok = await db_helper.prep_table(
-            envs.roles_db_settings_schema, roles_inserts_settings
+            table_in=envs.roles_db_settings_schema,
+            old_inserts=roles_inserts_settings
         )
         log.verbose(f'`settings_is_ok` is {settings_is_ok}')
 
@@ -1482,7 +1494,8 @@ async def on_raw_reaction_add(payload):
         for reaction in reactions:
             if emoji_string in reaction[0]:
                 role_id = re.search(
-                    r'<@&(\d+)>', reaction[1])[1]
+                    r'<@&(\d+)>', reaction[1]
+                )[1]
                 await _guild.get_member(
                     payload.user_id
                 ).add_roles(
@@ -1564,7 +1577,7 @@ async def on_member_update(before, after):
         where=('setting', 'unique'),
         single=True
     )
-    if not unique_role:
+    if not unique_role or unique_role == '':
         # TODO var msg
         log.log('No unique role provided or setting is not string')
         return
