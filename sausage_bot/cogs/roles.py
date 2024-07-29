@@ -109,6 +109,28 @@ class PermissionsView(discord.ui.View):
         self.add_item(button_ok)
 
 
+async def settings_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    settings = [setting for setting in await db_helper.get_output(
+            template_info=envs.roles_db_settings_schema,
+            select=('setting', 'value'),
+            get_row_ids=True
+        )
+    ]
+    print(f'SETTINGS: {settings}')
+    return [
+        discord.app_commands.Choice(
+            name='{}. {} = {}'.format(
+                setting[0], setting[1], setting[2]
+            ),
+            value=str(setting[0])
+        )
+        for setting in settings if current.lower() in str(setting).lower()
+    ]
+
+
 async def get_msg_id_and_name(msg_id_or_name):
     '''
     Get msg id, channel and message name from database
@@ -482,8 +504,8 @@ class Autoroles(commands.Cog):
         parent=roles_group
     )
 
-    roles_manage_group = discord.app_commands.Group(
-        name="manage", description='Control roles on the server',
+    roles_settings_group = discord.app_commands.Group(
+        name="settings", description='Control settings on the server',
         parent=roles_group
     )
 
@@ -561,7 +583,6 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(
             embed=embed, ephemeral=_ephemeral
         )
-        return
         return
 
     @commands.check_any(
@@ -1395,6 +1416,72 @@ class Autoroles(commands.Cog):
                     str(new_reaction_msg.id)
                 )
             await interaction.followup.send("Reaction messages reordered")
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @roles_settings_group.command(
+        name='add', description='Add a setting for roles on the server'
+    )
+    async def add_settings(
+        self, interaction: discord.Interaction,
+        setting: typing.Literal['Unique role', 'Not include in total'],
+        role_in: discord.Role
+    ):
+        '''
+        Add a setting for roles on the server
+
+        Parameters
+        ------------
+        setting: typing.Literal
+            The setting to add
+        role_in: discord.Role
+            The role to add to the setting
+        '''
+        await interaction.response.defer(ephemeral=True)
+        if setting == 'Unique role':
+            _setting = 'unique'
+        elif setting == 'Not include in total':
+            _setting = 'not_include_in_total'
+        await db_helper.insert_many_all(
+            template_info=envs.roles_db_settings_schema,
+            inserts=[
+                (_setting, str(role_in.id))
+            ]
+        )
+        # TODO i18n
+        await interaction.followup.send(f'Added setting')
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @discord.app_commands.autocomplete(setting=settings_autocomplete)
+    @roles_settings_group.command(
+        name='remove', description='Remove a setting for roles on the server'
+    )
+    async def remove_settings(
+        self, interaction: discord.Interaction,
+        setting: str
+    ):
+        '''
+        Remove a setting for roles on the server
+
+        Parameters
+        ------------
+        setting: typing.Literal
+            The setting to remove
+        '''
+        await interaction.response.defer(ephemeral=True)
+        await db_helper.del_row_id(
+            template_info=envs.roles_db_settings_schema,
+            numbers=setting
+        )
+        # TODO i18n
+        await interaction.followup.send(f'Removed setting')
         return
 
 
