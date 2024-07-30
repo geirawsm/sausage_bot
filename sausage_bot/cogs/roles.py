@@ -1065,24 +1065,19 @@ class Autoroles(commands.Cog):
                     reac[0], type(reac[0])
                 )
             )
+            print(reac[0])
+            print(reac[1])
             reactions_in.append(
-                (reaction_msg.id, reac[0], reac[1])
+                (
+                    reaction_msg.id, reac[0], reac[1]
+                )
             )
+            log.debug(f'Adding emoji {reac[1]}')
+            await reaction_msg.add_reaction(reac[1])
         await db_helper.insert_many_all(
             envs.roles_db_roles_schema,
             inserts=reactions_in
         )
-        # TODO Gå over fra posting til reordering?
-        for reaction in reactions_in:
-            log.debug(f'Adding emoji {reaction[2]}')
-            await reaction_msg.add_reaction(
-                get(
-                    discord_commands.get_guild().emojis,
-                    id=int(re.search(
-                        r'<:.*:(\d+)>', reaction[2]
-                    )[1])
-                )
-            )
         # Add to messages DB
         await db_helper.insert_many_all(
             envs.roles_db_msgs_schema,
@@ -1231,8 +1226,8 @@ class Autoroles(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(manage_roles=True)
     )
-    @roles_reaction_group.command(
-        name='remove_message', description='Remove a reaction message'
+    @roles_reaction_remove_group.command(
+        name='message', description='Remove a reaction message'
     )
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     async def remove_reaction_message(
@@ -1244,7 +1239,7 @@ class Autoroles(commands.Cog):
         Parameters
         ------------
         reaction_msg: int/str
-            The message ID from Discord or name in the database
+w            The message ID from Discord or name in the database
         '''
         await interaction.response.defer(ephemeral=True)
         # Get message object
@@ -1443,12 +1438,25 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         if setting == 'Unique role':
             _setting = 'unique'
+            # TODO Add a check, unique should only appear once
+            unique = await db_helper.get_output(
+                template_info=envs.roles_db_settings_schema,
+                select=('value'),
+                where=('setting', 'unique'),
+                single=True
+            )
+            if unique:
+                await interaction.followup.send(
+                    # TODO i18n
+                    'Unique role already set, remove or edit it'
+                )
+                return
         elif setting == 'Not include in total':
             _setting = 'not_include_in_total'
         await db_helper.insert_many_all(
             template_info=envs.roles_db_settings_schema,
             inserts=[
-                (_setting, str(role_in.id))
+                (_setting, role_in)
             ]
         )
         # TODO i18n
@@ -1472,7 +1480,7 @@ class Autoroles(commands.Cog):
 
         Parameters
         ------------
-        setting: typing.Literal
+        setting: str
             The setting to remove
         '''
         await interaction.response.defer(ephemeral=True)
@@ -1482,6 +1490,72 @@ class Autoroles(commands.Cog):
         )
         # TODO i18n
         await interaction.followup.send(f'Removed setting')
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @roles_settings_group.command(
+        name='list', description='List settings for roles on the server' 
+    )
+    async def list_settings(
+        self, interaction: discord.Interaction
+    ):
+        '''
+        List settings for roles on the server
+        '''
+        await interaction.response.defer(ephemeral=True)
+
+        settings_db = await db_helper.get_output(
+            template_info=envs.roles_db_settings_schema
+        )
+        _settings_db_expanded = []
+        for setting in settings_db:
+            _role = get(
+                discord_commands.get_guild().roles,
+                id=int(setting[1])
+            )
+            _settings_db_expanded.append(
+                (setting[0], _role, setting[1])
+            )
+        _settings = tabulate(_settings_db_expanded, headers=['Setting', 'Role', 'Value'])
+        # TODO i18n
+        await interaction.followup.send(f'```{_settings}```')
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @discord.app_commands.autocomplete(setting=settings_autocomplete)
+    @roles_settings_group.command(
+        name='edit', description='Edit a setting for roles on the server'
+    )
+    async def edit_settings(
+        self, interaction: discord.Interaction,
+        setting: str, role_in: discord.Role
+    ):
+        '''
+        Edit a setting for roles on the server
+
+        Parameters
+        ------------
+        setting: str
+            The setting to edit
+        role_in: discord.Role
+            The role to add to the setting
+        '''
+        await interaction.response.defer(ephemeral=True)
+        await db_helper.update_fields(
+            template_info=envs.roles_db_settings_schema,
+            where=('setting', setting),
+            updates=('value', str(role_in.id))
+        )
+        # TODO i18n
+        await interaction.followup.send(
+            f'Edited setting ({setting} = {role_in.id})'
+        )
         return
 
 
@@ -1668,6 +1742,7 @@ async def on_member_update(before, after):
         where=('setting', 'unique'),
         single=True
     )
+    log.debug(f'Got `unique_role`: {unique_role}')
     if not unique_role or unique_role == '':
         # TODO var msg
         log.log('No unique role provided or setting is not string')
@@ -1689,7 +1764,7 @@ async def on_member_update(before, after):
             ', '.join(role.name for role in after.roles)
         ))
         if len(after.roles) and all(
-            unique_role[0] == role.id for role in after.roles
+            unique_role == role.id for role in after.roles
         ):
             log.debug('Only the unique role was added')
             return
@@ -1706,9 +1781,9 @@ async def on_member_update(before, after):
             log.debug('Found roles not to include in total')
             _before -= len(not_include_in_total)
             _after -= len(not_include_in_total)
-        if any(str(unique_role[0]) == role for role in before.roles):
+        if any(str(unique_role) == role for role in before.roles):
             _before -= 1
-        elif any(str(unique_role[0]) == role for role in after.roles):
+        elif any(str(unique_role) == role for role in after.roles):
             _after -= 1
         log.verbose('before and after, minus unique role:')
         log.verbose(f'_before: {_before}')
@@ -1716,11 +1791,15 @@ async def on_member_update(before, after):
         if int(_after) == 0:
             # TODO var msg
             log.debug('Length of _after is 0, adding unique role')
-            await after.add_roles(_guild.get_role(int(unique_role[0])))
+            await after.add_roles(
+                get(_guild.roles, id=int(unique_role))
+            )
         elif int(_after) > 1:
             # TODO var msg
             log.debug(
                 'Length of after.roles is more than 1, removing unique role'
             )
-            await after.remove_roles(_guild.get_role(int(unique_role[0])))
+            await after.remove_roles(
+                get(_guild.roles, id=int(unique_role))
+            )
     return
