@@ -1456,7 +1456,7 @@ w            The message ID from Discord or name in the database
         await db_helper.insert_many_all(
             template_info=envs.roles_db_settings_schema,
             inserts=[
-                (_setting, role_in)
+                (_setting, str(role_in))
             ]
         )
         # TODO i18n
