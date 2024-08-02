@@ -158,6 +158,14 @@ async def get_msg_id_and_name(msg_id_or_name):
     }
 
 
+async def strip_role_or_emoji(input):
+    input_check = re.match(r'<.*\b(\d+)>', input)
+    if input_check:
+        return input_check.group(1)
+    elif not input_check:
+        return None
+
+
 async def sync_reaction_message_from_settings(
         msg_id_or_name, sorting: list = None
 ):
@@ -455,18 +463,21 @@ async def emojis_autocomplete(
     ]
 
 
-def combine_roles_and_emojis(roles_in, emojis_in):
+async def combine_roles_and_emojis(roles_in, emojis_in):
     # Do splits of roles and emojis to make sure the lengths are identical
+    emoji_split = []
     _roles = re.split(
         envs.input_split_regex, roles_in.replace(
             envs.roles_ensure_separator[0], envs.roles_ensure_separator[1]
         )
     )
+    role_split = [await strip_role_or_emoji(_role) for _role in _roles]
     _emojis = re.split(
         envs.input_split_regex, emojis_in.replace(
             envs.roles_ensure_separator[0], envs.roles_ensure_separator[1]
         )
     )
+    emoji_split = [await strip_role_or_emoji(_emoji) for _emoji in _emojis]
     if len(_roles) != len(_emojis):
         log.log(
             f'Number of roles ({len(_roles)}) and emojis ({len(_emojis)})'
@@ -474,7 +485,7 @@ def combine_roles_and_emojis(roles_in, emojis_in):
         )
         return None
     # Process the splits
-    return tuple(zip(_roles, _emojis))
+    return tuple(zip(role_split, emoji_split))
 
 
 class Autoroles(commands.Cog):
@@ -996,8 +1007,7 @@ class Autoroles(commands.Cog):
         message_text: str
             The text for the message
         channel: discord.TextChannel
-            Channel to post reaction message to. If not specified, it will
-            use the channel in settings
+            Channel to post reaction message to
         order: int
             Set order for the message in the channel
         roles: str
@@ -1035,15 +1045,21 @@ class Autoroles(commands.Cog):
             return
         desc_out = ''
         reactions = []
-        merged_roles_emojis = combine_roles_and_emojis(roles, emojis)
+        merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
+        log.debug(
+            '`merged_roles_emojis` is done (role, emoji): ', pretty=merged_roles_emojis
+        )
         for combo in merged_roles_emojis:
             log.debug(f'Checking combo `{combo}`')
+            log.debug(f'Combo[0] `{combo[0]}`') 
+            log.debug(f'Combo[1] `{combo[1]}`') 
+            role_out = get(discord_commands.get_guild().roles, id=int(combo[0]))
+            emoji_out = get(discord_commands.get_guild().emojis, id=int(combo[1]))
             if len(desc_out) > 0:
                 desc_out += ''
-            desc_out += '\n{} {}'.format(
-                combo[1], combo[0]
-            )
-            reactions.append((combo[0], combo[1]))
+            desc_out += '\n{} {}'.format(emoji_out, role_out)
+            reactions.append([combo[0], combo[1]])
+        log.debug(f'`reactions` is done: {reactions}')
         if desc_out == '':
             embed_json = None
         else:
@@ -1060,20 +1076,16 @@ class Autoroles(commands.Cog):
         # Save to DB
         reactions_in = []
         for reac in reactions:
-            log.debug(
-                '{} ({})'.format(
-                    reac[0], type(reac[0])
-                )
-            )
-            print(reac[0])
-            print(reac[1])
+            log.debug(f'Checking reac {reac}')
             reactions_in.append(
                 (
                     reaction_msg.id, reac[0], reac[1]
                 )
             )
-            log.debug(f'Adding emoji {reac[1]}')
-            await reaction_msg.add_reaction(reac[1])
+            log.debug(f'Adding emoji {reac}')
+            await reaction_msg.add_reaction(
+                get(discord_commands.get_guild().emojis, id=int(reac[1]))
+            )
         await db_helper.insert_many_all(
             envs.roles_db_roles_schema,
             inserts=reactions_in
@@ -1130,7 +1142,7 @@ class Autoroles(commands.Cog):
         )
         log.verbose(f'Got `reactions_db_in:` {reactions_db_in}', color='red')
 
-        merged_roles_emojis = combine_roles_and_emojis(roles, emojis)
+        merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
         new_inserts = []
         for item in merged_roles_emojis:
             temp_item = [msg_info['id']]
@@ -1636,38 +1648,37 @@ async def on_raw_reaction_add(payload):
         if str(payload.message_id) == str(reaction_message[0]):
             # TODO var msg
             log.debug('Found message, checking add reactions...')
-            emoji_string = f'<:{payload.emoji.name}:{payload.emoji.id}>'
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
                 envs.roles_db_msgs_schema,
                 key='msg_id',
                 select=[
                     'emoji',
-                    'role_name'
+                    'role'
                 ],
                 where=[
                     ('A.msg_id', payload.message_id)
                 ]
             )
-            log.debug(f'emoji_string is {emoji_string}')
             log.debug(f'reactions is {reactions}')
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
-                if emoji_string in reaction[0]:
-                    role_id = re.search(
-                        r'<@&(\d+)>', reaction[1]
-                    )[1]
+                log.debug(
+                    f'Comparing emoji id from payload ({payload.emoji.id}) '
+                    f'with emoji id from db ({reaction[0]})'
+                )
+                if str(payload.emoji.id) in reaction[0]:
                     await _guild.get_member(
                         payload.user_id
                     ).add_roles(
                         get(
                             discord_commands.get_guild().roles,
-                            id=int(role_id)
+                            id=int(reaction[1])
                         ),
                         reason='Added in accordance with  '
                         'reaction messages'
                     )
-                    break
+
     return
 
 
@@ -1695,7 +1706,7 @@ async def on_raw_reaction_remove(payload):
                 envs.roles_db_msgs_schema,
                 key='msg_id',
                 select=[
-                    'role_name',
+                    'role',
                     'emoji'
                 ],
                 where=[
@@ -1705,10 +1716,10 @@ async def on_raw_reaction_remove(payload):
             log.verbose(f'`reactions` in remove: {reactions}')
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
-                incoming_emoji = payload.emoji.name
+                incoming_emoji = payload.emoji.id
                 log.debug(f'incoming_emoji: {incoming_emoji}')
                 log.debug('reaction[1]: {}'.format(reaction[1]))
-                if incoming_emoji in reaction[1]:
+                if str(incoming_emoji) == str(reaction[1]):
                     for _role in _guild.roles:
                         if str(_role.id) in reaction[0].lower():
                             log.debug(

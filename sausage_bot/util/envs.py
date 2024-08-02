@@ -178,7 +178,7 @@ roles_db_roles_schema = {
     'name': 'roles',
     'items': [
         'msg_id TEXT NOT NULL',
-        'role_name TEXT',
+        'role TEXT',
         'emoji TEXT'
     ]
 }
