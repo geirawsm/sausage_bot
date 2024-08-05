@@ -229,7 +229,7 @@ async def sync_reaction_message_from_settings(
         envs.roles_db_roles_schema,
         key='msg_id',
         select=[
-            'role_name',
+            'role',
             'emoji'
         ],
         where=[
@@ -243,8 +243,11 @@ async def sync_reaction_message_from_settings(
     new_embed_content = ''
     await msg_obj.clear_reactions()
     for reaction in db_reactions:
+        log.debug(f'Trying to add emoji: `{reaction[1]}`')
         try:
-            await msg_obj.add_reaction(reaction[1])
+            await msg_obj.add_reaction(
+                get(discord_commands.get_guild().emojis, id=int(reaction[1]))
+            )
         except Exception as e:
             log.error(f'Could not add reaction to message: {e}')
             continue
@@ -252,16 +255,16 @@ async def sync_reaction_message_from_settings(
         if len(new_embed_desc) > 0:
             new_embed_desc += '\n'
         new_embed_desc += '{} {}'.format(
-            reaction[1], reaction[0]
+            get(discord_commands.get_guild().emojis, id=int(reaction[1])),
+            get(discord_commands.get_guild().roles, id=int(reaction[0]))
         )
-        continue
     embed_json = {
         'description': new_embed_desc,
         'content': new_embed_content
     }
-    # Edit discord message if it exist
+    # Edit discord message
     await msg_obj.edit(
-        content=db_message[0][3],
+        #content=db_message[0][3],
         embed=discord.Embed.from_dict(embed_json)
     )
     return
@@ -684,7 +687,10 @@ class Autoroles(commands.Cog):
             pages = await roles_list_emojis()
         for page in pages:
             log.verbose(f'{page}')
-            await interaction.followup.send(f'{page}')
+            await interaction.followup.send(
+                f'{page}',
+                ephemeral=_ephemeral
+            )
         return
 
     @commands.check_any(
@@ -1171,13 +1177,13 @@ class Autoroles(commands.Cog):
         self, interaction: discord.Interaction, reaction_msg: str
     ):
         '''
-        Synchronize a reaction message with the settings file
+        Synchronize a reaction message with the database
 
         Parameters
         ------------
         reaction_msg: int/str
             The message ID to look for, or name of the saved message in
-            settings file
+            database
         '''
         await interaction.response.defer(ephemeral=True)
         sync_errors = await sync_reaction_message_from_settings(reaction_msg)
@@ -1343,13 +1349,23 @@ w            The message ID from Discord or name in the database
         channel: str
             What channel to check
         '''
+        async def update_msg_id(old_msg, new_msg):
+            # Update msg id in both dbs
+            await db_helper.update_fields(
+                envs.roles_db_msgs_schema,
+                updates=[
+                    ('msg_id', new_msg)
+                ],
+                where=('msg_id', old_msg)
+            )
+            await db_helper.update_fields(
+                envs.roles_db_roles_schema,
+                updates=[
+                    ('msg_id', new_msg)
+                ],
+                where=('msg_id', old_msg)
+            )
 
-        '''
-        Hent alle db-meldinger i rekkefølge
-        Hent alle discord-meldinger i rekkefølge
-        Avsjekk at rekkefølge stemmer
-        Hvis ikke stemmer, fjern alle meldinger for kanalen og lag nye
-        '''
         await interaction.response.defer(ephemeral=True)
         # Get all reaction messages in order from database
         react_msgs = await db_helper.get_output(
@@ -1364,6 +1380,7 @@ w            The message ID from Discord or name in the database
             limit=20, oldest_first=True
         )]
         trigger_reordering = False
+
         # Check order of messages
         if len(discord_msgs) != len(react_msgs):
             # TODO var msg
@@ -1395,7 +1412,6 @@ w            The message ID from Discord or name in the database
                     react_msg[1]
                 )
                 log.debug('Deleting old_react_msg')
-                await old_react_msg.delete()
                 new_reaction_msg = await discord_commands.post_to_channel(
                     react_msg[1],
                     content_in=react_msg[3],
@@ -1404,25 +1420,23 @@ w            The message ID from Discord or name in the database
                     }
                 )
                 # Update msg id in both dbs
-                await db_helper.update_fields(
-                    envs.roles_db_msgs_schema,
-                    updates=[
-                        ('msg_id', new_reaction_msg.id)
-                    ],
-                    where=('msg_id', react_msg[0])
-                )
-                await db_helper.update_fields(
-                    envs.roles_db_roles_schema,
-                    updates=[
-                        ('msg_id', new_reaction_msg.id)
-                    ],
-                    where=('msg_id', react_msg[0])
+                await update_msg_id(
+                    old_msg=react_msg[0],
+                    new_msg=new_reaction_msg.id
                 )
                 # Recreate reactions by syncing settings
                 await sync_reaction_message_from_settings(
                     str(new_reaction_msg.id)
                 )
-            await interaction.followup.send("Reaction messages reordered")
+            # TODO i18n
+            await interaction.followup.send(
+                'Reaction messages reordered'
+            )
+        else:
+            # TODO i18n
+            await interaction.followup.send(
+                'Messages are already in correct order'
+            )
         return
 
     @commands.check_any(
