@@ -159,11 +159,12 @@ async def get_msg_id_and_name(msg_id_or_name):
 
 
 async def strip_role_or_emoji(input):
+    log.debug(f'Input is type {type(input)}')
     input_check = re.match(r'<.*\b(\d+)>', input)
     if input_check:
         return input_check.group(1)
     elif not input_check:
-        return None
+        return input
 
 
 async def sync_reaction_message_from_settings(
@@ -467,7 +468,9 @@ async def emojis_autocomplete(
 
 
 async def combine_roles_and_emojis(roles_in, emojis_in):
-    # Do splits of roles and emojis to make sure the lengths are identical
+    '''Do splits of roles and emojis to make sure the lengths are identical'''
+    log.debug(f'Got `roles_in`: {roles_in}')
+    log.debug(f'Got `emojis_in`: {emojis_in}')
     emoji_split = []
     _roles = re.split(
         envs.input_split_regex, roles_in.replace(
@@ -1057,10 +1060,17 @@ class Autoroles(commands.Cog):
         )
         for combo in merged_roles_emojis:
             log.debug(f'Checking combo `{combo}`')
-            log.debug(f'Combo[0] `{combo[0]}`') 
-            log.debug(f'Combo[1] `{combo[1]}`') 
-            role_out = get(discord_commands.get_guild().roles, id=int(combo[0]))
-            emoji_out = get(discord_commands.get_guild().emojis, id=int(combo[1]))
+            log.debug(f'Combo[0] `{combo[0]}`')
+            log.debug(f'Combo[1] `{combo[1]}`')
+            role_out = get(
+                discord_commands.get_guild().roles, id=int(combo[0])
+            )
+            if re.match(r'<.*\b(\d+)>', combo[1]):
+                emoji_out = get(
+                    discord_commands.get_guild().emojis, id=int(combo[1])
+                )
+            else:
+                emoji_out = combo[1]
             if len(desc_out) > 0:
                 desc_out += ''
             desc_out += '\n{} {}'.format(emoji_out, role_out)
@@ -1089,9 +1099,12 @@ class Autoroles(commands.Cog):
                 )
             )
             log.debug(f'Adding emoji {reac}')
-            await reaction_msg.add_reaction(
-                get(discord_commands.get_guild().emojis, id=int(reac[1]))
-            )
+            if re.match(r'<.*\b(\d+)>', combo[1]):
+                await reaction_msg.add_reaction(
+                    get(discord_commands.get_guild().emojis, id=int(reac[1]))
+                )
+            else:
+                await reaction_msg.add_reaction(reac[1])
         await db_helper.insert_many_all(
             envs.roles_db_roles_schema,
             inserts=reactions_in
@@ -1675,13 +1688,20 @@ async def on_raw_reaction_add(payload):
                 ]
             )
             log.debug(f'reactions is {reactions}')
+            if payload.emoji.id is not None:
+                incoming_emoji = str(payload.emoji.id)
+            elif payload.emoji.name is not None:
+                incoming_emoji = str(payload.emoji.name)
+            else:
+                log.error('Could not find emoji')
+                return
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
                 log.debug(
-                    f'Comparing emoji id from payload ({payload.emoji.id}) '
-                    f'with emoji id from db ({reaction[0]})'
+                    f'Comparing emoji from payload ({incoming_emoji}) '
+                    f'with emoji from db ({reaction[0]})'
                 )
-                if str(payload.emoji.id) in reaction[0]:
+                if str(incoming_emoji) == str(reaction[0]):
                     await _guild.get_member(
                         payload.user_id
                     ).add_roles(
@@ -1692,7 +1712,9 @@ async def on_raw_reaction_add(payload):
                         reason='Added in accordance with  '
                         'reaction messages'
                     )
-
+                    break
+            else:
+                log.error('Could not find emoji')
     return
 
 
@@ -1728,11 +1750,23 @@ async def on_raw_reaction_remove(payload):
                 ]
             )
             log.verbose(f'`reactions` in remove: {reactions}')
+            if payload.emoji.id is not None:
+                incoming_emoji = str(payload.emoji.id)
+            elif payload.emoji.name is not None:
+                incoming_emoji = str(payload.emoji.name)
+            else:
+                log.error('Could not find emoji')
+                return
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
-                incoming_emoji = payload.emoji.id
-                log.debug(f'incoming_emoji: {incoming_emoji}')
-                log.debug('reaction[1]: {}'.format(reaction[1]))
+                if str(payload.emoji.id) in reaction[0]:
+                    incoming_emoji = str(payload.emoji.id)
+                elif str(payload.emoji.name) in reaction[0]:
+                    incoming_emoji = str(payload.emoji.name)
+                log.debug(
+                    f'Comparing emoji from payload ({incoming_emoji}) '
+                    f'with emoji from db ({reaction[0]})'
+                )
                 if str(incoming_emoji) == str(reaction[1]):
                     for _role in _guild.roles:
                         if str(_role.id) in reaction[0].lower():
@@ -1748,7 +1782,7 @@ async def on_raw_reaction_remove(payload):
                                 f'{reaction_message}'
                             )
                             break
-            break
+                break
     return
 
 
