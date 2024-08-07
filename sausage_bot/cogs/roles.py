@@ -243,20 +243,28 @@ async def sync_reaction_message_from_settings(
     new_embed_desc = ''
     new_embed_content = ''
     await msg_obj.clear_reactions()
+    # Add header if in db
+    new_embed_header = db_message[0][3]
+    if new_embed_header:
+        new_embed_content += f'## {new_embed_header}'
     for reaction in db_reactions:
         log.debug(f'Trying to add emoji: `{reaction[1]}`')
-        try:
-            await msg_obj.add_reaction(
-                get(discord_commands.get_guild().emojis, id=int(reaction[1]))
+        if re.match(r'<.*\b(\d+)>', reaction[1]):
+            emoji_out = reaction[1]
+        elif re.match(r'(\d+)', reaction[1]):
+            emoji_out = get(
+                discord_commands.get_guild().emojis, id=int(reaction[1])
             )
-        except Exception as e:
-            log.error(f'Could not add reaction to message: {e}')
-            continue
-        new_embed_content = db_message[0][3]
+        else:
+            emoji_out = reaction[1]
+        await msg_obj.add_reaction(emoji_out)
+        if len(new_embed_content) > 0:
+            new_embed_content += '\n'
+        new_embed_content += db_message[0][4]
         if len(new_embed_desc) > 0:
             new_embed_desc += '\n'
         new_embed_desc += '{} {}'.format(
-            get(discord_commands.get_guild().emojis, id=int(reaction[1])),
+            emoji_out,
             get(discord_commands.get_guild().roles, id=int(reaction[0]))
         )
     embed_json = {
@@ -1005,6 +1013,7 @@ class Autoroles(commands.Cog):
         self, interaction: discord.Interaction,
         msg_name: str, message_text: str, order: int,
         channel: discord.TextChannel, roles: str, emojis: str,
+        header: str = None
     ):
         '''
         Add a reaction message
@@ -1025,6 +1034,8 @@ class Autoroles(commands.Cog):
         emojis: str
             Tagged emojis separated by any of the following characers:
             " .,;-_\\/"
+        header: str
+            Header for the message
         '''
         await interaction.response.defer(ephemeral=True)
         msg_db_orders = await db_helper.get_output(
@@ -1056,7 +1067,8 @@ class Autoroles(commands.Cog):
         reactions = []
         merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
         log.debug(
-            '`merged_roles_emojis` is done (role, emoji): ', pretty=merged_roles_emojis
+            '`merged_roles_emojis` is done (role, emoji): ',
+            pretty=merged_roles_emojis
         )
         for combo in merged_roles_emojis:
             log.debug(f'Checking combo `{combo}`')
@@ -1066,6 +1078,8 @@ class Autoroles(commands.Cog):
                 discord_commands.get_guild().roles, id=int(combo[0])
             )
             if re.match(r'<.*\b(\d+)>', combo[1]):
+                emoji_out = combo[1]
+            elif re.match(r'(\d+)', combo[1]):
                 emoji_out = get(
                     discord_commands.get_guild().emojis, id=int(combo[1])
                 )
@@ -1084,9 +1098,13 @@ class Autoroles(commands.Cog):
                     'description': desc_out
                 }
             )
+        if header:
+            content = f'## {header}\n{message_text}'
+        else:
+            content = message_text
         # Post the reaction message
         reaction_msg = await channel.send(
-            content=message_text,
+            content=content,
             embed=embed_json
         )
         # Save to DB
@@ -1098,12 +1116,14 @@ class Autoroles(commands.Cog):
                     reaction_msg.id, reac[0], reac[1]
                 )
             )
-            log.debug(f'Adding emoji {reac}')
-            if re.match(r'<.*\b(\d+)>', combo[1]):
+            log.debug(f'Adding emoji {reac[1]}')
+            if re.match(r'^(\d+)$', reac[1]):
+                log.debug('Adding emoji as id')
                 await reaction_msg.add_reaction(
                     get(discord_commands.get_guild().emojis, id=int(reac[1]))
                 )
             else:
+                log.debug('Adding emoji as name')
                 await reaction_msg.add_reaction(reac[1])
         await db_helper.insert_many_all(
             envs.roles_db_roles_schema,
@@ -1114,15 +1134,14 @@ class Autoroles(commands.Cog):
             envs.roles_db_msgs_schema,
             inserts=[
                 (
-                    reaction_msg.id, channel.name, msg_name, message_text,
-                    desc_out, order
+                    reaction_msg.id, channel.name, msg_name, header,
+                    message_text, desc_out, order
                 )
             ]
         )
         await interaction.followup.send(
             'Message added', ephemeral=True
         )
-        return
         return
 
     @commands.check_any(
@@ -1270,7 +1289,7 @@ class Autoroles(commands.Cog):
         Parameters
         ------------
         reaction_msg: int/str
-w            The message ID from Discord or name in the database
+            The message ID from Discord or name in the database
         '''
         await interaction.response.defer(ephemeral=True)
         # Get message object

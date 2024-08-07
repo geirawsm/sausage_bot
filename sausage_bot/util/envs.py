@@ -166,6 +166,7 @@ roles_db_msgs_schema = {
         'msg_id TEXT NOT NULL',
         'channel TEXT',
         'name TEXT',
+        'header TEXT',
         'content TEXT',
         'description TEXT',
         'msg_order INTEGER'
