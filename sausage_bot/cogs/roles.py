@@ -1070,6 +1070,11 @@ class Autoroles(commands.Cog):
             '`merged_roles_emojis` is done (role, emoji): ',
             pretty=merged_roles_emojis
         )
+        if merged_roles_emojis is None:
+            await interaction.followup.send(
+                'Could not find any roles or emojis'
+            )
+            return
         for combo in merged_roles_emojis:
             log.debug(f'Checking combo `{combo}`')
             log.debug(f'Combo[0] `{combo[0]}`')
