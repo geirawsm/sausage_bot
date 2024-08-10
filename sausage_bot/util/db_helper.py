@@ -170,7 +170,7 @@ def json_to_db_inserts(cog_name):
         stats_inserts = []
         if file_io.file_exist(envs.stats_file):
             stats_file = file_io.read_json(envs.stats_file)
-            stats_settings_inserts = envs.stats_db_schema['inserts']
+            stats_settings_inserts = envs.stats_db_settings_schema['inserts']
             for insert in stats_settings_inserts:
                 if insert[0] in stats_file:
                     under_inserts = stats_file[insert[0]]
@@ -194,6 +194,7 @@ def json_to_db_inserts(cog_name):
                         )
                     )
             log.verbose(f'Got this for `stats_inserts`:\n{stats_inserts}')
+        stats_hide_roles_inserts = envs.stats_db_hide_roles_schema['inserts']
         # Check stats log file
         stats_logs_inserts = []
         if file_io.file_exist(envs.stats_logs_file):
@@ -224,7 +225,8 @@ def json_to_db_inserts(cog_name):
                         )
         return {
             'stats_inserts': stats_inserts,
-            'stats_logs_inserts': stats_logs_inserts
+            'stats_logs_inserts': stats_logs_inserts,
+            'stats_hide_roles_inserts': stats_hide_roles_inserts
         }
     elif cog_name == 'rss':
         rss_file = file_io.read_json(envs.rss_feeds_file)
@@ -895,8 +897,11 @@ async def del_row_id(template_info, numbers):
         _cmd += 'IN ('
         _cmd += ', '.join(str(number) for number in numbers)
         _cmd += ')'
-    elif isinstance(numbers, int):
+    elif isinstance(numbers, (int, str)):
         _cmd += f'= {numbers}'
+    else:
+        log.error(f'Could not find rowid for {numbers}')
+        return None
     log.db(f'Using this query: {_cmd}')
     if args.not_write_database:
         log.verbose('`not_write_database` activated')

@@ -3,6 +3,7 @@
 import os
 from discord.ext import commands, tasks
 import discord
+from discord.utils import get
 from tabulate import tabulate
 import typing
 
@@ -16,7 +17,7 @@ async def name_of_settings_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     db_settings = await db_helper.get_output(
-        template_info=envs.stats_db_schema,
+        template_info=envs.stats_db_settings_schema,
         select=('setting', 'value_help'),
     )
     settings = []
@@ -31,14 +32,44 @@ async def name_of_settings_autocomplete(
     ]
 
 
+async def hidden_roles_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    
+    hidden_roles_in_db = await db_helper.get_output(
+            template_info=envs.stats_db_hide_roles_schema,
+            get_row_ids=True
+        )
+    hidden_roles_in_list = []
+    for role in hidden_roles_in_db:
+        hidden_roles_in_list.append(
+            (
+                role[0], role[1], get(
+                    discord_commands.get_guild().roles,
+                    id=int(role[1])
+                ).name
+            )
+        )
+    log.debug(f'hidden_roles_in_list: {hidden_roles_in_list}')
+    return [
+        discord.app_commands.Choice(
+            name=f'{hidden_role[2]} ({hidden_role[1]})',
+            value=str(hidden_role[0])
+        ) for hidden_role in hidden_roles_in_list if current
+        in hidden_role[2]
+    ]
+
+
 def get_role_numbers(
     hide_bots: bool = None,
-    hide_empties: bool = None
+    hide_empties: bool = None,
+    hide_roles: list = None
 ):
     'Get roles and number of members'
-    log.debug(f'`hide_bots` is {hide_bots}')
     roles_info = discord_commands.get_roles(
-        hide_empties=hide_empties, filter_bots=hide_bots
+        hide_empties=hide_empties, filter_bots=hide_bots,
+        hide_roles=hide_roles
     )
     num_members = discord_commands.get_guild().member_count
     return {
@@ -122,7 +153,7 @@ class Stats(commands.Cog):
         if remove_post.lower() == 'yes':
             stats_settings = dict(
                 await db_helper.get_output(
-                    template_info=envs.stats_db_schema,
+                    template_info=envs.stats_db_settings_schema,
                     select=('setting', 'value')
                 )
             )
@@ -133,6 +164,19 @@ class Stats(commands.Cog):
             await discord_commands.remove_stats_post(stats_channel)
         await interaction.followup.send(
             'Stats posting stopped'
+        )
+
+    @stats_posting_group.command(
+        name='restart', description='Restart posting'
+    )
+    async def stats_posting_restart(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        log.log('Task restarted')
+        Stats.update_stats.restart()
+        await interaction.followup.send(
+            'Stats posting restarted'
         )
 
     @commands.check_any(
@@ -150,15 +194,36 @@ class Stats(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_schema,
+            template_info=envs.stats_db_settings_schema,
             select=('setting', 'value', 'value_help')
         )
-        headers = ['Setting', 'Value', 'Value type']
-        await interaction.followup.send(
-            content='```{}```'.format(
-                tabulate(settings_in_db, headers=headers)
-            ), ephemeral=True
+        headers_settings = ['Setting', 'Value', 'Value type']
+        out = '## Settings\n```{}```'.format(
+            tabulate(settings_in_db, headers=headers_settings)
         )
+        hidden_roles_in_db = await db_helper.get_output(
+            template_info=envs.stats_db_hide_roles_schema
+        )
+        hidden_roles_in_list = []
+        for role in hidden_roles_in_db:
+            hidden_roles_in_list.append(role[0])
+        log.debug(f'`hidden_roles_in_list` is {hidden_roles_in_list}')
+        if len(hidden_roles_in_list) > 0:
+            headers_hidden_roles = ['Name', 'ID']
+            populated_roles = []
+            for role in hidden_roles_in_list:
+                populated_roles.append(
+                    (
+                        get(
+                            discord_commands.get_guild().roles,
+                            id=int(role)
+                        ), role
+                    )
+                )
+            out += '\n## Hidden roles\n```{}```'.format(
+                tabulate(populated_roles, headers=headers_hidden_roles)
+            )
+        await interaction.followup.send(content=out, ephemeral=True)
 
     @commands.check_any(
         commands.is_owner(),
@@ -186,7 +251,7 @@ class Stats(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_schema,
+            template_info=envs.stats_db_settings_schema,
             select=('setting', 'value', 'value_check')
         )
         for setting in settings_in_db:
@@ -205,7 +270,7 @@ class Stats(commands.Cog):
                 log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
                 if type(value_in) is eval(setting[2]):
                     await db_helper.update_fields(
-                        template_info=envs.stats_db_schema,
+                        template_info=envs.stats_db_settings_schema,
                         where=[('setting', name_of_setting)],
                         updates=[('value', value_in)]
                     )
@@ -214,6 +279,88 @@ class Stats(commands.Cog):
                 )
                 Stats.update_stats.restart()
                 break
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @stats_group.command(
+        name='hide_roles_add', description='Add roles to hide'
+    )
+    async def stats_add_hidden_roles(
+        self, interaction: discord.Interaction,
+        role_in: discord.Role
+    ):
+        '''
+        Add roles to hide in stats
+
+        Parameters
+        ------------
+        role_in: discord.Role
+            The role to add/remove
+        '''
+        await interaction.response.defer(ephemeral=True)
+        hidden_roles_in_db = await db_helper.get_output(
+            template_info=envs.stats_db_hide_roles_schema
+        )
+        hidden_roles_in_list = []
+        for role in hidden_roles_in_db:
+            hidden_roles_in_list.append(role[0])
+        if str(role_in.id) in hidden_roles_in_list:
+            # TODO var msg
+            await interaction.followup.send(
+                'Role is already hidden'
+            )
+            return
+        else:
+            await db_helper.insert_many_all(
+                template_info=envs.stats_db_hide_roles_schema,
+                inserts=[
+                    (str(role_in.id))
+                ]
+            )
+            # TODO var msg
+            await interaction.followup.send(
+                content='Role added as hidden', ephemeral=True
+            )
+            Stats.update_stats.restart()
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @discord.app_commands.autocomplete(
+        hidden_roles=hidden_roles_autocomplete
+    )
+    @stats_group.command(
+        name='hide_roles_remove',
+        description='Remove roles from hiding in stats'
+    )
+    async def stats_remove_hidden_roles(
+        self, interaction: discord.Interaction,
+        hidden_roles: str
+    ):
+        '''
+        Remove roles to hide in stats
+
+        Parameters
+        ------------
+        role_in: discord.Role
+            The role to remove
+        '''
+        await interaction.response.defer(ephemeral=True)
+        # TODO Remove by ROW_ID from autocomplette
+        await db_helper.del_row_id(
+            template_info=envs.stats_db_hide_roles_schema,
+            numbers=hidden_roles
+        )
+        # TODO var msg
+        await interaction.followup.send(
+            content='Role removed from hidden', ephemeral=True
+        )
+        Stats.update_stats.restart()
         return
 
     @commands.check_any(
@@ -230,8 +377,8 @@ class Stats(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         Stats.update_stats.restart()
         await interaction.followup.send(
-                    content='Stats reloaded', ephemeral=True
-                )
+            content='Stats reloaded', ephemeral=True
+        )
         return
 
     # Tasks
@@ -249,7 +396,7 @@ class Stats(commands.Cog):
             headers: list,
         ):
             hide_roles = await db_helper.get_output(
-                template_info=envs.stats_db_schema,
+                template_info=envs.stats_db_settings_schema,
                 select=('value'),
                 where=[('setting', 'hide_roles')]
             )
@@ -300,7 +447,8 @@ class Stats(commands.Cog):
                             if stats_settings['sort_min_role_members']:
                                 min_members = stats_settings['sort_min_role_members']
                                 if dict_in[role]['members'] >= int(min_members):
-                                    dict_out['name'].append(dict_in[role]['name'])
+                                    dict_out['name'].append(
+                                        dict_in[role]['name'])
                                     dict_out['members'].append(
                                         dict_in[role]['members']
                                     )
@@ -323,7 +471,7 @@ class Stats(commands.Cog):
         log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
         stats_settings = dict(
             await db_helper.get_output(
-                template_info=envs.stats_db_schema,
+                template_info=envs.stats_db_settings_schema,
                 select=('setting', 'value')
             )
         )
@@ -337,10 +485,17 @@ class Stats(commands.Cog):
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
+        stats_hide_roles = list(
+            await db_helper.get_output(
+                template_info=envs.stats_db_hide_roles_schema
+            )
+        )
+        log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
         # Get server members
         members = get_role_numbers(
             hide_bots=eval(stats_settings['hide_bot_roles']),
-            hide_empties=eval(stats_settings['hide_empty_roles'])
+            hide_empties=eval(stats_settings['hide_empty_roles']),
+            hide_roles=stats_hide_roles
         )
         # Update log database if not already this day
         log.debug('Logging stats')
@@ -422,9 +577,10 @@ async def setup(bot):
     # Define inserts
     stats_file_inserts = None
     stats_log_inserts = None
-    stats_settings_inserts = envs.stats_db_schema['inserts']
+    stats_hide_roles_inserts = None
+    stats_settings_inserts = envs.stats_db_settings_schema['inserts']
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
-    stats_prep_is_ok = False
+    stats_settings_prep_is_ok = False
     stats_log_prep_is_ok = False
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.stats_file) or\
@@ -437,13 +593,20 @@ async def setup(bot):
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
 
     # Prep of DBs should only be done if the db files does not exist
-    if not file_io.file_exist(envs.stats_db_schema['db_file']):
+    if not file_io.file_exist(envs.stats_db_settings_schema['db_file']):
         log.verbose('Stats db does not exist')
-        stats_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.stats_db_schema,
+        stats_settings_prep_is_ok = await db_helper.prep_table(
+            table_in=envs.stats_db_settings_schema,
             old_inserts=stats_settings_inserts
         )
-        log.verbose(f'`stats_prep_is_ok` is {stats_prep_is_ok}')
+        log.verbose(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
+        stats_hide_roles_prep_is_ok = await db_helper.prep_table(
+            table_in=envs.stats_db_hide_roles_schema,
+            old_inserts=stats_hide_roles_inserts
+        )
+        log.verbose(
+            f'`stats_hide_roles_prep_is_ok` is {stats_hide_roles_prep_is_ok}'
+        )
     else:
         log.verbose('Stats db exist!')
     if not file_io.file_exist(envs.stats_db_log_schema['db_file']):
@@ -455,7 +618,7 @@ async def setup(bot):
         log.verbose('Stats db log exist!')
 
     # Delete old json files if they exist
-    if stats_prep_is_ok and file_io.file_exist(envs.stats_file):
+    if stats_settings_prep_is_ok and file_io.file_exist(envs.stats_file):
         file_io.remove_file(envs.stats_file)
     if stats_log_prep_is_ok and file_io.file_exist(envs.stats_logs_file):
         file_io.remove_file(envs.stats_logs_file)

@@ -162,13 +162,16 @@ def get_sorted_scheduled_events():
     return out
 
 
-def get_roles(hide_empties=None, filter_bots=None):
+def get_roles(
+    hide_empties=None, filter_bots=None, hide_roles=None
+):
     '''
     Get a dict of all roles on server and their ID's
     #autodoc skip#
     '''
     log.debug(f'`hide_empties` is {hide_empties}')
     log.debug(f'`filter_bots` is {filter_bots}')
+    log.debug(f'`hide_roles` is {hide_roles}')
     roles_dict = {}
     # Get all roles and their IDs
     for role in get_guild().roles:
@@ -177,6 +180,12 @@ def get_roles(hide_empties=None, filter_bots=None):
         if filter_bots:
             if role.is_bot_managed():
                 continue
+        if hide_roles:
+            log.debug(f'Checking if {role.id} is in {hide_roles}')
+            if str(role.id) in hide_roles[0]:
+                continue
+            else:
+                log.debug(f'Not in {hide_roles}')
         roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
