@@ -113,21 +113,31 @@ async def settings_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    settings = [setting for setting in await db_helper.get_output(
+    settings_db = [setting for setting in await db_helper.get_output(
             template_info=envs.roles_db_settings_schema,
-            select=('setting', 'value'),
             get_row_ids=True
         )
     ]
-    print(f'SETTINGS: {settings}')
+    print(f'SETTINGS_DB: {settings_db}')
+    settings_in_list = []
+    for setting in settings_db:
+        settings_in_list.append(
+            (
+                setting[0], setting[1], setting[2], get(
+                    discord_commands.get_guild().roles,
+                    id=int(setting[2])
+                ).name
+            )
+        )
+    log.debug(f'`settings_in_list`: {settings_in_list}')
     return [
         discord.app_commands.Choice(
-            name='{}. {} = {}'.format(
-                setting[0], setting[1], setting[2]
+            name='{}. {} = {} ({})'.format(
+                setting[0], setting[1], setting[3], setting[2]
             ),
             value=str(setting[0])
         )
-        for setting in settings if current.lower() in str(setting).lower()
+        for setting in settings_in_list if current.lower() in setting[3].lower()
     ]
 
 
@@ -1547,6 +1557,7 @@ class Autoroles(commands.Cog):
             The setting to remove
         '''
         await interaction.response.defer(ephemeral=True)
+        log.debug(f'Got row_id `{setting}`')
         await db_helper.del_row_id(
             template_info=envs.roles_db_settings_schema,
             numbers=setting
@@ -1773,7 +1784,7 @@ async def on_raw_reaction_remove(payload):
                     ('A.msg_id', reaction_message[0])
                 ]
             )
-            log.verbose(f'`reactions` in remove: {reactions}')
+            log.verbose(f'`reactions`: {reactions}')
             if payload.emoji.id is not None:
                 incoming_emoji = str(payload.emoji.id)
             elif payload.emoji.name is not None:
@@ -1783,13 +1794,13 @@ async def on_raw_reaction_remove(payload):
                 return
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
-                if str(payload.emoji.id) in reaction[0]:
+                if str(payload.emoji.id) == reaction[1]:
                     incoming_emoji = str(payload.emoji.id)
-                elif str(payload.emoji.name) in reaction[0]:
+                elif str(payload.emoji.name) == reaction[1]:
                     incoming_emoji = str(payload.emoji.name)
                 log.debug(
                     f'Comparing emoji from payload ({incoming_emoji}) '
-                    f'with emoji from db ({reaction[0]})'
+                    f'with emoji from db ({reaction[1]})'
                 )
                 if str(incoming_emoji) == str(reaction[1]):
                     for _role in _guild.roles:
@@ -1806,7 +1817,6 @@ async def on_raw_reaction_remove(payload):
                                 f'{reaction_message}'
                             )
                             break
-                break
     return
 
 
@@ -1871,7 +1881,7 @@ async def on_member_update(before, after):
         log.verbose('before and after, minus unique role:')
         log.verbose(f'_before: {_before}')
         log.verbose(f'_after: {_after}')
-        if int(_after) == 0:
+        if int(_after) <= 0:
             # TODO var msg
             log.debug('Length of _after is 0, adding unique role')
             await after.add_roles(
