@@ -485,11 +485,13 @@ class Stats(commands.Cog):
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
-        stats_hide_roles = list(
-            await db_helper.get_output(
-                template_info=envs.stats_db_hide_roles_schema
-            )
+        stats_hide_roles = await db_helper.get_output(
+            template_info=envs.stats_db_hide_roles_schema
         )
+        if stats_hide_roles:
+            stats_hide_roles = list(stats_hide_roles)
+        else:
+            stats_hide_roles = None
         log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
         # Get server members
         members = get_role_numbers(
