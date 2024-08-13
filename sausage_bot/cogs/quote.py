@@ -488,6 +488,10 @@ class Quotes(commands.Cog):
             )
             return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @group.command(
         name="count", description="Count the number of quotes"
     )
