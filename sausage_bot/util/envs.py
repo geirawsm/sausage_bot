@@ -446,14 +446,8 @@ NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\
     'If this causes problems, you need to check the link.'
 
 # COG - QUOTE
-QUOTE_NO_NUMBER_GIVEN = 'Du oppga ikke hvilket sitatnummer som skal '\
-    'redigeres'
-QUOTE_EDIT_NO_TEXT_GIVEN = 'Du oppga ikke sitattekst'
-QUOTE_EDIT_NEED_CONFIRMATION = 'Endre sitat # {}?\nFra:\n```\n{}\n({})```'\
-    '\n...til:\n```\n{}\n({})```'
 QUOTE_EDIT_CONFIRMED = 'Endret sitat'
 QUOTE_NO_EDIT_CONFIRMED = 'Endret *ikke* sitat'
-QUOTE_ADD_CONFIRMATION = 'La til følgende sitat: ```# {}\n{}\n({})```'
 QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat?'\
     '\n```# {}\n{}\n({})```\n'
 QUOTE_DENY_DELETE = 'Sitatet slettes ikke'
