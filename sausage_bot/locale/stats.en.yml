@@ -1,0 +1,57 @@
+en:
+  setting_log: Invalid input for `value_in` ({e})
+  setting_input_reply: Input `value_in` needs to be `True` or `False`
+  commands:
+    groups:
+      stats: Administer stats on the server
+      posting: Posting stats
+    start: 
+      command: Start posting
+      log_started: Task started
+      confirm_started: Stats posting started
+    stop:
+      command: Stop posting
+      log_stopped: Task stopped
+      confirm_stopped: Stats posting stopped
+    restart:
+      command: Restart posting
+      log_restarted: Task restarted
+      confirm_restarted: Stats posting restarted
+    list:
+      command: Get available settings
+      headers:
+        settings:
+          setting: Setting
+          value: Value
+          value_type: Valute type
+        hidden_roles:
+          hidden_name: Name
+          hidden_id: ID
+      stats_msg_out:
+        sub_settings: Innstillinger
+        sub_hidden: Hidden roles
+    setting:
+      command: Change settings
+      update_confirmed: Settings updated
+    hide_roles_add:
+      command: Add roles to hidden roles
+      msg:
+        already_hidden: Role is already hidden
+        confirm_added: Role added as hidden role
+    hide_roles_remove:
+      command: Remove roles from hidden roles
+      msg:
+        confirm_removed: Role removed as hidden role
+    restart:
+      command: Restart the stats task
+      msg:
+        confirm_restarted: Stats task restarted
+  tasks:
+    update_stats:
+      stats_msg:
+        members_sub: Members
+        members_num: Number of members
+        code_sub: Code base
+        code_files: Files of code
+        code_lines: Lines of code
+        code_last_updated: Serverstats was last updated

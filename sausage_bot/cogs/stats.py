@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import os
 from discord.ext import commands, tasks
+from discord.app_commands import locale_str
 import discord
 from discord.utils import get
 from tabulate import tabulate
@@ -9,6 +10,7 @@ import typing
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
@@ -104,21 +106,21 @@ class Stats(commands.Cog):
         super().__init__()
 
     stats_group = discord.app_commands.Group(
-        name="stats", description='Administer stats on the server'
+        name="stats", description=locale_str(I18N.t('stats.commands.groups.stats'))
     )
     stats_posting_group = discord.app_commands.Group(
-        name="posting", description='Posting stats',
+        name="posting", description=locale_str(I18N.t('stats.commands.groups.posting'),)
         parent=stats_group
     )
 
     @stats_posting_group.command(
-        name='start', description='Start posting'
+        name='start', description=locale_str(I18N.t('stats.commands.start.command'))
     )
     async def stats_posting_start(
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task started')
+        log.log(I18N.t('stats.commands.start.log_started'))
         Stats.update_stats.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -129,18 +131,18 @@ class Stats(commands.Cog):
             updates=('status', 'started')
         )
         await interaction.followup.send(
-            'Stats posting started'
+            I18N.t('stats.commands.start.confirm_started')
         )
 
     @stats_posting_group.command(
-        name='stop', description='Stop posting'
+        name='stop', description=locale_str(I18N.t('stats.commands.stop.command'))
     )
     async def stats_posting_stop(
         self, interaction: discord.Interaction,
         remove_post: typing.Literal['Yes', 'No']
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task stopped')
+        log.log(I18N.t('stats.commands.stop.log_stopped'))
         Stats.update_stats.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -163,20 +165,20 @@ class Stats(commands.Cog):
                 stats_channel = 'stats'
             await discord_commands.remove_stats_post(stats_channel)
         await interaction.followup.send(
-            'Stats posting stopped'
+            I18N.t('commands.stop.confirm_stopped')
         )
 
     @stats_posting_group.command(
-        name='restart', description='Restart posting'
+        name='restart', description=locale_str(I18N.t('stats.commands.restart.command'))
     )
     async def stats_posting_restart(
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task restarted')
+        log.log('Stats posting restarted')
         Stats.update_stats.restart()
         await interaction.followup.send(
-            'Stats posting restarted'
+            I18N.t('commands.restart.log_restarted')
         )
 
     @commands.check_any(
@@ -184,7 +186,7 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @stats_group.command(
-        name='list', description='List the available settings for this cog'
+        name='list', description=locale_str(I18N.t('commands.list.command'))
     )
     async def list_settings(
         self, interaction: discord.Interaction
@@ -197,8 +199,13 @@ class Stats(commands.Cog):
             template_info=envs.stats_db_settings_schema,
             select=('setting', 'value', 'value_help')
         )
-        headers_settings = ['Setting', 'Value', 'Value type']
-        out = '## Settings\n```{}```'.format(
+        headers_settings = [
+            I18N.t('stats.commands.list.headers.settings.setting'),
+            I18N.t('stats.commands.list.headers.settings.value'),
+            I18N.t('stats.commands.list.headers.settings.value_type')
+        ]
+        out = '## {}\n```{}```'.format(
+            I18N.t('stats.commands.list.stats_msg_out.sub_settings'),
             tabulate(settings_in_db, headers=headers_settings)
         )
         hidden_roles_in_db = await db_helper.get_output(
@@ -209,7 +216,10 @@ class Stats(commands.Cog):
             hidden_roles_in_list.append(role[0])
         log.debug(f'`hidden_roles_in_list` is {hidden_roles_in_list}')
         if len(hidden_roles_in_list) > 0:
-            headers_hidden_roles = ['Name', 'ID']
+            headers_hidden_roles = [
+                I18N.t('stats.commands.list.headers.hidden_roles.hidden_name'),
+                I18N.t('stats.commands.list.headers.hidden_roles.hidden_id')
+            ]
             populated_roles = []
             for role in hidden_roles_in_list:
                 populated_roles.append(
@@ -220,7 +230,8 @@ class Stats(commands.Cog):
                         ), role
                     )
                 )
-            out += '\n## Hidden roles\n```{}```'.format(
+            out += '\n## {}\n```{}```'.format(
+                I18N.t('stats.commands.list.stats_msg_out.sub_hidden'),
                 tabulate(populated_roles, headers=headers_hidden_roles)
             )
         await interaction.followup.send(content=out, ephemeral=True)
@@ -233,7 +244,7 @@ class Stats(commands.Cog):
         name_of_setting=name_of_settings_autocomplete
     )
     @stats_group.command(
-        name='setting', description='Change a setting for this cog'
+        name='setting', description=locale_str(I18N.t('stats.commands.setting.command'))
     )
     async def stats_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
@@ -260,11 +271,11 @@ class Stats(commands.Cog):
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as e:
-                        log.error(f'Invalid input for `value_in`: {e}')
+                        log.error(I18N.t('stats.setting_log').format(e))
                         # TODO var msg
-                        await interaction.followup.send(
-                            'Input `value_in` needs to be `True` or `False`'
-                        )
+                        await interaction.followup.send(I18N.t(
+                            'stats.setting_input_reply'
+                        ))
                         return
                 log.debug(f'`value_in` is {value_in} ({type(value_in)})')
                 log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
@@ -275,7 +286,7 @@ class Stats(commands.Cog):
                         updates=[('value', value_in)]
                     )
                 await interaction.followup.send(
-                    content='Setting updated', ephemeral=True
+                    content=I18N.t('stats.commands.setting.update_confirmed'), ephemeral=True
                 )
                 Stats.update_stats.restart()
                 break
@@ -286,7 +297,8 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @stats_group.command(
-        name='hide_roles_add', description='Add roles to hide'
+        name='hide_roles_add',
+        description=locale_str(I18N.t('stats.commands.hide_roles_add.command')),
     )
     async def stats_add_hidden_roles(
         self, interaction: discord.Interaction,
@@ -310,7 +322,7 @@ class Stats(commands.Cog):
         if str(role_in.id) in hidden_roles_in_list:
             # TODO var msg
             await interaction.followup.send(
-                'Role is already hidden'
+                I18N.t('stats.commands.hide_roles_add.msg.already_hidden')
             )
             return
         else:
@@ -322,7 +334,8 @@ class Stats(commands.Cog):
             )
             # TODO var msg
             await interaction.followup.send(
-                content='Role added as hidden', ephemeral=True
+                content=I18N.t('stats.commands.hide_roles_add.msg.confirm_added'),
+                ephemeral=True
             )
             Stats.update_stats.restart()
         return
@@ -336,7 +349,7 @@ class Stats(commands.Cog):
     )
     @stats_group.command(
         name='hide_roles_remove',
-        description='Remove roles from hiding in stats'
+        description=locale_str(I18N.t('stats.commands.hide_roles_remove.command'))
     )
     async def stats_remove_hidden_roles(
         self, interaction: discord.Interaction,
@@ -351,14 +364,13 @@ class Stats(commands.Cog):
             The role to remove
         '''
         await interaction.response.defer(ephemeral=True)
-        # TODO Remove by ROW_ID from autocomplette
         await db_helper.del_row_id(
             template_info=envs.stats_db_hide_roles_schema,
             numbers=hidden_roles
         )
-        # TODO var msg
         await interaction.followup.send(
-            content='Role removed from hidden', ephemeral=True
+            content=I18N.t('stats.commands.hide_roles_remove.msg.confirm_removed'),
+            ephemeral=True
         )
         Stats.update_stats.restart()
         return
@@ -368,16 +380,17 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @stats_group.command(
-        name='reload', description='Reload the stats task'
+        name='restart', description=locale_str(I18N.t('stats.commands.restart.command'))
     )
-    async def stats_reload(
+    async def stats_restart(
         self, interaction: discord.Interaction
     ):
-        '''Reload the stats task'''
+        '''Restart the stats task'''
         await interaction.response.defer(ephemeral=True)
         Stats.update_stats.restart()
         await interaction.followup.send(
-            content='Stats reloaded', ephemeral=True
+            content=I18N.t('stats.commands.restart.msg.confirm_restarted'),
+            ephemeral=True
         )
         return
 
@@ -401,8 +414,9 @@ class Stats(commands.Cog):
                 where=[('setting', 'hide_roles')]
             )
             hide_roles_lower = [x[0].lower() for x in hide_roles]
-            # TODO var msg
-            log.debug(f'Using this for filter:\n{hide_roles_lower}')
+            log.debug(
+                f'Using this for filter:\n{hide_roles_lower}'
+            )
             text_out = ''
             if isinstance(dict_in, dict):
                 log.debug(
@@ -543,17 +557,23 @@ class Stats(commands.Cog):
             stats_settings['show_role_stats']
         ))
         if eval(stats_settings['show_role_stats']):
-            stats_msg += f'### Medlemmer\n```'\
-                f'Antall medlemmer: {total_members}\n\n'\
+            members_sub = I18N.t('stats.tasks.update_stats.stats_msg.members_sub')
+            members_num = I18N.t('stats.tasks.update_stats.stats_msg.members_num')
+            stats_msg += f'### {members_sub}\n```'\
+                f'{members_num}: {total_members}\n\n'\
                 f'{roles_members}```\n'
         log.debug('`show_code_stats` is {}'.format(
             stats_settings['show_code_stats']
         ))
         if eval(stats_settings['show_code_stats']):
-            stats_msg += f'### Kodebase\n```'\
-                f'Antall filer med kode: {files_in_codebase}\n'\
-                f'Antall linjer med kode: {lines_in_codebase}```\n'
-        stats_msg += f'```(Serverstats sist oppdatert: {dt_log})```\n'
+            code_sub = I18N.t('stats.tasks.update_stats.stats_msg.code_sub')
+            code_files = I18N.t('stats.tasks.update_stats.stats_msg.code_files')
+            code_lines = I18N.t('stats.tasks.update_stats.stats_msg.code_lines')
+            stats_msg += f'### {code_sub}\n```'\
+                f'{code_files}: {files_in_codebase}\n'\
+                f'{code_lines}: {lines_in_codebase}```\n'
+        code_last_updated = I18N.t('stats.tasks.update_stats.stats_msg.code_last_updated')
+        stats_msg += f'```{code_last_updated} {dt_log}```\n'
         log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'
             f'{stats_msg[0:100]}...'
