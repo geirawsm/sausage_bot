@@ -19,6 +19,7 @@ LOG_DIR = DATA_DIR / 'logs'
 STATIC_DIR = DATA_DIR / 'static'
 TEMP_DIR = ROOT_DIR / 'tempfiles'
 MERMAID_DIR = ROOT_DIR / 'docs' / 'mermaid_charts'
+LOCALE_DIR = ROOT_DIR / 'locale'
 
 # Relative paths
 COGS_REL_DIR = 'sausage_bot.cogs'
@@ -324,7 +325,6 @@ youtube_db_filter_schema = {
     'autoincrement': False
 }
 
-
 youtube_db_log_schema = {
     'db_file': str(DB_DIR / 'youtube_log.sqlite'),
     'name': 'log',
@@ -332,6 +332,16 @@ youtube_db_log_schema = {
         'uuid TEXT NOT NULL',
         'url TEXT',
         'date TEXT'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+locale_db_schema = {
+    'db_file': str(DB_DIR / 'locale.sqlite'),
+    'name': 'locale',
+    'items': [
+        'locale TEXT'
     ],
     'primary': None,
     'autoincrement': False
