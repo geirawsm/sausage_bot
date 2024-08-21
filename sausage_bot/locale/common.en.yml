@@ -1,0 +1,5 @@
+en:
+  too_few_arguments: Too few arguments given to command
+  literal_yes_no:
+    yes: Yes
+    no: No
