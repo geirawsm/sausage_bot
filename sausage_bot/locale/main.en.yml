@@ -1,0 +1,19 @@
+en:
+  owner_only: Owner only
+  msg:
+    failed_bot_start: Could not start bot (%{error})
+    bot_connected: '%{bot} has connected to %{server}'
+    bot_watching: some random youtube videos
+    create_log_channel_logging: 'Incoming log messages from %{botname}'
+  commands:
+    language:
+      confirm_language_set: Language set to `%{language}`
+    test:
+      confirm: English test message
+    delete:
+      command:
+      less_than_0: The number must be bigger than 0
+    say:
+      command: Post a message to a channel. Enter `message_id` if replying to a specific post
+    tasks:
+      command: List tasks and their status

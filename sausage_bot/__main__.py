@@ -3,6 +3,7 @@
 "Set's up the bot, have a few generic commands and controls cogs"
 import discord
 from discord.ext import commands
+from discord.app_commands import locale_str
 import os
 import asyncio
 from tabulate import tabulate
@@ -10,7 +11,23 @@ from tabulate import tabulate
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper
 from sausage_bot.util import discord_commands
+from sausage_bot.util.i18n import I18N, available_languages, set_language
+from sausage_bot.util.i18n import MyTranslator
 from sausage_bot.util.log import log
+
+
+async def locales_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    locales = available_languages()
+    log.debug(f'locales: {locales}')
+    return [
+        discord.app_commands.Choice(
+            name=locale, value=locale
+        )
+        for locale in locales if current.lower() in locale.lower()
+    ]
 
 
 # Create necessary folders before starting
@@ -42,10 +59,27 @@ async def on_ready():
     When the bot is ready, it will notify in the log.
     #autodoc skip#
     '''
+    # Create locale db if not exists
+    log.verbose('Checking locale db')
+    await db_helper.prep_table(
+        table_in=envs.locale_db_schema,
+        old_inserts=['en']
+    )
+    locale_db = await db_helper.get_output(
+        template_info=envs.locale_db_schema,
+        single=True
+    )
+    log.debug(f'Setting locale to `{locale_db}`')
+    I18N.set('locale', locale_db)
+    await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
-            log.log('{} has connected to `{}`'.format(
-                config.bot.user, guild.name))
+            log.log(
+                I18N.t('main.msg.bot_connected',
+                       bot=config.bot.user,
+                       server=guild.name
+                       )
+            )
             break
 
     log.verbose('Checking cog tasks db')
@@ -68,7 +102,7 @@ async def on_ready():
                 type=discord.ActivityType.watching,
                 name=config.env(
                     'BOT_WATCHING',
-                    default='some random youtube video'
+                    default=I18N.t('main.msg.bot_watching')
                 )
             )
         )
@@ -85,15 +119,20 @@ async def on_ready():
         }
         channel_out = await guild.create_text_channel(
             name=str(bot_channel),
-            topic=f'Incoming log messages from {config.bot.user.name}',
+            topic=I18N.t('main.msg.create_log_channel_logging', botname=config.bot.user.name),
             overwrites=overwrites
         )
         channel_out.set_permissions()
 
 
+sync_group = discord.app_commands.Group(
+    name="sync", description=I18N.t('stats.commands.groups.stats')
+)
+
+
 @commands.check_any(commands.is_owner())
-@config.bot.tree.command(
-    name='syncglobal', description='Owner only'
+@sync_group.command(
+    name='global', description='Owner only'
 )
 async def sync_global(interaction: discord.Interaction):
     await config.bot.tree.sync()
@@ -108,6 +147,7 @@ async def sync_global(interaction: discord.Interaction):
         if _cmd != '':
             _cmd += '\n'
     await interaction.response.send_message(
+        # TODO i18n
         f'Commands synched!\n{_cmd}',
         ephemeral=True
     )
@@ -222,8 +262,7 @@ async def delete(interaction: discord.Interaction, amount: int):
     'Delete `amount` number of messages in the chat'
     if amount <= 0:
         await interaction.response.send_message(
-            'The number must be bigger than 0',
-            ephemeral=True
+            I18N.t('main.commands.delete.less_than_0'),
         )
     else:
         await interaction.response.defer(ephemeral=True)
@@ -311,8 +350,7 @@ async def ban(
 
 @commands.check_any(commands.is_owner())
 @config.bot.tree.command(
-    name='say', description='Sender melding til en kanal. Fyll inn '
-    '`message_id` hvis det skal svares på en melding'
+    name='say', description=I18N.t('main.commands.say.command')
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
@@ -357,6 +395,7 @@ async def say_again(
     interaction: discord.Interaction, msg_id: str, *, text: str
 ):
     'Make the bot rephrase a previous message'
+    # TODO Legg til modal her
     await interaction.response.defer(ephemeral=True)
     guild = discord_commands.get_guild()
     if guild is None:
@@ -384,7 +423,7 @@ async def say_again(
     commands.has_permissions(administrator=True)
 )
 @config.bot.tree.command(
-    name="tasks", description="List tasks and their status"
+    name="tasks", description=locale_str(I18N.t('main.commands.tasks.command'))
 )
 async def get_tasks_list(interaction: discord.Interaction):
     '''
@@ -410,7 +449,38 @@ async def get_tasks_list(interaction: discord.Interaction):
     return
 
 
+@commands.check_any(commands.is_owner())
+@config.bot.tree.command(
+    name='language', description=locale_str(I18N.t('main.owner_only'))
+)
+@discord.app_commands.autocomplete(language=locales_autocomplete)
+async def language(
+    interaction: discord.Interaction, language: str
+):
+    await interaction.response.defer(ephemeral=True)
+    await set_language(language)
+    await config.bot.tree.sync()
+    await interaction.followup.send(
+        I18N.t(
+            'main.commands.language.confirm_language_set',
+            language=language
+        ),
+        ephemeral=True)
+    return
+
+
+@commands.check_any(commands.is_owner())
+@config.bot.tree.command(
+    name='test', description=locale_str(I18N.t('main.owner_only'))
+)
+async def test(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        I18N.t('main.commands.test.confirm'), ephemeral=True
+    )
+    return
+
+
 try:
     config.bot.run(config.DISCORD_TOKEN)
-except Exception as e:
-    log.error(f'Could not start bot: {e}')
+except Exception as _error:
+    log.error(f'Could not start bot: {_error}')

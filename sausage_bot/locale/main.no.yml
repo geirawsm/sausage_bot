@@ -1,0 +1,19 @@
+no:
+  owner_only: Kun for eier
+  msg:
+    failed_bot_start: Kunne ikke starte boten (%{error})
+    bot_connected: '%{bot} har koblet til %{server}'
+    bot_watching: tilfeldige youtube videoer
+    create_log_channel_logging: 'Innkommende logg-meldinger fra %{botname}'
+  commands:
+    language:
+      confirm_language_set: Språk satt til `%{language}`
+    test:
+      confirm: Norsk testmelding
+    delete:
+      command:
+      less_than_0: Tallet må være mer enn 0
+    say:
+      command: Sender melding til en kanal. Fyll inn `message_id` hvis det skal svares på en melding
+    tasks:
+      command: List opp oppgaver og deres status
