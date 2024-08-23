@@ -1,0 +1,31 @@
+en:
+  commands:
+    log:
+      cmd: Administer log
+    maintenance:
+      cmd: Administer log task
+    settings:
+      cmd: Administer log settings
+    start:
+      cmd: Start log maintenance
+      msg_confirm: Log maintenance started
+    stop:
+      cmd: Stop log maintenance
+      msg_confirm: Log maintenance stopped
+    list:
+      cmd: List the available settings for this cog
+      headers:
+        setting: Setting
+        value: Value
+        value_type: Value type
+    setting:
+      cmd: Change a setting for this cog
+      value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
+      msg_confirm: Setting updated
+  tasks:
+    log_maintenance:
+      msg:
+        size_and_none: 'Max folder size is not set, or set to 0. The log folder size as of now is %{folder_size}.'
+        days_and_none: 'Max number of log days is not set, or set to 0. The log folder as of now has %{num_files} files.'
+        disable_posting: 'To disable these messages, run `/log maintenance stop`'
+        maintenance_done: 'Log maintenance done. Deleted the following files:'
