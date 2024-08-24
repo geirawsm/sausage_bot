@@ -455,16 +455,6 @@ NET_IO_TIMEOUT = 'Oppkobling til `{}` gikk ut på tid: {}'
 NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\
     'If this causes problems, you need to check the link.'
 
-# COG - QUOTE
-QUOTE_EDIT_CONFIRMED = 'Endret sitat'
-QUOTE_NO_EDIT_CONFIRMED = 'Endret *ikke* sitat'
-QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat?'\
-    '\n```# {}\n{}\n({})```\n'
-QUOTE_DENY_DELETE = 'Sitatet slettes ikke'
-QUOTE_DELETE_CONFIRMED = 'Slettet sitat # {}'
-QUOTE_COUNT = 'Jeg har {} sitater på lager'
-QUOTE_DOES_NOT_EXIST = 'Sitat nummer {} finnes ikke'
-
 # COG - YOUTUBE
 YOUTUBE_NO_FEEDS_FOUND = 'Fant ingen Youtube-feeds'
 YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'

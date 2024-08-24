@@ -1,0 +1,35 @@
+en:
+  commands:
+    quote:
+      cmd: Quotes
+    post:
+      cmd: Post a quote
+      quote_not_exist: 'Quote # %{number} does not exist'
+    add:
+      cmd: Add a quote
+      modal_title: Add quote
+      msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
+    edit:
+      cmd: Edit an existing quote
+      modal_title: Edit quote
+      no_change: No changes discovered
+    delete:
+      cmd: Delete a quote
+      confirm_delete: 'Are you sure you want to delete the following quote?'\
+      '\n```# %{quote_num}\n%{quote_text}\n(%{quote_date})```\n'
+      msg_confirm: 'Deleted quote # %{quote_num}' 
+      msg_fail: Will not delete quote, check logs
+    count:
+      cmd: Count the number of quotes
+      msg_confirm: 'Jeg har %{num_quotes} sitater på lager' 
+  modals:
+    quote_num: Quote number
+    quote_text: Quote text
+    quote_date: Quote date
+    date_placeholder: Date and time (DD.MM.YYYY HH:MM)
+    add:
+      msg_confirm: Quote added
+      msg_error: 'Error: %{error}'
+    edit:
+      msg_confirm: Quote edited
+      msg_error: 'Error: %{error}'
