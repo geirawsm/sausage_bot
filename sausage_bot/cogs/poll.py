@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+import discord
 from discord.ext import commands
+from discord.app_commands import locale_str
 import random
 import asyncio
 import re
 import pendulum
 import uuid
-import discord
 
 from sausage_bot.util import db_helper, envs
 from sausage_bot.util import datetime_handling
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 _tz = 'local'
@@ -27,7 +29,7 @@ class MakePoll(commands.Cog):
     )
     @discord.app_commands.command(
         name="poll",
-        description='Make a poll for voting on something'
+        description=locale_str(I18N.t('poll.commands.poll.cmd'))
     )
     async def poll(
         self, interaction: discord.Interaction, channel: discord.TextChannel,
@@ -67,24 +69,32 @@ class MakePoll(commands.Cog):
             dt_post_secs = datetime_handling.get_dt(dt=dt_post)
             if dt_post_secs < dt_now:
                 await interaction.followup.send(
-                    'Posting time is in the past'
+                    I18N.t('poll.commands.poll.msg.post_in_past')
                 )
                 return
         else:
             await interaction.followup.send(
-                f'`post_time` "{post_time}" gives error'
+                I18N.t(
+                    'poll.commands.poll.msg.post_gives_error',
+                    post_time=post_time
+                )
             )
             return
         # Check lock_time
         if lock_time in [None, 'no', 'now']:
             await interaction.followup.send(
-                'No lock_time is given', ephemeral=True
+                I18N.t('poll.commands.poll.msg.no_time_given'),
+                ephemeral=True
             )
             return
         lock_time_regex = r'^(\d+)(\s)?(h|m)$'
         if not re.match(lock_time_regex, lock_time):
             await interaction.followup.send(
-                'Error with given `lock_time`', ephemeral=True
+                I18N.t(
+                    'poll.commands.poll.msg.lock_gives_error',
+                    lock_time=lock_time
+                ),
+                ephemeral=True
             )
             return
         _uuid = str(uuid.uuid4())
@@ -129,14 +139,18 @@ class MakePoll(commands.Cog):
             if dt_post is None:
                 post_wait = 0
                 coming_post = await interaction.followup.send(
-                    'Avstemningen postes straks'
+                    
+                    I18N.t('poll.commands.poll.msg.posting_now')
                 )
             else:
                 dt_now = pendulum.now('local')
                 post_wait = dt_now.diff(dt_post).in_seconds()
                 dt_post_epoch = dt_post.format('x')[0:-3]
                 coming_post = await interaction.followup.send(
-                    f'Avstemningen postes om <t:{dt_post_epoch}:R>',
+                    I18N.t(
+                        'poll.commands.poll.msg.posting_fixed',
+                        dt_post_epoch=dt_post_epoch
+                    ),
                     ephemeral=False
                 )
             log.debug(f'post_wait: {post_wait}')
@@ -174,14 +188,14 @@ class MakePoll(commands.Cog):
             )
             embed_json = discord.Embed.from_dict(
                 {
-                    'title': 'Avstemning',
+                    'title': I18N.t('poll.commands.poll.msg.embed_title'),
                     'description': desc_out,
                 }
             )
         except TimeoutError:
-            # TODO var msg
             await interaction.followup.send(
-                'Timed out', ephemeral=True
+                I18N.t('poll.commands.poll.msg.timed_out'),
+                ephemeral=True
             )
             return
         # Post the poll message
@@ -196,12 +210,14 @@ class MakePoll(commands.Cog):
         post_text = pendulum.now('local').format('DD.MM.YY, HH:mm')
         await coming_post.delete()
         await interaction.followup.send(
-            content=f"Avstemningen ble postet {post_text}",
+            I18N.t('poll.commands.poll.msg.post_confirm', post_text=post_text),
             ephemeral=True
         )
-        message_text = f'Avstemning blir stengt om <t:{dt_lock_epoch}:R>'
         poll_msg = await channel.send(
-            content=message_text,
+            I18N.t(
+                'poll.commands.poll.msg.lock_confirm_future',
+                dt_lock_epoch=dt_lock_epoch
+            ),
             embed=embed_json
         )
         log.debug(f'Got `poll_msg`: {poll_msg}')
@@ -265,11 +281,13 @@ class MakePoll(commands.Cog):
             desc_out += f'\n{reaction[0]}: {reaction[1]}'
         embed_json = discord.Embed.from_dict(
             {
-                'title': 'Avstemning',
+                'title': I18N.t('poll.commands.poll.msg.embed_title'),
                 'description': desc_out,
                 'footer': {
-                    # TODO var msg
-                    'text': f'Avstemning ble stengt etter {dt_lock_text}'
+                    'text': I18N.t(
+                        'poll.commands.poll.msg.lock_confirm',
+                        dt_lock_text=dt_lock_text
+                    )
                 }
             }
         )

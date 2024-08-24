@@ -1,0 +1,16 @@
+en:
+  commands:
+    poll:
+      cmd: Make a poll for voting on something
+      msg:
+        post_in_past: Posting time is in the past
+        post_gives_error: '`post_time` "%{post_time}" gives error'
+        no_time_given: No lock_time is given
+        lock_gives_error: '`lock_time` "%{lock_time}" gives error'
+        posting_now: Poll will be posted soon
+        posting_fixed: 'Poll will be posted in <t:%{dt_post_epoch}:R>'
+        embed_title: Poll
+        timed_out: Timed out
+        post_confirm: 'Poll was posted %{post_text}'
+        lock_confirm_future: 'Poll is closed in <t:%{dt_lock_epoch}:R>'
+        lock_confirm: 'Poll was closed after %{dt_lock_text}'
