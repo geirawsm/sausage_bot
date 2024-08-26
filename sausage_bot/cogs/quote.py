@@ -24,7 +24,7 @@ async def quotes_autocomplete(
                 quote[0],
                 str(await get_dt(format='datetextfull', dt=quote[3])),
                 '{}...'.format(
-                    quote[2][0:65]) if len(quote[2]) > 65 else quote[2]
+                    quote[2][0:35]) if len(quote[2]) > 35 else quote[2]
             ),
             value=str(quote[0])
         ) for quote in quotes_db if current.lower() in '{}{}{}'.format(
