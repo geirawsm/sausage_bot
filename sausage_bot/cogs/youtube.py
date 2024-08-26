@@ -472,11 +472,13 @@ async def setup(bot):
         )
         youtube_filter_prep_is_ok = await db_helper.prep_table(
             envs.youtube_db_filter_schema,
-            youtube_inserts['filter'] if youtube_inserts is not None else youtube_inserts
+            youtube_inserts['filter']
+            if youtube_inserts is not None else youtube_inserts
         )
         youtube_log_prep_is_ok = await db_helper.prep_table(
             envs.youtube_db_log_schema,
-            youtube_inserts['logs'] if youtube_inserts is not None else youtube_inserts
+            youtube_inserts['logs']
+            if youtube_inserts is not None else youtube_inserts
         )
         log.verbose(f'`youtube_prep_is_ok` is {youtube_prep_is_ok}')
         log.verbose(

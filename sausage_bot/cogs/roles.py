@@ -137,7 +137,8 @@ async def settings_autocomplete(
             ),
             value=str(setting[0])
         )
-        for setting in settings_in_list if current.lower() in setting[3].lower()
+        for setting in settings_in_list
+        if current.lower() in setting[3].lower()
     ]
 
 
@@ -283,7 +284,6 @@ async def sync_reaction_message_from_settings(
     }
     # Edit discord message
     await msg_obj.edit(
-        #content=db_message[0][3],
         embed=discord.Embed.from_dict(embed_json)
     )
     return
@@ -1533,7 +1533,7 @@ class Autoroles(commands.Cog):
             ]
         )
         # TODO i18n
-        await interaction.followup.send(f'Added setting')
+        await interaction.followup.send('Added setting')
         return
 
     @commands.check_any(
@@ -1563,7 +1563,7 @@ class Autoroles(commands.Cog):
             numbers=setting
         )
         # TODO i18n
-        await interaction.followup.send(f'Removed setting')
+        await interaction.followup.send('Removed setting')
         return
 
     @commands.check_any(
@@ -1571,7 +1571,7 @@ class Autoroles(commands.Cog):
         commands.has_permissions(manage_roles=True)
     )
     @roles_settings_group.command(
-        name='list', description='List settings for roles on the server' 
+        name='list', description='List settings for roles on the server'
     )
     async def list_settings(
         self, interaction: discord.Interaction
@@ -1593,7 +1593,9 @@ class Autoroles(commands.Cog):
             _settings_db_expanded.append(
                 (setting[0], _role, setting[1])
             )
-        _settings = tabulate(_settings_db_expanded, headers=['Setting', 'Role', 'Value'])
+        _settings = tabulate(
+            _settings_db_expanded, headers=['Setting', 'Role', 'Value']
+        )
         # TODO i18n
         await interaction.followup.send(f'```{_settings}```')
         return

@@ -36,7 +36,6 @@ async def hidden_roles_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    
     hidden_roles_in_db = await db_helper.get_output(
             template_info=envs.stats_db_hide_roles_schema,
             get_row_ids=True
@@ -445,8 +444,12 @@ class Stats(commands.Cog):
                         if role != '@everyone':
                             # Check for `sort_min_role_members`
                             if stats_settings['sort_min_role_members']:
-                                min_members = stats_settings['sort_min_role_members']
-                                if dict_in[role]['members'] >= int(min_members):
+                                min_members = stats_settings[
+                                    'sort_min_role_members'
+                                ]
+                                if dict_in[role]['members'] >= int(
+                                    min_members
+                                ):
                                     dict_out['name'].append(
                                         dict_in[role]['name'])
                                     dict_out['members'].append(

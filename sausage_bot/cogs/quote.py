@@ -2,8 +2,6 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-from discord.utils import get
-import typing
 import uuid
 from asyncio import TimeoutError
 
@@ -177,7 +175,7 @@ class QuoteAddModal(discord.ui.Modal):
 
         await interaction.response.send_message(
             # TODO i18n
-            f'Quote added', ephemeral=True
+            'Quote added', ephemeral=True
         )
 
     async def on_error(self, interaction: discord.Interaction, error):
@@ -230,7 +228,7 @@ class QuoteEditModal(discord.ui.Modal):
 
         await interaction.response.send_message(
             # TODO i18n
-            f'Quote edited', ephemeral=True
+            'Quote edited', ephemeral=True
         )
 
     async def on_error(self, interaction: discord.Interaction, error):

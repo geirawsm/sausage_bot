@@ -145,7 +145,9 @@ class AutoEvent(commands.Cog):
                         ephemeral=True
                     )
                 except (discord.HTTPException) as e:
-                    log.error(envs.AUTOEVENT_HTTP_EXCEPTION_ERROR.format(e.text))
+                    log.error(
+                        envs.AUTOEVENT_HTTP_EXCEPTION_ERROR.format(e.text)
+                    )
                     if 'Cannot schedule event in the past' in str(e):
                         log.log(envs.AUTOEVENT_EVENT_START_IN_PAST)
                         # Delete command message

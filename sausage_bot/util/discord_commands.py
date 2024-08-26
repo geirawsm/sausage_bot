@@ -302,7 +302,9 @@ async def remove_stats_post(stats_channel):
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
                     # TODO var msg
-                    log.debug('Found post with `Serverstats sist`, removing...')
+                    log.debug(
+                        'Found post with `Serverstats sist`, removing...'
+                    )
                     await msg.delete()
                     found_stats_msg = True
                     return

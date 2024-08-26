@@ -68,7 +68,7 @@ async def check_spotify_podcast(url):
     pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', url).group(1)
     try:
         _show = _spotipy.show(pod_id)
-        log.debug(f'`_show`: ', pretty=_show)
+        log.debug('`_show`: ', pretty=_show)
         return _show
     except Exception as e:
         log.error(f'ERROR: {e}')
@@ -120,7 +120,7 @@ async def get_spotify_podcast_links(feed):
         temp_info['img'] = ep['images'][0]['url']
         temp_info['id'] = ep['id']
         temp_info['duration'] = ep['duration_ms'] * 1000
-        log.verbose(f'Populated `temp_info`: ', pretty=temp_info)
+        log.verbose('Populated `temp_info`: ', pretty=temp_info)
         items_out['items'].append(temp_info)
         log.debug(
             'len of `items_out[\'items\']` is {}'.format(
@@ -252,7 +252,9 @@ async def make_event_start_stop(date, time=None):
     try:
         start_date = await datetime_handling.get_dt('date', dt=start_dt)
         log.debug(f'Making `start_date` {start_date}')
-        start_time = await datetime_handling.get_dt('time', sep=':', dt=start_dt)
+        start_time = await datetime_handling.get_dt(
+            'time', sep=':', dt=start_dt
+        )
         log.debug(f'Making `start_time` {start_time}')
         # Make a startdate for the event that starts 30 minutes before
         # the match
@@ -262,7 +264,9 @@ async def make_event_start_stop(date, time=None):
         log.debug(f'`start_event` is {start_event}')
         # Make an enddate for the event that should stop approximately
         # 30 minutes after the match is over
-        end_dt = await datetime_handling.change_dt(start_dt, 'add', 2.5, 'hours')
+        end_dt = await datetime_handling.change_dt(
+            start_dt, 'add', 2.5, 'hours'
+        )
         log.debug(f'`end_dt` is {end_dt}')
         # Make the epochs that the event will use
         event_start_epoch = await datetime_handling.get_dt(dt=start_event)

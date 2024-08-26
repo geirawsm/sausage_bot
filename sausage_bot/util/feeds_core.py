@@ -157,7 +157,7 @@ async def add_to_feed_db(
     test_link = await net_io.get_link(feed_link)
     if not args.rss_skip_url_validation:
         if test_link is None:
-            log.verbose(f'`test_link` is None')
+            log.verbose('`test_link` is None')
             return None
         elif isinstance(test_link, int):
             log.verbose(f'`test_link` returns code {test_link}')
@@ -530,14 +530,14 @@ async def review_feeds_status(feed_type: str = None):
             failed_channels.append([FEED_NAME, CHANNEL])
     if len(failed_feeds) > 0:
         # TODO i18n
-        feed_error_msg = f'Følgende feeds hadde feil ved henting av '\
+        feed_error_msg = 'Følgende feeds hadde feil ved henting av '\
             'linker:\n- {}'.format(
                 '\n- '.join(failed_feeds)
             )
         await discord_commands.log_to_bot_channel(feed_error_msg)
     if len(failed_channels) > 0:
         # TODO i18n
-        channel_error_msg = f'Følgende feeds hadde feil ved posting til '\
+        channel_error_msg = 'Følgende feeds hadde feil ved posting til '\
             'valgte kanaler:\n- {}'.format(
                 '\n- '.join(f'{failed_channels[0]}: {failed_channels[1]}')
             )
@@ -562,9 +562,9 @@ def link_similar_to_logged_post(link: str, feed_log: list):
     '''
     for log_item in feed_log:
         if file_io.check_similarity(log_item[0], link):
-            log.debug(f'Found similar link log)')
+            log.debug('Found similar link log)')
             return True
-        log.debug(f'No similar link found')
+        log.debug('No similar link found')
     return False
 
 
@@ -664,7 +664,7 @@ async def process_links_for_posting_or_editing(
                     embed.set_image(url=item['img'])
                     embed.set_footer(text=item['pod_description'])
                     log.debug(
-                        f'Sending this embed to channel: ', pretty=embed
+                        'Sending this embed to channel: ', pretty=embed
                     )
                     await discord_commands.post_to_channel(
                         CHANNEL, embed_in=embed
