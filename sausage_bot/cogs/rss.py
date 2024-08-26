@@ -158,6 +158,11 @@ class RSSfeed(commands.Cog):
                     'Urlen er ikke en RSS/XML feed', ephemeral=True
                 )
                 return
+            elif isinstance(valid_feed, int):
+                await interaction.followup.send(
+                    f'Urlen gir feilkode: {valid_feed}', ephemeral=True
+                )
+                return
         log.verbose('Adding feed to db')
         await feeds_core.add_to_feed_db(
             'spotify', str(feed_name), str(feed_link), channel.name, AUTHOR

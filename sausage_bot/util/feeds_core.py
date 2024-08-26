@@ -26,17 +26,6 @@ async def check_if_feed_name_exist(feed_name):
         return True
 
 
-async def check_url_validity(url):
-    'Make sure that `url` is a valid link'
-    log.verbose(f'Checking `{url}`')
-    req = await net_io.get_link(url)
-    log.debug(f'req is ({type(req)})')
-    if req is None:
-        return False
-    else:
-        return True
-
-
 async def check_feed_validity(URL):
     'Make sure that `URL` is a valid link with feed items'
     sample_item = None
@@ -46,6 +35,8 @@ async def check_feed_validity(URL):
     if req is None:
         log.verbose('Returned None')
         return None
+    elif isinstance(req, int):
+        return req
     if 'open.spotify.com/show/' in URL:
         log.verbose('Discovered Spotify branded link')
         sample_item = await net_io.check_spotify_podcast(URL)
@@ -164,6 +155,9 @@ async def add_to_feed_db(
     if test_link is None:
         log.verbose(f'`test_link` is None')
         return None
+    elif isinstance(test_link, int):
+        log.verbose(f'`test_link` returns code {test_link}')
+        return test_link
     date_now = datetime_handling.get_dt(format='datetime')
     if feed_type in ['rss', 'spotify']:
         await db_helper.insert_many_some(
@@ -263,6 +257,8 @@ async def get_feed_links(feed_type, feed_info):
             )
             log.debug(f'Got {len(links_out)} items from `get_items_from_rss`')
             return links_out
+        elif isinstance(req, int):
+            return req
         else:
             return
 
@@ -471,7 +467,7 @@ async def review_feeds_status(feed_type: str = None):
                 db_updates['status_url_counter'].append(
                     ('uuid', UUID, 0)
                 )
-        elif not is_valid_feed:
+        elif not is_valid_feed or isinstance(is_valid_feed, int):
             log.debug(
                 f'`URL_STATUS_COUNTER` ({URL_STATUS_COUNTER}) vs '
                 f'`envs.FEEDS_URL_ERROR_LIMIT` ({envs.FEEDS_URL_ERROR_LIMIT})'

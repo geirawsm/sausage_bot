@@ -29,12 +29,13 @@ except SpotifyOauthError:
 async def get_link(url):
     'Get contents of requests object from a `url`'
     content_out = None
+    url_status = 0
     if type(url) is not str:
         log.error(envs.RSS_INVALID_URL.format(url))
         return None
-    if re.search(r'^http(s)?', url):
+    if re.search(r'^http(s)?\:', url):
         log.debug('Found scheme in url')
-    elif re.match(r'^((http:\/\/|^https:\/\/))?((www\.))?', url) is not None:
+    elif re.match(r'^((http\:\/\/|^https\:\/\/))?((www\.))?', url) is not None:
         log.debug('Did not found scheme, adding')
         url = f'https://{url}'
     try:
@@ -42,16 +43,16 @@ async def get_link(url):
         session = aiohttp.ClientSession()
         async with session.get(url) as resp:
             url_status = resp.status
-            content_out = await resp.text()
             log.debug(f'Got status: {url_status}')
+            content_out = await resp.text()
             log.debug(f'Got content_out: {content_out[0:500]}...')
         await session.close()
     except Exception as e:
-        log.error(f'Error when getting `url`: {e}')
+        log.error(f'Error when getting `url`:({url_status}) {e}')
         return None
     if 399 < int(url_status) < 600:
         log.error(f'Got error code {url_status}')
-        return None
+        return int(url_status)
     if content_out is None:
         return None
     else:
