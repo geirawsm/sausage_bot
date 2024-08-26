@@ -341,7 +341,7 @@ class Quotes(commands.Cog):
             # Post quote
             quote_number = random_quote[0][0]
             quote_text = random_quote[0][2]
-            quote_date = get_dt(
+            quote_date = await get_dt(
                 format='datetextfull',
                 dt=random_quote[0][3]
             )
@@ -364,7 +364,7 @@ class Quotes(commands.Cog):
             log.verbose(f'quote_out: {quote_out}')
             if quote_out:
                 quote_text = quote_out[0][2]
-                quote_date = get_dt(
+                quote_date = await get_dt(
                     format='datetextfull',
                     dt=quote_out[0][3]
                 )
@@ -409,9 +409,9 @@ class Quotes(commands.Cog):
         # Datetime will be saved as ISO8601:
         # YYYY-MM-DD HH:MM:SS.SSS
         if not quote_out['datetime']:
-            iso_date = str(get_dt(format='ISO8601'))
+            iso_date = str(await get_dt(format='ISO8601'))
         else:
-            iso_date = get_dt(format='ISO8601', dt=quote_out['datetime'])
+            iso_date = await get_dt(format='ISO8601', dt=quote_out['datetime'])
         log.verbose(f'iso_date: {iso_date}')
         # Add the quote
         await db_helper.insert_many_all(
@@ -456,7 +456,8 @@ class Quotes(commands.Cog):
             await interaction.followup.send(_msg, ephemeral=True)
             return
         if update_triggered:
-            log.verbose('Discovered changes in quote:', pretty=modal_in.quote_out)
+            log.verbose('Discovered changes in quote:',
+                        pretty=modal_in.quote_out)
             # Update quote
             await db_helper.update_fields(
                 template_info=envs.quote_db_schema,
@@ -465,7 +466,7 @@ class Quotes(commands.Cog):
                 ],
                 updates=[
                     ('quote_text', modal_in.quote_out['quote_text']),
-                    ('datetime', get_dt(
+                    ('datetime', await get_dt(
                         format='ISO8601',
                         dt=modal_in.quote_out['datetime']
                     ))
@@ -556,7 +557,7 @@ async def setup(bot):
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.quote_file):
         log.verbose('Found old json file')
-        quote_inserts = db_helper.json_to_db_inserts(cog_name)
+        quote_inserts = await db_helper.json_to_db_inserts(cog_name)
 
     # Prep of DB should only be done if the db files does not exist
     quote_prep_is_ok = False

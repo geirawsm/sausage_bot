@@ -459,7 +459,7 @@ async def setup(bot):
     if file_io.file_exist(envs.youtube_feeds_file) and \
             file_io.file_exist(envs.youtube_feeds_logs_file):
         log.verbose('Found old json file - feeds')
-        youtube_inserts = db_helper.json_to_db_inserts(cog_name)
+        youtube_inserts = await db_helper.json_to_db_inserts(cog_name)
     log.debug(f'Got these inserts:\n{youtube_inserts}')
 
     # Prep of DBs should only be done if the db files does not exist

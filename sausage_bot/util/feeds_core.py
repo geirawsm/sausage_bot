@@ -164,7 +164,7 @@ async def add_to_feed_db(
             return test_link
     else:
         log.verbose('Skipping url validation')
-    date_now = datetime_handling.get_dt(format='datetime')
+    date_now = await datetime_handling.get_dt(format='datetime')
     if feed_type in ['rss', 'spotify']:
         await db_helper.insert_many_some(
             envs.rss_db_schema,
@@ -679,7 +679,7 @@ async def process_links_for_posting_or_editing(
                     template_info=feed_db_log,
                     inserts=[
                         (uuid, feed_link, str(
-                            datetime_handling.get_dt(
+                            await datetime_handling.get_dt(
                                 format='ISO8601'
                             )
                         ))

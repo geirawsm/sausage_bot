@@ -178,7 +178,7 @@ class AutoEvent(commands.Cog):
             Use if you want to remove all events
         '''
         await interaction.response.defer(ephemeral=True)
-        event_dict = discord_commands.get_scheduled_events()
+        event_dict = await discord_commands.get_scheduled_events()
         log.debug(f'Got `event_dict`: {event_dict}')
         # Delete all events
         _guild = discord_commands.get_guild()
@@ -211,7 +211,7 @@ class AutoEvent(commands.Cog):
         Lists all the planned events: `!autoevent list`
         '''
         await interaction.response.defer(ephemeral=True)
-        events = discord_commands.get_sorted_scheduled_events()
+        events = await discord_commands.get_sorted_scheduled_events()
         if events is None:
             msg_out = envs.AUTOEVENT_NO_EVENTS_LISTED
         else:
@@ -254,7 +254,7 @@ class AutoEvent(commands.Cog):
         # Check that `start_time` is a decent time
         re_check = re.match(r'^(\d{1,2})[-:.,;_]+(\d{1,2})', str(start_time))
         if re_check:
-            timer_epoch = datetime_handling.get_dt() + int(countdown)
+            timer_epoch = await datetime_handling.get_dt() + int(countdown)
             rel_start = f'<t:{timer_epoch}:R>'
             timer_msg = await interaction.followup.send(
                 f'Sync til {re_check.group(1)}:{re_check.group(2)} {rel_start}'
@@ -294,12 +294,11 @@ class AutoEvent(commands.Cog):
         # Get event
         _guild = discord_commands.get_guild()
         _event = _guild.get_scheduled_event(int(event))
-        rel_start = '<t:{}:R>'.format(
-            datetime_handling.get_dt(
-                format='epoch',
-                dt=_event.start_time.astimezone()
-            )
+        epoch_time = await datetime_handling.get_dt(
+            format='epoch',
+            dt=_event.start_time.astimezone()
         )
+        rel_start = f'<t:{epoch_time}:R>'
         announce_text = 'Minner om eventen som '\
             'begynner {}, 30 min før kampstart'.format(
                 rel_start

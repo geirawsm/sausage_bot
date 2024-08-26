@@ -122,7 +122,7 @@ async def setup(bot):
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.dilemmas_file):
         log.verbose('Found old json file')
-        dilemmas_inserts = db_helper.json_to_db_inserts(cog_name)
+        dilemmas_inserts = await db_helper.json_to_db_inserts(cog_name)
         log.debug(f'`dilemmas_inserts` is {dilemmas_inserts}')
 
     # Prep of DBs should only be done if the db files does not exist

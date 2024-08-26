@@ -30,7 +30,6 @@ async def feed_name_autocomplete(
     length_counter = 90
     length_counter -= len(str(feed[1]))
     length_counter -= len(str(feed[3]))
-    
     return [
         discord.app_commands.Choice(
             name='{feed_name}: #{channel} ({url})'.format(
@@ -523,7 +522,7 @@ async def setup(bot):
     if file_io.file_exist(envs.rss_feeds_file) or\
             file_io.file_exist(envs.rss_feeds_logs_file):
         log.verbose('Found old json files')
-        rss_inserts = db_helper.json_to_db_inserts(cog_name)
+        rss_inserts = await db_helper.json_to_db_inserts(cog_name)
     log.debug(f'Got these inserts:\n{rss_inserts}')
 
     # Prep of DBs should only be done if the db files does not exist

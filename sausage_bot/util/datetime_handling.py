@@ -15,7 +15,7 @@ pendulum.week_starts_at(pendulum.MONDAY)
 pendulum.week_ends_at(pendulum.SUNDAY)
 
 
-def make_dt(date_in):
+async def make_dt(date_in):
     '''
     Make a datetime-object from string input
 
@@ -116,7 +116,7 @@ def make_dt(date_in):
                 if all(len(timeunit) == 2 for timeunit in d_split):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]} {d[4]} {d[5]}'
-                    return pendulum.from_format(
+                    return await pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
                     )
                 pass
@@ -139,7 +139,7 @@ def make_dt(date_in):
             return None
 
 
-def get_dt(format='epoch', sep='.', dt=False):
+async def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
 
@@ -180,10 +180,10 @@ def get_dt(format='epoch', sep='.', dt=False):
     '''
     if isinstance(dt, datetime.datetime):
         log.debug('Input is a datetime object')
-        dt = make_dt(str(dt))
+        dt = await make_dt(str(dt))
     if isinstance(dt, str):
         log.debug('Input is a string')
-        dt = make_dt(dt)
+        dt = await make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
             return None

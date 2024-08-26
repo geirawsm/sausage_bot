@@ -229,7 +229,7 @@ def filter_links(items):
     return links_out
 
 
-def make_event_start_stop(date, time=None):
+async def make_event_start_stop(date, time=None):
     '''
     Make datetime objects for the event based on the start date and time.
     The event will start 30 minutes prior to the match, and it will end 2
@@ -242,33 +242,33 @@ def make_event_start_stop(date, time=None):
     try:
         # Make the original startdate an object
         if time is None:
-            start_dt = datetime_handling.make_dt(date)
+            start_dt = await datetime_handling.make_dt(date)
         else:
-            start_dt = datetime_handling.make_dt(f'{date} {time}')
+            start_dt = await datetime_handling.make_dt(f'{date} {time}')
         log.debug(f'`start_dt` is {start_dt}')
     except Exception as e:
         log.error(f'Got an error: {e}')
         return None
     try:
-        start_date = datetime_handling.get_dt('date', dt=start_dt)
+        start_date = await datetime_handling.get_dt('date', dt=start_dt)
         log.debug(f'Making `start_date` {start_date}')
-        start_time = datetime_handling.get_dt('time', sep=':', dt=start_dt)
+        start_time = await datetime_handling.get_dt('time', sep=':', dt=start_dt)
         log.debug(f'Making `start_time` {start_time}')
         # Make a startdate for the event that starts 30 minutes before
         # the match
-        start_event = datetime_handling.change_dt(
+        start_event = await datetime_handling.change_dt(
             start_dt, 'remove', 30, 'minutes'
         )
         log.debug(f'`start_event` is {start_event}')
         # Make an enddate for the event that should stop approximately
         # 30 minutes after the match is over
-        end_dt = datetime_handling.change_dt(start_dt, 'add', 2.5, 'hours')
+        end_dt = await datetime_handling.change_dt(start_dt, 'add', 2.5, 'hours')
         log.debug(f'`end_dt` is {end_dt}')
         # Make the epochs that the event will use
-        event_start_epoch = datetime_handling.get_dt(dt=start_event)
-        event_end_epoch = datetime_handling.get_dt(dt=end_dt)
+        event_start_epoch = await datetime_handling.get_dt(dt=start_event)
+        event_end_epoch = await datetime_handling.get_dt(dt=end_dt)
         # Make a relative start object for the game
-        start_epoch = datetime_handling.get_dt(dt=start_dt)
+        start_epoch = await datetime_handling.get_dt(dt=start_dt)
         rel_start = discord.utils.format_dt(
             datetime.fromtimestamp(start_epoch),
             'R'
@@ -311,15 +311,15 @@ async def parse(url: str = None):
     ------------
     dict with info about the match
     '''
-    def parse_nifs(json_in):
+    async def parse_nifs(json_in):
         '''
         Parse match ID from matchpage from nifs.no, then use that in an
         api call
         '''
         # Get info relevant for the event
         date_in = json_in['timestamp']
-        _date_obj = datetime_handling.make_dt(date_in)
-        dt_in = make_event_start_stop(_date_obj)
+        _date_obj = await datetime_handling.make_dt(date_in)
+        dt_in = await make_event_start_stop(_date_obj)
         if dt_in is None:
             return None
         return {
@@ -341,7 +341,7 @@ async def parse(url: str = None):
             'stadium': json_in['stadium']['name']
         }
 
-    def parse_vglive(json_in):
+    async def parse_vglive(json_in):
         '''
         Parse match ID from matchpage from vglive.no, then use that in an
         api call
@@ -353,8 +353,8 @@ async def parse(url: str = None):
         else:
             stadium = None
         date_in = json_in['event']['startDate']
-        _date_obj = datetime_handling.make_dt(date_in)
-        dt_in = make_event_start_stop(_date_obj)
+        _date_obj = await datetime_handling.make_dt(date_in)
+        dt_in = await make_event_start_stop(_date_obj)
         if dt_in is None:
             log.error('Error with `dt_in`')
             return None
@@ -377,7 +377,7 @@ async def parse(url: str = None):
             'stadium': stadium
         }
 
-    def parse_tv2_livesport(json_in):
+    async def parse_tv2_livesport(json_in):
         '''
         Parse match ID from matchpage from tv2.no/livesport, then use that
         in an API call
@@ -390,8 +390,8 @@ async def parse(url: str = None):
         else:
             stadium = None
         date_in = json_in['startDate']
-        _date_obj = datetime_handling.make_dt(date_in)
-        dt_in = make_event_start_stop(_date_obj)
+        _date_obj = await datetime_handling.make_dt(date_in)
+        dt_in = await make_event_start_stop(_date_obj)
         if dt_in is None:
             log.error('Error with `dt_in`')
             return None
@@ -437,7 +437,7 @@ async def parse(url: str = None):
         try:
             json_in = await get_link(base_url.format(_id))
             json_out = json.loads(json_in)
-            parse = parse_nifs(json_out)
+            parse = await parse_nifs(json_out)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
@@ -453,7 +453,7 @@ async def parse(url: str = None):
         try:
             json_in = await get_link(base_url.format(_id))
             json_out = json.loads(json_in)
-            parse = parse_vglive(json_out)
+            parse = await parse_vglive(json_out)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
@@ -471,7 +471,7 @@ async def parse(url: str = None):
         try:
             json_in = await get_link(base_url.format(_id))
             json_out = json.loads(json_in)
-            parse = parse_tv2_livesport(json_out)
+            parse = await parse_tv2_livesport(json_out)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)

@@ -1658,7 +1658,7 @@ async def setup(bot):
     if not file_io.file_exist(envs.roles_db_roles_schema['db_file']):
         if file_io.file_exist(envs.roles_settings_file):
             log.verbose('Found old json file')
-            roles_inserts = db_helper.json_to_db_inserts(cog_name)
+            roles_inserts = await db_helper.json_to_db_inserts(cog_name)
             roles_inserts_msg = roles_inserts['msg_inserts']
             roles_inserts_reactions = roles_inserts['reactions_inserts']
             roles_inserts_settings = roles_inserts['settings_inserts']

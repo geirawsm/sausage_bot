@@ -508,11 +508,11 @@ class Stats(commands.Cog):
         )
         log_stats = False
         if date_exist:
-            if datetime_handling.get_dt(
-                format='date'
-            ) > datetime_handling.get_dt(
+            date_now = await datetime_handling.get_dt(format='date')
+            date_exist = await datetime_handling.get_dt(
                 format='date', dt=date_exist
-            ):
+            )
+            if date_now > date_exist:
                 log_stats = True
             else:
                 log.verbose('Today has already been logged, skipping...')
@@ -521,7 +521,7 @@ class Stats(commands.Cog):
         if log_stats:
             stats_log_inserts.append(
                 (
-                    str(datetime_handling.get_dt('ISO8601')),
+                    str(await datetime_handling.get_dt('ISO8601')),
                     files_in_codebase, lines_in_codebase,
                     members['member_count']
                 )
@@ -537,7 +537,7 @@ class Stats(commands.Cog):
             roles_members = await tabify(
                 dict_in=members['roles'], headers=['Rolle', 'Brukere']
             )
-        dt_log = datetime_handling.get_dt('datetimefull')
+        dt_log = await datetime_handling.get_dt('datetimefull')
         stats_msg = ''
         log.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
@@ -588,7 +588,7 @@ async def setup(bot):
     if file_io.file_exist(envs.stats_file) or\
             file_io.file_exist(envs.stats_logs_file):
         log.verbose('Found old json files')
-        stats_file_inserts = db_helper.json_to_db_inserts(cog_name)
+        stats_file_inserts = await db_helper.json_to_db_inserts(cog_name)
         stats_settings_inserts = stats_file_inserts['stats_inserts']
         stats_log_inserts = stats_file_inserts['stats_logs_inserts']
     log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')

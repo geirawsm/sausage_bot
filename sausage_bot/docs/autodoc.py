@@ -25,17 +25,17 @@ from ..util.log import log
 # import re
 
 
-def dump(item):
+async def dump(item):
     'Prettydump the content of item and exit'
     _dump = astpretty.pformat(item, indent=4, show_offsets=True)
     if doc_args.file_out:
         file_io.write_file(doc_envs.DOCS_DIR / doc_args.file_out, _dump)
     else:
         filename = 'dump-{}_{}.md'.format(
-            datetime_handling.get_dt(
+            await datetime_handling.get_dt(
                 format='revdate', sep='-'
             ),
-            datetime_handling.get_dt(
+            await datetime_handling.get_dt(
                 format='timefull', sep='-'
             )
         )
