@@ -20,15 +20,13 @@ async def quotes_autocomplete(
         template_info=envs.quote_db_schema,
         get_row_ids=True
     )
-    log.debug(f'`quotes_db`: {quotes_db}')
-    log.debug(f'`quotes_db[0]`: {quotes_db[0]}')
-    log.debug(f'`quotes_db[0][1]`: {quotes_db[0][1]}')
     return [
         discord.app_commands.Choice(
             name='{}. ({}) {}'.format(
                 quote[0],
-                str(get_dt(format='datetextfull', dt=quote[3])),
-                quote[2][0:55]
+                str(await get_dt(format='datetextfull', dt=quote[3])),
+                '{}...'.format(
+                    quote[2][0:65]) if len(quote[2]) > 65 else quote[2]
             ),
             value=str(quote[0])
         ) for quote in quotes_db if current.lower() in '{}{}{}'.format(
@@ -270,20 +268,16 @@ class Quotes(commands.Cog):
         name="quote", description='Quotes'
     )
 
+    @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
         name="post", description="Post a random quote"
     )
-    async def quote(
+    async def post(
             self, interaction: discord.Interaction,
-            number: typing.Optional[int] = None
+            quote_in: str = None
     ):
         '''
         Post quotes
-
-        Parameters
-        ------------
-        number: int
-            Chose a number if you want a specific quote (default: None)
         '''
 
         def prettify(number: str, text: str, date: str) -> str:
@@ -330,8 +324,8 @@ class Quotes(commands.Cog):
             )
 
         await interaction.response.defer()
-        # If no `number` is given, get a random quote
-        if not number:
+        # If no `quote_in` is given, get a random quote
+        if not quote_in:
             log.debug('No quote number given')
             random_quote = await get_random_quote()
             if len(random_quote) == 0:
@@ -359,8 +353,8 @@ class Quotes(commands.Cog):
                 ]
             )
             return
-        elif number:
-            quote_out = await get_quote_from_db(number)
+        elif quote_in:
+            quote_out = await get_quote_from_db(quote_in)
             log.verbose(f'quote_out: {quote_out}')
             if quote_out:
                 quote_text = quote_out[0][2]
@@ -368,12 +362,12 @@ class Quotes(commands.Cog):
                     format='datetextfull',
                     dt=quote_out[0][3]
                 )
-                _quote = prettify(number, quote_text, quote_date)
+                _quote = prettify(quote_in, quote_text, quote_date)
                 await interaction.followup.send(_quote)
                 return
             else:
                 await interaction.followup.send(
-                    envs.QUOTE_DOES_NOT_EXIST.format(number)
+                    envs.QUOTE_DOES_NOT_EXIST.format(quote_in)
                 )
                 return
 
