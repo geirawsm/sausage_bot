@@ -9,6 +9,7 @@ import re
 from sausage_bot.util import config, envs, feeds_core, file_io, net_io
 from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.log import log
+from sausage_bot.util.args import args
 
 
 async def feed_name_autocomplete(
@@ -162,16 +163,22 @@ class RSSfeed(commands.Cog):
         if "open.spotify.com/show/" not in feed_link:
             valid_feed = await feeds_core.check_feed_validity(feed_link)
             if not valid_feed:
-                # TODO var msg
-                await interaction.followup.send(
-                    'Urlen er ikke en RSS/XML feed', ephemeral=True
-                )
-                return
+                if not args.rss_skip_url_validation:
+                    # TODO var msg
+                    await interaction.followup.send(
+                        'Urlen er ikke en RSS/XML feed', ephemeral=True
+                    )
+                    return
+                else:
+                    pass
             elif isinstance(valid_feed, int):
-                await interaction.followup.send(
-                    f'Urlen gir feilkode: {valid_feed}', ephemeral=True
-                )
-                return
+                if not args.rss_skip_url_validation:
+                    await interaction.followup.send(
+                        f'Urlen gir feilkode {valid_feed}', ephemeral=True
+                    )
+                    return
+                else:
+                    pass
         log.verbose('Adding feed to db')
         await feeds_core.add_to_feed_db(
             'spotify', str(feed_name), str(feed_link), channel.name, AUTHOR

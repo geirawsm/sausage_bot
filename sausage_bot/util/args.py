@@ -93,6 +93,11 @@ testing_args.add_argument('--single-cog', '-c',
                           action='store',
                           default=False,
                           dest='single_cog')
+testing_args.add_argument('--rss-skip-url-validation',
+                          help='Skip URL validation when adding RSS feeds',
+                          action='store_true',
+                          default=False,
+                          dest='rss_skip_url_validation')
 version_info_args = parser.add_argument_group('Version info')
 version_info_args.add_argument('--last-commit',
                                help='Load info about last commit this bot '

@@ -6,9 +6,9 @@ from tabulate import tabulate
 from uuid import uuid4
 import discord
 
-
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper
+from sausage_bot.util.args import args
 
 from .log import log
 
@@ -28,6 +28,9 @@ async def check_if_feed_name_exist(feed_name):
 
 async def check_feed_validity(URL):
     'Make sure that `URL` is a valid link with feed items'
+    if args.rss_skip_url_validation:
+        log.verbose('Skipping url validation')
+        return True
     sample_item = None
     log.verbose(f'Checking `URL`: {URL}')
     req = await net_io.get_link(URL)
@@ -152,12 +155,15 @@ async def add_to_feed_db(
         return None
     # Test the link first
     test_link = await net_io.get_link(feed_link)
-    if test_link is None:
-        log.verbose(f'`test_link` is None')
-        return None
-    elif isinstance(test_link, int):
-        log.verbose(f'`test_link` returns code {test_link}')
-        return test_link
+    if not args.rss_skip_url_validation:
+        if test_link is None:
+            log.verbose(f'`test_link` is None')
+            return None
+        elif isinstance(test_link, int):
+            log.verbose(f'`test_link` returns code {test_link}')
+            return test_link
+    else:
+        log.verbose('Skipping url validation')
     date_now = datetime_handling.get_dt(format='datetime')
     if feed_type in ['rss', 'spotify']:
         await db_helper.insert_many_some(
