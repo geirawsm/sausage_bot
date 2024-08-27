@@ -1,0 +1,15 @@
+en:
+  commands:
+    post:
+      cmd: Post a random dilemma
+      no_dilemmas_in_db: No dilemmas in database
+    add:
+      cmd: Add a dilemma
+      msg_confirm: 'Added the following dilemma: %{dilemmas_in}'
+    count:
+      cmd: Count the numbers of dilemmas
+      msg_confirm:
+        zero: There are no dilemmas
+        one: There is one dilemma
+        few: There are %{count} dilemmas
+        many: There are %{count} dilemmas

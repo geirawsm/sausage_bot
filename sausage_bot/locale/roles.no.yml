@@ -1,0 +1,8 @@
+no:
+  commands:
+  views:
+    perms:
+      drop_general: Velg generelle tillatelser
+      drop_text: Velg tekst tillatelser
+      drop_voice: Velg stemme tillatelser
+  commands:

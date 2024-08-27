@@ -1,0 +1,31 @@
+en:
+  views:
+    perms:
+      drop_general: Select general permissions
+      drop_text: Select text permissions
+      drop_voice: Select voice permissions
+  emoji_headers:
+    emoji: Emoji
+    name: Name
+    id: ID
+    animated: Animated?
+    managed: Auto-managed?
+  roles_headers:
+    emoji: Emoji
+    name: Name
+    id: ID
+    members: Members
+    managed: Auto-managed?
+  commands:
+    roles:
+      cmd: Control roles on the server
+    reaction:
+      cmd: Control reaction messages on the server
+    reaction_add:
+      cmd: Add reaction message to the server
+    reaction_remove:
+      cmd: Remove reaction message from the server
+    settings:
+      cmd: Control settings on the server
+    info:
+      cmd: Get info about a specific role
