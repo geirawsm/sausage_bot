@@ -2,18 +2,38 @@ no:
   owner_only: Kun for eier
   msg:
     failed_bot_start: Kunne ikke starte boten (%{error})
-    bot_connected: '%{bot} har koblet til %{server}'
+    bot_connected: "%{bot} har koblet til %{server}"
     bot_watching: tilfeldige youtube videoer
-    create_log_channel_logging: 'Innkommende logg-meldinger fra %{botname}'
+    create_log_channel_logging: "Innkommende logg-meldinger fra %{botname}"
   commands:
     language:
       confirm_language_set: Språk satt til `%{language}`
     test:
       confirm: Norsk testmelding
     delete:
-      command:
+      command: 'Slett `amount` antall meldinger i chaten'
       less_than_0: Tallet må være mer enn 0
+      log_confirm: Massesletting via bot
+      msg_confirm: Slettet %{amount} meldinger
     say:
       command: Sender melding til en kanal. Fyll inn `message_id` hvis det skal svares på en melding
+      msg_confirm: 'Melding sendt til `#%{channel}`'
+      msg_forbidden: 'Jeg kan ikke sende meldinger i `#%{channel}`'
+      msg_error: 'En feil oppstod ved sending av melding: %{error}'
+    say_again:
+      command: Endre en tidligere melding sendt med /say
     tasks:
       command: List opp oppgaver og deres status
+    ping:
+      command: Sjekk latency
+    kick:
+      command: Spark ut en bruker (med grunn)
+      msg_confirm: '%{member} har blitt parket ut'
+      msg_failed: 'Klarte ikke å sparke ut: %{error}'
+    ban:
+      command: Utesteng en bruker (med grunn)
+      msg_confirm: '%{member} har blitt utestengt'
+      msg_failed: 'Klarte ikke å utestenge: %{error}'
+
+
+

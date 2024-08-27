@@ -126,13 +126,15 @@ async def on_ready():
 
 
 sync_group = discord.app_commands.Group(
-    name="sync", description=I18N.t('stats.commands.groups.stats')
+    name="sync", description=locale_str(
+        I18N.t('stats.commands.groups.stats')
+    )
 )
 
 
 @commands.check_any(commands.is_owner())
 @sync_group.command(
-    name='global', description='Owner only'
+    name='global', description=locale_str(I18N.t('main.owner_only'))
 )
 async def sync_global(interaction: discord.Interaction):
     await config.bot.tree.sync()
@@ -156,7 +158,7 @@ async def sync_global(interaction: discord.Interaction):
 
 @commands.is_owner()
 @config.bot.tree.command(
-    name='syncdev', description='Owner only'
+    name='syncdev', description=locale_str(I18N.t('main.owner_only')),
 )
 async def sync_dev(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -220,7 +222,7 @@ async def clear_commands(ctx):
 
 @commands.is_owner()
 @config.bot.tree.command(
-    name='version', description='Owner only'
+    name='version', description=locale_str(I18N.t('main.owner_only'))
 )
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -240,7 +242,7 @@ async def get_version(interaction: discord.Interaction):
 # Commands
 @commands.is_owner()
 @config.bot.tree.command(
-    name='ping', description='Sjekk latency'
+    name='ping', description=locale_str(I18N.t('main.commands.ping.command'))
 )
 async def ping(interaction: discord.Interaction):
     'Checks the bot latency'
@@ -256,7 +258,7 @@ async def ping(interaction: discord.Interaction):
 )
 @config.bot.tree.command(
     name='delete',
-    description='Delete `amount` number of messages in the chat'
+    description=locale_str(I18N.t('main.commands.delete.command'))
 )
 async def delete(interaction: discord.Interaction, amount: int):
     'Delete `amount` number of messages in the chat'
@@ -267,10 +269,11 @@ async def delete(interaction: discord.Interaction, amount: int):
     else:
         await interaction.response.defer(ephemeral=True)
         await interaction.channel.purge(
-            limit=amount, reason='Massesletting via bot'
+            limit=amount, reason=I18N.t('main.commands.delete.log_confirm')
         )
         await interaction.followup.send(
-            f'Deleted {amount} messages',
+            I18N.t('main.commands.delete.msg_confirm',
+                   amount=amount),
             ephemeral=True
         )
     return
@@ -282,7 +285,7 @@ async def delete(interaction: discord.Interaction, amount: int):
 )
 @config.bot.tree.command(
     name='kick',
-    description='Kick a user with reason'
+    description=locale_str(I18N.t('main.commands.kick.command'))
 )
 async def kick(
     interaction: discord.Interaction, member: discord.Member = None,
@@ -302,12 +305,18 @@ async def kick(
     try:
         await member.kick(reason=reason)
         await interaction.followup.send(
-            f'{member} has been kicked',
+            I18N.t(
+                'main.commands.kick.msg_confirm',
+                member=member
+            ),
             ephemeral=True
         )
-    except Exception as failkick:
+    except Exception as _error:
         await interaction.followup.send(
-            f'Failed to kick: {failkick}',
+            I18N.t(
+                'main.commands.kick.msg_failed',
+                error=_error
+            ),
             ephemeral=True
         )
 
@@ -318,7 +327,7 @@ async def kick(
 )
 @config.bot.tree.command(
     name='ban',
-    description='Ban a user with reason'
+    description=locale_str(I18N.t('main.commands.ban.command'))
 )
 async def ban(
     interaction: discord.Interaction, member: discord.Member = None,
@@ -338,19 +347,25 @@ async def ban(
     try:
         await member.ban(reason=reason)
         await interaction.followup.send(
-            f'{member} has been banned',
+            I18N.t(
+                'main.commands.ban.msg_confirm',
+                member=member,
+            ),
             ephemeral=True
         )
-    except Exception as failban:
+    except Exception as _error:
         await interaction.followup.send(
-            f'Failed to ban: {failban}',
+            I18N.t(
+                'main.commands.ban.msg_failed',
+                error=_error
+            ),
             ephemeral=True
         )
 
 
 @commands.check_any(commands.is_owner())
 @config.bot.tree.command(
-    name='say', description=I18N.t('main.commands.say.command')
+    name='say', description=locale_str(I18N.t('main.commands.say.command'))
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
@@ -369,17 +384,27 @@ async def say(
         else:
             await channel.send(message)
         await interaction.followup.send(
-            f'Melding sent til `#{channel.name}`', ephemeral=True
+            I18N.t(
+                'main.commands.say.msg_confirm',
+                channel=channel.name
+            ),
+            ephemeral=True
         )
     except discord.Forbidden:
         await interaction.followup.send(
-            'Jeg har ikke tilgang til å sende melding '
-            f'i `#{channel.name}`.',
+            I18N.t(
+                'main.commands.say.msg_forbidden',
+                channel=channel.name
+            ),
             ephemeral=True
         )
-    except Exception as e:
+    except Exception as _error:
         await interaction.followup.send(
-            f'An error occurred: {e}', ephemeral=True
+            I18N.t(
+                'main.commands.say.msg_error',
+                error=_error
+            ),
+            ephemeral=True
         )
 
 
@@ -389,7 +414,7 @@ async def say(
 )
 @config.bot.tree.command(
     name='sayagain',
-    description='Endre en tidligere melding sendt med /say'
+    description=locale_str(I18N.t('main.commands.say_again.command'))
 )
 async def say_again(
     interaction: discord.Interaction, msg_id: str, *, text: str
@@ -475,7 +500,8 @@ async def language(
 )
 async def test(interaction: discord.Interaction):
     await interaction.response.send_message(
-        I18N.t('main.commands.test.confirm'), ephemeral=True
+        I18N.t('dilemmas.commands.count.msg_confirm', count=0),
+        ephemeral=True
     )
     return
 
