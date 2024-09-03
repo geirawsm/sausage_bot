@@ -3,3 +3,16 @@ no:
   literal_yes_no:
     yes: Ja
     no: Nei
+  name: Navn
+  channel: Kanal
+  message_id: Meldings-ID
+  text: Tekst
+  order: Rekkefølge
+  id: ID
+  num_reactions: Ant. reaksjoner
+  msg_name: Meldingsnavn
+  msg_text: Meldingstekst
+  order: Rekkefølge
+  roles: Roller
+  emojis: Emojier
+  header: Overskrift

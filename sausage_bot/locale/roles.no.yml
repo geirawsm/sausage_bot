@@ -1,8 +1,174 @@
 no:
-  commands:
   views:
     perms:
       drop_general: Velg generelle tillatelser
-      drop_text: Velg tekst tillatelser
-      drop_voice: Velg stemme tillatelser
+      drop_text: Velg tekstillatelser
+      drop_voice: Velg stemmetillatelser
+  emoji_headers:
+    emoji: Emoji
+    name: Navn
+    id: ID
+    animated: Animert?
+    managed: Auto-håndtert?
+  roles_headers:
+    emoji: Emoji
+    name: Navn
+    id: ID
+    members: Medlemmer
+    managed: Auto-håndtert?
+  tabulate_emojis_and_roles: 
+    emoji_name: Emoji
+    emoji_id: Emoji ID
+    role_name: Rolle
+    role_id: Rolle ID
+  splits:
+    roles: 'Roller blir splittet på en eller fler av følgende tegn: " .,;-_\\/"'
+    emojis: 'Emojier blir splittet på en eller fler av følgende tegn: " .,;-_\\/"'
   commands:
+    roles:
+      cmd: Kontroller roller på serveren
+    reaction:
+      cmd: Kontroller reaksjonsmeldinger på serveren
+    reaction_add:
+      cmd: Legg til reaksjonsmelding på serveren
+    reaction_remove:
+      cmd: Fjern reaksjonsmelding på serveren
+    settings:
+      cmd: Kontroller innstillinger på serveren
+    info:
+      cmd: Hent informasjon om en spesifikk rolle
+      desc:
+        public: Gjør svaret offentlig
+        role_in: Rolle å hente informasjon om
+    list:
+      cms:
+      desc:
+        public: Gjør svaret offentlig
+        type: Listetype
+        sort: Sorteringsmetode
+      literal:
+        type:
+          roles: Roller
+          emojis: Emojier
+        sort:
+          name: Etter navn
+          id: Etter ID
+    add:
+      cmd: Legg til en rolle
+      desc:
+        role_name: Navn på rollen som skal legges til
+        hoist: Angi om rollen skal skilles ut i brukerliste eller ikke
+        mentionable: Angi om rollen skal kunne nevnes for alle eller ikke
+        color: 'Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
+        display_icon: Angi et ikon for rollen. Kun mulig hvis guilden har nok booster
+      set_perms: Angi tillatelser
+      msg_confirm: Rolle er opprettet
+      msg_error: 'Feil ved opprettelse av rolle: %{_error}'
+    remove:
+      cmd: Fjern en rolle fra serveren
+      desc:
+        role_name: Navn på rollen som skal fjernes
+      msg_confirm: 'Rollen `%{rolename}` har blitt fjernet'
+    edit: 
+      cmd: Rediger en rolle på serveren
+      desc: 
+        role_name: Navn på rollen som skal redigeres
+        new_name: Nytt navn for rollen
+        color: 'Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
+        hoist: Angir om rollen skal skilles ut i brukerliste eller ikke
+        permissions: Angir om tillatelser skal redigeres også
+      changelist_name: Navn
+      changelist_color: Farge 
+      changelist_hoist: Spesielt synlig
+      changelist_perms_added: Tillatelser lagt til
+      changelist_perms_removed: Tillatelser fjernet
+      changes_out: 'Utførte følgende endringer på rollen `%{role_name}`'
+      change_perms: Endre tillatelser 
+      msg_confirm: 'Rollen `%{role_name}` har blitt redigert'
+      msg_error: 'Feil ved redigering av rolle: %{_error}'
+    react_list:
+      cmd: Vis reaksjonsmeldinger eller info om en reaksjonsmelding
+      desc: 
+        reaction_msg: Reaksjonsmelding som skal vises
+      msg_error: 'Fant ikke %{reaction_msg}'
+      role_error: 'Rolle ikke funnet'
+      emoji_error: 'Emoji ikke funnet'
+      msg_no_msgs: Ingen meldinger i databasen
+    add_reaction_msg:
+      cmd: Legg til reaksjonsmelding
+      desc:
+        msg_name: Navn på reaksjonsmelding
+        msg_text: Reaksjonsmeldingens tekst
+        channel: Kanalen å poste reaksjonsmelding på
+        order: Gi reaksjonsmeldingen en rekkefølge
+        header: Tittel for melingen
+      msg_order_exist: 'En annen melding har allerede det nummeret i kanalen %{channel}, prøv istedet %{num}'
+      msg_reaction_already_exist: Reaksjonsmeldingen %{msg_name} finnes allerede
+      msg_roles_emojis_error: Klarte ikke å finne verken roller eller emojier
+      msg_confirm: Melding lagt til
+    add_reaction_role:
+      cmd: Legg til roller på en reaksjonsmelding
+      desc:
+        msg_name: Navn på melding for reaksjonsroller
+      msg_confirm: Roles added
+    sync:
+      cmd: Synkroniser reaksjonmeldinger med database
+      desc:
+        reaction_msg: Reaksjonsmeldingen som skal synkroniseres
+      confirm_sync: Reaksjonsmelding synkronisert
+    sort:
+      cmd: Sorter reaksjonsmeldinger alfabetisk
+      desc:
+        reaction_msg: Meldingen fra databasen
+      msg_error: 'Fant ikke %{reaction_msg}'
+      msg_confirm: Roller sortert
+    remove_msg:
+      cmd: Fjern en reaksjonsmelding
+      desc:
+        reaction_msg: Meldingen fra databasen
+      msg_confirm: Reaksjonsmelding fjernet
+      msg_error: Klarte ikke finne reaksjonsmeldingen
+    remove_role:
+      cmd: Fjern en reaksjon fra en reaksjonsmelding
+      desc:
+        reaction_msg: Meldingen fra databasen
+        role_name: Navn på en rolle som er knyttet mot en reaksjon
+      msg_confirm: 'Rollen `%{rolename}` er fjernet'
+    reorder:
+      cmd: Sjekk og fiks rekkefølgen på reaksjonsmeldinger i en kanal
+      desc:
+        channel: Kanal å sjekke
+      msg_confirm: Reaksjonsmeldinger sortert
+      msg_already_sorted: Reaksjonsmeldinger er allerede i riktig rekkefølge
+    settings_add:
+      cmd: Legg til en innstilling for roller
+      desc:
+        setting: Innstillingen som skal legges til
+        role_in: Rollen som skal legges til innstillingen
+      literal:
+        setting:
+          unique: Unik rolle
+          not_include_in_total: Ikke inkluder i totalen
+      role_already_set: Rollen er allerede satt
+      msg_confirm: Innstilling lagt til
+    settings_remove:
+      cmd: Fjern ern innstilling for roller
+      desc:
+        setting: Innstillingen som skal fjernes
+      msg_confirm: Innstilling `%{setting}` er fjernet
+    settings_list:
+      cmd: List opp innstillinger for roller
+      headers:
+        setting: Innstilling
+        role: Rolle
+        value: Verdi
+    settings_edit:
+      cmd: Rediger en innstilling for roller
+      desc:
+        setting: Innstillingen som skal redigeres
+        role_in: Rollen som skal legges til innstillingen
+      confirm_msg: 'Redigerte innstillingen (%{setting} = %{role_in})'
+    on_raw_reaction_add:
+      channel_log_confirm: Lagt til i henhold til reaksjonsmeldinger
+    on_raw_reaction_remove:
+      channel_log_confirm: Fjernet i henhold til reaksjonsmelding

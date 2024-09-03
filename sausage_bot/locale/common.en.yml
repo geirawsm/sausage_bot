@@ -3,3 +3,16 @@ en:
   literal_yes_no:
     yes: Yes
     no: No
+  name: Name
+  channel: Channel
+  message_id: Message ID
+  text: Text
+  order: Order
+  id: ID
+  num_reactions: No. reactions
+  msg_name: Message name
+  msg_text: Message text
+  order: Order
+  roles: Roles
+  emojis: Emojis
+  header: Header

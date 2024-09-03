@@ -185,7 +185,7 @@ class AutoEvent(commands.Cog):
         remove_all: typing.Literal[
             I18N.t('common.literal_yes_no.yes'),
             I18N.t('common.literal_yes_no.no')
-        ], event: str = None
+        ] = None, event: str = None
     ):
         '''
         Removes a scheduled event that has not started yet
