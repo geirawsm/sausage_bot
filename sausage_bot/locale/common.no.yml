@@ -3,6 +3,9 @@ no:
   literal_yes_no:
     yes: Ja
     no: Nei
+  literal_allow_deny:
+    allow: Tillat
+    deny: Nekt
   name: Navn
   channel: Kanal
   message_id: Meldings-ID

@@ -1,0 +1,67 @@
+en:
+  groups:
+    rss: Administer RSS-feeds
+    filter: Manage RSS filters
+    posting: Posting from RSS feeds
+  commands:
+    start:
+      cmd: Start posting
+      msg_confirm: RSS posting started
+    stop:
+      cmd: Stop posting
+      msg_confirm: RSS posting stopped
+    add:
+      cmd: Add a RSS feed
+      desc:
+        feed_name: The name of the feed to add
+        feed_link: Link to the RSS-/XML-feed
+        channel: The channel to post from the feed
+      msg_feed_failed: The url is not a RSS/XML feed
+      msg_feed_confirm: '%{feed_name} was added to #%{channel_name}' 
+      log_feed_confirm: '%{user_name} added the feed %{feed_name} til #%{channel_name}'
+    remove:
+      cmd: Remove a RSS feed
+      desc:
+        feed_name: The name of the feed to remove
+        channel: The channel to remove the feed from
+      msg_feed_not_found: The feed was not found
+      msg_feed_removed: '%{feed_name} was removed'
+      log_feed_removed: 'Feeden %{feed_name} ble fjernet av %{user_name}'
+      msg_feed_remove_failed: 'Failed when trying to remove the feed %{feed_name}'
+      log_feed_remove_failed: '%{user_name} tried to remove the feed %{feed_name}, but it failed'
+    edit:
+      cmd: Edit a RSS feed
+      desc:
+        feed_name: The name of the feed to edit
+        new_name: The new name of the feed
+        channel: The channel to edit the feed from
+        url: The new url of the feed
+      changes_out:
+        msg: 'Did following changes on feed %{feed_name}:'
+        feed_name: Feed name
+        channel: Channel
+        url: URL
+    filter_add:
+      cmd: Add a filter to a RSS feed
+      desc:
+        feed_name: The name of the feed to add
+        allow_deny: Allow or deny
+        filter: 'What to filter a post by. Separate multiple with any of the following characers: " .,;-_\\/"'
+        msg_confirm: 'Added filters as `%{allow_deny}`:'
+        msg_error: 'Error when adding filter, check logs'
+    filter_remove:
+      cmd: Remove a filter from a RSS feed
+      desc:
+        feed_name: The name of the feed to remove
+        filter: 'What filter to look for'
+      msg_confirm: 'Removed filter `%{filter}`'
+      msg_error: 'Error when removing filter `%{filter}`, check logs'
+    list:
+      cmd: List all active rss feeds
+      desc:
+        list_type: 'Specify type of list'
+      literal_type:
+        normal: Normal
+        added: Added
+        filter: Filter
+      msg_error: No feeds added
