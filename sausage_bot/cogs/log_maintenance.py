@@ -139,7 +139,13 @@ class LogMaintenance(commands.Cog):
         name_of_setting=name_of_settings_autocomplete
     )
     @log_settings_group.command(
-        name='change', description='Change a setting for this cog'
+        name='change', description=locale_str(
+            I18N.t('log_maintenance.commands.setting.cmd')
+        )
+    )
+    @describe(
+        I18N.t('log_maintenance.commands.setting.desc.name_of_setting'),
+        I18N.t('log_maintenance.commands.setting.desc.value_in')
     )
     async def log_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
@@ -147,13 +153,6 @@ class LogMaintenance(commands.Cog):
     ):
         '''
         Change a setting for this cog
-
-        Parameters
-        ------------
-        name_of_setting: str
-            The names of the role to add (default: None)
-        value_in: str
-            The value of the settings (default: None)
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(

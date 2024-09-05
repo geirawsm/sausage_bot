@@ -20,6 +20,9 @@ no:
         value_type: Verdi type
     setting:
       cmd: Endre en innstilling for denne cogen
+      desc:
+        name_of_setting: Navn på innstilling som skal endres
+        value_in: Verdi som skal settes
       value_in_input_invalid: 'Ugyldig inndata for `value_in`: %{error}'
       msg_confirm: Innstilling oppdatert
   tasks:

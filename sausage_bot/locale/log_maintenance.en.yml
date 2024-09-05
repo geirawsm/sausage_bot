@@ -20,6 +20,9 @@ en:
         value_type: Value type
     setting:
       cmd: Change a setting for this cog
+      desc:
+        name_of_setting: Name of the setting to change
+        value_in: Value to change the setting to
       value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
       msg_confirm: Setting updated
   tasks:
