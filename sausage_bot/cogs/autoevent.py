@@ -6,7 +6,7 @@ into an event for the server.
 '''
 import discord
 from discord.ext import commands
-from discord.app_commands import locale_str
+from discord.app_commands import locale_str, describe
 import os
 import re
 import typing
@@ -67,6 +67,12 @@ class AutoEvent(commands.Cog):
             I18N.t('autoevent.commands.add.cmd')
         )
     )
+    @describe(
+        url=I18N.t('autoevent.commands.add.desc.url'),
+        channel=I18N.t('autoevent.commands.add.desc.channel'),
+        text=I18N.t('autoevent.commands.add.desc.text'),
+        event_image=I18N.t('autoevent.commands.add.desc.event_image')
+    )
     async def event_add(
         self, interaction: discord.Interaction, url: str,
         channel: discord.VoiceChannel, text: str = None,
@@ -74,17 +80,6 @@ class AutoEvent(commands.Cog):
     ):
         '''
         Add a scheduled event
-
-        Parameters
-        ------------
-        url: str
-            URL to match page from nifs, vglive or tv2.no/livesport
-        channel: discord.VoiceChannel
-            Voice channel to run event on
-        text: str
-            Additional text to the event's description (default: None)
-        event_image
-            Image for event (800 x 320)
         '''
         await interaction.response.defer(ephemeral=True)
         if url is None:
@@ -180,6 +175,10 @@ class AutoEvent(commands.Cog):
             I18N.t('autoevent.commands.remove.cmd')
         )
     )
+    @describe(
+        event=I18N.t('autoevent.commands.remove.desc.event'),
+        remove_all=I18N.t('autoevent.commands.remove.desc.remove_all')
+    )
     async def event_remove(
         self, interaction: discord.Interaction,
         remove_all: typing.Literal[
@@ -237,6 +236,7 @@ class AutoEvent(commands.Cog):
             I18N.t('autoevent.commands.list.cmd')
         )
     )
+    @describe()
     async def list_events(self, interaction: discord.Interaction):
         '''
         Lists all the planned events: `!autoevent list`
@@ -260,32 +260,22 @@ class AutoEvent(commands.Cog):
             I18N.t('autoevent.commands.sync.cmd')
         )
     )
+    @describe(
+        I18N.t('autoevent.commands.sync.desc.sync_time'),
+        I18N.t('autoevent.commands.sync.desc.countdown')
+    )
     async def event_sync(
-        self, interaction: discord.Interaction, start_time: str,
+        self, interaction: discord.Interaction, sync_time: str,
         countdown: int
     ):
         '''
         Create a timer in the active channel to make it easier for
         people attending an event to sync something that they're
         watching
-
-        Parameters
-        ------------
-        start_time: str
-            A start time for the timer or a command for deleting
-            the timer
-        countdown: int
-            How many seconds should it count down before hitting the
-            `start_time`
-
-        Examples
-        ------------
-        >>> /autoevent sync 02:00 10
-        Countdown to 02:00 with 10 seconds to go
         '''
         await interaction.response.defer(ephemeral=True)
-        # Check that `start_time` is a decent time
-        re_check = re.match(r'^(\d{1,2})[-:.,;_]+(\d{1,2})', str(start_time))
+        # Check that `sync_time` is a decent time
+        re_check = re.match(r'^(\d{1,2})[-:.,;_]+(\d{1,2})', str(sync_time))
         if re_check:
             timer_epoch = datetime_handling.get_dt() + int(countdown)
             rel_start = f'<t:{timer_epoch}:R>'
@@ -315,19 +305,16 @@ class AutoEvent(commands.Cog):
             I18N.t('autoevent.commands.announce.cmd')
         )
     )
+    @describe(
+        event=locale_str(I18N.t('autoevent.commands.announce.desc.event')),
+        channel=locale_str(I18N.t('autoevent.commands.announce.desc.channel'))
+    )
     async def event_announce(
         self, interaction: discord.Interaction, event: str,
         channel: discord.TextChannel
     ):
         '''
         Announce an event in a specific channel
-
-        Parameters
-        ------------
-        event_id: str
-            The ID for the event (default: None)
-        channel: str
-            The channel to announce in (default: None)
         '''
         await interaction.response.defer(ephemeral=True)
         # Get event
