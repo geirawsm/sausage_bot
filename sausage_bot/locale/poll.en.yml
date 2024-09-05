@@ -2,6 +2,12 @@ en:
   commands:
     poll:
       cmd: Make a poll for voting on something
+      desc:
+        channel: Channel to post poll in
+        post_time: What time to post the poll. Accepts time in 0000
+        lock_time: Lock poll after x m(inutes) or h(ours)
+        poll_text: Input for the poll
+        alternatives: Alternatives for the poll, separated by semicolon
       msg:
         post_in_past: Posting time is in the past
         post_gives_error: '`post_time` "%{post_time}" gives error'

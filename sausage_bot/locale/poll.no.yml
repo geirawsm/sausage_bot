@@ -2,6 +2,12 @@ no:
   commands:
     poll:
       cmd: Lag en avstemming
+      desc:
+        channel: Kanal som avstemmingen skal postes i
+        post_time: Tid for å poste avstemmingen. Godtar tid i formatet 0000
+        lock_time: Lås avstemmingen etter x m (minutter) eller h (timer) 
+        poll_text: Inputt for avstemmingen
+        alternatives: Alternativer for avstemmingen, separert med semikolon
       msg:
         post_in_past: Publiseringstiden er i fortiden
         post_gives_error: '`post_time` "%{post_time}" gir feilmelding'

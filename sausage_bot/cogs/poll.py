@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-from discord.app_commands import locale_str
+from discord.app_commands import locale_str, describe
 import random
 import asyncio
 import re
@@ -31,25 +31,19 @@ class MakePoll(commands.Cog):
         name="poll",
         description=locale_str(I18N.t('poll.commands.poll.cmd'))
     )
+    @describe(
+        channel=I18N.t('poll.commands.poll.desc.channel'),
+        post_time=I18N.t('poll.commands.poll.desc.post_time'),
+        lock_time=I18N.t('poll.commands.poll.desc.lock_time'),
+        poll_text=I18N.t('poll.commands.poll.desc.poll_text'),
+        alternatives=I18N.t('poll.commands.poll.desc.alternatives')
+    )
     async def poll(
         self, interaction: discord.Interaction, channel: discord.TextChannel,
         post_time: str, lock_time: str, poll_text: str, alternatives: str
     ):
         '''
         Make a poll for voting on something.
-
-        Parameters
-        ------------
-        channel: discord.TextChannel
-            Channel to post poll in
-        post_time: str
-            What to post the poll. Accepts time in 0000
-        lock_time: str
-            Lock poll after x m(inutes) or h(ours)
-        poll_text: str
-            Input for the poll
-        alternatives: str
-            Alternatives for the poll, separated by semicolon
         '''
         await interaction.response.defer(ephemeral=True)
         if post_time in [None, 'no', 'now']:
@@ -139,7 +133,6 @@ class MakePoll(commands.Cog):
             if dt_post is None:
                 post_wait = 0
                 coming_post = await interaction.followup.send(
-                    
                     I18N.t('poll.commands.poll.msg.posting_now')
                 )
             else:
