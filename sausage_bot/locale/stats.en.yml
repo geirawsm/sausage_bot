@@ -1,11 +1,10 @@
 en:
-  setting_log: Invalid input for `value_in` ({e})
   setting_input_reply: Input `value_in` needs to be `True` or `False`
   commands:
     groups:
       stats: Administer stats on the server
       posting: Posting stats
-    start: 
+    start:
       command: Start posting
       log_started: Task started
       confirm_started: Stats posting started

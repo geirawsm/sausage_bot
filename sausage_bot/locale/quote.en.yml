@@ -15,8 +15,7 @@ en:
       no_change: No changes discovered
     delete:
       cmd: Delete a quote
-      confirm_delete: 'Are you sure you want to delete the following quote?'\
-      '\n```# %{quote_num}\n%{quote_text}\n(%{quote_date})```\n'
+      confirm_delete: 'Are you sure you want to delete the following quote?\n```# %{quote_num}\n%{quote_text}\n(%{quote_date})```\n'
       msg_confirm: 'Deleted quote # %{quote_num}' 
       msg_fail: Will not delete quote, check logs
     count:

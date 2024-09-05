@@ -6,7 +6,7 @@ no:
         post_in_past: Publiseringstiden er i fortiden
         post_gives_error: '`post_time` "%{post_time}" gir feilmelding'
         no_time_given: Ingen låsetid er gitt
-        lock_gives_error: '`lock_time` "%{lock_time}" gir feilmelding',
+        lock_gives_error: '`lock_time` "%{lock_time}" gir feilmelding'
         posting_now: Avstemningen postes straks
         posting_fixed: 'Avstemningen postes om <t:%{dt_post_epoch}:R>'
         embed_title: Avstemning

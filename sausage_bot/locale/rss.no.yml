@@ -23,7 +23,6 @@ no:
       cmd: Remove a RSS feed
       desc:
         feed_name: The name of the feed to remove
-        channel: The channel to remove the feed from
       msg_feed_not_found: The feed was not found
       msg_feed_removed: '%{feed_name} was removed from #%{channel_name}'
       log_feed_removed: 'Feeden %{feed_name} ble fjernet av %{user_name}'
@@ -33,7 +32,7 @@ no:
       cmd: Rediger en RSS-feed
       desc:
         feed_name: Navnet på feeden som skal redigeres
-        new_name: Nytt navn på feeden som skal endres til 
+        new_feed_name: Nytt navn på feeden som skal endres til 
         channel: Kanalen feeden skal endres til
         url: Ny URL for feeden
       changes_out:
