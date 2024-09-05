@@ -242,7 +242,7 @@ def change_dt(
     `unit`: Unit to change. Accepted units are `years`, `months`, `days`,
         `hours`, `minutes` and `seconds`'''
     if change is None or unit is None or count is None:
-        log.log(envs.TOO_FEW_ARGUMENTS)
+        log.log(I18N.t('common.too_few_arguments'))
         return None
     accepted_units = [
         'years', 'months', 'days', 'hours', 'minutes', 'seconds'

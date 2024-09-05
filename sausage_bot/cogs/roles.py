@@ -1536,9 +1536,9 @@ class Autoroles(commands.Cog):
         commands.has_permissions(manage_roles=True)
     )
     @roles_reaction_group.command(
-        name='reorder', description=I18N.t(
+        name='reorder', description=locale_str(I18N.t(
             'roles.commands.reorder.cmd'
-        )
+        ))
     )
     @describe(
         channel=I18N.t('roles.commands.reorder.desc.channel')

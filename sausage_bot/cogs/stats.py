@@ -38,11 +38,11 @@ async def hidden_roles_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    
+
     hidden_roles_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_hide_roles_schema,
-            get_row_ids=True
-        )
+        template_info=envs.stats_db_hide_roles_schema,
+        get_row_ids=True
+    )
     hidden_roles_in_list = []
     for role in hidden_roles_in_db:
         hidden_roles_in_list.append(
@@ -106,15 +106,18 @@ class Stats(commands.Cog):
         super().__init__()
 
     stats_group = discord.app_commands.Group(
-        name="stats", description=locale_str(I18N.t('stats.commands.groups.stats'))
+        name="stats",
+        description=locale_str(I18N.t('stats.commands.groups.stats'))
     )
     stats_posting_group = discord.app_commands.Group(
-        name="posting", description=locale_str(I18N.t('stats.commands.groups.posting'),)
+        name="posting",
+        description=locale_str(I18N.t('stats.commands.groups.posting')),
         parent=stats_group
     )
 
     @stats_posting_group.command(
-        name='start', description=locale_str(I18N.t('stats.commands.start.command'))
+        name='start',
+        description=locale_str(I18N.t('stats.commands.start.command'))
     )
     async def stats_posting_start(
         self, interaction: discord.Interaction
@@ -135,7 +138,8 @@ class Stats(commands.Cog):
         )
 
     @stats_posting_group.command(
-        name='stop', description=locale_str(I18N.t('stats.commands.stop.command'))
+        name='stop',
+        description=locale_str(I18N.t('stats.commands.stop.command'))
     )
     async def stats_posting_stop(
         self, interaction: discord.Interaction,
@@ -169,7 +173,8 @@ class Stats(commands.Cog):
         )
 
     @stats_posting_group.command(
-        name='restart', description=locale_str(I18N.t('stats.commands.restart.command'))
+        name='restart',
+        description=locale_str(I18N.t('stats.commands.restart.command'))
     )
     async def stats_posting_restart(
         self, interaction: discord.Interaction
@@ -186,7 +191,8 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @stats_group.command(
-        name='list', description=locale_str(I18N.t('commands.list.command'))
+        name='list',
+        description=locale_str(I18N.t('stats.commands.list.command'))
     )
     async def list_settings(
         self, interaction: discord.Interaction
@@ -244,7 +250,8 @@ class Stats(commands.Cog):
         name_of_setting=name_of_settings_autocomplete
     )
     @stats_group.command(
-        name='setting', description=locale_str(I18N.t('stats.commands.setting.command'))
+        name='setting',
+        description=locale_str(I18N.t('stats.commands.setting.command'))
     )
     async def stats_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
@@ -270,9 +277,8 @@ class Stats(commands.Cog):
                 if setting[2] == 'bool':
                     try:
                         value_in = eval(str(value_in).capitalize())
-                    except NameError as e:
-                        log.error(I18N.t('stats.setting_log').format(e))
-                        # TODO var msg
+                    except NameError as _error:
+                        log.error(f'Invalid input for `value_in`: {_error}')
                         await interaction.followup.send(I18N.t(
                             'stats.setting_input_reply'
                         ))
@@ -286,7 +292,8 @@ class Stats(commands.Cog):
                         updates=[('value', value_in)]
                     )
                 await interaction.followup.send(
-                    content=I18N.t('stats.commands.setting.update_confirmed'), ephemeral=True
+                    content=I18N.t('stats.commands.setting.update_confirmed'),
+                    ephemeral=True
                 )
                 Stats.update_stats.restart()
                 break
@@ -298,7 +305,8 @@ class Stats(commands.Cog):
     )
     @stats_group.command(
         name='hide_roles_add',
-        description=locale_str(I18N.t('stats.commands.hide_roles_add.command')),
+        description=locale_str(
+            I18N.t('stats.commands.hide_roles_add.command')),
     )
     async def stats_add_hidden_roles(
         self, interaction: discord.Interaction,
@@ -334,7 +342,8 @@ class Stats(commands.Cog):
             )
             # TODO var msg
             await interaction.followup.send(
-                content=I18N.t('stats.commands.hide_roles_add.msg.confirm_added'),
+                content=I18N.t(
+                    'stats.commands.hide_roles_add.msg.confirm_added'),
                 ephemeral=True
             )
             Stats.update_stats.restart()
@@ -349,7 +358,8 @@ class Stats(commands.Cog):
     )
     @stats_group.command(
         name='hide_roles_remove',
-        description=locale_str(I18N.t('stats.commands.hide_roles_remove.command'))
+        description=locale_str(
+            I18N.t('stats.commands.hide_roles_remove.command'))
     )
     async def stats_remove_hidden_roles(
         self, interaction: discord.Interaction,
@@ -369,7 +379,8 @@ class Stats(commands.Cog):
             numbers=hidden_roles
         )
         await interaction.followup.send(
-            content=I18N.t('stats.commands.hide_roles_remove.msg.confirm_removed'),
+            content=I18N.t(
+                'stats.commands.hide_roles_remove.msg.confirm_removed'),
             ephemeral=True
         )
         Stats.update_stats.restart()
@@ -380,7 +391,8 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @stats_group.command(
-        name='restart', description=locale_str(I18N.t('stats.commands.restart.command'))
+        name='restart',
+        description=locale_str(I18N.t('stats.commands.restart.command'))
     )
     async def stats_restart(
         self, interaction: discord.Interaction
@@ -459,8 +471,10 @@ class Stats(commands.Cog):
                         if role != '@everyone':
                             # Check for `sort_min_role_members`
                             if stats_settings['sort_min_role_members']:
-                                min_members = stats_settings['sort_min_role_members']
-                                if dict_in[role]['members'] >= int(min_members):
+                                min_members = \
+                                    stats_settings['sort_min_role_members']
+                                if dict_in[role]['members'] >= \
+                                        int(min_members):
                                     dict_out['name'].append(
                                         dict_in[role]['name'])
                                     dict_out['members'].append(
@@ -557,8 +571,10 @@ class Stats(commands.Cog):
             stats_settings['show_role_stats']
         ))
         if eval(stats_settings['show_role_stats']):
-            members_sub = I18N.t('stats.tasks.update_stats.stats_msg.members_sub')
-            members_num = I18N.t('stats.tasks.update_stats.stats_msg.members_num')
+            members_sub = I18N.t(
+                'stats.tasks.update_stats.stats_msg.members_sub')
+            members_num = I18N.t(
+                'stats.tasks.update_stats.stats_msg.members_num')
             stats_msg += f'### {members_sub}\n```'\
                 f'{members_num}: {total_members}\n\n'\
                 f'{roles_members}```\n'
@@ -567,12 +583,15 @@ class Stats(commands.Cog):
         ))
         if eval(stats_settings['show_code_stats']):
             code_sub = I18N.t('stats.tasks.update_stats.stats_msg.code_sub')
-            code_files = I18N.t('stats.tasks.update_stats.stats_msg.code_files')
-            code_lines = I18N.t('stats.tasks.update_stats.stats_msg.code_lines')
+            code_files = I18N.t(
+                'stats.tasks.update_stats.stats_msg.code_files')
+            code_lines = I18N.t(
+                'stats.tasks.update_stats.stats_msg.code_lines')
             stats_msg += f'### {code_sub}\n```'\
                 f'{code_files}: {files_in_codebase}\n'\
                 f'{code_lines}: {lines_in_codebase}```\n'
-        code_last_updated = I18N.t('stats.tasks.update_stats.stats_msg.code_last_updated')
+        code_last_updated = I18N.t(
+            'stats.tasks.update_stats.stats_msg.code_last_updated')
         stats_msg += f'```{code_last_updated} {dt_log}```\n'
         log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'

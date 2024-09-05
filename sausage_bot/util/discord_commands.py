@@ -155,7 +155,20 @@ def get_sorted_scheduled_events():
         sched_dict['id'].append(event_dict[event]['id'])
     out = tabulate(
         sched_dict,
-        headers=['Kamp', 'Dato', 'Intr.', 'ID'],
+        headers=[
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.match'
+            ),
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.date'
+            ),
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.interest'
+            ),
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.id'
+            )
+        ],
         numalign='center'
     )
     out = '```{}```'.format(out)

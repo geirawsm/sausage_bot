@@ -76,11 +76,11 @@ class RSSfeed(commands.Cog):
         name="rss", description=locale_str(I18N.t('rss.groups.rss'))
     )
     rss_filter_group = discord.app_commands.Group(
-        name="filter", description=I18N.t('rss.groups.filter'),
+        name="filter", description=locate_str(I18N.t('rss.groups.filter')),
         parent=rss_group
     )
     rss_posting_group = discord.app_commands.Group(
-        name="posting", description=I18N.t('rss.groups.posting'),
+        name="posting", description=locate_str(I18N.t('rss.groups.posting')),
         parent=rss_group
     )
 
@@ -187,8 +187,7 @@ class RSSfeed(commands.Cog):
         ))
     )
     @describe(
-        feed_name=I18N.t('rss.commands.remove.desc.feed_name'),
-        channel=I18N.t('rss.commands.remove.desc.channel')
+        feed_name=I18N.t('rss.commands.remove.desc.feed_name')
     )
     async def rss_remove(
         self, interaction: discord.Interaction, feed_name: str
@@ -241,7 +240,7 @@ class RSSfeed(commands.Cog):
     )
     @describe(
         feed_name=I18N.t('rss.commands.edit.desc.feed_name'),
-        new_name=I18N.t('rss.commands.edit.desc.new_name'),
+        new_feed_name=I18N.t('rss.commands.edit.desc.new_feed_name'),
         channel=I18N.t('rss.commands.edit.desc.channel'),
         url=I18N.t('rss.commands.edit.desc.url')
     )
