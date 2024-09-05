@@ -5,6 +5,7 @@ from tabulate import tabulate
 
 from sausage_bot.util import config, envs
 from sausage_bot.util.datetime_handling import get_dt
+from sausage_bot.util.i18n import I18N
 from .log import log
 
 

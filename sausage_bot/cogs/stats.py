@@ -38,7 +38,6 @@ async def hidden_roles_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-
     hidden_roles_in_db = await db_helper.get_output(
         template_info=envs.stats_db_hide_roles_schema,
         get_row_ids=True

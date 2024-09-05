@@ -94,8 +94,8 @@ def log_function(
         log_out_print += ' ' * rem_len
     if pretty and isinstance(pretty, (dict, list, tuple)):
         pretty_log = json.dumps(
-                pretty, indent=4, ensure_ascii=False
-            )
+            pretty, indent=4, ensure_ascii=False
+        )
     else:
         pretty_log = None
     if args.log_print:
@@ -161,14 +161,15 @@ def verbose(
             log_in, color=color, sameline=sameline,
             extra_info=envs.log_extra_info('verbose'),
             pretty=pretty if pretty else None
-            
         )
     if args.log_slow:
         sleep(3)
 
 
 def debug(
-        log_in: str, color: str = None, pretty: dict | list | tuple = None,
+        log_in: str, color: str = None,
+        extra_info: str = envs.log_extra_info('database'),
+        extra_color: str = None, pretty: dict | list | tuple = None,
         sameline: bool = False
 ):
     '''
@@ -177,12 +178,15 @@ def debug(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in green
+    extra_info      Used to specify extra information in the logging
+    extra_color     Color for the `extra_info`
     pretty          Prettify specific output. Works on dict, list and tuple
     sameline        When printing log, reuse the same line
     '''
     if args.debug:
         log_function(
-            log_in, color=color, extra_info=envs.log_extra_info('debug'),
+            log_in, color=color, extra_color=extra_color,
+            extra_info=extra_info,
             sameline=sameline, pretty=pretty if pretty else None
         )
     if args.log_slow:
@@ -190,8 +194,10 @@ def debug(
 
 
 def db(
-        log_in: str, color: str = 'magenta', extra_color: str = None,
-        pretty: dict | list | tuple = None, sameline: bool = False
+    log_in: str, color: str = 'magenta',
+    extra_info: str = envs.log_extra_info('database'),
+    extra_color: str = None, pretty: dict | list | tuple = None,
+    sameline: bool = False
 ):
     '''
     Log database input specifically
@@ -207,7 +213,7 @@ def db(
     if args.log_db:
         log_function(
             log_in, color=color, extra_color=extra_color,
-            extra_info=envs.log_extra_info('database'),
+            extra_info=extra_info,
             sameline=sameline, pretty=pretty if pretty else None
         )
     if args.log_slow:
@@ -215,8 +221,10 @@ def db(
 
 
 def error(
-        log_in: str, color: str = 'red', pretty: dict | list | tuple = None,
-        sameline: bool = False
+    log_in: str, color: str = 'red',
+    extra_info: str = envs.log_extra_info('error'),
+    extra_color: str = None, pretty: dict | list | tuple = None,
+    sameline: bool = False
 ):
     '''
     Log the input `log_in`. Used as more verbose than `log`
@@ -225,13 +233,16 @@ def error(
     color           Specify the color for highlighting the function name:
                     black, red, green, yellow, blue, magenta, cyan, white.
                     If `color` is not specified, it will highlight in red.
+    extra_info      Used to specify extra information in the logging
+    extra_color     Color for the `extra_info`
     pretty          Prettify specific output. Works on dict, list and tuple
     sameline        When printing log, reuse the same line
     '''
     if args.log_error:
         log_function(
-            log_in, color=color, extra_info=envs.log_extra_info('error'),
-            sameline=sameline, pretty=pretty if pretty else None
+            log_in, color=color, extra_color=extra_color,
+            extra_info=extra_info, sameline=sameline,
+            pretty=pretty if pretty else None
         )
     if args.log_slow:
         sleep(3)
