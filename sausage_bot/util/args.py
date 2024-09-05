@@ -29,6 +29,11 @@ logging_args.add_argument('--error', '-e',
                           action='store_true',
                           default=False,
                           dest='log_error')
+logging_args.add_argument('--i18n', '-i',
+                          help='Log i18n errors',
+                          action='store_true',
+                          default=False,
+                          dest='log_i18n')
 logging_args.add_argument('--log-print', '-lp',
                           help='Print logging to output',
                           action='store_true',

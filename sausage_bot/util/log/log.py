@@ -24,6 +24,7 @@ if args.log_all:
     args.log_db = True
     args.debug = True
     args.log_error = True
+    args.log_i18n = True
 
 
 def log_function(
@@ -234,6 +235,21 @@ def error(
         )
     if args.log_slow:
         sleep(3)
+
+
+def i18n(log_in: str):
+    '''
+    Log the input from errors in i18n with `log_in`.
+    '''
+    if args.log_i18n:
+        dt = pendulum.now(config.TIMEZONE)
+        dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
+        log_out = '[ {dt} ] {log_in}\n'.format(dt=dt_full, log_in=str(log_in))
+        dt = pendulum.now(config.TIMEZONE)
+        _logfilename = envs.LOG_DIR / 'i18n.log'
+        write_log = open(_logfilename, 'a+', encoding="utf-8")
+        write_log.write(log_out)
+        write_log.close()
 
 
 def log_func_name() -> dict:

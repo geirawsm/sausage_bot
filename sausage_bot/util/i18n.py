@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-
-# Using this:
-# https://github.com/solaluset/i18nice
 import os
 import re
 import discord
@@ -16,6 +13,13 @@ _i18n.load_path.append(envs.LOCALE_DIR)
 I18N = _i18n
 _i18n.set('fallback', 'en')
 
+if log.i18n:
+    # Clean i18n log file before starting
+    _logfilename = envs.LOG_DIR / 'i18n.log'
+    write_log = open(_logfilename, 'w', encoding="utf-8")
+    write_log.write('')
+    write_log.close()
+
 
 class MyTranslator(app_commands.Translator):
     async def translate(
@@ -28,24 +32,26 @@ class MyTranslator(app_commands.Translator):
 
 
 def handler_placeholder(key, locale, text, name):
-    log.error(f"Missing placeholder {name!r} while translating {key!r} to {locale!r} (in {text!r})")
-    return "undefined"
+    _error = f'Missing placeholder {name!r} while translating {key!r} to '\
+        f'{locale!r} (in {text!r})'
+    log.i18n(_error)
+    return 'undefined'
 
 
 def handler_translation(key, locale, **kwargs):
-    log.error(f"Missing translation for {key!r} in  {locale!r}")
-    print(**kwargs)
-    return "undefined"
+    _error = f'Missing translation for {key!r} in  {locale!r}'
+    log.i18n(_error)
+    return 'undefined'
 
 
 def handler_plural(key, locale, **kwargs):
-    log.error(f"Missing plural for {key!r} in {locale!r}")
-    print(**kwargs)
-    return "undefined"
+    _error = f'Missing plural for {key!r} in {locale!r}'
+    log.i18n(_error)
+    return 'undefined'
 
 
-_i18n.set("on_missing_placeholder", handler_placeholder)
-_i18n.set('on_missing_translation', handler_translation)
+_i18n.set('on_missing_placeholder', handler_placeholder)
+#_i18n.set('on_missing_translation', handler_translation)
 _i18n.set('on_missing_plural', handler_plural)
 
 
