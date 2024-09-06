@@ -3,7 +3,7 @@
 import discord
 from discord.ext import commands
 from discord.utils import get
-from discord.app_commands import locale_str
+from discord.app_commands import locale_str, describe
 import typing
 import uuid
 from asyncio import TimeoutError
@@ -279,17 +279,15 @@ class Quotes(commands.Cog):
     @group.command(
         name="post", description=locale_str(I18N.t('quote.commands.post.cmd'))
     )
+    @describe(
+        number=I18N.t('quote.commands.post.desc.number')
+    )
     async def quote(
             self, interaction: discord.Interaction,
             number: typing.Optional[int] = None
     ):
         '''
         Post quotes
-
-        Parameters
-        ------------
-        number: int
-            Chose a number if you want a specific quote (default: None)
         '''
 
         def prettify(number: str, text: str, date: str) -> str:
@@ -444,6 +442,9 @@ class Quotes(commands.Cog):
     @group.command(
         name="edit", description=locale_str(I18N.t('quote.commands.edit.cmd'))
     )
+    @describe(
+        quote_in=I18N.t('quote.commands.edit.desc.quote_in')
+    )
     async def quote_edit(
         self, interaction: discord.Interaction, quote_in: str,
     ):
@@ -472,7 +473,10 @@ class Quotes(commands.Cog):
             )
             return
         if update_triggered:
-            log.verbose('Discovered changes in quote:', pretty=modal_in.quote_out)
+            log.verbose(
+                'Discovered changes in quote:',
+                pretty=modal_in.quote_out
+            )
             # Update quote
             await db_helper.update_fields(
                 template_info=envs.quote_db_schema,
@@ -498,6 +502,9 @@ class Quotes(commands.Cog):
         name="delete", description=locale_str(
             I18N.t('quote.commands.delete.cmd')
         )
+    )
+    @describe(
+        quote_in=I18N.t('quote.commands.delete.desc.quote_in')
     )
     async def quote_delete(
             self, interaction: discord.Interaction,

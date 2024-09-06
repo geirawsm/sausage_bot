@@ -4,6 +4,8 @@ no:
       cmd: Sitater
     post:
       cmd: Post et sitat
+      desc:
+        number: Velg et nummer hvis du vil ha et spesifikt sitat
       quote_not_exist: 'Sitat nummer %{number} finnes ikke'
     add:
       cmd: Legg til sitat
@@ -11,10 +13,14 @@ no:
       msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
     edit:
       cmd: Rediger eksisterende sitat
+      desc:
+        quote_in: Sitat som skal endres
       modal_title: Rediger sitat
       no_change: Ingen endringer funnet
     delete:
       cmd: Slett sitat
+      desc:
+        quote_in: Sitat som skal slettes
       confirm_delete: 'Er du sikker på at du vil slette følgende sitat?\n```# {quote_num}\n{quote_text}\n({quote_date})```\n'
       msg_confirm: 'Slettet sitat nummer %{quote_num}' 
       msg_fail: Sitatet slettes ikke

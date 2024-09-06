@@ -4,6 +4,8 @@ en:
       cmd: Quotes
     post:
       cmd: Post a quote
+      desc:
+        number: Choose a number if you want a specific quote
       quote_not_exist: 'Quote # %{number} does not exist'
     add:
       cmd: Add a quote
@@ -11,10 +13,14 @@ en:
       msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
     edit:
       cmd: Edit an existing quote
+      desc:
+        quote_in: Quote to edit
       modal_title: Edit quote
       no_change: No changes discovered
     delete:
       cmd: Delete a quote
+      desc:
+        quote_in: Quote to delete
       confirm_delete: 'Are you sure you want to delete the following quote?\n```# %{quote_num}\n%{quote_text}\n(%{quote_date})```\n'
       msg_confirm: 'Deleted quote # %{quote_num}' 
       msg_fail: Will not delete quote, check logs
