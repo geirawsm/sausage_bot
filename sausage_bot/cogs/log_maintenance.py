@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 import os
-from discord.ext import commands, tasks
 import discord
+from discord.ext import commands, tasks
+from discord.app_commands import locale_str, describe
 from tabulate import tabulate
 
 from sausage_bot.util import envs, file_io
 from sausage_bot.util import discord_commands, db_helper
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
@@ -40,19 +42,24 @@ class LogMaintenance(commands.Cog):
         super().__init__()
 
     log_group = discord.app_commands.Group(
-        name="log", description='Administer log'
+        name="log",
+        description=locale_str(I18N.t('log_maintenance.commands.log.cmd'))
     )
     log_maintenance_group = discord.app_commands.Group(
-        name="maintenance", description='Administer log task',
-        parent=log_group
+        name="maintenance", description=locale_str(
+            I18N.t('log_maintenance.commands.maintenance.cmd')
+        ), parent=log_group
     )
     log_settings_group = discord.app_commands.Group(
-        name="settings", description='Administer log settings',
-        parent=log_group
+        name="settings", description=locale_str(
+            I18N.t('log_maintenance.commands.settings.cmd')
+        ), parent=log_group
     )
 
     @log_maintenance_group.command(
-        name='start', description='Start log maintenance'
+        name='start', description=locale_str(
+            I18N.t('log_maintenance.commands.start.cmd')
+        )
     )
     async def log_maintenance_start(
         self, interaction: discord.Interaction
@@ -69,11 +76,13 @@ class LogMaintenance(commands.Cog):
             updates=('status', 'started')
         )
         await interaction.followup.send(
-            'Log maintenance started'
+            I18N.t('log_maintenance.commands.start.msg_confirm')
         )
 
     @log_maintenance_group.command(
-        name='stop', description='Stop log maintenance'
+        name='stop', description=locale_str(
+            I18N.t('log_maintenance.commands.stop.cmd')
+        )
     )
     async def rss_posting_stop(
         self, interaction: discord.Interaction
@@ -90,7 +99,7 @@ class LogMaintenance(commands.Cog):
             updates=('status', 'stopped')
         )
         await interaction.followup.send(
-            'Log maintenance stopped'
+            I18N.t('log_maintenance.commands.stop.msg_confirm')
         )
 
     @commands.check_any(
@@ -111,7 +120,11 @@ class LogMaintenance(commands.Cog):
             template_info=envs.log_db_schema,
             select=('setting', 'value', 'value_help')
         )
-        headers = ['Setting', 'Value', 'Value type']
+        headers = [
+            I18N.t('log_maintenance.commands.list.headers.setting'),
+            I18N.t('log_maintenance.commands.list.headers.value'),
+            I18N.t('log_maintenance.commands.list.headers.value_type')
+        ]
         await interaction.followup.send(
             content='```{}```'.format(
                 tabulate(settings_in_db, headers=headers)
@@ -126,7 +139,15 @@ class LogMaintenance(commands.Cog):
         name_of_setting=name_of_settings_autocomplete
     )
     @log_settings_group.command(
-        name='setting', description='Change a setting for this cog'
+        name='change', description=locale_str(
+            I18N.t('log_maintenance.commands.setting.cmd')
+        )
+    )
+    @describe(
+        name_of_setting=I18N.t(
+            'log_maintenance.commands.setting.desc.name_of_setting'
+        ),
+        value_in=I18N.t('log_maintenance.commands.setting.desc.value_in')
     )
     async def log_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
@@ -134,13 +155,6 @@ class LogMaintenance(commands.Cog):
     ):
         '''
         Change a setting for this cog
-
-        Parameters
-        ------------
-        name_of_setting: str
-            The names of the role to add (default: None)
-        value_in: str
-            The value of the settings (default: None)
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
@@ -152,11 +166,15 @@ class LogMaintenance(commands.Cog):
                 if setting[2] == 'bool':
                     try:
                         value_in = eval(str(value_in).capitalize())
-                    except NameError as e:
-                        log.error(f'Invalid input for `value_in`: {e}')
+                    except NameError as _error:
+                        log.error(f'Invalid input for `value_in`: {_error}')
                         # TODO var msg
                         await interaction.followup.send(
-                            'Input `value_in` needs to be `True` or `False`'
+                            I18N.t(
+                                'log_maintenance.commands.setting.'
+                                'value_in_input_invalid',
+                                error=_error
+                            )
                         )
                         return
                 log.debug(f'`value_in` is {value_in} ({type(value_in)})')
@@ -168,7 +186,8 @@ class LogMaintenance(commands.Cog):
                         updates=[('value', value_in)]
                     )
                 await interaction.followup.send(
-                    content='Setting updated', ephemeral=True
+                    I18N.t('log_maintenance.commands.setting.msg_confirm'),
+                    ephemeral=True
                 )
                 LogMaintenance.log_maintenance.restart()
                 break
@@ -177,7 +196,6 @@ class LogMaintenance(commands.Cog):
     # Tasks
     @tasks.loop(hours=4)
     async def log_maintenance():
-        # maintenance logs folder
         log_files = os.listdir(envs.LOG_DIR)
         settings_type = await db_helper.get_output(
             template_info=envs.log_db_schema,
@@ -199,20 +217,29 @@ class LogMaintenance(commands.Cog):
             log.verbose(
                 f'`settings_type` is {settings_limit} {type(settings_limit)}'
             )
-            log_msg = 'I\'m not deleting logs, but have notified the bot '\
-                'channel about the situation'
+            log.log('I\'m not deleting logs, but have notified the bot '
+                    'channel about the situation')
             if settings_type == 'size':
                 folder_size = file_io.folder_size(
                     str(envs.LOG_DIR), human=True
                 )
-                discord_msg = '`settings_type` is set to `0`. The log '\
-                    f'folder\'s size as of now is {folder_size}. '\
-                    'To disable these messages, run `/log maintenance stop`'
+                discord_msg = I18N.t(
+                    'log_maintenance.tasks.log_maintenance.msg.size_and_none',
+                    folder_size=folder_size
+                )
+                discord_msg += '\n'
+                discord_msg += I18N.t(
+                    'log_maintenance.tasks.log_maintenance.msg.disable_posting'
+                )
             elif settings_type in ['day', 'days']:
                 num_log_files = len(os.listdir(str(envs.LOG_DIR)))
-                discord_msg = '`settings_type` is set to `0`. The log folder '\
-                    f'has logs from {num_log_files} days back.'\
-                    'To disable these messages, run `/log maintenance stop`'
+                discord_msg = I18N.t(
+                    'log_maintenance.tasks.log_maintenance.msg.days_and_none',
+                    num_files=num_log_files
+                )
+                discord_msg += I18N.t(
+                    'log_maintenance.tasks.log_maintenance.msg.disable_posting'
+                )
             else:
                 log_msg = 'Wrong input in `settings_type`: '\
                     f'{settings_type}'
@@ -221,7 +248,6 @@ class LogMaintenance(commands.Cog):
             await discord_commands.log_to_bot_channel(discord_msg)
         elif settings_limit > 0:
             deleted_files = []
-            status_msg = 'Log maintenance done. Deleted the following files:'
             discord_msg_out = ''
             log_msg_out = ''
             folder_size = file_io.folder_size(str(envs.LOG_DIR))
@@ -243,11 +269,11 @@ class LogMaintenance(commands.Cog):
                     print(f'`size_diff` reduced to {size_diff}')
                     if size_diff <= 0:
                         break
-                print(f'Got enough files to delete: {deleted_files}')
+                log.debug(f'Got enough files to delete: {deleted_files}')
                 for _file in deleted_files:
                     os.remove(envs.LOG_DIR / _file)
                 new_folder_size = file_io.folder_size(str(envs.LOG_DIR))
-                print(f'Folder went from {folder_size} to {new_folder_size}')
+                log.debug(f'Folder went from {folder_size} to {new_folder_size}')
             elif settings_type in ['day', 'days']:
                 if len(log_files) > 10:
                     for _file in log_files[0:-10]:
@@ -260,7 +286,10 @@ class LogMaintenance(commands.Cog):
                 )
                 return
             if len(deleted_files) > 0:
-                discord_msg_out += status_msg
+                status_msg = 'Log maintenance done. Deleted the following files:'
+                discord_msg_out += I18N.t(
+                    'log_maintenance.tasks.'
+                    'log_maintenance.msg.maintenance_done')
                 for _file in deleted_files:
                     discord_msg_out += f'\n- {_file}'
                 await discord_commands.log_to_bot_channel(discord_msg_out)

@@ -1,0 +1,56 @@
+no:
+  groups:
+    youtube: Administrer YouTube-feeder
+    filter: Filtrer YouTube-feeder
+    posting: Posting fra YouTube-feeder
+  commands:
+    start:
+      cmd: Start posting
+      msg_confirm: Youtube-posting startet
+    stop:
+      cmd: Stop posting
+      msg_confirm: Youtube posting stoppet
+    add:
+      cmd: Legg til en YouTube-feed
+      desc:
+        feed_name: Navn på feeden som skal håndteres
+        youtube_link: Link til YouTube-kanalen
+        channel: Kanalen å poste til
+      msg_empty_link: 'Klarer ikke å hente linken: `%{link}`'
+      log_feed_confirm: '%{user} la til %{feed_name} (`%{yt_link}`) til #%{channel}'
+      msg_added: 'La til %{feed_name} til  #%{channel_name}'
+    remove:
+      cmd: Fjern en YouTube-feed
+      desc:
+        feed_name: Navn på YouTube-feeden som skal håndteres
+      msg_remove_non_existing_feed: Youtube-feeden `%{feed_name}` finnes ikke
+      msg_feed_removed: 'Fjernet Youtube-feed `%{feed_name}` fra #%{channel_name}'
+      log_feed_removed: 'Youtube-feed `%{feed_name}` fjernet av %{user_name}'  
+      msg_feed_remove_failed: 'Youtube-feed `%{feed_name}` kunne ikke fjernes'
+      log_feed_remove_failed: 'Bruker %{user_name} prøvde å fjerne Youtube-feed `%{feed_name}`, men det feilet'
+    filter_add:
+      cmd: Legg til filter på en Youtube-feed
+      desc:
+        feed_name: Navn på Youtube-feeden som skal håndteres
+        allow_deny: 'Om filteret skal `tillate` eller `nekte`'
+        filters_in: Hvilket nøkkelord en post skal filtreres mot
+      msg_filter_added: 'La til filter `%{filter_in}` som `%{allow_deny}`'
+      msg_filter_failed: Feilet ved forsøk på å legge til filter, sjekk logger
+    filter_remove:
+      cmd: Fjern filter på en Youtube-feed
+      desc:
+        feed_name: Navn på Youtube-feeden som skal håndteres
+        filter_in: Hvilket nøkkelord en post skal filtreres mot
+      msg_confirm: 'Fjernet filter `%{filter_in}`'
+      msg_error: Feilet ved forsøk på fjerning av filter, sjekk logger
+    list:
+      cmd: List alle active YouTube-feeder
+      desc:
+        list_type: Velg type liste
+      msg_error: Ingen feeder lagt til
+      literal_type:
+        normal: Normal
+        added: Lagt til
+        filter: Filter
+  tasks:
+    log_error: '%{feed_name} returnerte NoneType'

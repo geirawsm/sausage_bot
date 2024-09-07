@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-from discord.ext import commands
 import discord
+from discord.ext import commands
+from discord.app_commands import locale_str, describe
 import uuid
 
 from sausage_bot.util import envs, db_helper, file_io
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
@@ -20,7 +22,9 @@ class Dilemmas(commands.Cog):
     )
 
     @group.command(
-        name="post", description="Post a random dilemma"
+        name="post", description=locale_str(I18N.t(
+            'dilemmas.commands.post.cmd'
+        ))
     )
     async def dilemmas(self, interaction: discord.Interaction) -> None:
         def prettify(dilemmas_in):
@@ -47,6 +51,7 @@ class Dilemmas(commands.Cog):
         )
         if len(no_of_dilemmas) <= 0:
             await interaction.followup.send(
+                I18N.t('dilemmas.commands.post.no_dilemmas_in_db'),
                 envs.DILEMMAS_NO_DILEMMAS_IN_DB,
                 ephemeral=True
             )
@@ -75,7 +80,12 @@ class Dilemmas(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @group.command(
-        name="add", description="Add a dilemma"
+        name="add", description=locale_str(
+            I18N.t('dilemmas.commands.add.cmd')
+        )
+    )
+    @describe(
+        dilemmas_in=I18N.t('dilemmas.commands.add.desc.dilemmas_in')
     )
     async def dilemmas_add(
         self, interaction: discord.Interaction, dilemmas_in: str
@@ -86,12 +96,16 @@ class Dilemmas(commands.Cog):
             [(str(uuid.uuid4()), dilemmas_in)]
         )
         await interaction.followup.send(
-            'Added the following dilemma: {}'.format(dilemmas_in)
+            I18N.t(
+                'dilemmas.commands.add.msg_confirm',
+                dilemmas_in=dilemmas_in)
         )
         return
 
     @group.command(
-        name="count", description="Count the numbers of dilemmas"
+        name="count", description=locale_str(
+            I18N.t('dilemmas.commands.count.cmd')
+        )
     )
     async def count(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
@@ -101,9 +115,9 @@ class Dilemmas(commands.Cog):
             select=('id')
         ))
         await interaction.followup.send(
-            '{}{}'.format(
-                envs.DILEMMAS_COUNT.format(no_of_dilemmas),
-                's' if no_of_dilemmas > 1 else ''
+            I18N.t(
+                'dilemmas.commands.count.msg_confirm',
+                count=no_of_dilemmas,
             ), ephemeral=True
         )
         return

@@ -1,0 +1,37 @@
+en:
+  owner_only: Owner only
+  msg:
+    failed_bot_start: Could not start bot (%{error})
+    bot_connected: "%{bot} has connected to %{server}"
+    bot_watching: some random youtube videos
+    create_log_channel_logging: "Incoming log messages from %{botname}"
+  commands:
+    language:
+      confirm_language_set: Language set to `%{language}`
+    test:
+      confirm: English test message
+    delete:
+      command: "Delete `amount` number of messages in the chat"
+      less_than_0: The number must be bigger than 0
+      log_confirm: Mass delete via bot
+      msg_confirm: Deleted %{amount} messages
+    say:
+      command: Post a message to a channel. Enter `message_id` if replying to a specific post
+    say_again:
+      command: 'Change a previous message sent with `say`'
+    tasks:
+      command: List tasks and their status
+    ping:
+      command: Check latency
+    kick:
+      command: Kick a user (with reason)
+      msg_confirm: '%{member} has been kicked'
+      msg_failed: 'Failed to kick: %{error}'
+    ban:
+      command: Ban a user (with reason)
+      msg_confirm: '%{member} has been banned'
+      msg_failed: 'Failed to ban: %{error}'
+
+
+
+

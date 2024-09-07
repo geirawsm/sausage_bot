@@ -22,6 +22,7 @@ aiosqlite = "*"
 "colorgram.py" = "*"
 spotipy = "*"
 aiofiles = "*"
+i18nice = {extras = ["yaml"], version = "*"}
 
 [dev-packages]
 requests-testadapter = "*"

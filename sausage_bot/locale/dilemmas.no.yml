@@ -1,0 +1,17 @@
+no:
+  commands:
+    post:
+      cmd: Post et tilfeldig dilemma
+      no_dilemmas_in_db: Fant ingen dilemmas i databasen
+    add:
+      cmd: Legg til en dilemma
+      desc:
+        dilemmas_in: Dilemma som skal legges til
+      msg_comfirm: 'La til følgende dilemma: %{dilemmas_in}'
+    count:
+      cmd: Tell antall dilemmaer
+      msg_confirm:
+        zero: There are no dilemmas
+        one: There is one dilemma
+        few: There are %{count} dilemmas
+        many: There are %{count} dilemmas

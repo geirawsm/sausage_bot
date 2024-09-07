@@ -1,0 +1,7 @@
+no:
+  get_sorted_scheduled_events:
+    headers:
+      match: Kamp
+      date: Dato
+      interest: Ant. interesserte
+      id: ID

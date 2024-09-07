@@ -2,11 +2,15 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
+from discord.utils import get
+from discord.app_commands import locale_str, describe
+import typing
 import uuid
 from asyncio import TimeoutError
 
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util import envs, db_helper, file_io
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
@@ -142,7 +146,7 @@ class QuoteAddModal(discord.ui.Modal):
         # Create elements
         num_label = QuoteTextInput(
             style_in=discord.TextStyle.short,
-            label_in='Quote number',
+            label_in=I18N.t('quote.modals.quote_num'),
             default_in=self.quote_in[0][0] if self.quote_in else
             self.available_row_id,
             required_in=False if self.quote_in else True
@@ -150,7 +154,7 @@ class QuoteAddModal(discord.ui.Modal):
 
         quote_text = QuoteTextInput(
             style_in=discord.TextStyle.paragraph,
-            label_in='Quote text',
+            label_in=I18N.t('quote.modals.quote_text'),
             default_in=self.quote_in[0][2] if self.quote_in else '',
             required_in=True,
             placeholder_in='Text'
@@ -158,10 +162,10 @@ class QuoteAddModal(discord.ui.Modal):
 
         quote_date = QuoteTextInput(
             style_in=discord.TextStyle.short,
-            label_in='Quote date',
+            label_in=I18N.t('quote.modals.quote_date'),
             default_in=self.quote_in[0][3] if self.quote_in else '',
             required_in=False,
-            placeholder_in='Date and time (DD.MM.YYYY HH:MM)'
+            placeholder_in=I18N.t('quote.modals.date_placeholder')
         )
 
         self.add_item(num_label)
@@ -174,13 +178,14 @@ class QuoteAddModal(discord.ui.Modal):
         self.quote_out['datetime'] = self.children[2].value
 
         await interaction.response.send_message(
-            # TODO i18n
-            'Quote added', ephemeral=True
+            I18N.t('quote.modals.add.msg_confirm'),
+            ephemeral=True
         )
 
     async def on_error(self, interaction: discord.Interaction, error):
         await interaction.response.send_message(
-            f'Error: {error}', ephemeral=True
+            I18N.t('quote.modals.error', error=error),
+            ephemeral=True
         )
 
 
@@ -204,7 +209,7 @@ class QuoteEditModal(discord.ui.Modal):
         # Create elements
         quote_text = QuoteTextInput(
             style_in=discord.TextStyle.paragraph,
-            label_in='Quote text',
+            label_in=I18N.t('quote.modals.quote_text'),
             default_in=self.quote_in[0][2] if self.quote_in else '',
             required_in=True,
             placeholder_in='Text'
@@ -212,10 +217,10 @@ class QuoteEditModal(discord.ui.Modal):
 
         quote_date = QuoteTextInput(
             style_in=discord.TextStyle.short,
-            label_in='Quote date',
+            label_in=I18N.t('quote.modals.quote_date'),
             default_in=self.quote_in[0][3] if self.quote_in else '',
             required_in=False,
-            placeholder_in='Date and time (DD.MM.YYYY HH:MM)'
+            placeholder_in=I18N.t('quote.modals.date_placeholder')
         )
 
         self.add_item(quote_text)
@@ -227,13 +232,14 @@ class QuoteEditModal(discord.ui.Modal):
         self.quote_out['datetime'] = self.children[1].value
 
         await interaction.response.send_message(
-            # TODO i18n
-            'Quote edited', ephemeral=True
+            I18N.t('quote.modals.edit.msg_confirm'),
+            ephemeral=True
         )
 
     async def on_error(self, interaction: discord.Interaction, error):
         await interaction.response.send_message(
-            f'Error: {error}', ephemeral=True
+            I18N.t('quote.modals.error', error=error),
+            ephemeral=True
         )
 
 
@@ -263,12 +269,17 @@ class Quotes(commands.Cog):
         super().__init__()
 
     group = discord.app_commands.Group(
-        name="quote", description='Quotes'
+        name="quote", description=locale_str(
+            I18N.t('quote.commands.quote.cmd')
+        )
     )
 
     @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
-        name="post", description="Post a random quote"
+        name="post", description=locale_str(I18N.t('quote.commands.post.cmd'))
+    )
+    @describe(
+        number=I18N.t('quote.commands.post.desc.number')
     )
     async def post(
             self, interaction: discord.Interaction,
@@ -365,7 +376,10 @@ class Quotes(commands.Cog):
                 return
             else:
                 await interaction.followup.send(
-                    envs.QUOTE_DOES_NOT_EXIST.format(quote_in)
+                    I18N.t(
+                        'quote.commands.post.quote_not_exist',
+                        number=number
+                    )
                 )
                 return
 
@@ -374,7 +388,7 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @group.command(
-        name="add", description="Add a quote"
+        name="add", description=locale_str(I18N.t('quote.commands.add.cmd'))
     )
     async def quote_add(
         self, interaction: discord.Interaction,
@@ -390,7 +404,7 @@ class Quotes(commands.Cog):
         else:
             last_row_id = _row_ids[-1]+1
         modal_in = QuoteAddModal(
-            title_in='Add quote',
+            title_in=I18N.t('quote.modals.add.modal_title'),
             available_row_id=last_row_id
         )
         await interaction.response.send_modal(modal_in)
@@ -412,6 +426,11 @@ class Quotes(commands.Cog):
                 (quote_out['uuid'], quote_out['quote_text'], iso_date)
             ]
         )
+        await interaction.followup.send(
+            I18N.t(
+                'quote.commands.add.msg_confirm'),
+            ephemeral=True
+        )
         return
 
     @commands.check_any(
@@ -420,7 +439,10 @@ class Quotes(commands.Cog):
     )
     @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
-        name="edit", description="Edit an existing quote"
+        name="edit", description=locale_str(I18N.t('quote.commands.edit.cmd'))
+    )
+    @describe(
+        quote_in=I18N.t('quote.commands.edit.desc.quote_in')
     )
     async def quote_edit(
         self, interaction: discord.Interaction, quote_in: str,
@@ -430,7 +452,7 @@ class Quotes(commands.Cog):
         quote_from_db = await get_quote_from_db(quote_in)
         log.verbose(f'quote_from_db: {quote_from_db}')
         modal_in = QuoteEditModal(
-            title_in='Edit quote',
+            title_in=I18N.t('quote.modals.edit.modal_title'),
             quote_in=quote_from_db
         )
         await interaction.response.send_modal(modal_in)
@@ -443,13 +465,17 @@ class Quotes(commands.Cog):
         elif str(quote_from_db[0][2]) != str(modal_in.quote_out['datetime']):
             update_triggered = True
         else:
-            _msg = 'No changes discovered in quote'
-            log.error(_msg)
-            await interaction.followup.send(_msg, ephemeral=True)
+            log.error('No changes discovered in quote')
+            await interaction.followup.send(
+                I18N.t('quote.modals.edit.no_change'),
+                ephemeral=True
+            )
             return
         if update_triggered:
-            log.verbose('Discovered changes in quote:',
-                        pretty=modal_in.quote_out)
+            log.verbose(
+                'Discovered changes in quote:',
+                pretty=modal_in.quote_out
+            )
             # Update quote
             await db_helper.update_fields(
                 template_info=envs.quote_db_schema,
@@ -472,7 +498,12 @@ class Quotes(commands.Cog):
     )
     @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
-        name="delete", description="Delete a quote"
+        name="delete", description=locale_str(
+            I18N.t('quote.commands.delete.cmd')
+        )
+    )
+    @describe(
+        quote_in=I18N.t('quote.commands.delete.desc.quote_in')
     )
     async def quote_delete(
             self, interaction: discord.Interaction,
@@ -486,9 +517,11 @@ class Quotes(commands.Cog):
         log.db(f'quote is: {quote}')
         confirm_buttons = ConfirmButtons()
         await interaction.followup.send(
-            envs.QUOTE_CONFIRM_DELETE.format(
-                quote[0], quote[2],
-                get_dt(
+            I18N.t(
+                'quote.commands.delete.confirm_delete',
+                quote_num=quote[0],
+                quote_text=quote[2],
+                quote_date=get_dt(
                     format='datetextfull',
                     dt=quote[3]
                 )
@@ -506,12 +539,15 @@ class Quotes(commands.Cog):
             )
             # Confirm that the quote has been deleted
             await interaction.followup.send(
-                envs.QUOTE_DELETE_CONFIRMED.format(quote[0]),
+                I18N.t(
+                    'quote.commands.delete.msg_confirm',
+                    quote_num=quote[0]
+                ),
                 ephemeral=True
             )
         else:
             await interaction.followup.send(
-                envs.QUOTE_DENY_DELETE,
+                I18N.t('quote.commands.delete.msg_fail'),
                 ephemeral=True
             )
             return
@@ -521,7 +557,9 @@ class Quotes(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @group.command(
-        name="count", description="Count the number of quotes"
+        name="count", description=locale_str(
+            I18N.t('quote.commands.count.cmd')
+        )
     )
     async def quote_count(self, interaction: discord.Interaction):
         'Count the number of quotes available'
@@ -532,7 +570,10 @@ class Quotes(commands.Cog):
             )
         )
         await interaction.followup.send(
-            envs.QUOTE_COUNT.format(quote_count)
+            I18N.t(
+                'quote.commands.count.msg_confirm',
+                num_quotes=quote_count
+            )
         )
         return
 

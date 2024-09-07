@@ -1,0 +1,21 @@
+en:
+  too_few_arguments: Too few arguments given to command
+  literal_yes_no:
+    yes: Yes
+    no: No
+  literal_allow_deny:
+    allow: Allow
+    deny: Deny
+  name: Name
+  channel: Channel
+  message_id: Message ID
+  text: Text
+  order: Order
+  id: ID
+  num_reactions: No. reactions
+  msg_name: Message name
+  msg_text: Message text
+  order: Order
+  roles: Roles
+  emojis: Emojis
+  header: Header

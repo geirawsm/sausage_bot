@@ -1,0 +1,174 @@
+en:
+  views:
+    perms:
+      drop_general: Select general permissions
+      drop_text: Select text permissions
+      drop_voice: Select voice permissions
+  emoji_headers:
+    emoji: Emoji
+    name: Name
+    id: ID
+    animated: Animated?
+    managed: Auto-managed?
+  roles_headers:
+    emoji: Emoji
+    name: Name
+    id: ID
+    members: Members
+    managed: Auto-managed?
+  tabulate_emojis_and_roles:
+    emoji_name: Emoji
+    emoji_id: Emoji ID
+    role_name: Role
+    role_id: Role ID
+  splits:
+    roles: 'Roles will be split on one or more of the following characers: " .,;-_\\/"'
+    emojis: 'Emojis will be split on one or more of the following characers: " .,;-_\\/"'
+  commands:
+    roles:
+      cmd: Control roles on the server
+    reaction:
+      cmd: Control reaction messages on the server
+    reaction_add:
+      cmd: Add reaction message to the server
+    reaction_remove:
+      cmd: Remove reaction message from the server
+    settings_group:
+      cmd: Control settings on the server
+    info:
+      cmd: Get info about a specific role
+      desc:
+        public: Make the reply public
+        role_in: Role to get info about
+    list:
+      cms:
+      desc:
+        public: Make the reply public
+        type: Type of list
+        sort: Sorting method
+      literal:
+        type:
+          roles: Roles
+          emojis: Emojis
+        sort:
+          name: By name
+          id: By ID
+    add:
+      cmd: Add a role
+      desc:
+        role_name: Name of the role to add
+        hoist: Set if the role should be distinguishable or not
+        mentionable: Set if the role should be mentionable or not
+        color: 'Color for the role. Accepts 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
+        display_icon: Set a display icon for the role. Only possible if the guild has enough boosts
+      set_perms: Set permissions
+      msg_confirm: Role is created
+      msg_error: 'Error when creating role: %{_error}'
+    remove:
+      cmd: Remove a role from the server
+      desc:
+        role_name: Name of the role to remove
+      msg_confirm: 'Role `%{rolename}` has been removed'
+    edit:
+      cmd: Edit a role on the server
+      desc:
+        role_name: Name of the role to edit
+        new_name: New name for the role
+        color: 'Color for the role. Accepts 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
+        hoist: Indicates if the role will be displayed separately from other members.
+        permissions: Indicate if the permissions also should be edited
+      changelist_name: Name
+      changelist_color: Color
+      changelist_hoist: Hoist
+      changelist_perms_added: Permissions added
+      changelist_perms_removed: Permissions removed
+      changes_out: 'Did following changes on role `%{role_name}`'
+      change_perms: Change permissions 
+      msg_confirm: 'Role `%{role_name}` has been edited'
+      msg_error: 'Error when editing role: %{_error}'
+    react_list:
+      cmd: List reaction messages or info about a reaction message
+      desc:
+        reaction_msg: Reaction message to list
+      msg_error: 'Did not find %{reaction_msg}'
+      role_error: Role not found
+      emoji_error: Emoji not found
+      msg_no_msgs: No messages in database
+    add_reaction_msg:
+      cmd: Add reaction message
+      desc:
+        msg_name: Name of the message for the reaction roles
+        msg_text: The text for the message
+        channel: Channel to post reaction message to
+        order: Set order for the message in the channel
+        header: Header for the message
+      msg_order_exist: That order number already exist for %{channel}, try %{num}
+      msg_reaction_already_exist: Reaction message %{msg_name} already exists
+      msg_roles_emojis_error: Could not find any roles or emojis
+      msg_confirm: Message added
+    add_reaction_role:
+      cmd: Add roles to a reaction message
+      desc:
+        msg_name: Name of the message for the reaction roles
+      msg_confirm: Roles added
+    sync:
+      cmd: Synchronize reactions messages with database
+      desc:
+        reaction_msg: The message to sync
+      confirm_sync: Reaction message synced
+    sort:
+      cmd: Sort reaction messages alphabetically
+      desc:
+        reaction_msg: The message ID from database
+      msg_error: 'Did not find %{reaction_msg}'
+      msg_confirm: Roles sorted
+    remove_msg:
+      cmd: Remove a reaction message
+      desc:
+        reaction_msg: The message ID from Discord or name in the database
+      msg_confirm: Reaction message removed
+      msg_error: 'Could not find reaction message'
+    remove_role:
+      cmd: Remove a reaction from reaction message
+      desc:
+        reaction_msg: The message ID from database
+        role_name: Name of a role that is connected to a reaction in the message
+      msg_confirm: 'Role `%{rolename}` has been removed'
+    reorder:
+      cmd: Check and fix order of reaction messages in a channel
+      desc:
+        channel: What channel to check
+      msg_confirm: Reaction messages reordered
+      msg_already_sorted: Messages are already in correct order
+    settings_add:
+      cmd: Add a setting for roles on the server
+      desc:
+        setting: The setting to add
+        role_in: The role to add to the setting
+      literal:
+        setting:
+          unique: Unique role
+          not_include_in_total: Not include in total
+      role_already_set: Role is already set
+      msg_confirm: Added setting
+    settings_remove:
+      cmd: Remove a setting for roles on the server
+      desc:
+        setting: The setting to remove
+      msg_confirm: 'Setting `%{setting}` has been removed'
+    settings_list:
+      cmd: List settings for roles on the server
+      headers:
+        setting: Setting
+        role: Role
+        value: Value
+    settings_edit:
+      cmd: Edit a setting for roles on the server
+      desc:
+        setting: The setting to edit
+        role_in: The role to add to the setting
+      confirm_msg: 'Edited setting (%{setting} = %{role_in})'
+    on_raw_reaction_add:
+      channel_log_confirm: Added in accordance with reaction messages
+    on_raw_reaction_remove:
+      channel_log_confirm: Removed in accordance with reaction message

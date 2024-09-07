@@ -1,0 +1,38 @@
+no:
+  commands:
+    quote:
+      cmd: Sitater
+    post:
+      cmd: Post et sitat
+      desc:
+        number: Velg et nummer hvis du vil ha et spesifikt sitat
+      quote_not_exist: 'Sitat nummer %{number} finnes ikke'
+    add:
+      cmd: Legg til sitat
+      modal_title: Legg til sitat
+      msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
+    edit:
+      cmd: Rediger eksisterende sitat
+      desc:
+        quote_in: Sitat som skal endres
+      modal_title: Rediger sitat
+      no_change: Ingen endringer funnet
+    delete:
+      cmd: Slett sitat
+      desc:
+        quote_in: Sitat som skal slettes
+      confirm_delete: 'Er du sikker på at du vil slette følgende sitat?\n```# {quote_num}\n{quote_text}\n({quote_date})```\n'
+      msg_confirm: 'Slettet sitat nummer %{quote_num}' 
+      msg_fail: Sitatet slettes ikke
+    count:
+      cmd: Tell antall sitater
+  modals:
+    quote_num: Sitat nummer
+    quote_text: Sitat tekst
+    quote_date: Sitat dato
+    date_placeholder: Dato og tid (DD.MM.YYYY HH:MM)
+    error: 'Feil: %{error}'
+    add:
+      msg_confirm: Sitat lagt til
+    edit:
+      msg_confirm: Sitat redigert

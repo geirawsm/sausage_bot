@@ -1,0 +1,46 @@
+no:
+  commands:
+    autoevent:
+      cmd: Administrer kamp-hendelser på serveren basert på en link fra en støttet nettside
+    add:
+      cmd: Legg til en hendelse
+      desc:
+        url: URL til kampsiden fra nifs, vglive eller tv2.no/livesport
+        channel: Kanal å poste til
+        text: Ekstra tekst til hendelsens beskrivelse
+        event_image: Bilde for hendelse (800 x 320)
+      description:
+        tournament: Turnering
+        when: Når
+        where: Hvor
+        reminder: Husk at eventet er åpent en halvtime før kampstart
+      log_confirm: Opprettet autogenerert hendelse
+      msg_confirm: 'Opprettet hendelse for %{home} - %{away} (ID: %{id})'
+      msg_failed: 'Fikk en feil ved publisering av hendelse: %{error_in}'
+    remove:
+      cmd: Fjern en planlagt hendelse
+      desc:
+        event: Hendelsen som skal fjernes
+        remove_all: Vil du slette alle hendelser?
+      msg_all_confirm: Alle hendelser fjernet
+      msg_one_confirm: Hendelse fjernet
+      msg_no_event: Ingen hendelse valgt
+    list:
+      cmd: Vis alle planlagte hendelser
+      msg_no_events: Ingen hendelser er planlagt
+    sync:
+      cmd: Opprett en tidtaker for en hendelse
+      desc:
+        sync_time: Tiden du vil synkronisere til
+        countdown: Hvor mange sekunder skal brukes til nedtelling til `sync_time`?
+      msg_confirm: 'Sync til %{time1}:%{time2} %{rel_start}'
+      not_correct_format: '`sync_time` is not in the correct format'
+    announce:
+      cmd: Annonser en hendelse
+      desc:
+        event: Hendelsen som skal annonses
+        channel: Kanal som hendelsen skal annonses i
+      annouce_text: Minner om eventen som begynner %{rel_start}, 30 min før kampstart
+      msg_confirm: 'Melding sendt til `#%{channel}`'
+      msg_forbidden: 'Jeg kan ikke sende meldinger i `#%{channel}`'
+      msg_error: 'En feil oppstod ved annonsering av hendelset: %{error}'

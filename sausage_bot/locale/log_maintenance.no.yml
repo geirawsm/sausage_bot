@@ -1,0 +1,34 @@
+no:
+  commands:
+    log:
+      cmd: Administrer logging
+    maintenance:
+      cmd: Administrer logging-oppgave
+    settings:
+      cmd: Administrer innstillinger for logging
+    start:
+      cmd: Start vedlikehold av logg
+      msg_confirm: Startet vedlikehold av logg
+    stop:
+      cmd: Stopp vedlikehold av logg
+      msg_confirm: Stoppet vedlikehold av logg
+    list:
+      cmd: Hent tilgjengelige innstillinger for denne cogen
+      headers:
+        setting: Innstilling
+        value: Verdi
+        value_type: Verdi type
+    setting:
+      cmd: Endre en innstilling for denne cogen
+      desc:
+        name_of_setting: Navn på innstilling som skal endres
+        value_in: Verdi som skal settes
+      value_in_input_invalid: 'Ugyldig inndata for `value_in`: %{error}'
+      msg_confirm: Innstilling oppdatert
+  tasks:
+    log_maintenance:
+      msg:
+        size_and_none: 'Maks mappestørrelse er ikke definert, eller er 0. Logg-mappens størrelse er %{folder_size}'
+        days_and_none: 'Max number of log days is not set, or set to 0. Logg-mappen har %{num_files} filer'
+        disable_posting: 'Kjør kommandoen `/log maintenance stop` for å stoppe disse meldingene'
+        maintenance_done: 'Logg-vedlikehold er ferdig. Slettet følgende filer:'

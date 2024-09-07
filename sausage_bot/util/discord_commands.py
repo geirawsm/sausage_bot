@@ -5,6 +5,7 @@ from tabulate import tabulate
 
 from sausage_bot.util import config, envs
 from sausage_bot.util.datetime_handling import get_dt
+from sausage_bot.util.i18n import I18N
 from .log import log
 
 
@@ -154,7 +155,20 @@ async def get_sorted_scheduled_events():
         sched_dict['id'].append(event_dict[event]['id'])
     out = tabulate(
         sched_dict,
-        headers=['Kamp', 'Dato', 'Intr.', 'ID'],
+        headers=[
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.match'
+            ),
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.date'
+            ),
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.interest'
+            ),
+            I18N.t(
+                'discord_commands.get_sorted_scheduled_events.headers.id'
+            )
+        ],
         numalign='center'
     )
     out = '```{}```'.format(out)
@@ -271,17 +285,14 @@ async def update_stats_post(stats_info, stats_channel):
         channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
-            # TODO var msg
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
-                    # TODO var msg
                     log.debug('Found post with `Serverstats sist`, editing...')
                     await msg.edit(content=stats_info)
                     found_stats_msg = True
                     return
         if found_stats_msg is False:
-            # TODO var msg
             log.debug('Creating stats message')
             await channel_out.send(stats_info)
 
@@ -297,7 +308,6 @@ async def remove_stats_post(stats_channel):
         channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
-            # TODO var msg
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
@@ -309,7 +319,6 @@ async def remove_stats_post(stats_channel):
                     found_stats_msg = True
                     return
         if found_stats_msg is False:
-            # TODO var msg
             log.debug('No stats post found')
 
 

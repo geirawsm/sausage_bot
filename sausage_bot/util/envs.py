@@ -19,6 +19,7 @@ LOG_DIR = DATA_DIR / 'logs'
 STATIC_DIR = DATA_DIR / 'static'
 TEMP_DIR = ROOT_DIR / 'tempfiles'
 MERMAID_DIR = ROOT_DIR / 'docs' / 'mermaid_charts'
+LOCALE_DIR = ROOT_DIR / 'locale'
 
 # Relative paths
 COGS_REL_DIR = 'sausage_bot.cogs'
@@ -324,7 +325,6 @@ youtube_db_filter_schema = {
     'autoincrement': False
 }
 
-
 youtube_db_log_schema = {
     'db_file': str(DB_DIR / 'youtube_log.sqlite'),
     'name': 'log',
@@ -332,6 +332,16 @@ youtube_db_log_schema = {
         'uuid TEXT NOT NULL',
         'url TEXT',
         'date TEXT'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+locale_db_schema = {
+    'db_file': str(DB_DIR / 'locale.sqlite'),
+    'name': 'locale',
+    'items': [
+        'locale TEXT'
     ],
     'primary': None,
     'autoincrement': False
@@ -345,7 +355,8 @@ def log_extra_info(type):
             'verbose': 'VERBOSE',
             'database': 'DATABASES',
             'debug': 'DEBUG',
-            'error': 'ERROR'
+            'error': 'ERROR',
+            'i18n': 'I18N'
         },
         'length': 9
     }
@@ -358,54 +369,18 @@ def log_extra_info(type):
 ### Botlines ###
 # Generiske
 GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
-NOT_AUTHORIZED = 'Du har ikke tilgang til den kommandoen'
-TOO_MANY_ARGUMENTS = 'Du har gitt for mange argumenter til kommandoen'
-TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
-CHANNEL_NOT_FOUND = 'Finner ikke kanalen `{}` på denne discord-serveren'
 POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
     'finnes ikke'
 ERROR_WITH_ERROR_MSG = 'Feil: {}'
-COMPARING_IDS = 'Sammenligner med `{}` ({}) med `{}` ({})'
-CREATING_DB_FILES = 'Sjekker databasefil'
-BOT_NOT_SET_UP = 'The bot is not properly set up'
-
-# MAIN
-PURGE_DESC = 'Successfully purged {} messages.\nCommand executed by {}.'
-
-# COG - COG ADMIN IN MAIN
-COGS_TOO_FEW_ARGUMENTS = 'Du har gitt for få argumenter til kommandoen'
-COGS_CHANGE_STATUS_FAIL = 'Klarte ikke å endre status. Feilmelding: {}'
-COGS_WRONG_STATUS = 'Kjente ikke igjen status `{}`'
-COGS_ENABLED = 'Aktiverte `{}`'
-COGS_DISABLED = 'Deaktiverte `{}`'
-ALL_COGS_ENABLED = 'Aktiverte alle cogs'
-ALL_COGS_DISABLED = 'Deaktiverte alle cogs'
 
 # COG - GENERIC MESSAGES
 COG_STARTING = 'Starting cog: `{}`'
 
 # COG
 # RSS
-RSS_URL_NOT_OK = 'Linken du ga ser ikke ut til å være en ordenlig URL'
-RSS_URL_AND_CHANNEL_NOT_OK = 'Du må oppgi både link og hvilken kanal '\
-    'du ønsker den skal publiseres til.'
-RSS_ADDED = '{} ble lag til i kanalen {}'
-RSS_ADDED_BOT = '{} la til feeden {} ({}) til kanalen {}'
-RSS_REMOVED = 'RSS-feeden `{}` ble fjernet'
-RSS_REMOVED_BOT = 'RSS-feeden `{}` ble fjernet av {}'
-RSS_TRIED_REMOVED_BOT = '{} forsøkte å fjerne RSS-feeden `{}`, '\
-    'men det oppsto en feil'
-RSS_COULD_NOT_REMOVE = 'Klarte ikke å fjerne RSS-feeden {}'
-RSS_FEED_CHANNEL_CHANGE = 'rss: {} endret kanalen til feeden `{}` til `{}`'
-RSS_LIST_ARG_WRONG = 'Kjenner ikke til kommandoen {}'
 RSS_INVALID_URL = 'Inputen `{}` er ikke en ordentlig URL. Dobbelsjekk staving.'
-RSS_MISSING_SCHEME = 'URLen `{}` hadde ikke (http/https). Legger til og '\
-    'prøver igjen...'
-RSS_CONNECTION_ERROR = 'Feil ved oppkobling til URLen: {}'
-RSS_NOT_ABLE_TO_SCRAPE = 'Klarte ikke å scrape {}: {}'
 RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
 RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
-RSS_CHANGED_CHANNEL = 'Endret kanal for feeden `{}` til `{}`'
 RSS_VARS = {
     'feed_name': {
         'title': 'Name', 'db_col': 'feed_name', 'max_len': 0, 'list_type': []
@@ -432,40 +407,15 @@ RSS_VARS = {
 
 # CORE
 FEEDS_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
-FEEDS_LINK_INDEX_ERROR = 'Fikk IndexError ved henting av link til {} i {}'
-FEEDS_NONE_VALUE_AS_TEXT = 'Ingen'
 FEEDS_URL_ERROR = 'Failed'
 FEEDS_URL_STALE = 'Stale'
 FEEDS_URL_ERROR_LIMIT = 3
 FEEDS_URL_SUCCESS = 'OK'
 CHANNEL_STATUS_ERROR = 'Failed'
 CHANNEL_STATUS_SUCCESS = 'OK'
-NET_IO_CONNECTION_ERROR = 'Feil ved oppkobling til `{}`: {}'
-NET_IO_TIMEOUT = 'Oppkobling til `{}` gikk ut på tid: {}'
-NET_IO_ERROR_RESPONSE = 'Got a {} response (HTTP {}) when fetching {}. '\
-    'If this causes problems, you need to check the link.'
-
-# COG - QUOTE
-QUOTE_EDIT_CONFIRMED = 'Endret sitat'
-QUOTE_NO_EDIT_CONFIRMED = 'Endret *ikke* sitat'
-QUOTE_CONFIRM_DELETE = 'Er du sikker på at du vil slette følgende sitat?'\
-    '\n```# {}\n{}\n({})```\n'
-QUOTE_DENY_DELETE = 'Sitatet slettes ikke'
-QUOTE_DELETE_CONFIRMED = 'Slettet sitat # {}'
-QUOTE_COUNT = 'Jeg har {} sitater på lager'
-QUOTE_DOES_NOT_EXIST = 'Sitat nummer {} finnes ikke'
 
 # COG - YOUTUBE
-YOUTUBE_NO_FEEDS_FOUND = 'Fant ingen Youtube-feeds'
 YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
-YOUTUBE_ADDED = '{} ble lag til i kanalen {}'
-YOUTUBE_ADDED_BOT = '{} la til feeden {} (`{}`) til kanalen {}'
-YOUTUBE_REMOVED = 'Youtube-feeden {} ble fjernet'
-YOUTUBE_REMOVED_BOT = 'Youtube-feeden {} ble fjernet av {}'
-YOUTUBE_TRIED_REMOVED_BOT = '{} forsøkte å fjerne Youtube-feeden {}'
-YOUTUBE_COULD_NOT_REMOVE = 'Klarte ikke å fjerne Youtube-feeden {}'
-YOUTUBE_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
-YOUTUBE_EMPTY_LINK = 'Klarer ikke å hente linken: `{}`'
 YOUTUBE_VARS = {
     'url': {
         'title': 'Feed', 'max_len': 0, 'list_type': []
@@ -489,25 +439,6 @@ YOUTUBE_VARS = {
 
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
-AUTOEVENT_NO_EVENTS_LISTED = 'Ingen events ligger inne for øyeblikket'
-AUTOEVENT_EVENT_FOUND = 'Fant event: {}'
-AUTOEVENT_EVENT_NOT_FOUND = 'Fant ingen eventer med den IDen. Sjekk '\
-    'liste på nytt med `!autoevent list`'
-AUTOEVENT_START_TIME_NOT_CORRECT_FORMAT = '`start_time` ser ikke ut til å '\
-    'være i riktig format'
-AUTOEVENT_EVENT_START_IN_PAST = 'Kan ikke lage en event med starttid i fortida'
-AUTOEVENT_HTTP_EXCEPTION_ERROR = 'Got an error when posting event: {}'
-
-# COG - ROLES
-ROLES_KEY_PHRASES = [
-    'Svar på denne meldingen med navnet på en rolle',
-    'Timed out'
-]
-
-# COG - DILEMMAS
-DILEMMAS_NO_DILEMMAS_IN_DB = 'Fant ingen lagrede dilemmas'
-DILEMMAS_COUNT = 'Fant {} dilemma'
-
 
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'

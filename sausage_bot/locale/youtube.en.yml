@@ -1,0 +1,56 @@
+en:
+  groups:
+    youtube: Administer YouTube feeds
+    filter: Filter YouTube feeds
+    posting: Posting from YouTube feeds
+  commands:
+    start:
+      cmd: Start posting
+      msg_confirm: Youtube posting started
+    stop:
+      cmd: Stop posting
+      msg_confirm: Youtube posting stopped
+    add:
+      cmd: Add a YouTube-feed
+      desc:
+        feed_name: Name of feed to manage
+        youtube_link: The link to the YouTube channel to get videos from
+        channel: The channel to post to
+      msg_empty_link: 'Klarer ikke å hente linken: `%{link}`'
+      log_feed_confirm: '%{user} added %{feed_name} (`%{yt_link}`) to #%{channel}'
+      msg_added: 'Added %{feed_name} to channel %{channel_name}'
+    remove:
+      cmd: Remove a YouTube feed
+      desc:
+        feed_name: Name of Youtube feed to manage
+      msg_remove_non_existing_feed: The youtube feed `%{feed_name}` does not exist
+      msg_feed_removed: 'Removed Youtube feed `{feed_name}` from channel `{channel_name}`'
+      log_feed_removed: 'Youtube feed `%{feed_name}` removed by %{user_name}'
+      msg_feed_remove_failed: 'The Youtube feed `{feed_name}` could not be removed'
+      log_feed_remove_failed: 'User %{user_name} tried to remove the Youtube feed `%{feed_name}`, but it failed'
+    filter_add:
+      cmd: Add filters on an Youtube feed
+      desc:
+        feed_name: Name of Youtube feed to manage
+        allow_deny: 'Should the filter `allow` or `deny`.'
+        filters_in: 'What keyword to filter a post by.'
+      msg_filter_added: 'Added filter `%{filter_in} as `%{allow_deny}`'
+      msg_filter_failed: 'Error when adding filter, check logs'
+    filter_remove:
+      cmd: Remove filters on an Youtube feed
+      desc:
+        feed_name: Name of feed
+        filter_in: What filter to look for
+      msg_confirm: 'Removed filter `%{filter_in}`'
+      msg_error: Error when removing filter `{filter_in}`, check logs
+    list:
+      cmd: List all active YouTube feeds
+      desc:
+        list_type: 'Specify type of list'
+      msg_error: No feeds added
+      literal_type:
+        normal: Normal
+        added: Added
+        filter: Filter
+  tasks:
+    log_error: '%{feed_name} returned NoneType'
