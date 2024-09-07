@@ -3,7 +3,7 @@
 import os
 import discord
 from discord.ext import commands, tasks
-from discord.app_commands import locale_str
+from discord.app_commands import locale_str, describe
 from tabulate import tabulate
 
 from sausage_bot.util import envs, file_io
@@ -144,8 +144,10 @@ class LogMaintenance(commands.Cog):
         )
     )
     @describe(
-        I18N.t('log_maintenance.commands.setting.desc.name_of_setting'),
-        I18N.t('log_maintenance.commands.setting.desc.value_in')
+        name_of_setting=I18N.t(
+            'log_maintenance.commands.setting.desc.name_of_setting'
+        ),
+        value_in=I18N.t('log_maintenance.commands.setting.desc.value_in')
     )
     async def log_setting(
         self, interaction: discord.Interaction, name_of_setting: str,

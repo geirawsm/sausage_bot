@@ -76,11 +76,11 @@ class RSSfeed(commands.Cog):
         name="rss", description=locale_str(I18N.t('rss.groups.rss'))
     )
     rss_filter_group = discord.app_commands.Group(
-        name="filter", description=locate_str(I18N.t('rss.groups.filter')),
+        name="filter", description=locale_str(I18N.t('rss.groups.filter')),
         parent=rss_group
     )
     rss_posting_group = discord.app_commands.Group(
-        name="posting", description=locate_str(I18N.t('rss.groups.posting')),
+        name="posting", description=locale_str(I18N.t('rss.groups.posting')),
         parent=rss_group
     )
 

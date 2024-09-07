@@ -483,7 +483,9 @@ async def language(
     interaction: discord.Interaction, language: str
 ):
     await interaction.response.defer(ephemeral=True)
+    log.verbose(f'Setting language to {language}')
     await set_language(language)
+    log.verbose('Syncing commands')
     await config.bot.tree.sync()
     await interaction.followup.send(
         I18N.t(

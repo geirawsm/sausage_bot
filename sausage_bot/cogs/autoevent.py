@@ -207,7 +207,6 @@ class AutoEvent(commands.Cog):
                 # Delete event
                 _event = _guild.get_scheduled_event(int(_id))
                 await _event.delete()
-            # TODO var msg
             await interaction.followup.send(
                 I18N.t('autoevent.commands.remove.msg_all_confirm')
             )
@@ -216,7 +215,6 @@ class AutoEvent(commands.Cog):
                 # Delete event
                 _event = _guild.get_scheduled_event(int(event))
                 await _event.delete()
-                # TODO var msg
                 await interaction.followup.send(
                     I18N.t('autoevent.commands.remove.msg_one_confirm')
                 )
@@ -236,7 +234,6 @@ class AutoEvent(commands.Cog):
             I18N.t('autoevent.commands.list.cmd')
         )
     )
-    @describe()
     async def list_events(self, interaction: discord.Interaction):
         '''
         Lists all the planned events: `!autoevent list`
@@ -261,8 +258,8 @@ class AutoEvent(commands.Cog):
         )
     )
     @describe(
-        I18N.t('autoevent.commands.sync.desc.sync_time'),
-        I18N.t('autoevent.commands.sync.desc.countdown')
+        sync_time=I18N.t('autoevent.commands.sync.desc.sync_time'),
+        countdown=I18N.t('autoevent.commands.sync.desc.countdown')
     )
     async def event_sync(
         self, interaction: discord.Interaction, sync_time: str,
