@@ -5,6 +5,8 @@ en:
       no_dilemmas_in_db: No dilemmas in database
     add:
       cmd: Add a dilemma
+      desc:
+        dilemmas_in: Dilemma to add
       msg_confirm: 'Added the following dilemma: %{dilemmas_in}'
     count:
       cmd: Count the numbers of dilemmas

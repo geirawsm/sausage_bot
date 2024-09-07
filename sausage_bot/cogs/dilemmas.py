@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-from discord.app_commands import locale_str
+from discord.app_commands import locale_str, describe
 import uuid
 
 from sausage_bot.util import envs, db_helper, file_io
@@ -82,7 +82,10 @@ class Dilemmas(commands.Cog):
     @group.command(
         name="add", description=locale_str(
             I18N.t('dilemmas.commands.add.cmd')
-        ) 
+        )
+    )
+    @describe(
+        dilemmas_in=I18N.t('dilemmas.commands.add.desc.dilemmas_in')
     )
     async def dilemmas_add(
         self, interaction: discord.Interaction, dilemmas_in: str
