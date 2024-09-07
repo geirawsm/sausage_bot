@@ -286,17 +286,14 @@ async def update_stats_post(stats_info, stats_channel):
         channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
-            # TODO var msg
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
-                    # TODO var msg
                     log.debug('Found post with `Serverstats sist`, editing...')
                     await msg.edit(content=stats_info)
                     found_stats_msg = True
                     return
         if found_stats_msg is False:
-            # TODO var msg
             log.debug('Creating stats message')
             await channel_out.send(stats_info)
 
@@ -312,17 +309,14 @@ async def remove_stats_post(stats_channel):
         channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
-            # TODO var msg
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
-                    # TODO var msg
                     log.debug('Found post with `Serverstats sist`, removing...')
                     await msg.delete()
                     found_stats_msg = True
                     return
         if found_stats_msg is False:
-            # TODO var msg
             log.debug('No stats post found')
 
 

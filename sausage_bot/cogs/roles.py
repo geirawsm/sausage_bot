@@ -13,11 +13,6 @@ from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
-# TODO TO BE REMOVE
-from pprint import pprint
-###
-
-
 class DropdownPermissions(discord.ui.Select):
     def __init__(
             self, placeholder_in, options_out, options_in
@@ -476,7 +471,6 @@ def tabulate_emojis_and_roles(dict_in):
     paginated = []
     temp_out = header
     counter = 0
-    # TODO CONTINUE HERE
     while counter <= len(dict_in['emoji_id'])-1:
         line_out = '{} `{:>{}} {:>{}} {:>{}} {:<{}}`'.format(
             '<:{}:{}>'.format(
@@ -1210,7 +1204,6 @@ class Autoroles(commands.Cog):
             select=('name')
         )
         if len(msg_db) == 1:
-            # TODO var msg
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.add_reaction_msg.'
@@ -1415,7 +1408,6 @@ class Autoroles(commands.Cog):
             msg_info['id'], msg_info['channel']
         )
         if _msg is None:
-            # TODO var msg
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.sort.msg_error',
@@ -1464,7 +1456,6 @@ class Autoroles(commands.Cog):
             msg_info['id'], msg_info['channel']
         )
         if _msg is None:
-            # TODO var msg
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.remove_msg.msg_error',
@@ -1481,7 +1472,6 @@ class Autoroles(commands.Cog):
         )
         # Remove message from guild
         await _msg.delete()
-        # TODO var msg
         await interaction.followup.send(
             I18N.t('roles.commands.remove_msg.msg_confirm')
         )
@@ -1584,7 +1574,6 @@ class Autoroles(commands.Cog):
 
         # Check order of messages
         if len(discord_msgs) != len(react_msgs):
-            # TODO var msg
             log.log(
                 'Number of reaction messages in {} and database are not'
                 'the same nubmer ({} vs {})'.format(
@@ -1630,12 +1619,10 @@ class Autoroles(commands.Cog):
                 await sync_reaction_message_from_settings(
                     str(new_reaction_msg.id)
                 )
-            # TODO i18n
             await interaction.followup.send(
                 I18N.t('roles.commands.reorder.msg_confirm')
             )
         else:
-            # TODO i18n
             await interaction.followup.send(
                 I18N.t('roles.commands.reorder.msg_already_sorted')
             )
@@ -1688,7 +1675,6 @@ class Autoroles(commands.Cog):
                 (_setting, str(role_in.id))
             ]
         )
-        # TODO i18n
         await interaction.followup.send(
             I18N.t('roles.commands.settings_add.msg_confirm')
         )
@@ -1720,7 +1706,6 @@ class Autoroles(commands.Cog):
             template_info=envs.roles_db_settings_schema,
             numbers=setting
         )
-        # TODO i18n
         await interaction.followup.send(
             I18N.t('roles.commands.settings_remove.msg_confirm'),
         )
@@ -1860,7 +1845,6 @@ async def setup(bot):
 # Add roles to users from reactions
 @config.bot.event
 async def on_raw_reaction_add(payload):
-    # TODO var msg
     log.debug('Checking added reaction role')
     if str(payload.user_id) == str(config.BOT_ID):
         log.debug('Change made by bot, skip')
@@ -1874,7 +1858,6 @@ async def on_raw_reaction_add(payload):
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message[0]):
-            # TODO var msg
             log.debug('Found message, checking add reactions...')
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
@@ -1923,7 +1906,6 @@ async def on_raw_reaction_add(payload):
 # Remove roles from users from reactions
 @config.bot.event
 async def on_raw_reaction_remove(payload):
-    # TODO var msg
     log.debug('Checking removed reaction role')
     if str(payload.user_id) == str(config.BOT_ID):
         log.debug('Change made by bot, skip')
@@ -1937,7 +1919,6 @@ async def on_raw_reaction_remove(payload):
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message[0]):
-            # TODO var msg
             log.debug('Found message, checking remove reactions...')
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
@@ -2004,11 +1985,9 @@ async def on_member_update(before, after):
     )
     log.debug(f'Got `unique_role`: {unique_role}')
     if not unique_role or unique_role == '':
-        # TODO var msg
         log.log('No unique role provided or setting is not string')
         return
     if unique_role:
-        # TODO var msg
         log.debug('Check for unique role')
         if str(before.id) == str(config.BOT_ID):
             log.debug('Change made by bot, skip')
@@ -2037,7 +2016,6 @@ async def on_member_update(before, after):
             where=('setting', 'not_include_in_total')
         )
         if len(not_include_in_total) > 0:
-            # TODO var msg
             log.debug('Found roles not to include in total')
             _before -= len(not_include_in_total)
             _after -= len(not_include_in_total)
@@ -2049,13 +2027,11 @@ async def on_member_update(before, after):
         log.verbose(f'_before: {_before}')
         log.verbose(f'_after: {_after}')
         if int(_after) <= 0:
-            # TODO var msg
             log.debug('Length of _after is 0, adding unique role')
             await after.add_roles(
                 get(_guild.roles, id=int(unique_role))
             )
         elif int(_after) > 1:
-            # TODO var msg
             log.debug(
                 'Length of after.roles is more than 1, removing unique role'
             )
