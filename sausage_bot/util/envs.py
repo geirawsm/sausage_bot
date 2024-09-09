@@ -371,7 +371,6 @@ def log_extra_info(type):
 GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
 POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
     'finnes ikke'
-ERROR_WITH_ERROR_MSG = 'Feil: {}'
 
 # COG - GENERIC MESSAGES
 COG_STARTING = 'Starting cog: `{}`'

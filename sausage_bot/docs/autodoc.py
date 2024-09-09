@@ -32,10 +32,10 @@ async def dump(item):
         file_io.write_file(doc_envs.DOCS_DIR / doc_args.file_out, _dump)
     else:
         filename = 'dump-{}_{}.md'.format(
-            await datetime_handling.get_dt(
+            datetime_handling.get_dt(
                 format='revdate', sep='-'
             ),
-            await datetime_handling.get_dt(
+            datetime_handling.get_dt(
                 format='timefull', sep='-'
             )
         )

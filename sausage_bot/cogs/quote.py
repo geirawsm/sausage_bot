@@ -279,7 +279,7 @@ class Quotes(commands.Cog):
         name="post", description=locale_str(I18N.t('quote.commands.post.cmd'))
     )
     @describe(
-        number=I18N.t('quote.commands.post.desc.number')
+        quote_in=I18N.t('quote.commands.post.desc.number')
     )
     async def post(
             self, interaction: discord.Interaction,
@@ -378,7 +378,7 @@ class Quotes(commands.Cog):
                 await interaction.followup.send(
                     I18N.t(
                         'quote.commands.post.quote_not_exist',
-                        number=number
+                        quote_in=quote_in
                     )
                 )
                 return

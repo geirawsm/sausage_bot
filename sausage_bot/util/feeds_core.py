@@ -60,7 +60,7 @@ async def check_feed_validity(URL):
         BeautifulSoup(req, features='xml')
         return True
     except (etree.XMLSyntaxError) as e:
-        log.error(envs.ERROR_WITH_ERROR_MSG.format(e))
+        log.error('Error: {}'.format(e))
         return False
 
 

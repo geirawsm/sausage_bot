@@ -6,7 +6,7 @@ no:
       cmd: Post et sitat
       desc:
         number: Velg et nummer hvis du vil ha et spesifikt sitat
-      quote_not_exist: 'Sitat nummer %{number} finnes ikke'
+      quote_not_exist: 'Sitat nummer %{quote_in} finnes ikke'
     add:
       cmd: Legg til sitat
       modal_title: Legg til sitat

@@ -6,7 +6,7 @@ en:
       cmd: Post a quote
       desc:
         number: Choose a number if you want a specific quote
-      quote_not_exist: 'Quote # %{number} does not exist'
+      quote_not_exist: 'Quote # %{quote_in} does not exist'
     add:
       cmd: Add a quote
       modal_title: Add quote
