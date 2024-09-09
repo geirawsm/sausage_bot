@@ -4,8 +4,9 @@ import pendulum
 import re
 import datetime
 
-from . import envs
 from .log import log
+
+from sausage_bot.util.i18n import I18N
 
 # Set correct timezone and locale
 # TODO i18n
@@ -15,7 +16,7 @@ pendulum.week_starts_at(pendulum.MONDAY)
 pendulum.week_ends_at(pendulum.SUNDAY)
 
 
-async def make_dt(date_in):
+def make_dt(date_in):
     '''
     Make a datetime-object from string input
 
@@ -116,7 +117,7 @@ async def make_dt(date_in):
                 if all(len(timeunit) == 2 for timeunit in d_split):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]}{d[3]} {d[4]} {d[5]}'
-                    return await pendulum.from_format(
+                    return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
                     )
                 pass
@@ -139,7 +140,7 @@ async def make_dt(date_in):
             return None
 
 
-async def get_dt(format='epoch', sep='.', dt=False):
+def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
 
@@ -180,10 +181,10 @@ async def get_dt(format='epoch', sep='.', dt=False):
     '''
     if isinstance(dt, datetime.datetime):
         log.debug('Input is a datetime object')
-        dt = await make_dt(str(dt))
+        dt = make_dt(str(dt))
     if isinstance(dt, str):
         log.debug('Input is a string')
-        dt = await make_dt(dt)
+        dt = make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
             return None

@@ -59,8 +59,8 @@ class MakePoll(commands.Cog):
                 post_time, 'HHmm', 'local'
             )
             log.verbose(f'dt_post: {dt_post} ({type(dt_post)})')
-            dt_now = await datetime_handling.get_dt()
-            dt_post_secs = await datetime_handling.get_dt(dt=dt_post)
+            dt_now = datetime_handling.get_dt()
+            dt_post_secs = datetime_handling.get_dt(dt=dt_post)
             if dt_post_secs < dt_now:
                 await interaction.followup.send(
                     I18N.t('poll.commands.poll.msg.post_in_past')

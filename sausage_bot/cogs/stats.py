@@ -535,8 +535,8 @@ class Stats(commands.Cog):
         )
         log_stats = False
         if date_exist:
-            date_now = await datetime_handling.get_dt(format='date')
-            date_exist = await datetime_handling.get_dt(
+            date_now = datetime_handling.get_dt(format='date')
+            date_exist = datetime_handling.get_dt(
                 format='date', dt=date_exist
             )
             if date_now > date_exist:
@@ -548,7 +548,7 @@ class Stats(commands.Cog):
         if log_stats:
             stats_log_inserts.append(
                 (
-                    str(await datetime_handling.get_dt('ISO8601')),
+                    str(datetime_handling.get_dt('ISO8601')),
                     files_in_codebase, lines_in_codebase,
                     members['member_count']
                 )
@@ -564,7 +564,7 @@ class Stats(commands.Cog):
             roles_members = await tabify(
                 dict_in=members['roles'], headers=['Rolle', 'Brukere']
             )
-        dt_log = await datetime_handling.get_dt('datetimefull')
+        dt_log = datetime_handling.get_dt('datetimefull')
         stats_msg = ''
         log.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
