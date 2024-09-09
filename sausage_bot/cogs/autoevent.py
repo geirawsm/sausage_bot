@@ -197,11 +197,14 @@ class AutoEvent(commands.Cog):
             Use if you want to remove all events
         '''
         await interaction.response.defer(ephemeral=True)
-        event_dict = await discord_commands.get_scheduled_events()
+        event_dict = discord_commands.get_scheduled_events()
         log.debug(f'Got `event_dict`: {event_dict}')
-        # Delete all events
         _guild = discord_commands.get_guild()
+        # Delete all events
         if remove_all == I18N.t('common.literal_yes_no.yes'):
+            log.verbose('Got `remove_all`: {}'.format(
+                I18N.t('common.literal_yes_no.yes')
+            ))
             for event in event_dict:
                 _id = event_dict[event]['id']
                 # Delete event
@@ -210,19 +213,19 @@ class AutoEvent(commands.Cog):
             await interaction.followup.send(
                 I18N.t('autoevent.commands.remove.msg_all_confirm')
             )
-        elif remove_all == I18N.t('common.literal_yes_no.no'):
-            if event is not None:
-                # Delete event
-                _event = _guild.get_scheduled_event(int(event))
-                await _event.delete()
-                await interaction.followup.send(
-                    I18N.t('autoevent.commands.remove.msg_one_confirm')
-                )
-            else:
-                log.error('No event given')
-                await interaction.followup.send(
-                    I18N.t('autoevent.commands.remove.msg_no_event')
-                )
+        elif event is not None:
+            # Delete event
+            _event = _guild.get_scheduled_event(int(event))
+            await _event.delete()
+            await interaction.followup.send(
+                I18N.t('autoevent.commands.remove.msg_one_confirm')
+            )
+        else:
+            log.error('No event given')
+            await interaction.followup.send(
+                I18N.t('autoevent.commands.remove.msg_no_event')
+            )
+
         return
 
     @commands.check_any(

@@ -12,6 +12,7 @@ from .log import log
 async def get_message_obj(
         msg_id: str = None, channel: str = None
 ) -> dict:
+    #TODO delete instances of this to convert to `from discord.utils import get`
     '''
     Get a message object
 
@@ -92,7 +93,7 @@ def get_voice_channel_list():
     return channel_dict
 
 
-async def get_scheduled_events():
+def get_scheduled_events():
     '''
     Get all scheduled events from server
     #autodoc skip#
@@ -108,7 +109,7 @@ async def get_scheduled_events():
         _event = guild.get_scheduled_event(event.id)
         log.debug(f'`_event`: {_event}')
         _dt = _event.start_time.astimezone()
-        _dt_pend = await get_dt(format='datetimetextday', dt=_dt)
+        _dt_pend = get_dt(format='datetimetextday', dt=_dt)
         epoch = int(_event.start_time.astimezone().timestamp())
         if epoch not in _epochs:
             _epochs[epoch] = 1
@@ -126,13 +127,13 @@ async def get_scheduled_events():
     return event_dict
 
 
-async def get_sorted_scheduled_events():
+def get_sorted_scheduled_events():
     '''
     Get a sorted list of events and prettify it
     #autodoc skip#
     '''
     # Sort the dict based on epoch
-    events_in = await get_scheduled_events()
+    events_in = get_scheduled_events()
     log.debug(f'`events_in`: {events_in}')
     if len(events_in) == 0:
         return None
@@ -140,6 +141,7 @@ async def get_sorted_scheduled_events():
         event_dict = dict(sorted(events_in.items()))
         log.debug(f'`event_dict` is sorted: {event_dict}')
     except Exception as e:
+        # events_in/get_scheduled_events() already describes the error
         log.error(str(e))
         return None
     sched_dict = {
@@ -311,10 +313,7 @@ async def remove_stats_post(stats_channel):
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
-                    # TODO var msg
-                    log.debug(
-                        'Found post with `Serverstats sist`, removing...'
-                    )
+                    log.debug('Found post with `Serverstats sist`, removing...')
                     await msg.delete()
                     found_stats_msg = True
                     return
