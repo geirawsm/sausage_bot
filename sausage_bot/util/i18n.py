@@ -4,14 +4,15 @@ import os
 import re
 import discord
 from discord import app_commands
+import aiosqlite
 
 from .log import log
-from . import envs, db_helper
+from . import envs
 
 import i18n as _i18n
 _i18n.load_path.append(envs.LOCALE_DIR)
-I18N = _i18n
 _i18n.set('fallback', 'en')
+I18N = _i18n
 
 if log.i18n:
     # Clean i18n log file before starting
@@ -71,8 +72,17 @@ def available_languages():
 async def set_language(lang: str):
     if lang in available_languages():
         I18N.set('locale', lang)
-        await db_helper.update_fields(
-            template_info=envs.locale_db_schema,
-            updates=[('locale', lang)]
+        db_info = envs.locale_db_schema
+        table_name = db_info['name']
+        _cmd = 'UPDATE {} SET {} = \'{}\';'.format(
+            table_name, 'locale', lang
         )
+        try:
+            async with aiosqlite.connect(db_info['db_file']) as db:
+                await db.execute(_cmd)
+                await db.commit()
+            log.db('Done and commited!')
+        except aiosqlite.OperationalError as e:
+            log.error(f'Error: {e}')
+            return None
         I18N.reload_everything()

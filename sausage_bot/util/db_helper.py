@@ -7,7 +7,7 @@ import re
 from sausage_bot.util import envs, file_io, discord_commands
 from sausage_bot.util.args import args
 from sausage_bot.util.log import log
-from sausage_bot.util.datetime_handling import get_dt
+from .datetime_handling import get_dt
 
 
 def db_exist(db_file_in):
