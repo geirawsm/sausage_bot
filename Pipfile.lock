@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "b00e4c4e01b4b3d38a11b9198f135902410c209cca136a65f8ba50b44957da20"
+            "sha256": "480e265531f6bf9b55349e90010658fa2e4806170e85dd03e216411dc597df2e"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -528,14 +528,6 @@
             "markers": "python_version >= '3.6'",
             "version": "==3.8"
         },
-        "iniconfig": {
-            "hashes": [
-                "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3",
-                "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"
-            ],
-            "markers": "python_version >= '3.7'",
-            "version": "==2.0.0"
-        },
         "lxml": {
             "hashes": [
                 "sha256:01220dca0d066d1349bd6a1726856a78f7929f3878f7e2ee83c296c69495309e",
@@ -977,14 +969,6 @@
             "markers": "python_version >= '3.8'",
             "version": "==10.4.0"
         },
-        "pluggy": {
-            "hashes": [
-                "sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1",
-                "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==1.5.0"
-        },
         "pycryptodomex": {
             "hashes": [
                 "sha256:0daad007b685db36d977f9de73f61f8da2a7104e20aca3effd30752fd56f73e1",
@@ -1022,22 +1006,6 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
             "version": "==3.20.0"
-        },
-        "pytest": {
-            "hashes": [
-                "sha256:70b98107bd648308a7952b06e6ca9a50bc660be218d53c257cc1fc94fda10181",
-                "sha256:a6853c7375b2663155079443d2e45de913a911a11d669df02a50814944db57b2"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==8.3.3"
-        },
-        "pytest-asyncio": {
-            "hashes": [
-                "sha256:a811296ed596b69bf0b6f3dc40f83bcaf341b155a269052d82efa2b25ac7037b",
-                "sha256:d081d828e576d85f875399194281e92bf8a68d60d72d1a2faf2feddb6c46b276"
-            ],
-            "index": "pypi",
-            "version": "==0.24.0"
         },
         "python-dateutil": {
             "hashes": [
@@ -1654,8 +1622,16 @@
                 "sha256:70b98107bd648308a7952b06e6ca9a50bc660be218d53c257cc1fc94fda10181",
                 "sha256:a6853c7375b2663155079443d2e45de913a911a11d669df02a50814944db57b2"
             ],
-            "markers": "python_version >= '3.8'",
+            "index": "pypi",
             "version": "==8.3.3"
+        },
+        "pytest-asyncio": {
+            "hashes": [
+                "sha256:a811296ed596b69bf0b6f3dc40f83bcaf341b155a269052d82efa2b25ac7037b",
+                "sha256:d081d828e576d85f875399194281e92bf8a68d60d72d1a2faf2feddb6c46b276"
+            ],
+            "index": "pypi",
+            "version": "==0.24.0"
         },
         "pytest-mock": {
             "hashes": [

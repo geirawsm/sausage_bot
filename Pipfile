@@ -23,11 +23,11 @@ aiosqlite = "*"
 spotipy = "*"
 aiofiles = "*"
 i18nice = {extras = ["yaml"], version = "*"}
-pytest-asyncio = "*"
 
 [dev-packages]
 requests-testadapter = "*"
 pytest = "*"
+pytest-asyncio = "*"
 pytest-mock = "*"
 autopep8 = "*"
 vulture = "*"

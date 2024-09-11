@@ -7,7 +7,7 @@ from discord import app_commands
 import aiosqlite
 
 from .log import log
-from . import envs
+from . import envs, file_io
 
 import i18n as _i18n
 _i18n.load_path.append(envs.LOCALE_DIR)
@@ -17,6 +17,7 @@ I18N = _i18n
 if log.i18n:
     # Clean i18n log file before starting
     _logfilename = envs.LOG_DIR / 'i18n.log'
+    file_io.ensure_file(_logfilename)
     write_log = open(_logfilename, 'w', encoding="utf-8")
     write_log.write('')
     write_log.close()
