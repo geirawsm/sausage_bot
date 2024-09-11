@@ -23,6 +23,7 @@ aiosqlite = "*"
 spotipy = "*"
 aiofiles = "*"
 i18nice = {extras = ["yaml"], version = "*"}
+pytest-asyncio = "*"
 
 [dev-packages]
 requests-testadapter = "*"
