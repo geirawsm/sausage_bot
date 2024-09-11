@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
+import pytest_asyncio
 from unittest import mock
 from sausage_bot.util import file_io, envs
 
