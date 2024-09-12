@@ -4,6 +4,7 @@ en:
     groups:
       stats: Administer stats on the server
       posting: Posting stats
+      settings: Administer settings
     start:
       command: Start posting
       log_started: Task started
@@ -29,9 +30,12 @@ en:
       stats_msg_out:
         sub_settings: Innstillinger
         sub_hidden: Hidden roles
-    setting:
+    change:
       command: Change settings
       update_confirmed: Settings updated
+    add:
+      command: Add setting
+      add_confirmed: Settings added
     hide_roles_add:
       command: Add roles to hidden roles
       msg:

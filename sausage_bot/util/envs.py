@@ -221,6 +221,7 @@ stats_db_settings_schema = {
     ],
     'inserts': [
         ['channel', '', 'str', 'Text'],
+        ['stats_msg', '', 'str', 'Text'],
         ['hide_bot_roles', 'True', 'bool', 'True/False'],
         ['show_code_stats', 'False', 'bool', 'True/False'],
         ['show_role_stats', 'True', 'bool', 'True/False'],

@@ -7,6 +7,7 @@ import discord
 from discord.utils import get
 from tabulate import tabulate
 import typing
+import re
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
@@ -113,6 +114,11 @@ class Stats(commands.Cog):
         description=locale_str(I18N.t('stats.commands.groups.posting')),
         parent=stats_group
     )
+    stats_settings_group = discord.app_commands.Group(
+        name="settings",
+        description=locale_str(I18N.t('stats.commands.groups.settings')),
+        parent=stats_group
+    )
 
     @stats_posting_group.command(
         name='start',
@@ -189,7 +195,7 @@ class Stats(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @stats_group.command(
+    @stats_settings_group.command(
         name='list',
         description=locale_str(I18N.t('stats.commands.list.command'))
     )
@@ -248,9 +254,9 @@ class Stats(commands.Cog):
     @discord.app_commands.autocomplete(
         name_of_setting=name_of_settings_autocomplete
     )
-    @stats_group.command(
-        name='setting',
-        description=locale_str(I18N.t('stats.commands.setting.command'))
+    @stats_settings_group.command(
+        name='change',
+        description=locale_str(I18N.t('stats.commands.settings.change.command'))
     )
     async def stats_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
@@ -296,6 +302,41 @@ class Stats(commands.Cog):
                 )
                 Stats.update_stats.restart()
                 break
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @stats_settings_group.command(
+        name='add',
+        description=locale_str(I18N.t('stats.commands.add.command'))
+    )
+    async def add_setting(
+        self, interaction: discord.Interaction, name_of_setting: str,
+        value_in: str
+    ):
+        '''
+        Add a setting for this cog
+
+        Parameters
+        ------------
+        name_of_setting: str
+            The names of the role to add (default: None)
+        value_in: str
+            The value of the settings (default: None)
+        '''
+        await interaction.response.defer(ephemeral=True)
+        await db_helper.update_fields(
+            template_info=envs.stats_db_settings_schema,
+            where=[('setting', name_of_setting)],
+            updates=[('value', value_in)]
+        )
+        await interaction.followup.send(
+            content=I18N.t('stats.commands.add.add_confirmed'),
+            ephemeral=True
+        )
+        Stats.update_stats.restart()
         return
 
     @commands.check_any(
@@ -565,7 +606,7 @@ class Stats(commands.Cog):
                 dict_in=members['roles'], headers=['Rolle', 'Brukere']
             )
         dt_log = datetime_handling.get_dt('datetimefull')
-        stats_msg = ''
+        stats_info = ''
         log.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
         ))
@@ -574,7 +615,7 @@ class Stats(commands.Cog):
                 'stats.tasks.update_stats.stats_msg.members_sub')
             members_num = I18N.t(
                 'stats.tasks.update_stats.stats_msg.members_num')
-            stats_msg += f'### {members_sub}\n```'\
+            stats_info += f'### {members_sub}\n```'\
                 f'{members_num}: {total_members}\n\n'\
                 f'{roles_members}```\n'
         log.debug('`show_code_stats` is {}'.format(
@@ -586,19 +627,63 @@ class Stats(commands.Cog):
                 'stats.tasks.update_stats.stats_msg.code_files')
             code_lines = I18N.t(
                 'stats.tasks.update_stats.stats_msg.code_lines')
-            stats_msg += f'### {code_sub}\n```'\
+            stats_info += f'### {code_sub}\n```'\
                 f'{code_files}: {files_in_codebase}\n'\
                 f'{code_lines}: {lines_in_codebase}```\n'
         code_last_updated = I18N.t(
             'stats.tasks.update_stats.stats_msg.code_last_updated')
-        stats_msg += f'```{code_last_updated} {dt_log}```\n'
+        stats_info += f'```{code_last_updated} {dt_log}```\n'
         log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'
-            f'{stats_msg[0:100]}...'
+            f'{stats_info[0:100]}...'
         )
-        await discord_commands.update_stats_post(
-            stats_msg, stats_channel
+#        await discord_commands.update_stats_post(
+#            stats_info, stats_channel
+#        )
+        # Replace this with saving msg id in db and using that
+        _guild = discord_commands.get_guild()
+        stats_msg_id = stats_settings['stats_msg']
+        stats_channel = get(_guild.channels, name=stats_channel)
+        log.verbose(
+            f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
         )
+        if stats_msg_id == '':
+            stats_msg = await stats_channel.send(stats_info)
+            await db_helper.update_fields(
+                template_info=envs.stats_db_settings_schema,
+                where=('setting', 'stats_msg'),
+                updates=('value', stats_msg.id)
+            )
+            stats_msg_id = stats_msg.id
+        elif re.match(r'^\d{19}$', stats_msg_id):
+            try:
+                stats_msg = await stats_channel.fetch_message(stats_msg_id)
+                await stats_msg.edit(content=stats_info)
+                return
+            except discord.errors.NotFound:
+                log.error(
+                    'Could not find msg id `{stats_msg_id}` in channel '
+                    '`{stats_channel}`'
+                )
+                log.debug('Creating new stats message')
+                stats_msg = await stats_channel.send(stats_info)
+                # update db
+                if 'stats_msg' in stats_settings:
+                    await db_helper.update_fields(
+                        template_info=envs.stats_db_settings_schema,
+                        where=('setting', 'stats_msg'),
+                        updates=('value', stats_msg.id)
+                    )
+                else:
+                    await db_helper.insert_many_all(
+                        template_info=envs.stats_db_settings_schema,
+                        inserts=(
+                            ('stats_msg', stats_msg.id)
+                        )
+                    )
+        else:
+            log.error('Could not find stats_msg_id')
+        return
 
     @update_stats.before_loop
     async def before_update_stats():

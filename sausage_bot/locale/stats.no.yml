@@ -30,9 +30,12 @@ no:
       stats_msg_out:
         sub_settings: Innstillinger
         sub_hidden: Skjulte roller
-    setting:
+    change:
       command: Endre innstillinger
       update_confirmed: Innstillinger oppdatert
+    add:
+      command: Legg til innstilling
+      add_confirmed: Innstilling lagt til
     hide_roles_add:
       command: Legg rolle til skjulte roller
       msg:
