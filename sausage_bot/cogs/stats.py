@@ -637,7 +637,9 @@ class Stats(commands.Cog):
         stats_info += f'```{code_last_updated} {dt_log}```\n'
         log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'
-            f'{stats_infonrd_commands.get_guild()
+            f'{stats_info[0:100]}'
+        )
+        _guild = discord_commands.get_guild()
         stats_msg_id = stats_settings['stats_msg']
         stats_channel = get(_guild.channels, name=stats_channel)
         log.verbose(
