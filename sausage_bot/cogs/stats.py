@@ -637,10 +637,6 @@ class Stats(commands.Cog):
             f'Trying to post stats to `{stats_channel}`:\n'
             f'{stats_info[0:100]}...'
         )
-#        await discord_commands.update_stats_post(
-#            stats_info, stats_channel
-#        )
-        # Replace this with saving msg id in db and using that
         _guild = discord_commands.get_guild()
         stats_msg_id = stats_settings['stats_msg']
         stats_channel = get(_guild.channels, name=stats_channel)

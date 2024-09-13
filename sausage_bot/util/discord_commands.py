@@ -276,28 +276,6 @@ async def replace_post(replace_content, replace_with, channel_in):
         return
 
 
-async def update_stats_post(stats_info, stats_channel):
-    '''
-    Replace content in stats-post
-    #autodoc skip#
-    '''
-    server_channels = get_text_channel_list()
-    if stats_channel in server_channels:
-        log.debug(f'Found stats channel {stats_channel}')
-        channel_out = config.bot.get_channel(server_channels[stats_channel])
-        found_stats_msg = False
-        async for msg in channel_out.history(limit=10):
-            log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
-            if str(msg.author.id) == config.BOT_ID:
-                if 'Serverstats sist' in str(msg.content):
-                    log.debug('Found post with `Serverstats sist`, editing...')
-                    await msg.edit(content=stats_info)
-                    found_stats_msg = True
-                    return
-        if found_stats_msg is False:
-            log.debug('Creating stats message')
-            await channel_out.send(stats_info)
-
 
 async def remove_stats_post(stats_channel):
     '''
