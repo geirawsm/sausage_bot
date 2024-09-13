@@ -10,6 +10,8 @@ en:
       log_started: Task started
       confirm_started: Stats posting started
     stop:
+      desc:
+        remove_post: Remove stats post
       command: Stop posting
       log_stopped: Task stopped
       confirm_stopped: Stats posting stopped
@@ -31,17 +33,29 @@ en:
         sub_settings: Innstillinger
         sub_hidden: Hidden roles
     change:
+      desc:
+        name_of_setting: Name of setting
+        value_in: Value in
       command: Change settings
       update_confirmed: Settings updated
     add:
+      desc:
+        name_of_setting: Name of setting
+        value_in: Value in
+        value_check: Value check
+        value_help: Value help
       command: Add setting
       add_confirmed: Settings added
     hide_roles_add:
+      desc:
+        role_in: Role to add
       command: Add roles to hidden roles
       msg:
         already_hidden: Role is already hidden
         confirm_added: Role added as hidden role
     hide_roles_remove:
+      desc:
+        role_in: Roles to remove
       command: Remove roles from hidden roles
       msg:
         confirm_removed: Role removed as hidden role

@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import os
 from discord.ext import commands, tasks
-from discord.app_commands import locale_str
+from discord.app_commands import locale_str, describe
 import discord
 from discord.utils import get
 from tabulate import tabulate
@@ -146,6 +146,9 @@ class Stats(commands.Cog):
         name='stop',
         description=locale_str(I18N.t('stats.commands.stop.command'))
     )
+    @describe(
+        remove_post=I18N.t('stats.commands.stop.desc.remove_post')
+    )
     async def stats_posting_stop(
         self, interaction: discord.Interaction,
         remove_post: typing.Literal['Yes', 'No']
@@ -261,6 +264,10 @@ class Stats(commands.Cog):
             I18N.t('stats.commands.change.command')
         )
     )
+    @describe(
+        name_of_setting=I18N.t('stats.commands.change.desc.name_of_setting'),
+        value_in=I18N.t('stats.commands.change.desc.value_in')
+    )
     async def stats_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
         value_in: str
@@ -315,6 +322,12 @@ class Stats(commands.Cog):
         name='add',
         description=locale_str(I18N.t('stats.commands.add.command'))
     )
+    @describe(
+        name_of_setting=I18N.t('stats.commands.add.desc.name_of_setting'),
+        value_in=I18N.t('stats.commands.add.desc.value_in'),
+        value_check=I18N.t('stats.commands.add.desc.value_check'),
+        value_help=I18N.t('stats.commands.add.desc.value_help')
+    )
     async def add_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
         value_in: str, value_check: str = None, value_help: str = None
@@ -353,6 +366,9 @@ class Stats(commands.Cog):
         name='hide_roles_add',
         description=locale_str(
             I18N.t('stats.commands.hide_roles_add.command')),
+    )
+    @describe(
+        role_in=I18N.t('stats.commands.hide_roles_add.desc.role_in')
     )
     async def stats_add_hidden_roles(
         self, interaction: discord.Interaction,
@@ -406,6 +422,9 @@ class Stats(commands.Cog):
         name='hide_roles_remove',
         description=locale_str(
             I18N.t('stats.commands.hide_roles_remove.command'))
+    )
+    @describe(
+        hidden_roles=I18N.t('stats.commands.hide_roles_remove.desc.role_in')
     )
     async def stats_remove_hidden_roles(
         self, interaction: discord.Interaction,

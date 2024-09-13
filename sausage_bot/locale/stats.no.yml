@@ -10,6 +10,8 @@ no:
       log_started: Oppgave startet
       confirm_started: Posting av stats startet
     stop:
+      desc:
+        remove_post: Fjern stats post
       command: Stop posting
       log_stopped: Oppgave stoppet
       confirm_stopped: Posting av stats stoppet
@@ -31,17 +33,29 @@ no:
         sub_settings: Innstillinger
         sub_hidden: Skjulte roller
     change:
+      desc:
+        name_of_setting: Navn på innstilling
+        value_in: Verdi
       command: Endre innstillinger
       update_confirmed: Innstillinger oppdatert
     add:
+      desc:
+        name_of_setting: Navn på innstilling
+        value_in: Verdi
+        value_check: Verdi sjekk
+        value_help: Verdi hjelp
       command: Legg til innstilling
       add_confirmed: Innstilling lagt til
     hide_roles_add:
+      desc:
+        role_in: Rolle som skal legges til
       command: Legg rolle til skjulte roller
       msg:
         already_hidden: Rollen er allerede skjult
         confirm_added: Rolle lagt til som skjult rolle
     hide_roles_remove:
+      desc:
+        role_in: Roller som skal fjernes
       command: Fjern rolle fra skjulte roller
       msg:
         confirm_removed: Rolle fjernet som skjult rolle
