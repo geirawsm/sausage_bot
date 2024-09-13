@@ -5,7 +5,7 @@ no:
     groups:
       stats: Administrer stats på serveren
       posting: Poster stats
-    start: 
+    start:
       command: Start posting
       log_started: Oppgave startet
       confirm_started: Posting av stats startet

@@ -258,7 +258,7 @@ class Stats(commands.Cog):
     @stats_settings_group.command(
         name='change',
         description=locale_str(
-            I18N.t('stats.commands.settings.change.command')
+            I18N.t('stats.commands.change.command')
         )
     )
     async def stats_setting(
@@ -317,7 +317,7 @@ class Stats(commands.Cog):
     )
     async def add_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
-        value_in: str
+        value_in: str, value_check: str = None, value_help: str = None
     ):
         '''
         Add a setting for this cog
@@ -330,10 +330,13 @@ class Stats(commands.Cog):
             The value of the settings (default: None)
         '''
         await interaction.response.defer(ephemeral=True)
-        await db_helper.update_fields(
+        if not value_check:
+            value_check = 'str'
+        if not value_help:
+            value_help = 'Text'
+        await db_helper.insert_many_all(
             template_info=envs.stats_db_settings_schema,
-            where=[('setting', name_of_setting)],
-            updates=[('value', value_in)]
+            inserts=[(name_of_setting, value_in, value_check, value_help)]
         )
         await interaction.followup.send(
             content=I18N.t('stats.commands.add.add_confirmed'),
