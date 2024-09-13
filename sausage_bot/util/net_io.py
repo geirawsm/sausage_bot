@@ -326,12 +326,17 @@ async def parse(url: str = None):
         dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
             return None
+        if 'tvChannels' in json_in:
+            tv = json_in['tvChannels'][0]['name']
+        else:
+            tv = None
         return {
             'teams': {
                 'home': json_in['homeTeam']['name'],
                 'away': json_in['awayTeam']['name']
             },
             'tournament': json_in['stage']['fullName'],
+            'tv': tv,
             'datetime': {
                 'date': dt_in['start_date'],
                 'time': dt_in['start_time'],
@@ -345,18 +350,36 @@ async def parse(url: str = None):
             'stadium': json_in['stadium']['name']
         }
 
-    async def parse_vglive(json_in):
+    async def parse_vglive(_id):
         '''
         Parse match ID from matchpage from vglive.no, then use that in an
         api call
         '''
+        base_url = 'https://vglive.no/api/vg/events/{}'
+        tv_url = 'https://vglive.vg.no/api/vg/events/tv-channels?eventIds={}'
         # Get info relevant for the event
-        teams = json_in['event']['participantIds']
-        if 'venue' in json_in['event']['details']:
-            stadium = json_in['event']['details']['venue']['name']
+        _match_info = await get_link(base_url.format(_id))
+        match_json = json.loads(_match_info)
+        log.verbose('Got `match_json`: ', pretty=match_json)
+        _tv_info = await get_link(tv_url.format(_id))
+        tv_json = json.loads(_tv_info)
+        log.verbose('Got `tv_json`: ', pretty=tv_json)
+        teams = match_json['event']['participantIds']
+        if 'venue' in match_json['event']['details']:
+            stadium = match_json['event']['details']['venue']['name']
         else:
             stadium = None
-        date_in = json_in['event']['startDate']
+        log.debug(f'Got `stadium`: {stadium}')
+        log.debug('Channels ({}): {}'.format(
+            len(tv_json['tvChannels']),
+            tv_json['tvChannels']
+        ))
+        if len(tv_json['tvChannels']) > 0:
+            tv = tv_json['tvChannels'][_id][0]['name']
+        else:
+            tv = None
+        log.debug(f'Got `tv`: {tv}')
+        date_in = match_json['event']['startDate']
         _date_obj = datetime_handling.make_dt(date_in)
         dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
@@ -364,10 +387,11 @@ async def parse(url: str = None):
             return None
         return {
             'teams': {
-                'home': json_in['participants'][teams[0]]['name'],
-                'away': json_in['participants'][teams[1]]['name']
+                'home': match_json['participants'][teams[0]]['name'],
+                'away': match_json['participants'][teams[1]]['name']
             },
-            'tournament': json_in['tournament']['name'],
+            'tournament': match_json['tournament']['name'],
+            'tv': tv,
             'datetime': {
                 'date': dt_in['start_date'],
                 'time': dt_in['start_time'],
@@ -381,7 +405,7 @@ async def parse(url: str = None):
             'stadium': stadium
         }
 
-    async def parse_tv2_livesport(json_in):
+    async def parse_tv2livesport(json_in):
         '''
         Parse match ID from matchpage from tv2.no/livesport, then use that
         in an API call
@@ -393,7 +417,11 @@ async def parse(url: str = None):
             stadium = json_in['venue']['name']
         else:
             stadium = None
-        date_in = json_in['startDate']
+        if 'broadcast' in json_in:
+            tv = json_in['broadcast']['channelName']
+        else:
+            tv = None
+        date_in = json_in['startTime']
         _date_obj = datetime_handling.make_dt(date_in)
         dt_in = make_event_start_stop(_date_obj)
         if dt_in is None:
@@ -405,6 +433,7 @@ async def parse(url: str = None):
                 'away': away
             },
             'tournament': json_in['competition']['name'],
+            'tv': tv,
             'datetime': {
                 'date': dt_in['start_date'],
                 'time': dt_in['start_time'],
@@ -453,11 +482,8 @@ async def parse(url: str = None):
             log.error('The vglive url is not from a match page')
             return None
         _id = re.match(r'.*/kamp/.*/(\d+)/.*', url).group(1)
-        base_url = 'https://vglive.no/api/vg/events/{}'
         try:
-            json_in = await get_link(base_url.format(_id))
-            json_out = json.loads(json_in)
-            parse = await parse_vglive(json_out)
+            parse = await parse_vglive(_id)
             return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
@@ -470,17 +496,17 @@ async def parse(url: str = None):
             return None
         _id = re.match(
             r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url).group(1)
-        base_url = 'https://tv2-sport-backend.sumo.tv2.no/football/'\
-            'matches/{}/facts'
+        base_url = 'https://livesport-api.alpha.tv2.no/v3/football/'\
+            'matches/{}/result'
         try:
             json_in = await get_link(base_url.format(_id))
             json_out = json.loads(json_in)
-            parse = await parse_tv2_livesport(json_out)
-            return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.error(error_msg)
             return None
+        parse = await parse_tv2livesport(json_out)
+        return parse
     else:
         log.error('Linken er ikke kjent')
         return None

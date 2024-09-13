@@ -11,6 +11,7 @@ no:
         event_image: Bilde for hendelse (800 x 320)
       description:
         tournament: Turnering
+        tv: TV/Streaming
         when: Når
         where: Hvor
         reminder: Husk at eventet er åpent en halvtime før kampstart

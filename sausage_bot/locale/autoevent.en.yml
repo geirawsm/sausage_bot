@@ -11,6 +11,7 @@ en:
         event_image: Image for event (800 x 320)
       description:
         tournament: Tournament
+        tv: TV/Streaming
         when: When
         where: Where
         reminder: Remember that the event opens 30 minutes before matchstart

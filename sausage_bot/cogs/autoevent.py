@@ -102,6 +102,7 @@ class AutoEvent(commands.Cog):
                 home = _t['home']
                 away = _t['away']
                 tournament = scr['tournament']
+                tv = scr['tv']
                 stadium = scr['stadium']
                 _dt = scr['datetime']
                 start_text = _dt['start_dt'].format(
@@ -112,12 +113,15 @@ class AutoEvent(commands.Cog):
                 end_dt = _dt['end_dt']
                 desc_tournament = I18N.t(
                     'autoevent.commands.add.description.tournament')
+                desc_tv = I18N.t('autoevent.commands.add.description.tv')
                 desc_when = I18N.t('autoevent.commands.add.description.when')
                 desc_where = I18N.t('autoevent.commands.add.description.where')
                 desc_reminder = I18N.t(
                     'autoevent.commands.add.description.reminder')
                 description = f'{desc_tournament}: {tournament}\n'\
                     f'{desc_when}: {start_text} ({rel_start})'
+                if tv is not None:
+                    description += f'\n{desc_tv}: {tv}'
                 if stadium is not None:
                     description += f'\n{desc_where}: {stadium}'
                 description += f'\n\n{desc_reminder}'
