@@ -129,7 +129,7 @@ class Stats(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log(I18N.t('stats.commands.start.log_started'))
-        Stats.update_stats.start()
+        Stats.task_update_stats.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -152,7 +152,7 @@ class Stats(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log(I18N.t('stats.commands.stop.log_stopped'))
-        Stats.update_stats.cancel()
+        Stats.task_update_stats.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -186,7 +186,7 @@ class Stats(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         log.log('Stats posting restarted')
-        Stats.update_stats.restart()
+        Stats.task_update_stats.restart()
         await interaction.followup.send(
             I18N.t('commands.restart.log_restarted')
         )
@@ -256,7 +256,9 @@ class Stats(commands.Cog):
     )
     @stats_settings_group.command(
         name='change',
-        description=locale_str(I18N.t('stats.commands.settings.change.command'))
+        description=locale_str(
+            I18N.t('stats.commands.settings.change.command')
+        )
     )
     async def stats_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
@@ -300,7 +302,7 @@ class Stats(commands.Cog):
                     content=I18N.t('stats.commands.setting.update_confirmed'),
                     ephemeral=True
                 )
-                Stats.update_stats.restart()
+                Stats.task_update_stats.restart()
                 break
         return
 
@@ -336,7 +338,7 @@ class Stats(commands.Cog):
             content=I18N.t('stats.commands.add.add_confirmed'),
             ephemeral=True
         )
-        Stats.update_stats.restart()
+        Stats.task_update_stats.restart()
         return
 
     @commands.check_any(
@@ -386,7 +388,7 @@ class Stats(commands.Cog):
                     'stats.commands.hide_roles_add.msg.confirm_added'),
                 ephemeral=True
             )
-            Stats.update_stats.restart()
+            Stats.task_update_stats.restart()
         return
 
     @commands.check_any(
@@ -423,7 +425,7 @@ class Stats(commands.Cog):
                 'stats.commands.hide_roles_remove.msg.confirm_removed'),
             ephemeral=True
         )
-        Stats.update_stats.restart()
+        Stats.task_update_stats.restart()
         return
 
     @commands.check_any(
@@ -439,7 +441,7 @@ class Stats(commands.Cog):
     ):
         '''Restart the stats task'''
         await interaction.response.defer(ephemeral=True)
-        Stats.update_stats.restart()
+        Stats.task_update_stats.restart()
         await interaction.followup.send(
             content=I18N.t('stats.commands.restart.msg.confirm_restarted'),
             ephemeral=True
@@ -450,7 +452,7 @@ class Stats(commands.Cog):
     @tasks.loop(
         minutes=config.env.int('STATS_LOOP', default=5)
     )
-    async def update_stats():
+    async def task_update_stats():
         '''
         Update interesting stats in a channel post and write the info to
         the log db.
@@ -635,15 +637,16 @@ class Stats(commands.Cog):
         stats_info += f'```{code_last_updated} {dt_log}```\n'
         log.verbose(
             f'Trying to post stats to `{stats_channel}`:\n'
-            f'{stats_info[0:100]}...'
-        )
-        _guild = discord_commands.get_guild()
+            f'{stats_infonrd_commands.get_guild()
         stats_msg_id = stats_settings['stats_msg']
         stats_channel = get(_guild.channels, name=stats_channel)
         log.verbose(
             f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
         )
         if stats_msg_id == '':
+            log.verbose(
+                '`stats_msg` not found in database, creating new stats message'
+            )
             stats_msg = await stats_channel.send(stats_info)
             await db_helper.update_fields(
                 template_info=envs.stats_db_settings_schema,
@@ -681,7 +684,7 @@ class Stats(commands.Cog):
             log.error('Could not find stats_msg_id')
         return
 
-    @update_stats.before_loop
+    @task_update_stats.before_loop
     async def before_update_stats():
         '#autodoc skip#'
         log.verbose('`update_stats` waiting for bot to be ready...')
@@ -763,11 +766,11 @@ async def setup(bot):
         if task[0] == 'post_stats':
             if task[1] == 'started':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
-                Stats.update_stats.start()
+                Stats.task_update_stats.start()
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
-                Stats.update_stats.cancel()
+                Stats.task_update_stats.cancel()
 
 
 async def teardown(bot):
-    Stats.update_stats.cancel()
+    Stats.task_update_stats.cancel()

@@ -119,7 +119,10 @@ async def on_ready():
         }
         channel_out = await guild.create_text_channel(
             name=str(bot_channel),
-            topic=I18N.t('main.msg.create_log_channel_logging', botname=config.bot.user.name),
+            topic=I18N.t(
+                'main.msg.create_log_channel_logging',
+                botname=config.bot.user.name
+            ),
             overwrites=overwrites
         )
         channel_out.set_permissions()
@@ -495,17 +498,6 @@ async def language(
         ephemeral=True)
     return
 
-
-@commands.check_any(commands.is_owner())
-@config.bot.tree.command(
-    name='test', description=locale_str(I18N.t('main.owner_only'))
-)
-async def test(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        I18N.t('dilemmas.commands.count.msg_confirm', count=0),
-        ephemeral=True
-    )
-    return
 
 
 try:

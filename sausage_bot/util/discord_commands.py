@@ -19,8 +19,7 @@ async def get_message_obj(
     Parameters
     ------------
     msg_id: int/str
-        The message ID to look for, or name of the saved message in
-        settings file
+        The message ID to look for
     channel: str
         Channel to get message from (default: None)
     '''
