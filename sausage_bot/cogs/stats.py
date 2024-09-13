@@ -223,8 +223,9 @@ class Stats(commands.Cog):
             template_info=envs.stats_db_hide_roles_schema
         )
         hidden_roles_in_list = []
-        for role in hidden_roles_in_db:
-            hidden_roles_in_list.append(role[0])
+        if hidden_roles_in_db is not None:
+            for role in hidden_roles_in_db:
+                hidden_roles_in_list.append(role[0])
         log.debug(f'`hidden_roles_in_list` is {hidden_roles_in_list}')
         if len(hidden_roles_in_list) > 0:
             headers_hidden_roles = [
