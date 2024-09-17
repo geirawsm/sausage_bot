@@ -158,7 +158,6 @@ class RSSfeed(commands.Cog):
         if "open.spotify.com/show/" not in feed_link:
             valid_feed = await feeds_core.check_feed_validity(feed_link)
             if not valid_feed:
-                # TODO var msg
                 await interaction.followup.send(
                     I18N.t('rss.commands.add.msg_feed_failed'),
                     ephemeral=True
@@ -306,7 +305,9 @@ class RSSfeed(commands.Cog):
     )
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_filter_group.command(
-        name='add', description=locale_str(I18N.t('rss.commands.filter_add.cmd'))
+        name='add', description=locale_str(
+            I18N.t('rss.commands.filter_add.cmd')
+        )
     )
     @describe(
         feed_name=I18N.t('rss.commands.filter_add.desc.feed_name'),

@@ -168,7 +168,6 @@ class LogMaintenance(commands.Cog):
                         value_in = eval(str(value_in).capitalize())
                     except NameError as _error:
                         log.error(f'Invalid input for `value_in`: {_error}')
-                        # TODO var msg
                         await interaction.followup.send(
                             I18N.t(
                                 'log_maintenance.commands.setting.'
@@ -273,7 +272,9 @@ class LogMaintenance(commands.Cog):
                 for _file in deleted_files:
                     os.remove(envs.LOG_DIR / _file)
                 new_folder_size = file_io.folder_size(str(envs.LOG_DIR))
-                log.debug(f'Folder went from {folder_size} to {new_folder_size}')
+                log.debug(
+                    f'Folder went from {folder_size} to {new_folder_size}'
+                )
             elif settings_type in ['day', 'days']:
                 if len(log_files) > 10:
                     for _file in log_files[0:-10]:
@@ -286,7 +287,8 @@ class LogMaintenance(commands.Cog):
                 )
                 return
             if len(deleted_files) > 0:
-                status_msg = 'Log maintenance done. Deleted the following files:'
+                status_msg = 'Log maintenance done. Deleted the following'\
+                    ' files:'
                 discord_msg_out += I18N.t(
                     'log_maintenance.tasks.'
                     'log_maintenance.msg.maintenance_done')

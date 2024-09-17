@@ -2,9 +2,7 @@
 # -*- coding: UTF-8 -*-
 import discord
 from discord.ext import commands
-from discord.utils import get
 from discord.app_commands import locale_str, describe
-import typing
 import uuid
 from asyncio import TimeoutError
 

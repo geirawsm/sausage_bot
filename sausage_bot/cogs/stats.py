@@ -390,7 +390,6 @@ class Stats(commands.Cog):
         for role in hidden_roles_in_db:
             hidden_roles_in_list.append(role[0])
         if str(role_in.id) in hidden_roles_in_list:
-            # TODO var msg
             await interaction.followup.send(
                 I18N.t('stats.commands.hide_roles_add.msg.already_hidden')
             )
@@ -402,7 +401,6 @@ class Stats(commands.Cog):
                     (str(role_in.id))
                 ]
             )
-            # TODO var msg
             await interaction.followup.send(
                 content=I18N.t(
                     'stats.commands.hide_roles_add.msg.confirm_added'),

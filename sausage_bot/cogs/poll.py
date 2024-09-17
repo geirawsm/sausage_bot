@@ -149,7 +149,6 @@ class MakePoll(commands.Cog):
             log.debug(f'post_wait: {post_wait}')
             desc_out = f'{poll_text}\n'
             for idx, line in enumerate(alts_in):
-                # TODO var msg
                 desc_out += '\n{} - *"{}"*'.format(
                     needed_emojis[idx], line
                 )

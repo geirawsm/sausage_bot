@@ -343,7 +343,7 @@ class AutoEvent(commands.Cog):
                 I18N.t(
                     'autoevent.commands.announce.msg_confirm',
                     channel=channel.name
-                    ),
+                ),
                 ephemeral=True
             )
         except discord.Forbidden:
@@ -351,7 +351,7 @@ class AutoEvent(commands.Cog):
                 I18N.t(
                     'autoevent.commands.announce.msg_forbidden',
                     channel=channel.name
-                    ),
+                ),
                 ephemeral=True
             )
         except Exception as _error:

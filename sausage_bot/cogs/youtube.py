@@ -278,9 +278,6 @@ class Youtube(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         # Make sure that the filter input can be split
-        _filters_in = re.split(
-            envs.input_split_regex, filters_in
-        )
         _uuid = await db_helper.get_output(
             template_info=envs.youtube_db_schema,
             select=('uuid'),

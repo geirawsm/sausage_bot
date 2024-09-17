@@ -1646,8 +1646,13 @@ class Autoroles(commands.Cog):
     async def add_settings(
         self, interaction: discord.Interaction,
         setting: typing.Literal[
-            I18N.t('roles.commands.settings_add.literal.setting.unique'),
-            I18N.t('roles.commands.settings_add.literal.setting.not_include_in_total')
+            I18N.t(
+                'roles.commands.settings_add.literal.setting.unique'
+            ),
+            I18N.t(
+                'roles.commands.settings_add.literal.setting'
+                '.not_include_in_total'
+            )
         ],
         role_in: discord.Role
     ):
@@ -1655,7 +1660,9 @@ class Autoroles(commands.Cog):
         Add a setting for roles on the server
         '''
         await interaction.response.defer(ephemeral=True)
-        if setting == I18N.t('roles.commands.settings_add.literal.setting.unique'):
+        if setting == I18N.t(
+            'roles.commands.settings_add.literal.setting.unique'
+        ):
             _setting = 'unique'
             # TODO Add a check, unique should only appear once
             unique = await db_helper.get_output(
