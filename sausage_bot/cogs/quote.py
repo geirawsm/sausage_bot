@@ -24,7 +24,7 @@ async def quotes_autocomplete(
         discord.app_commands.Choice(
             name='{}. ({}) {}'.format(
                 quote[0],
-                str(await get_dt(format='datetextfull', dt=quote[3])),
+                get_dt(format='datetextfull', dt=quote[3]),
                 '{}...'.format(
                     quote[2][0:35]) if len(quote[2]) > 35 else quote[2]
             ),
