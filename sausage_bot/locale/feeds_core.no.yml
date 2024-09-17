@@ -1,0 +1,5 @@
+no:
+  commands:
+    review_feeds_status:
+      failed_feeds: "Følgende feeds hadde feil ved henting av linker: %{feeds}"
+      failed_channels: "Følgende feeds hadde feil ved posting til kanaler: %{channels}"

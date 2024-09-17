@@ -9,6 +9,7 @@ import discord
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper
 from sausage_bot.util.args import args
+from sausage_bot.util.i18n import I18N
 
 from .log import log
 
@@ -479,7 +480,6 @@ async def review_feeds_status(feed_type: str = None):
                 f'`envs.FEEDS_URL_ERROR_LIMIT` ({envs.FEEDS_URL_ERROR_LIMIT})'
             )
             if int(URL_STATUS_COUNTER) >= int(envs.FEEDS_URL_ERROR_LIMIT):
-                # TODO i18n
                 log.error(
                     f'Error when getting feed for `{FEED_NAME}`, '
                     f'tried {envs.FEEDS_URL_ERROR_LIMIT} times'
@@ -529,18 +529,18 @@ async def review_feeds_status(feed_type: str = None):
             )
             failed_channels.append([FEED_NAME, CHANNEL])
     if len(failed_feeds) > 0:
-        # TODO i18n
-        feed_error_msg = 'Følgende feeds hadde feil ved henting av '\
-            'linker:\n- {}'.format(
-                '\n- '.join(failed_feeds)
-            )
+        feed_error_msg = I18N.t(
+            'feeds_core.commands.review_feeds_status.failed_feeds',
+            feeds='\n- '.join(failed_feeds)
+        )
         await discord_commands.log_to_bot_channel(feed_error_msg)
     if len(failed_channels) > 0:
-        # TODO i18n
-        channel_error_msg = 'Følgende feeds hadde feil ved posting til '\
-            'valgte kanaler:\n- {}'.format(
-                '\n- '.join(f'{failed_channels[0]}: {failed_channels[1]}')
+        channel_error_msg = I18N.t(
+            'feeds_core.commands.review_feeds_status.failed_channels',
+            channels='\n- '.join(
+                f'{failed_channels[0]}: {failed_channels[1]}'
             )
+        )
         await discord_commands.log_to_bot_channel(channel_error_msg)
     if len(db_updates) == 0:
         log.verbose('All feeds are OK, nothing to update')
