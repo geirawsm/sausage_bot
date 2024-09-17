@@ -9,13 +9,11 @@ no:
       quote_not_exist: 'Sitat nummer %{quote_in} finnes ikke'
     add:
       cmd: Legg til sitat
-      modal_title: Legg til sitat
       msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
     edit:
       cmd: Rediger eksisterende sitat
       desc:
         quote_in: Sitat som skal endres
-      modal_title: Rediger sitat
       no_change: Ingen endringer funnet
     delete:
       cmd: Slett sitat
@@ -33,6 +31,8 @@ no:
     date_placeholder: Dato og tid (DD.MM.YYYY HH:MM)
     error: 'Feil: %{error}'
     add:
+      modal_title: Legg til sitat
       msg_confirm: Sitat lagt til
     edit:
+      modal_title: Rediger sitat
       msg_confirm: Sitat redigert
