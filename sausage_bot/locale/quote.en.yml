@@ -9,7 +9,6 @@ en:
       quote_not_exist: 'Quote # %{quote_in} does not exist'
     add:
       cmd: Add a quote
-      msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
     edit:
       cmd: Edit an existing quote
       desc:
@@ -32,7 +31,7 @@ en:
     date_placeholder: Date and time (DD.MM.YYYY HH:MM)
     add:
       modal_title: Add quote
-      msg_confirm: Quote added
+      msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
       msg_error: 'Error: %{error}'
     edit:
       modal_title: Edit quote

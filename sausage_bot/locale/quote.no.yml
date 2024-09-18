@@ -9,7 +9,6 @@ no:
       quote_not_exist: 'Sitat nummer %{quote_in} finnes ikke'
     add:
       cmd: Legg til sitat
-      msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
     edit:
       cmd: Rediger eksisterende sitat
       desc:
@@ -32,7 +31,7 @@ no:
     error: 'Feil: %{error}'
     add:
       modal_title: Legg til sitat
-      msg_confirm: Sitat lagt til
+      msg_confirm: 'La til følgende sitat:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert

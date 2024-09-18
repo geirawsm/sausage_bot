@@ -424,11 +424,6 @@ class Quotes(commands.Cog):
                 (quote_out['uuid'], quote_out['quote_text'], iso_date)
             ]
         )
-        await interaction.followup.send(
-            I18N.t(
-                'quote.commands.add.msg_confirm'),
-            ephemeral=True
-        )
         return
 
     @commands.check_any(
