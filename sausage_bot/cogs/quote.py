@@ -342,7 +342,7 @@ class Quotes(commands.Cog):
             # Post quote
             quote_number = random_quote[0][0]
             quote_text = random_quote[0][2]
-            quote_date = await get_dt(
+            quote_date = get_dt(
                 format='datetextfull',
                 dt=random_quote[0][3]
             )
@@ -365,7 +365,7 @@ class Quotes(commands.Cog):
             log.verbose(f'quote_out: {quote_out}')
             if quote_out:
                 quote_text = quote_out[0][2]
-                quote_date = await get_dt(
+                quote_date = get_dt(
                     format='datetextfull',
                     dt=quote_out[0][3]
                 )
@@ -413,9 +413,9 @@ class Quotes(commands.Cog):
         # Datetime will be saved as ISO8601:
         # YYYY-MM-DD HH:MM:SS.SSS
         if not quote_out['datetime']:
-            iso_date = str(await get_dt(format='ISO8601'))
+            iso_date = str(get_dt(format='ISO8601'))
         else:
-            iso_date = await get_dt(format='ISO8601', dt=quote_out['datetime'])
+            iso_date = get_dt(format='ISO8601', dt=quote_out['datetime'])
         log.verbose(f'iso_date: {iso_date}')
         # Add the quote
         await db_helper.insert_many_all(
@@ -482,7 +482,7 @@ class Quotes(commands.Cog):
                 ],
                 updates=[
                     ('quote_text', modal_in.quote_out['quote_text']),
-                    ('datetime', await get_dt(
+                    ('datetime', get_dt(
                         format='ISO8601',
                         dt=modal_in.quote_out['datetime']
                     ))

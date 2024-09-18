@@ -155,7 +155,7 @@ async def json_to_db_inserts(cog_name):
             quotes_inserts.append(
                 (
                     str(uuid4()), quote_file[quote]['quote'],
-                    await get_dt(
+                    get_dt(
                         format="ISO8601", dt=re.sub(
                             r'[\(\)]+', '',
                             quote_file[quote]['datetime']
@@ -277,7 +277,7 @@ async def json_to_db_inserts(cog_name):
                         rss_logs_inserts.append(
                             (
                                 rss_logs_index[feed], link,
-                                str(await get_dt(format='ISO8601'))
+                                str(get_dt(format='ISO8601'))
                             )
                         )
         return {
@@ -330,7 +330,7 @@ async def json_to_db_inserts(cog_name):
                     yt_logs_inserts.append(
                         (
                             yt_logs_index[feed], link,
-                            str(await get_dt(format='ISO8601'))
+                            str(get_dt(format='ISO8601'))
                         )
                     )
         return {
