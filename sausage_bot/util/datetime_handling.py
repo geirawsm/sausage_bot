@@ -164,6 +164,7 @@ def get_dt(format='epoch', sep='.', dt=False):
     (Example date: May 17th 2014; time: 14:23:39; timezone: GMT)
     date                17.05.2014
     datetext            17 May 2014
+    shortdate           17.05.14
     datetextfull        17 May 2014, 14.23
     datetimetextday     Monday, 17. May, 14.23
     revdate             2014.05.17
@@ -196,6 +197,8 @@ def get_dt(format='epoch', sep='.', dt=False):
         return dt.format(f'DD{sep}MM{sep}YYYY')
     elif format == 'datetext':
         return dt.format(f'DD{sep} MMMM YYYY', locale=locale)
+    elif format == 'shortdate':
+        return dt.format(f'DD{sep}MM{sep}YY')
     elif format == 'datetextfull':
         return dt.format(f'DD{sep} MMMM YYYY, HH{sep}mm', locale=locale)
     elif format == 'datetimetextday':
