@@ -73,7 +73,6 @@ async def get_items_from_rss(
     except Exception as e:
         log.error(envs.FEEDS_SOUP_ERROR.format(url, e))
         return None
-    links_out = []
     items_out = {
         'filters': filters_in,
         'items': [],
@@ -262,7 +261,9 @@ async def get_feed_links(feed_type, feed_info):
                 req=req, url=URL, filters_in=filters_db,
                 log_in=log_db
             )
-            log.debug(f'Got {len(links_out)} items from `get_items_from_rss`')
+            log.debug('Got {} items from `get_items_from_rss`'.format(
+                len(links_out) if links_out is not None else 0
+            ))
             return links_out
         elif isinstance(req, int):
             return req
