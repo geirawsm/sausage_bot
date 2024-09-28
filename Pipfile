@@ -13,7 +13,6 @@ html5lib = "*"
 bs4 = "*"
 astpretty = "*"
 yt-dlp = ">=2024.04.09"
-tabulate = "*"
 environs = "*"
 aiohttp = ">=3.9.4"
 discord = "*"
@@ -24,6 +23,7 @@ spotipy = "*"
 aiofiles = "*"
 i18nice = {extras = ["yaml"], version = "*"}
 pytest-asyncio = "*"
+tabulated = "*"
 
 [dev-packages]
 requests-testadapter = "*"
