@@ -34,6 +34,6 @@ no:
       command: Utesteng en bruker (med grunn)
       msg_confirm: '%{member} har blitt utestengt'
       msg_failed: 'Klarte ikke å utestenge: %{error}'
-
-
-
+    synclocal:
+      msg_starting: Starter kommando synkronisering...
+      msg_confirm: Globale kommandoer ble synkronisert med serveren

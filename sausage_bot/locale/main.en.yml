@@ -31,7 +31,6 @@ en:
       command: Ban a user (with reason)
       msg_confirm: '%{member} has been banned'
       msg_failed: 'Failed to ban: %{error}'
-
-
-
-
+    synclocal:
+      msg_starting: Starting commands sync...
+      msg_confirm: Global commands synced locally to server

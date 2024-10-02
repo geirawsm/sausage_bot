@@ -204,6 +204,9 @@ async def sync_dev(interaction: discord.Interaction):
 @config.bot.command(name='synclocal')
 async def synclocal(ctx):
     # sync to the guild where the command was used
+    _reply = await ctx.reply(
+        I18N.t('main.commands.synclocal.msg_starting')
+    )
     log.debug('Clearing commands...')
     config.bot.tree.clear_commands(guild=ctx.guild)
     log.debug('Copying global commands...')
@@ -212,6 +215,9 @@ async def synclocal(ctx):
         log.debug(f'Checking {command.name}')
     log.debug('Syncing...')
     await config.bot.tree.sync(guild=ctx.guild)
+    await _reply.edit(
+        content=I18N.t('main.commands.synclocal.msg_confirm')
+    )
     log.debug('Done')
 
 
