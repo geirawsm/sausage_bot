@@ -34,3 +34,9 @@ en:
     synclocal:
       msg_starting: Starting commands sync...
       msg_confirm: Global commands synced locally to server
+  context_menu:
+    edit_msg:
+      name: Edit bot message
+      not_bot: Message was not written by the bot
+      edit_confirm: Message was edited
+      edit_error: 'Error when editing, check logs'

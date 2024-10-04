@@ -37,3 +37,9 @@ no:
     synclocal:
       msg_starting: Starter kommando synkronisering...
       msg_confirm: Globale kommandoer ble synkronisert med serveren
+  context_menu:
+    edit_msg:
+      name: Rediger bot melding
+      not_bot: Meldingen ble ikke skrevet av boten
+      edit_confirm: Meldingen ble endret
+      edit_error: 'Feil ved endring av melding, sjekk loggen'

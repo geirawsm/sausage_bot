@@ -505,6 +505,37 @@ async def language(
     return
 
 
+@commands.check_any(
+    commands.is_owner(),
+    commands.has_permissions(administrator=True)
+)
+@config.bot.tree.context_menu(
+        name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
+)
+async def edit_bot_say_msg(
+    interaction: discord.Interaction, message: discord.Message
+):
+    log.debug(
+        f'`message.author.id` {message.author.id} '
+        f'({type(message.author.id)})) vs `config.bot.user.id` '
+        f'{config.bot.user.id} ({type(config.bot.user.id)}))'
+    )
+    if message.author.id != config.bot.user.id:
+        await interaction.response.send_message(
+            I18N.t('main.context_menu.edit_msg.not_bot'),
+            ephemeral=True
+        )
+        return
+    modal_in = EditModal(
+        title_in=I18N.t('main.context_menu.edit_msg.name'),
+        comment_in=message.content
+    )
+    await interaction.response.send_modal(modal_in)
+    await modal_in.wait()
+    if modal_in.comment_out is not None:
+        await message.edit(content=modal_in.comment_out)
+    return
+
 
 try:
     config.bot.run(config.DISCORD_TOKEN)
