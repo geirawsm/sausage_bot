@@ -17,8 +17,13 @@ en:
       msg_confirm: Deleted %{amount} messages
     say:
       command: Post a message to a channel. Enter `message_id` if replying to a specific post
-    say_again:
-      command: 'Change a previous message sent with `say`'
+      modal:
+        title: Make the bot say a message
+        comment: Comment
+        reply: 'Mention %{member}'
+        confirm: 'Comment sendt to `#%{channel}`'
+        error_sending: 'Error when sending comment to %{channel}: %{error}'
+        error_both_args: Both `message_id` and `reply` were provided, please only use one
     tasks:
       command: List tasks and their status
     ping:

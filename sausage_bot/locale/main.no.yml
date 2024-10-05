@@ -17,11 +17,13 @@ no:
       msg_confirm: Slettet %{amount} meldinger
     say:
       command: Sender melding til en kanal. Fyll inn `message_id` hvis det skal svares på en melding
-      msg_confirm: 'Melding sendt til `#%{channel}`'
-      msg_forbidden: 'Jeg kan ikke sende meldinger i `#%{channel}`'
-      msg_error: 'En feil oppstod ved sending av melding: %{error}'
-    say_again:
-      command: Endre en tidligere melding sendt med /say
+      modal:
+        title: Få boten til å sende en melding
+        comment: Melding
+        reply: 'Nevn %{member}'
+        confirm: 'Melding sendt til `#%{channel}`'
+        error_sending: 'Det oppstod en feil ved sending av melding til %{channel}: %{error}'
+        error_both_args: Både `message_id` og `reply` ble oppgitt, velg kun én'
     tasks:
       command: List opp oppgaver og deres status
     ping:

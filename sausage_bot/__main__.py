@@ -16,6 +16,111 @@ from sausage_bot.util.i18n import MyTranslator
 from sausage_bot.util.log import log
 
 
+class SayTextInput(discord.ui.TextInput):
+    def __init__(
+            self, style_in, label_in, default_in=None, required_in=None,
+            placeholder_in=None
+    ):
+        super().__init__(
+            style=style_in,
+            label=label_in,
+            default=default_in,
+            required=required_in,
+            placeholder=placeholder_in
+        )
+
+
+class SayModal(discord.ui.Modal):
+    def __init__(
+        self, title_in=None, channel=None, mention=None
+    ):
+        super().__init__(
+            title=title_in, timeout=120
+        )
+        self.comment_out = None
+        self.channel = channel
+        self.mention = mention
+        self.error_out = None
+
+        # Create elements
+        if self.mention:
+            label_in = I18N.t(
+                'main.commands.say.modal.reply', member=self.mention.name
+            )
+        else:
+            label_in = I18N.t('main.commands.say.modal.comment')
+        self.mention
+        comment_text = SayTextInput(
+            style_in=discord.TextStyle.paragraph,
+            label_in=label_in,
+            required_in=True,
+            placeholder_in=I18N.t('main.commands.say.modal.comment')
+        )
+
+        self.add_item(comment_text)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.comment_out = self.children[0].value
+        await interaction.response.send_message(
+            I18N.t(
+                'main.commands.say.modal.confirm', channel=self.channel.name
+            ),
+            ephemeral=True
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error):
+        log.error(f'Error when editing message: {error}')
+        await interaction.response.send_message(
+            I18N.t(
+                'main.commands.say.modal.error_sending', channel=self.channel.name,
+                error=error
+            ),
+            ephemeral=True
+        )
+
+
+class EditModal(discord.ui.Modal):
+    def __init__(
+        self, title_in=None, comment_in=None
+    ):
+        super().__init__(
+            title=title_in, timeout=60
+        )
+        self.comment_in = comment_in
+        self.comment_out = None
+        self.error_out = None
+        log.verbose(f'self.comment_in is: {self.comment_in}')
+
+        # Create elements
+        comment_text = SayTextInput(
+            style_in=discord.TextStyle.paragraph,
+            label_in=I18N.t('quote.modals.quote_text'),
+            default_in=self.comment_in,
+            required_in=True,
+            placeholder_in='Text'
+        )
+
+        self.add_item(comment_text)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.comment_out = self.children[0].value
+        await interaction.response.send_message(
+            I18N.t('main.context_menu.edit_msg.edit_confirm'),
+            ephemeral=True
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error):
+        log.error(f'Error when editing message: {error}')
+        self.error_out = error
+        await interaction.response.send_message(
+            I18N.t(
+                'main.context_menu.edit_msg.edit_error',
+                error=error
+            ),
+            ephemeral=True
+        )
+
+
 async def locales_autocomplete(
     interaction: discord.Interaction,
     current: str,
@@ -378,78 +483,38 @@ async def ban(
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
-    message_id: str = None, *, message: str
+    message_id: str = None, mention: discord.Member = None
 ):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        async with channel.typing():
-            await asyncio.sleep(3)
-        if message_id:
-            reply_msg = await discord_commands.get_message_obj(
-                msg_id=message_id, channel=channel
-            )
-            log.debug(f'Got `reply_msg`: {reply_msg}')
-            await reply_msg.reply(message)
-        else:
-            await channel.send(message)
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.say.msg_confirm',
-                channel=channel.name
-            ),
+    reply_msg = None
+    log.debug(f'`channel` is {channel} ({type(channel)})')
+    if message_id and mention:
+        log.error('Can\'t use `message_id` and `mention` at the same time')
+        await interaction.response.send_message(
+            I18N.t('main.commands.say.modal.error_both_args'),
             ephemeral=True
         )
-    except discord.Forbidden:
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.say.msg_forbidden',
-                channel=channel.name
-            ),
-            ephemeral=True
+        return
+    if message_id:
+        reply_msg = await discord_commands.get_message_obj(
+            msg_id=message_id, channel=channel.name
         )
-    except Exception as _error:
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.say.msg_error',
-                error=_error
-            ),
-            ephemeral=True
-        )
-
-
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(administrator=True)
-)
-@config.bot.tree.command(
-    name='sayagain',
-    description=locale_str(I18N.t('main.commands.say_again.command'))
-)
-async def say_again(
-    interaction: discord.Interaction, msg_id: str, *, text: str
-):
-    'Make the bot rephrase a previous message'
-    # TODO Legg til modal her
-    await interaction.response.defer(ephemeral=True)
-    guild = discord_commands.get_guild()
-    if guild is None:
-        return None
-    log.debug(f'`guild` is {guild}')
-    for channel in guild.text_channels:
-        async for message in channel.history(limit=25):
-            if str(message.id) == str(msg_id):
-                async with channel.typing():
-                    await asyncio.sleep(3)
-                old_text = message.content
-                new_message = await message.edit(
-                    content=text
-                )
-                new_text = new_message.content
-                await interaction.followup.send(
-                    f'Changed [message]({new_message.jump_url}) from:\n'
-                    f'```{old_text}```\nto\n```{new_text}```',
-                    ephemeral=True, suppress_embeds=True
-                )
+        log.debug(f'Got `reply_msg`: {reply_msg}')
+    modal_in = SayModal(
+        title_in=I18N.t('main.commands.say.modal.title'),
+        channel=channel,
+        mention=mention
+    )
+    await interaction.response.send_modal(modal_in)
+    await modal_in.wait()
+    if reply_msg:
+        await reply_msg.reply(modal_in.comment_out)
+    elif channel:
+        msg_out = ''
+        if mention:
+            msg_out = mention.mention
+        msg_out += modal_in.comment_out
+        await channel.send(msg_out)
+    return
 
 
 @commands.check_any(
