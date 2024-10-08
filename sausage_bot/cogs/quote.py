@@ -489,7 +489,6 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
         name="delete", description=locale_str(
             I18N.t('quote.commands.delete.cmd')
@@ -509,15 +508,22 @@ class Quotes(commands.Cog):
         quote = quote_from_db[0]
         log.db(f'quote is: {quote}')
         confirm_buttons = ConfirmButtons()
-        await interaction.followup.send(
-            I18N.t(
-                'quote.commands.delete.confirm_delete',
-                quote_num=quote[0],
-                quote_text=quote[2],
-                quote_date=get_dt(
-                    format='datetextfull',
+        tab_quote = tabulate(
+            [
+                [I18N.t('quote.tab_headers.quote_num'), quote[0]],
+                [I18N.t('quote.tab_headers.quote'), quote[2]],
+                [I18N.t('quote.tab_headers.quote_date'), get_dt(
+                    format='datetime',
                     dt=quote[3]
-                )
+                )]
+            ], tablefmt='plain'
+        )
+        await interaction.followup.send(
+            '{}\n```{}```'.format(
+                I18N.t(
+                    'quote.commands.delete.confirm_delete'
+                ),
+                tab_quote
             ),
             view=confirm_buttons,
             ephemeral=True
@@ -533,9 +539,14 @@ class Quotes(commands.Cog):
             # Confirm that the quote has been deleted
             await interaction.followup.send(
                 I18N.t(
-                    'quote.commands.delete.msg_confirm',
+                    'quote.commands.delete.msg_confirm_delete',
                     quote_num=quote[0]
                 ),
+                ephemeral=True
+            )
+        elif confirm_buttons.value is False:
+            await interaction.followup.send(
+                I18N.t('quote.commands.delete.msg_confirm_not_delete'),
                 ephemeral=True
             )
         else:
