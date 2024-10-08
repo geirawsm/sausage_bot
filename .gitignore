@@ -3,6 +3,8 @@ __pycache__/
 *.code-*
 .vscode/
 *.code-workspace
+todo.md
+todo.diff
 
 sausage_bot/data/json
 sausage_bot/data/db
