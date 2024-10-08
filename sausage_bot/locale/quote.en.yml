@@ -23,7 +23,13 @@ en:
       msg_fail: Will not delete quote, check logs
     count:
       cmd: Count the number of quotes
-      msg_confirm: 'Jeg har %{num_quotes} sitater på lager'
+      msg_confirm: 'I currently have %{num_quotes} quotes in my database'
+    list:
+      cmd: List quotes
+      header:
+        number: 'No.'
+        quote: 'Quote'
+        date: 'Date'
   modals:
     quote_num: Quote number
     quote_text: Quote text

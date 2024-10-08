@@ -599,6 +599,94 @@ class Quotes(commands.Cog):
         )
         return
 
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @group.command(
+        name="list", description=locale_str(
+            I18N.t('quote.commands.list.cmd')
+        )
+    )
+    async def quote_list(
+        self, interaction: discord.Interaction, keyword: str = None,
+        quote_number: int = None, shortened: bool = False
+    ):
+        async def prep_quotes(
+            keyword: str = None,
+            quote_number: int = None, shortened: bool = False
+        ):
+            quotes_out = []
+            if quote_number and not keyword:
+                quote_in = await db_helper.get_output_by_rowid(
+                    template_info=envs.quote_db_schema,
+                    rowid=quote_number
+                )
+            else:
+                quote_in = await db_helper.get_output(
+                    envs.quote_db_schema,
+                    get_row_ids=True,
+                    rowid_sort=True,
+                    like=('quote_text', keyword) if keyword else None
+                )
+            for _q in quote_in:
+                q_no = _q[0]
+                if shortened:
+                    q_text = '{}...'.format(_q[2][0:100]) if len(_q[2]) > 100\
+                        else _q[2]
+                else:
+                    q_text = _q[2]
+                q_datetime = _q[3]
+                quotes_out.append(
+                    (
+                        q_no, q_text, q_datetime
+                    )
+                )
+            return quotes_out
+
+        await interaction.response.defer()
+        quote_in = await prep_quotes(
+            keyword=keyword,
+            quote_number=quote_number,
+            shortened=shortened
+        )
+        tab_header = [
+            I18N.t('quote.commands.list.header.number'),
+            I18N.t('quote.commands.list.header.quote'),
+            I18N.t('quote.commands.list.header.date')
+        ]
+        temp_out = []
+        for quote in quote_in:
+            temp_out.append(
+                (quote[0], quote[1], get_dt(format='datetime', dt=quote[2]))
+            )
+        paginated = []
+        tabulated_quotes = tabulate(
+            tablefmt='plain',
+            tabular_data=temp_out,
+            headers=tab_header,
+            maxcolwidths=[None, 80, None]
+        )
+        if len(tabulated_quotes) > 1900:
+            page_header = tabulated_quotes.splitlines(keepends=True)[0]
+            rest_of_quotes = tabulated_quotes.splitlines(keepends=True)[1:]
+            temp_page_out = ''
+            for line in rest_of_quotes:
+                if temp_page_out == '':
+                    temp_page_out = page_header
+                if len(temp_page_out) + len(line) > 1900:
+                    log.debug('Hit 1900 mark')
+                    paginated.append(temp_page_out)
+                    temp_page_out = ''
+                else:
+                    temp_page_out += line
+            if len(temp_page_out) > 0:
+                paginated.append(temp_page_out)
+
+        for page in paginated:
+            await interaction.followup.send(f'```{page}```')
+        return
+
 
 async def setup(bot):
     # Create necessary databases before starting

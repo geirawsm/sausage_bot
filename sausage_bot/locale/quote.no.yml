@@ -23,6 +23,12 @@ no:
       msg_fail: Sitatet slettes ikke
     count:
       cmd: Tell antall sitater
+    list:
+      cmd: Vis sitater
+      header:
+        number: 'Nr.'
+        quote: 'Sitat'
+        date: 'Dato'
   modals:
     quote_num: Sitat nummer
     quote_text: Sitat tekst
