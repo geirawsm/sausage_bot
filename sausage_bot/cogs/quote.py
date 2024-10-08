@@ -610,8 +610,12 @@ class Quotes(commands.Cog):
                     rowid_sort=True,
                     like=('quote_text', keyword) if keyword else None
                 )
+            log.debug('Got quotes: {}'.format(quote_in))
             for _q in quote_in:
                 q_no = _q[0]
+                if any(item is None for item in _q):
+                    log.error('None-values discovered in DB-file (quotes)')
+                    pass
                 if shortened:
                     q_text = '{}...'.format(_q[2][0:100]) if len(_q[2]) > 100\
                         else _q[2]
@@ -623,6 +627,7 @@ class Quotes(commands.Cog):
                         q_no, q_text, q_datetime
                     )
                 )
+            log.debug(f'Returning this as `quotes_out`: {quotes_out}')
             return quotes_out
 
         await interaction.response.defer()
@@ -641,6 +646,7 @@ class Quotes(commands.Cog):
             temp_out.append(
                 (quote[0], quote[1], get_dt(format='datetime', dt=quote[2]))
             )
+        log.debug(f'`temp_out` is {temp_out}')
         paginated = []
         tabulated_quotes = tabulate(
             tablefmt='plain',
@@ -663,7 +669,9 @@ class Quotes(commands.Cog):
                     temp_page_out += line
             if len(temp_page_out) > 0:
                 paginated.append(temp_page_out)
-
+        else:
+            paginated.append(tabulated_quotes)
+        log.debug(f'paginated is {paginated}')
         for page in paginated:
             await interaction.followup.send(f'```{page}```')
         return
