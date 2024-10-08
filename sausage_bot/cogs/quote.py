@@ -41,7 +41,7 @@ async def quotes_autocomplete(
 
 class EditButtons(discord.ui.View):
     def __init__(self, *, timeout=10):
-        super().__init__(timeout=None)
+        super().__init__(timeout=timeout)
         self.value = None
 
     @discord.ui.button(
@@ -76,40 +76,40 @@ class EditButtons(discord.ui.View):
         self.stop()
 
 
+class SimpleButton(discord.ui.Button):
+    def __init__(self, style, label, value):
+        super().__init__(style=style, label=label)
+        self.value = value
+
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        self.disabled = True
+        buttons = [x for x in self.view.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        await interaction.response.edit_message(view=self.view)
+        self.view.stop()
+
+
 class ConfirmButtons(discord.ui.View):
     def __init__(self, *, timeout=10):
-        super().__init__(timeout=None)
+        super().__init__(timeout=timeout)
         self.value = None
-
-    @discord.ui.button(
-        label="Yes", style=discord.ButtonStyle.green
-    )
-    async def confirm_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        self.value = True
-        # Disable all buttons
-        buttons = [x for x in self.children]
-        for _btn in buttons:
-            _btn.disabled = True
-        # Update message
-        await interaction.response.edit_message(view=self)
-        self.stop()
-
-    @discord.ui.button(
-        label="No", style=discord.ButtonStyle.red
-    )
-    async def deny_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        self.value = False
-        # Disable all buttons
-        buttons = [x for x in self.children]
-        for _btn in buttons:
-            _btn.disabled = True
-        # Update message
-        await interaction.response.edit_message(view=self)
-        self.stop()
+        self.add_item(
+            SimpleButton(
+                style=discord.ButtonStyle.green,
+                label=I18N.t('common.literal_yes_no.yes'),
+                value=True
+            )
+        )
+        self.add_item(
+            SimpleButton(
+                style=discord.ButtonStyle.red,
+                label=I18N.t('common.literal_yes_no.no'),
+                value=False
+            )
+        )
 
 
 class QuoteTextInput(discord.ui.TextInput):
