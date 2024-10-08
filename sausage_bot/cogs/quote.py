@@ -14,31 +14,6 @@ from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
-async def quotes_autocomplete(
-    interaction: discord.Interaction,
-    current: str,
-) -> list[discord.app_commands.Choice[str]]:
-    quotes_db = await db_helper.get_output(
-        template_info=envs.quote_db_schema,
-        get_row_ids=True
-    )
-    return [
-        discord.app_commands.Choice(
-            name='{}. ({}) {}'.format(
-                quote[0],
-                get_dt(format='datetextfull', dt=quote[3]),
-                '{}...'.format(
-                    quote[2][0:35]) if len(quote[2]) > 35 else quote[2]
-            ),
-            value=str(quote[0])
-        ) for quote in quotes_db if current.lower() in '{}{}{}'.format(
-            str(quote[0]),
-            str(quote[3]),
-            str(quote[2]).lower()
-        )
-    ]
-
-
 class EditButtons(discord.ui.View):
     def __init__(self, *, timeout=10):
         super().__init__(timeout=timeout)
@@ -294,7 +269,6 @@ class Quotes(commands.Cog):
         )
     )
 
-    @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
         name="post", description=locale_str(I18N.t('quote.commands.post.cmd'))
     )
@@ -448,7 +422,6 @@ class Quotes(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
-    @discord.app_commands.autocomplete(quote_in=quotes_autocomplete)
     @group.command(
         name="edit", description=locale_str(I18N.t('quote.commands.edit.cmd'))
     )
