@@ -277,7 +277,10 @@ class Quotes(commands.Cog):
     )
     async def post(
             self, interaction: discord.Interaction,
-            quote_in: str = None
+            quote_in: str = None, public: typing.Literal[
+                I18N.t('common.literal_yes_no.yes'),
+                I18N.t('common.literal_yes_no.no')
+            ] = I18N.t('common.literal_yes_no.no')
     ):
         '''
         Post quotes
@@ -326,7 +329,11 @@ class Quotes(commands.Cog):
                 ('rowid', 'uuid', 'quote_text', 'datetime')
             )
 
-        await interaction.response.defer()
+        if public == I18N.t('common.literal_yes_no.yes'):
+            _ephemeral = False
+        elif public == I18N.t('common.literal_yes_no.no'):
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
             log.debug('No quote number given')
@@ -373,7 +380,8 @@ class Quotes(commands.Cog):
                     I18N.t(
                         'quote.commands.post.quote_not_exist',
                         quote_in=quote_in
-                    )
+                    ),
+                    ephemeral=_ephemeral
                 )
                 return
 
