@@ -38,6 +38,7 @@ en:
       msg_failed: 'Failed to ban: %{error}'
     synclocal:
       msg_starting: Starting commands sync...
+      msg_cont_copy: Copying global commands...
       msg_confirm: Global commands synced locally to server
   context_menu:
     edit_msg:

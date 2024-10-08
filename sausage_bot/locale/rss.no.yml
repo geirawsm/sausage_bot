@@ -1,30 +1,30 @@
 no:
   groups:
-    rss: Administer RSS-feeds
-    filter: Manage RSS filters
-    posting: Posting from RSS feeds
+    rss: Administrer RSS-feeder
+    filter: Administrer RSS filters
+    posting: Posting fra RSS feeds
   commands:
     start:
       cmd: Start posting
-      msg_confirm: RSS posting started
+      msg_confirm: Startet RSS-posting
     stop:
-      cmd: Stop posting
-      msg_confirm: RSS posting stopped
+      cmd: Stopp posting
+      msg_confirm: Stoppet RSS-posting
     add:
-      cmd: Add a RSS feed
+      cmd: Legg til en RSS-feed
       desc:
-        feed_name: The name of the feed to add
-        feed_link: Link to the RSS-/XML-feed
-        channel: The channel to post from the feed
+        feed_name: Navn på feeden som legges til
+        feed_link: Link til en RSS-/XML-feed
+        channel: Kanalen som det skal postes til
       msg_feed_failed: Urlen er ikke en RSS/XML feed
-      msg_feed_confirm: '%{feed_name} ble lagt til i #%{channel_name}' 
-      log_feed_confirm: '%{user_name} la til feeden  %{feed_name} i #%{channel_name}' 
+      msg_feed_confirm: '%{feed_name} ble lagt til i #%{channel_name}'
+      log_feed_confirm: '%{user_name} la til feeden %{feed_name} i #%{channel_name}'
     remove:
-      cmd: Remove a RSS feed
+      cmd: Fjern en RSS-feed
       desc:
-        feed_name: The name of the feed to remove
-      msg_feed_not_found: The feed was not found
-      msg_feed_removed: '%{feed_name} was removed from #%{channel_name}'
+        feed_name: Navn på feeden som skal fjernes
+      msg_feed_not_found: Feeden ble ikke funnet
+      msg_feed_removed: '%{feed_name} ble fjernet fra #%{channel_name}'
       log_feed_removed: 'Feeden %{feed_name} ble fjernet av %{user_name}'
       msg_feed_remove_failed: 'Klarte ikke å fjerne RSS-feeden %{feed_name}'
       log_feed_remove_failed: '%{user_name} prøvde å fjerne feeden %{feed_name}, men det oppsto en feil'

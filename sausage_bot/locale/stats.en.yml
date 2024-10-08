@@ -25,7 +25,7 @@ en:
         settings:
           setting: Setting
           value: Value
-          value_type: Valute type
+          value_type: Value type
         hidden_roles:
           hidden_name: Name
           hidden_id: ID

@@ -38,6 +38,7 @@ no:
       msg_failed: 'Klarte ikke å utestenge: %{error}'
     synclocal:
       msg_starting: Starter kommando synkronisering...
+      msg_cont_copy: Kopierer globale kommandoer...
       msg_confirm: Globale kommandoer ble synkronisert med serveren
   context_menu:
     edit_msg:
