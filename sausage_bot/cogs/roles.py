@@ -492,7 +492,7 @@ def tabulate_emojis_and_roles(dict_in):
         else:
             temp_out += f'\n{line_out}'
         counter += 1
-    paginated.append(temp_out)
+        paginated.append(temp_out)
     return paginated
 
 
@@ -636,7 +636,8 @@ class Autoroles(commands.Cog):
         commands.has_permissions(manage_roles=True)
     )
     @roles_group.command(
-        name='info', description=locale_str(I18N.t('roles.commands.info.cmd'),)
+        name='info',
+        description=locale_str(I18N.t('roles.commands.info.cmd'))
     )
     @describe(
         public=I18N.t('roles.commands.info.desc.public'),
@@ -647,7 +648,8 @@ class Autoroles(commands.Cog):
         public: typing.Literal[
             I18N.t('common.literal_yes_no.yes'),
             I18N.t('common.literal_yes_no.no')
-        ], role_in: discord.Role
+        ],
+        role_in: discord.Role
     ):
         '''
         Get info about a specific role (`role_in`)
@@ -657,12 +659,11 @@ class Autoroles(commands.Cog):
         role_name: str
             The role name to get info about (default: None)
         '''
-        if public.lower() == 'yes':
+        if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public.lower() == 'no':
+        elif public == I18N.t('common.literal_yes_no.no'):
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
-        _guild = discord_commands.get_guild()
         embed = discord.Embed(color=role_in.color)
         embed.set_thumbnail(url=role_in.icon)
         embed.add_field(name="ID", value=role_in.id, inline=True)
@@ -672,18 +673,14 @@ class Autoroles(commands.Cog):
         if role_in.is_bot_managed():
             embed.add_field(
                 name="Autohåndteres",
-                value='Ja, av {}'.format(
-                    _guild.get_member(
-                        role_in.tags.integration_id
-                    ).name
-                ),
+                value='Ja, av {}'.format(role_in.name),
                 inline=True
             )
         elif role_in.is_integration():
             embed.add_field(
                 name="Autohåndteres",
                 value='Ja, av {}'.format(
-                    _guild.get_member(role_in.tags.bot_id).name
+                    role_in.tags.integration_id
                 ),
                 inline=True
             )
@@ -1676,7 +1673,9 @@ class Autoroles(commands.Cog):
                     I18N.t('roles.commands.settings_add.role_already_set')
                 )
                 return
-        elif setting == I18N.t('roles.commands.settings_add.literal.setting.not_include_in_total'):
+        elif setting == I18N.t(
+            'roles.commands.settings_add.literal.setting.not_include_in_total'
+        ):
             _setting = 'not_include_in_total'
         await db_helper.insert_many_all(
             template_info=envs.roles_db_settings_schema,

@@ -9,7 +9,6 @@ from .log import log
 from sausage_bot.util.i18n import I18N
 
 # Set correct timezone and locale
-# TODO i18n
 tz = pendulum.timezone("Europe/Oslo")
 locale = pendulum.set_locale('nb')
 pendulum.week_starts_at(pendulum.MONDAY)

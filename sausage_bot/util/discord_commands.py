@@ -12,7 +12,6 @@ from .log import log
 async def get_message_obj(
         msg_id: str = None, channel: str = None
 ) -> dict:
-    #TODO delete instances of this to convert to `from discord.utils import get`
     '''
     Get a message object
 
