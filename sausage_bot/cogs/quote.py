@@ -5,6 +5,8 @@ from discord.ext import commands
 from discord.app_commands import locale_str, describe
 import uuid
 from asyncio import TimeoutError
+from tabulate import tabulate
+import typing
 
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util import envs, db_helper, file_io
@@ -173,10 +175,30 @@ class QuoteAddModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         self.quote_out['row_id'] = self.children[0].value
         self.quote_out['quote_text'] = self.children[1].value
-        self.quote_out['datetime'] = self.children[2].value
+        if self.children[2].value == '':
+            self.quote_out['datetime'] = str(get_dt(format='ISO8601'))
+        else:
+            self.quote_out['datetime'] = get_dt(
+                format='ISO8601', dt=self.children[2].value
+            )
 
+        tab_quote = tabulate(
+            [
+                [I18N.t('quote.tab_headers.quote_num'),
+                 self.quote_out['row_id']],
+                [I18N.t('quote.tab_headers.quote'),
+                 self.quote_out['quote_text']],
+                [I18N.t('quote.tab_headers.quote_date'),
+                 get_dt(
+                     format='datetime', dt=self.quote_out['datetime']
+                )]
+            ], tablefmt='plain'
+        )
+        msg_out = I18N.t(
+            'quote.modals.add.msg_confirm'
+        )
         await interaction.response.send_message(
-            I18N.t('quote.modals.add.msg_confirm'),
+            f'{msg_out}:\n```{tab_quote}```',
             ephemeral=True
         )
 
@@ -410,18 +432,14 @@ class Quotes(commands.Cog):
         # Parse the quote
         quote_out = modal_in.quote_out
         log.verbose(f'quote_out: {quote_out}')
-        # Datetime will be saved as ISO8601:
-        # YYYY-MM-DD HH:MM:SS.SSS
-        if not quote_out['datetime']:
-            iso_date = str(get_dt(format='ISO8601'))
-        else:
-            iso_date = get_dt(format='ISO8601', dt=quote_out['datetime'])
-        log.verbose(f'iso_date: {iso_date}')
         # Add the quote
         await db_helper.insert_many_all(
             template_info=envs.quote_db_schema,
             inserts=[
-                (quote_out['uuid'], quote_out['quote_text'], iso_date)
+                (
+                    quote_out['uuid'], quote_out['quote_text'],
+                    quote_out['datetime']
+                )
             ]
         )
         return
