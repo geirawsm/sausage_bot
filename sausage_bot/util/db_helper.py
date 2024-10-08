@@ -600,9 +600,9 @@ async def update_fields(
 
 
 async def get_output(
-    template_info, where: tuple = None, select: tuple = None,
-    order_by: list = None, get_row_ids: bool = False, rowid_sort: bool = False,
-    single: bool = None
+    template_info, where: tuple = None, like: tuple = None,
+    select: tuple = None, order_by: list = None, get_row_ids: bool = False,
+    rowid_sort: bool = False, single: bool = None
 ):
     '''
     Get output from a SELECT query from a specified
@@ -615,6 +615,8 @@ async def get_output(
         dict info about the table from envs file
     where: tuple
         Single or multiple things to look for to identify correct rows
+    like: tuple
+        Single or multiple keywords to search for in a row
     select: tuple
         What fields to get from the db file
     order_by: list(tuples)
@@ -639,16 +641,30 @@ async def get_output(
     elif isinstance(select, str):
         _cmd += select
     _cmd += f' FROM {table_name}'
-    if isinstance(where, tuple):
-        log.verbose(f'`where` is tuple: {where}')
-        _cmd += f" WHERE LOWER({where[0]}) = LOWER('{where[1]}')"
-    elif isinstance(where, list) and isinstance(where[0], tuple):
-        log.verbose(f'`where` is tuple inside a list: {where}')
-        _cmd += " WHERE "
-        for id in where:
-            _cmd += f"LOWER({id[0]}) = LOWER('{id[1]}')"
-            if id != where[-1]:
-                _cmd += ' AND '
+    log.debug(f'where: {where}')
+    log.debug(f'like: {like}')
+    if where is not None and like is None:
+        if isinstance(where, tuple):
+            log.verbose(f'`where` is tuple: {where}')
+            _cmd += f" WHERE LOWER({where[0]}) = LOWER('{where[1]}')"
+        elif isinstance(where, list) and isinstance(where[0], tuple):
+            log.verbose(f'`where` is tuple inside a list: {where}')
+            _cmd += " WHERE "
+            for id in where:
+                _cmd += f"LOWER({id[0]}) = LOWER('{id[1]}')"
+                if id != where[-1]:
+                    _cmd += ' AND '
+    elif like is not None and where is None:
+        if isinstance(like, tuple):
+            log.verbose(f'`like` is tuple: {like}')
+            _cmd += f" WHERE {like[0]} LIKE '%{like[1]}%'"
+        elif isinstance(like, list) and isinstance(like[0], tuple):
+            log.verbose(f'`like` is tuple inside a list: {like}')
+            _cmd += " WHERE "
+            for id in like:
+                _cmd += f"{id[0]} LIKE '%{id[1]}%'"
+                if id != like[-1]:
+                    _cmd += ' AND '
     if order_by is not None:
         _cmd += ' ORDER BY '
         _cmd += ', ' .join(f'{order[0]} {order[1]}' for order in order_by)
