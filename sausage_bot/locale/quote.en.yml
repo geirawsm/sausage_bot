@@ -1,4 +1,8 @@
 en:
+  tab_headers:
+    quote_num: Quote no.
+    quote: Quote
+    quote_date: Date
   commands:
     quote:
       cmd: Quotes
@@ -18,8 +22,9 @@ en:
       cmd: Delete a quote
       desc:
         quote_in: Quote to delete
-      confirm_delete: 'Are you sure you want to delete the following quote?\n```# %{quote_num}\n%{quote_text}\n(%{quote_date})```\n'
-      msg_confirm: 'Deleted quote # %{quote_num}'
+      confirm_delete: 'Are you sure you want to delete the following quote?'
+      msg_confirm_delete: 'Deleted quote # %{quote_num}'
+      msg_confirm_not_delete: Quote not deleted
       msg_fail: Will not delete quote, check logs
     count:
       cmd: Count the number of quotes
@@ -37,9 +42,7 @@ en:
     date_placeholder: Date and time (DD.MM.YYYY HH:MM)
     add:
       modal_title: Add quote
-      msg_confirm: 'Added this quote:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
-      msg_error: 'Error: %{error}'
+      msg_confirm: Added this quote
     edit:
       modal_title: Edit quote
       msg_confirm: Quote edited
-      msg_error: 'Error: %{error}'

@@ -1,4 +1,8 @@
 no:
+  tab_headers:
+    quote_num: Sitat nr
+    quote: Sitat
+    quote_date: Dato
   commands:
     quote:
       cmd: Sitater
@@ -18,9 +22,10 @@ no:
       cmd: Slett sitat
       desc:
         quote_in: Sitat som skal slettes
-      confirm_delete: 'Er du sikker på at du vil slette følgende sitat?\n```# {quote_num}\n{quote_text}\n({quote_date})```\n'
-      msg_confirm: 'Slettet sitat nummer %{quote_num}' 
-      msg_fail: Sitatet slettes ikke
+      confirm_delete: 'Er du sikker på at du vil slette følgende sitat?'
+      msg_confirm_delete: 'Slettet sitat nummer %{quote_num}'
+      msg_confirm_not_delete: Sitat ikke slettet
+      msg_fail: Sitatet slettes ikke, sjekk logger
     count:
       cmd: Tell antall sitater
     list:
@@ -37,7 +42,7 @@ no:
     error: 'Feil: %{error}'
     add:
       modal_title: Legg til sitat
-      msg_confirm: 'La til følgende sitat:\n> %{quote_num}\n> %{quote_text}\n> %{quote_date}'
+      msg_confirm: La til følgende sitat
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
