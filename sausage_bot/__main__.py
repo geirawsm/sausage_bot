@@ -72,7 +72,8 @@ class SayModal(discord.ui.Modal):
         log.error(f'Error when editing message: {error}')
         await interaction.response.send_message(
             I18N.t(
-                'main.commands.say.modal.error_sending', channel=self.channel.name,
+                'main.commands.say.modal.error_sending',
+                channel=self.channel.name,
                 error=error
             ),
             ephemeral=True
@@ -579,7 +580,7 @@ async def language(
     commands.has_permissions(administrator=True)
 )
 @config.bot.tree.context_menu(
-        name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
+    name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
 )
 async def edit_bot_say_msg(
     interaction: discord.Interaction, message: discord.Message
