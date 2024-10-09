@@ -27,18 +27,18 @@ async def feed_name_autocomplete(
     feeds = []
     for feed in db_feeds:
         feeds.append((feed[0], feed[1], feed[2], feed[3]))
+        length_counter = 87
+        length_counter -= len(str(feed[1]))
+        length_counter -= len(str(feed[3]))
     log.debug(f'feeds: {feeds}')
-    length_counter = 90
+    length_counter = 87
     length_counter -= len(str(feed[1]))
     length_counter -= len(str(feed[3]))
     return [
         discord.app_commands.Choice(
             name='{feed_name}: #{channel} ({url})'.format(
-                feed_name=feed[1], channel=feed[3],
-                url='{}...'.format(
-                    str(feed[2])[0:length_counter]
-                ) if len(feed[2]) > length_counter else str(feed[2]),
-            ), value=str(feed[1])
+                feed_name=feed[1], channel=feed[3], url=str(feed[2])
+            )[0:length_counter], value=str(feed[1])
         )
         for feed in feeds if current.lower() in feed[0].lower()
     ]
