@@ -39,7 +39,10 @@ no:
     synclocal:
       msg_starting: Starter kommando synkronisering...
       msg_cont_copy: Kopierer globale kommandoer...
-      msg_confirm: Globale kommandoer ble synkronisert med serveren
+      msg_confirm: Lokale kommandoer ble synkronisert med globale kommandoer
+    syncglobal:
+      msg_starting: Starter synkronisering av globale kommandoer...
+      msg_confirm: Kommandoer synkronisert
   context_menu:
     edit_msg:
       name: Rediger bot melding

@@ -37,9 +37,12 @@ en:
       msg_confirm: '%{member} has been banned'
       msg_failed: 'Failed to ban: %{error}'
     synclocal:
-      msg_starting: Starting commands sync...
+      msg_starting: Starting local commands sync...
       msg_cont_copy: Copying global commands...
-      msg_confirm: Global commands synced locally to server
+      msg_confirm: Local commands synced with global commands
+    syncglobal:
+      msg_starting: Starting global commands sync...
+      msg_confirm: Commands synced
   context_menu:
     edit_msg:
       name: Edit bot message

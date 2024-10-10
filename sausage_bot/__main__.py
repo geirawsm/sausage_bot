@@ -311,12 +311,18 @@ async def sync_dev(interaction: discord.Interaction):
 async def synclocal(ctx):
     # sync to the guild where the command was used
     _reply = await ctx.reply(
-        '💭 {}'.format(
+        '💭💭 {}'.format(
             I18N.t('main.commands.synclocal.msg_starting')
         )
     )
-    log.debug('Clearing commands...')
-    config.bot.tree.clear_commands(guild=ctx.guild)
+    #log.debug('Clearing commands...')
+    #config.bot.tree.clear_commands(guild=None)
+    #config.bot.tree.clear_commands(guild=ctx.guild)
+    await _reply.edit(
+        content='✅💭 {}'.format(
+            I18N.t('main.commands.synclocal.msg_cont_copy')
+        )
+    )
     log.debug('Copying global commands...')
     config.bot.tree.copy_global_to(guild=ctx.guild)
     for command in config.bot.tree.get_commands():
@@ -324,7 +330,7 @@ async def synclocal(ctx):
     log.debug('Syncing...')
     await config.bot.tree.sync(guild=ctx.guild)
     await _reply.edit(
-        content='✅ {}'.format(
+        content='✅✅ {}'.format(
             I18N.t('main.commands.synclocal.msg_confirm')
         )
     )
@@ -332,11 +338,67 @@ async def synclocal(ctx):
 
 
 @commands.is_owner()
-@config.bot.command(name='clearcmds')
-async def clear_commands(ctx):
+@config.bot.command(name='syncglobal')
+async def syncglobal(ctx):
+    _reply = await ctx.reply(
+        '💭💭 {}'.format(
+            I18N.t('main.commands.syncglobal.msg_starting')
+        )
+    )
+    log.debug('Clearing commands...')
+    config.bot.tree.clear_commands(guild=None)
+    for command in config.bot.tree.get_commands():
+        log.debug(f'Checking {command.name}')
+    log.debug('Syncing...')
+    await config.bot.tree.sync(guild=None)
+    await _reply.edit(
+        content='✅✅ {}'.format(
+            I18N.t('main.commands.syncglobal.msg_confirm')
+        )
+    )
+    log.debug('Done')
+
+
+@commands.is_owner()
+@config.bot.command(name='clearglobals')
+async def clear_globals(ctx):
+    log.debug('Deleting global commands...')
+    _reply = await ctx.reply(
+        '💭 {}'.format(
+            'Deleting global commands...'
+            #I18N.t('main.commands.synclocal.msg_starting')
+        )
+    )
+    config.bot.tree.clear_commands(guild=None)
+    await config.bot.tree.sync(guild=None)
+    log.debug('Commands deleted')
+    await _reply.edit(
+        content='✅ {}'.format(
+            #I18N.t('main.commands.synclocal.msg_confirm')
+            'Global commands deleted'
+        )
+    )
+
+
+@commands.is_owner()
+@config.bot.command(name='clearlocals')
+async def clear_locals(ctx):
+    log.debug('Deleting local commands...')
+    _reply = await ctx.reply(
+        '💭 {}'.format(
+            'Deleting local commands...'
+            #I18N.t('main.commands.synclocal.msg_starting')
+        )
+    )
     config.bot.tree.clear_commands(guild=ctx.guild)
     await config.bot.tree.sync(guild=ctx.guild)
     log.debug('Commands deleted')
+    await _reply.edit(
+        content='✅ {}'.format(
+            #I18N.t('main.commands.synclocal.msg_confirm')
+            'Local commands deleted'
+        )
+    )
 
 
 @commands.is_owner()
