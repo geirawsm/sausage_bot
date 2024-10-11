@@ -21,7 +21,7 @@ async def name_of_settings_autocomplete(
 ) -> list[discord.app_commands.Choice[str]]:
     db_settings = await db_helper.get_output(
         template_info=envs.stats_db_settings_schema,
-        select=('setting', 'value_help'),
+        select=('setting', 'value_help')
     )
     settings = []
     for setting in db_settings:
@@ -177,7 +177,7 @@ class Stats(commands.Cog):
                 stats_channel = 'stats'
             await discord_commands.remove_stats_post(stats_channel)
         await interaction.followup.send(
-            I18N.t('commands.stop.confirm_stopped')
+            I18N.t('stats.commands.stop.confirm_stopped')
         )
 
     @stats_posting_group.command(
@@ -191,7 +191,7 @@ class Stats(commands.Cog):
         log.log('Stats posting restarted')
         Stats.task_update_stats.restart()
         await interaction.followup.send(
-            I18N.t('commands.restart.log_restarted')
+            I18N.t('stats.commands.restart.log_restarted')
         )
 
     @commands.check_any(
