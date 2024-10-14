@@ -42,10 +42,12 @@ en:
       desc:
         name_of_setting: Name of setting
         value_in: Value in
-        value_check: Value check
-        value_help: Value help
       command: Add setting
-      add_confirmed: Settings added
+      msg:
+        setting_already_exists: Setting already exists
+        type_incorrect: "Value (%{value_in}, %{value_type}) is not correct type (%{value_type_check})"
+        add_confirmed: Settings added
+        add_failed: Failed to add settings, check the log
     hide_roles_add:
       desc:
         role_in: Role to add

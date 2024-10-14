@@ -264,5 +264,19 @@ def create_necessary_files(file_list):
             ensure_file(file)
 
 
+def make_db_output_to_json(cols, db_output):
+    'Make `db_output` into a json file'
+    # Length check
+    if len(cols) != len(db_output[0]):
+        log.error('Length of `cols` and `db_output` does not match')
+        return None
+    json_out = {}
+    for item in db_output:
+        json_out[item[0]] = {}
+        for col in enumerate(cols):
+            json_out[item[0]][col[1]] = item[col[0]]
+    return json_out
+
+
 if __name__ == "__main__":
     pass

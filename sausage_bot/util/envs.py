@@ -57,7 +57,6 @@ WATCHING=
 stats_template = {
     'channel': 'stats',
     'show_role_stats': True,
-    'hide_roles': '',
     'hide_bot_roles': False,
     'sort_roles_abc': True,
     'sort_roles_321': False,
@@ -220,16 +219,27 @@ stats_db_settings_schema = {
         'value_help TEXT'
     ],
     'inserts': [
-        ['channel', '', 'str', 'Text'],
-        ['stats_msg', '', 'str', 'Text'],
-        ['hide_bot_roles', 'True', 'bool', 'True/False'],
-        ['show_code_stats', 'False', 'bool', 'True/False'],
-        ['show_role_stats', 'True', 'bool', 'True/False'],
-        ['sort_roles_abc', 'True', 'bool', 'True/False'],
-        ['sort_roles_321', 'False', 'bool', 'True/False'],
-        ['sort_min_role_members', 0, 'int', 'Number'],
-        ['hide_empty_roles', 'False', 'bool', 'True/False']
-    ]
+        ['channel', 'stats'],
+        ['stats_msg', ''],
+        ['hide_bot_roles', 'True'],
+        ['show_code_stats', 'False'],
+        ['show_role_stats', 'True'],
+        ['sort_roles_abc', 'True'],
+        ['sort_roles_321', 'False'],
+        ['sort_min_role_members', 0],
+        ['hide_empty_roles', 'False']
+    ],
+    'type_checking': {
+        'channel': 'str',
+        'stats_msg': 'str',
+        'hide_bot_roles': 'bool',
+        'show_code_stats': 'bool',
+        'show_role_stats': 'bool',
+        'sort_roles_abc': 'bool',
+        'sort_roles_321': 'bool',
+        'sort_min_role_members': 'int',
+        'hide_empty_roles': 'bool'
+    }
 }
 
 stats_db_hide_roles_schema = {

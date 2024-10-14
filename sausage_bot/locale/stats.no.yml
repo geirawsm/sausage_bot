@@ -42,10 +42,12 @@ no:
       desc:
         name_of_setting: Navn på innstilling
         value_in: Verdi
-        value_check: Verdi sjekk
-        value_help: Verdi hjelp
       command: Legg til innstilling
-      add_confirmed: Innstilling lagt til
+      msg:
+        setting_already_exists: Innstillingen eksisterer allerede
+        type_incorrect: "Verdien (%{value_in}, %{value_type}) er ikke av korrekt type (%{value_type_check})"
+        add_confirmed: Innstilling lagt til
+        add_failed: Legge til innstilling feilet, sjekk loggene
     hide_roles_add:
       desc:
         role_in: Rolle som skal legges til

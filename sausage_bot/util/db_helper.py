@@ -89,6 +89,49 @@ async def prep_table(
     return delete_json_ok
 
 
+async def find_cols(
+        template_info, cols_find: list = None
+):
+    db_file = template_info['db_file']
+    table_name = template_info['name']
+    log.verbose(f'Got `db_file`: {db_file}')
+    log.verbose(f'Got `table_name`: {table_name}')
+    table_info = f'PRAGMA table_info({table_name})'
+    async with aiosqlite.connect(db_file) as db:
+        db_out = await db.execute(table_info)
+        search_out = await db_out.fetchall()
+    _cols = [col[1] for col in search_out]
+    found_cols = []
+    for col_in in cols_find:
+        if col_in in _cols:
+            found_cols.append(col_in)
+    return found_cols
+
+
+async def remove_cols(
+        template_info, cols_remove: list = None
+):
+    db_file = template_info['db_file']
+    table_name = template_info['name']
+    log.verbose(f'Got `db_file`: {db_file}')
+    log.verbose(f'Got `table_name`: {table_name}')
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    else:
+        _cmd = 'ALTER TABLE {} DROP COLUMN {};'
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                for col_in in cols_remove:
+                    __cmd = _cmd.format(table_name, col_in)
+                    log.db(f'Using this query: {__cmd}')
+                    await db.execute(__cmd)
+                await db.commit()
+        except aiosqlite.OperationalError as e:
+            log.error(f'Error: {e}')
+            return
+    return
+
+
 async def json_to_db_inserts(cog_name):
     '''
     This is a cleanup function to be used for converting from old json
