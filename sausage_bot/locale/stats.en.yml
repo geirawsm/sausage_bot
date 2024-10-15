@@ -61,10 +61,6 @@ en:
       command: Remove roles from hidden roles
       msg:
         confirm_removed: Role removed as hidden role
-    restart:
-      command: Restart the stats task
-      msg:
-        confirm_restarted: Stats task restarted
   tasks:
     update_stats:
       stats_msg:

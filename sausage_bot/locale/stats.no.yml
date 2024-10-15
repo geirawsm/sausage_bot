@@ -61,10 +61,6 @@ no:
       command: Fjern rolle fra skjulte roller
       msg:
         confirm_removed: Rolle fjernet som skjult rolle
-    restart:
-      command: Restart oppgaven
-      msg:
-        confirm_restarted: Restartet stats oppgaven
   tasks:
     update_stats:
       stats_msg:
