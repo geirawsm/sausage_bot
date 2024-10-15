@@ -22,8 +22,9 @@ try:
             client_secret=config.SPOTIFY_SECRET
         )
     )
-except SpotifyOauthError:
+except SpotifyOauthError as _error:
     _spotipy = None
+    log.error(f'Error when connecting to Spotify: {_error}')
 
 
 async def get_link(url):
@@ -62,7 +63,7 @@ async def get_link(url):
 async def check_spotify_podcast(url):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
-        log.log(_spotipy_error)
+        log.error(_spotipy_error)
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
     pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', url).group(1)
