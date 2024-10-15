@@ -1,5 +1,5 @@
 FROM python:3.12-alpine
-LABEL Maintainer="geirawsm"
+LABEL org.opencontainers.image.authors="geirawsm@pm.me"
 
 WORKDIR /
 
