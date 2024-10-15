@@ -417,6 +417,45 @@ class Stats(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
+    @discord.app_commands.autocomplete(
+        setting_in=env_settings_autocomplete
+    )
+    @stats_settings_group.command(
+        name='remove',
+        description=locale_str(I18N.t('stats.commands.remove.command'))
+    )
+    @describe(
+        setting_in=I18N.t('stats.commands.remove.desc.name_of_setting')
+    )
+    async def remove_setting(
+        self, interaction: discord.Interaction, setting_in: str
+    ):
+        '''
+        Remove a setting for this cog
+        '''
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await db_helper.del_row_by_AND_filter(
+                template_info=envs.stats_db_settings_schema,
+                where=[('setting', setting_in)]
+            )
+            await interaction.followup.send(
+                content=I18N.t('stats.commands.remove.msg.remove_confirmed'),
+                ephemeral=True
+            )
+            Stats.task_update_stats.restart()
+        except Exception as error:
+            log.error(f'Error when removing setting: {error}')
+            await interaction.followup.send(
+                content=I18N.t('stats.commands.remove.msg.remove_failed'),
+                ephemeral=True
+            )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @stats_group.command(
         name='hide_roles_add',
         description=locale_str(

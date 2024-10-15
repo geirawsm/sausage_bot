@@ -48,6 +48,13 @@ no:
         type_incorrect: "Verdien (%{value_in}, %{value_type}) er ikke av korrekt type (%{value_type_check})"
         add_confirmed: Innstilling lagt til
         add_failed: Legge til innstilling feilet, sjekk loggene
+    remove:
+      desc:
+        name_of_setting: Name of setting
+      command: Remove setting
+      msg:
+        remove_confirmed: Setting removed
+        remove_failed: Failed to remove setting, check the log
     hide_roles_add:
       desc:
         role_in: Rolle som skal legges til
