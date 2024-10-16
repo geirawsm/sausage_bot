@@ -613,6 +613,7 @@ async def process_links_for_posting_or_editing(
         feed_db_log = envs.rss_db_log_schema
     elif feed_type == 'youtube':
         feed_db_log = envs.youtube_db_log_schema
+    log.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`')
     log.verbose(f'Here\'s the `FEED_POSTS`: {FEED_POSTS}')
     FEED_LOG = await db_helper.get_output(
         template_info=feed_db_log,
