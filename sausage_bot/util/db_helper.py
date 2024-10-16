@@ -28,9 +28,6 @@ async def prep_table(
     db_file = table_in['db_file']
     table_name = table_in['name']
     item_list = table_in['items']
-    if not file_io.file_size(db_file):
-        log.verbose(f'Did not find db file `{db_file}`')
-        file_io.ensure_folder(envs.DB_DIR)
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
     _cmd += ', '.join(item for item in item_list)
     if 'primary' in table_in and\
