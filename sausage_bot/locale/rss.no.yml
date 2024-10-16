@@ -24,7 +24,7 @@ no:
       desc:
         feed_name: Navn på feeden som skal fjernes
       msg_feed_not_found: Feeden ble ikke funnet
-      msg_feed_removed: '%{feed_name} ble fjernet fra #%{channel_name}'
+      msg_feed_removed: '%{feed_name} ble fjernet'
       log_feed_removed: 'Feeden %{feed_name} ble fjernet av %{user_name}'
       msg_feed_remove_failed: 'Klarte ikke å fjerne RSS-feeden %{feed_name}'
       log_feed_remove_failed: '%{user_name} prøvde å fjerne feeden %{feed_name}, men det oppsto en feil'
