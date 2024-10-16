@@ -154,6 +154,7 @@ async def get_msg_id_and_name(msg_id_or_name):
     Get msg id, channel and message name from database
     based on msg id or msg name
     '''
+    msg_id_or_name = str(msg_id_or_name)
     log.debug(f'Got `msg_id_or_name`: {msg_id_or_name}')
     if re.match(r'^[0-9]+$', msg_id_or_name):
         log.verbose('Got numeric input')
@@ -186,7 +187,7 @@ async def strip_role_or_emoji(input):
 
 
 async def sync_reaction_message_from_settings(
-        msg_id_or_name, sorting: list = None
+        msg_id_or_name, sorting: bool = False
 ):
     # Assert that the reaction message exist on discord
     msg_info = await get_msg_id_and_name(msg_id_or_name)
@@ -243,20 +244,26 @@ async def sync_reaction_message_from_settings(
         ]
     )
     log.verbose(f'db_message: {db_message}')
-    db_reactions = await db_helper.get_combined_output(
-        envs.roles_db_msgs_schema,
+    db_reactions = await db_helper.get_output(
         envs.roles_db_roles_schema,
-        key='msg_id',
-        select=[
-            'role',
-            'emoji'
-        ],
+        select=('role', 'emoji'),
         where=[
-            ('A.msg_id', msg_id)
+            ('msg_id', msg_id)
         ],
-        order_by=sorting
     )
     log.verbose(f'db_reactions: {db_reactions}', color='yellow')
+    reactions_out = {}
+    for react in db_reactions:
+        role_name = get(
+            discord_commands.get_guild().roles, id=int(react[0])
+        ).name
+        reactions_out[role_name] = {
+            'role_id': react[0],
+            'emoji': react[1]
+        }
+    if sorting:
+        sreactions_out = dict(sorted(reactions_out.items()))
+    log.verbose(f'reactions_out: {reactions_out}', color='yellow')
     # Recreate the embed
     new_embed_desc = ''
     new_embed_content = ''
@@ -265,16 +272,18 @@ async def sync_reaction_message_from_settings(
     new_embed_header = db_message[0][3]
     if new_embed_header:
         new_embed_content += f'## {new_embed_header}'
-    for reaction in db_reactions:
-        log.debug(f'Trying to add emoji: `{reaction[1]}`')
-        if re.match(r'<.*\b(\d+)>', reaction[1]):
-            emoji_out = reaction[1]
-        elif re.match(r'(\d+)', reaction[1]):
+    for reaction in reactions_out:
+        _emoji_id = reactions_out[reaction]['emoji']
+        _role_id = reactions_out[reaction]['role_id']
+        log.debug('Trying to add emoji: `{}`'.format(_emoji_id))
+        if re.match(r'<.*\b(\d+)>', _emoji_id):
+            emoji_out = _emoji_id
+        elif re.match(r'(\d+)', _emoji_id):
             emoji_out = get(
-                discord_commands.get_guild().emojis, id=int(reaction[1])
+                discord_commands.get_guild().emojis, id=int(_emoji_id)
             )
         else:
-            emoji_out = reaction[1]
+            emoji_out = _emoji_id
         await msg_obj.add_reaction(emoji_out)
         if len(new_embed_content) > 0:
             new_embed_content += '\n'
@@ -283,7 +292,7 @@ async def sync_reaction_message_from_settings(
             new_embed_desc += '\n'
         new_embed_desc += '{} {}'.format(
             emoji_out,
-            get(discord_commands.get_guild().roles, id=int(reaction[0]))
+            get(discord_commands.get_guild().roles, id=int(_role_id))
         )
     embed_json = {
         'description': new_embed_desc,
@@ -519,6 +528,29 @@ def paginate_tabulate(tabulated):
 
 
 async def reaction_msgs_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    db_reactions = await db_helper.get_output(
+        template_info=envs.roles_db_msgs_schema,
+        select=('name', 'msg_id'),
+        order_by=[
+            ('name', 'ASC')
+        ]
+    )
+    reactions = []
+    for reaction in db_reactions:
+        reactions.append((reaction[0], reaction[1]))
+    log.debug(f'reactions: {reactions}')
+    return [
+        discord.app_commands.Choice(
+            name=str(reaction[0]), value=str(reaction[1])
+        )
+        for reaction in reactions if current.lower() in reaction[0].lower()
+    ]
+
+
+async def reaction_msgs_roles_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
@@ -1415,8 +1447,7 @@ class Autoroles(commands.Cog):
             )
             return
         sync_errors = await sync_reaction_message_from_settings(
-            reaction_msg,
-            sorting=[('B.role_name', 'ASC')]
+            reaction_msg
         )
         if sync_errors:
             await interaction.followup.send(
@@ -1489,7 +1520,9 @@ class Autoroles(commands.Cog):
         reaction_msg=I18N.t('roles.commands.remove_role.desc.reaction_msg'),
         role_name=I18N.t('roles.commands.remove_role.desc.role_name')
     )
-    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @discord.app_commands.autocomplete(
+        reaction_msg=reaction_msgs_autocomplete
+    )
     async def remove_reaction_role(
         self, interaction: discord.Interaction, reaction_msg: str,
         role_name: discord.Role
@@ -1500,13 +1533,17 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         # Get message object
         msg_info = await get_msg_id_and_name(reaction_msg)
+        ###
+        from pprint import pprint
+        pprint(msg_info)
+        ###
         # Delete reaction from db
         role_name_out = f'<@&{role_name.id}>'
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
             where=[
-                ('msg_id', msg_info['id']),
-                ('role_name', role_name_out)
+                ('msg_id', str(msg_info['id'])),
+                ('role', str(role_name.id))
             ]
         )
         # Sync settings
@@ -1790,6 +1827,18 @@ class Autoroles(commands.Cog):
             )
         )
         return
+
+    @roles_group.command(
+        name='test',
+        description='TEST'
+    )
+    async def role_test(
+        self, interaction: discord.Interaction
+    ):
+        #await interaction.response.defer(ephemeral=True)
+        await sync_reaction_message_from_settings(1295750251164074047)
+        return
+
 
 
 async def setup(bot):
