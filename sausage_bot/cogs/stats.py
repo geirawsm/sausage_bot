@@ -755,7 +755,7 @@ class Stats(commands.Cog):
             f'{stats_info[0:100]}'
         )
         _guild = discord_commands.get_guild()
-        stats_msg_id = stats_settings['stats_msg']
+        stats_msg_id = stats_settings['stats_msg_id']
         stats_channel = get(_guild.channels, name=stats_channel)
         log.verbose(
             f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
