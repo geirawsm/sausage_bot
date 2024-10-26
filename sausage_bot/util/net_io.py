@@ -61,6 +61,7 @@ async def get_link(url):
 
 
 async def check_spotify_podcast(url):
+    log.verbose('Checking podcast...')
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         log.error(_spotipy_error)
@@ -68,6 +69,7 @@ async def check_spotify_podcast(url):
         return None
     pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', url).group(1)
     try:
+        log.verbose(f'Looking up show id ({pod_id})...')
         _show = _spotipy.show(pod_id)
         log.debug('`_show`: ', pretty=_show)
         return _show
@@ -85,17 +87,20 @@ async def get_spotify_podcast_links(feed):
     UUID = feed[0]
     URL = feed[2]
     pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', URL).group(1)
+    log.verbose('Getting show info...')
     _show = _spotipy.show(pod_id)
+    log.verbose('Getting DB filters')
     filters_db = await db_helper.get_output(
         template_info=envs.rss_db_filter_schema,
         select=('allow_or_deny', 'filter'),
         where=[('uuid', UUID)]
     )
+    log.verbose('Getting DB log')
     log_db = await db_helper.get_output(
         template_info=envs.rss_db_log_schema,
         where=[('uuid', UUID)]
     )
-    episodes = _show['episodes']['items']
+    episodes = _show['episodes']['items'][0]
     items_out = {
         'filters': filters_db,
         'items': [],
@@ -113,6 +118,7 @@ async def get_spotify_podcast_links(feed):
         'duration': '',
         'type': 'spotify',
     }
+    log.verbose('Processing episodes')
     for ep in episodes:
         temp_info = items_info.copy()
         temp_info['title'] = ep['name']

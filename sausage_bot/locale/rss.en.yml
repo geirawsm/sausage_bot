@@ -3,6 +3,7 @@ en:
     rss: Administer RSS-feeds
     filter: Manage RSS filters
     posting: Posting from RSS feeds
+    settings: Change settings for RSS feeds
   commands:
     start:
       cmd: Start posting
@@ -64,3 +65,10 @@ en:
         added: Added
         filter: Filter
       msg_error: No feeds added
+    setting:
+      cmd: Change a setting for this cog
+      desc:
+        name_of_setting: Name of the setting to change
+        value_in: Value to change the setting to
+      value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
+      msg_confirm: Setting updated
