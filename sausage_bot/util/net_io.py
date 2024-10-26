@@ -418,8 +418,8 @@ async def parse_vglive(url_in):
     Parse match ID from matchpage from vglive.no, then use that in an
     api call
     '''
-    base_url = 'https://vglive.no/api/vg/events/{}'
-    tv_url = 'https://vglive.vg.no/api/vg/events/tv-channels?eventIds={}'
+    base_url = 'https://vglive.vg.no/bff/vg/events/{}'
+    tv_url = 'https://vglive.vg.no/bff/vg/events/tv-channels?eventIds={}'
 
     _id = re.match(r'.*/kamp/.*/(\d+)/.*', url_in).group(1)
     _match_info = await get_link(base_url.format(_id))
