@@ -31,9 +31,6 @@ async def feed_name_autocomplete(
         length_counter -= len(str(feed[1]))
         length_counter -= len(str(feed[3]))
     log.debug(f'feeds: {feeds}')
-    length_counter = 87
-    length_counter -= len(str(feed[1]))
-    length_counter -= len(str(feed[3]))
     return [
         discord.app_commands.Choice(
             name='{feed_name}: #{channel} ({url})'.format(
@@ -71,6 +68,24 @@ async def rss_filter_autocomplete(
     ]
 
 
+async def rss_settings_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[discord.app_commands.Choice[str]]:
+    settings_in_db = await db_helper.get_output(
+        template_info=envs.rss_db_settings_schema,
+        select=('setting', 'value')
+    )
+    log.debug(f'settings_in_db: {settings_in_db}')
+    return [
+        discord.app_commands.Choice(
+            name=f'{setting[0]}: {setting[1]}',
+            value=str(setting[0])
+        )
+        for setting in settings_in_db if current.lower() in setting[0].lower()
+    ]
+
+
 class RSSfeed(commands.Cog):
     '''
     Administer RSS-feeds that will autopost to a given channel when published
@@ -89,6 +104,10 @@ class RSSfeed(commands.Cog):
     )
     rss_posting_group = discord.app_commands.Group(
         name="posting", description=locale_str(I18N.t('rss.groups.posting')),
+        parent=rss_group
+    )
+    rss_settings_group = discord.app_commands.Group(
+        name="settings", description=locale_str(I18N.t('rss.groups.settings')),
         parent=rss_group
     )
 
@@ -413,13 +432,73 @@ class RSSfeed(commands.Cog):
         commands.is_owner(),
         commands.has_permissions(administrator=True)
     )
+    @discord.app_commands.autocomplete(
+        name_of_setting=rss_settings_autocomplete
+    )
+    @rss_settings_group.command(
+        name='change', description=locale_str(I18N.t(
+            'rss.commands.setting.cmd'
+        ))
+    )
+    @describe(
+        name_of_setting=I18N.t(
+            'rss.commands.setting.desc.name_of_setting'
+        ),
+        value_in=I18N.t('rss.commands.setting.desc.value_in')
+    )
+    async def rss_settings_change(
+        self, interaction: discord.Interaction, name_of_setting: str,
+        value_in: str
+    ):
+        '''
+        Change a setting for this cog
+        '''
+        await interaction.response.defer(ephemeral=True)
+        settings_in_db = await db_helper.get_output(
+            template_info=envs.rss_db_settings_schema,
+            select=('setting', 'value', 'value_check')
+        )
+        for setting in settings_in_db:
+            if setting[0] == name_of_setting:
+                if setting[2] == 'bool':
+                    try:
+                        value_in = eval(str(value_in).capitalize())
+                    except NameError as _error:
+                        log.error(f'Invalid input for `value_in`: {_error}')
+                        await interaction.followup.send(
+                            I18N.t(
+                                'rss.commands.setting.input_invalid',
+                                error=_error
+                            )
+                        )
+                        return
+                log.debug(f'`value_in` is {value_in} ({type(value_in)})')
+                log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
+                if type(value_in) is eval(setting[2]):
+                    await db_helper.update_fields(
+                        template_info=envs.rss_db_settings_schema,
+                        where=[('setting', name_of_setting)],
+                        updates=[('value', value_in)]
+                    )
+                await interaction.followup.send(
+                    I18N.t('rss.commands.setting.msg_confirm'),
+                    ephemeral=True
+                )
+                RSSfeed.post_feeds.restart()
+                break
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
     @rss_group.command(
         name='list', description=locale_str(I18N.t('rss.commands.list.cmd'))
     )
     @describe(
         list_type=I18N.t('rss.commands.list.desc.list_type')
     )
-    async def list_rss(
+    async def rss_list(
         self, interaction: discord.Interaction,
         list_type: typing.Literal[
             I18N.t('rss.commands.list.literal_type.normal'),
@@ -546,6 +625,7 @@ async def setup(bot):
     # Define inserts
     rss_inserts = None
     rss_prep_is_ok = None
+    rss_settings_prep_is_ok = None
     rss_log_prep_is_ok = None
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.rss_feeds_file) or\
@@ -566,12 +646,17 @@ async def setup(bot):
             envs.rss_db_filter_schema,
             rss_inserts['filter'] if rss_inserts is not None else rss_inserts
         )
+        rss_settings_prep_is_ok = await db_helper.prep_table(
+            envs.rss_db_settings_schema,
+            envs.rss_db_settings_schema['inserts']
+        )
         rss_log_prep_is_ok = await db_helper.prep_table(
             envs.rss_db_log_schema,
             rss_inserts['logs'] if rss_inserts is not None else rss_inserts
         )
         log.verbose(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
         log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
+        log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
         log.verbose(f'`rss_log_prep_is_ok` is {rss_log_prep_is_ok}')
     else:
         log.verbose('rss db exist!')

@@ -188,7 +188,7 @@ roles_db_settings_schema = {
     'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'settings',
     'items': [
-        'setting TEXT',
+        'setting TEXT NOT NULL',
         'value TEXT'
     ]
 }
@@ -287,6 +287,21 @@ rss_db_filter_schema = {
         'uuid TEXT NOT NULL',
         'allow_or_deny TEXT NOT NULL',
         'filter TEXT NOT NULL'
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+rss_db_settings_schema = {
+    'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
+    'name': 'settings',
+    'items': [
+        'setting TEXT NOT NULL',
+        'value TEXT',
+        'value_check TEXT'
+    ],
+    'inserts': [
+        ['show_pod_description_in_embed', 'False', 'bool']
     ],
     'primary': None,
     'autoincrement': False

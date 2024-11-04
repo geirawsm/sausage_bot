@@ -33,7 +33,7 @@ no:
       cmd: Rediger en RSS-feed
       desc:
         feed_name: Navnet på feeden som skal redigeres
-        new_feed_name: Nytt navn på feeden som skal endres til 
+        new_feed_name: Nytt navn på feeden som skal endres til
         channel: Kanalen feeden skal endres til
         url: Ny URL for feeden
       changes_out:

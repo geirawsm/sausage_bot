@@ -405,16 +405,23 @@ async def insert_many_all(
     table_name = template_info['name']
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
-    log.verbose(f'Got `inserts`: {inserts}')
+    log.verbose(
+        'Got `inserts`: {}'.format(
+            str(inserts)[0:200]+'...' if len(str(inserts)) > 200 else inserts
+        )
+    )
     input_singles = False
     input_multiples = False
     _cmd = f'INSERT INTO {table_name} VALUES('
-    if isinstance(inserts[0], str):
-        _cmd += ', '.join('?'*len(inserts))
-        input_singles = True
-    elif isinstance(inserts[0], (list, tuple)):
+    log.debug(f'Got {len(inserts)} `inserts`')
+    if isinstance(inserts[0], (list, tuple)):
+        log.debug('Got multiple inserts')
         _cmd += ', '.join('?'*len(inserts[0]))
         input_multiples = True
+    else:
+        log.debug('Got single insert')
+        _cmd += ', '.join('?'*len(inserts))
+        input_singles = True
     _cmd += ')'
     log.db(f'Using this query: {_cmd}')
     if args.not_write_database:

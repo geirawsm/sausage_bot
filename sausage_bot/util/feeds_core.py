@@ -620,6 +620,10 @@ async def process_links_for_posting_or_editing(
         select='url',
         where=[('uuid', uuid)]
     )
+    FEED_SETTINGS = await db_helper.get_output(
+        template_info=envs.rss_db_settings_schema,
+        select=[('setting', 'value')]
+    )
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
@@ -664,7 +668,8 @@ async def process_links_for_posting_or_editing(
                     )
                     embed.set_author(name=item['pod_name'])
                     embed.set_image(url=item['img'])
-                    embed.set_footer(text=item['pod_description'])
+                    if FEED_SETTINGS['show_pod_description_in_embed']:
+                        embed.set_footer(text=item['pod_description'])
                     log.debug(
                         'Sending this embed to channel: ', pretty=embed
                     )
