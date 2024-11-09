@@ -36,6 +36,7 @@ no:
         new_feed_name: Nytt navn på feeden som skal endres til
         channel: Kanalen feeden skal endres til
         url: Ny URL for feeden
+        type: Ny feed type
       changes_out:
         msg: 'Gjorde følgende endringer på feeden %{feed_name}:'
         feed_name: Feednavn

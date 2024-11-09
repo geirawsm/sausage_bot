@@ -36,6 +36,7 @@ en:
         new_feed_name: The new name of the feed
         channel: The channel to edit the feed from
         url: The new url of the feed
+        type: New feed type
       changes_out:
         msg: 'Did following changes on feed %{feed_name}:'
         feed_name: Feed name

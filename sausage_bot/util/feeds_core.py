@@ -48,10 +48,11 @@ async def check_feed_validity(URL):
         log.verbose('Discovered normal link')
         _items = await get_items_from_rss(
             req=req,
-            url=URL
+            url=URL,
+            num_items=1
         )
-    if isinstance(_items, list):
-        sample_item = _items[0]
+        if isinstance(_items, list):
+            sample_item = _items[0]
     log.debug(f'`sample_item`: {sample_item}')
     if sample_item is None:
         return False
@@ -66,7 +67,7 @@ async def check_feed_validity(URL):
 
 
 async def get_items_from_rss(
-    req, url, filters_in=None, log_in=None
+    req, url, filters_in=None, log_in=None, num_items=None
 ) -> list:
     try:
         soup = BeautifulSoup(req, features='xml')
@@ -87,7 +88,10 @@ async def get_items_from_rss(
     # Gets podcast feed
     if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
         log.debug('Found podcast feed')
-        all_items = soup.find_all('item')
+        if isinstance(num_items, int) and num_items > 0:
+            all_items = soup.find_all('item')[0:num_items]
+        else:
+            all_items = soup.find_all('item')
         for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'podcast'
@@ -98,7 +102,10 @@ async def get_items_from_rss(
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
         log.debug('Found Youtube feed')
-        all_entries = soup.find_all('entry')
+        if isinstance(num_items, int) and num_items > 0:
+            all_entries = soup.find_all('entry')[0:num_items]
+        else:
+            all_entries = soup.find_all('entry')
         for item in all_entries:
             temp_info = items_info.copy()
             temp_info['type'] = 'youtube'
@@ -117,7 +124,10 @@ async def get_items_from_rss(
         else:
             log.error('Klarte ikke finne ut av feed?')
             return None
-        all_items = soup.find_all(article_method)
+        if isinstance(num_items, int) and num_items > 0:
+            all_items = soup.find_all(article_method)[0:num_items]
+        else:
+            all_items = soup.find_all(article_method)
         for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'rss'
@@ -170,13 +180,14 @@ async def add_to_feed_db(
             envs.rss_db_schema,
             rows=(
                 'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
-                'status_url', 'status_url_counter', 'status_channel'
+                'feed_type', 'status_url', 'status_url_counter',
+                'status_channel', 'num_episodes'
             ),
             inserts=(
                 (
                     str(uuid4()), name, feed_link, channel, date_now,
-                    user_add, envs.FEEDS_URL_SUCCESS, 0,
-                    envs.CHANNEL_STATUS_SUCCESS
+                    user_add, feed_type, envs.FEEDS_URL_SUCCESS, 0,
+                    envs.CHANNEL_STATUS_SUCCESS, 0
                 )
             )
         )
@@ -422,7 +433,8 @@ async def review_feeds_status(feed_type: str = None):
         feed_db = envs.youtube_db_schema
     feeds_status_db_in = await db_helper.get_output(
         template_info=feed_db,
-        order_by=[('feed_name', 'DESC')]
+        order_by=[('feed_name', 'DESC')],
+        where=[('feed_type', feed_type)]
     )
     failed_feeds = []
     failed_channels = []
@@ -449,7 +461,6 @@ async def review_feeds_status(feed_type: str = None):
         else:
             log.verbose('Discovered a normal url')
             is_valid_feed = await check_feed_validity(URL)
-        log.debug(f'`is_valid_feed` is {is_valid_feed}')
         if is_valid_feed:
             log.log('Feed url for {} is ok!'.format(FEED_NAME))
             if URL_STATUS.lower() != envs.FEEDS_URL_SUCCESS.lower():
@@ -510,25 +521,28 @@ async def review_feeds_status(feed_type: str = None):
                 )
         CHANNEL = feed[3]
         CHANNEL_STATUS = feed[8]
-        if CHANNEL in discord_commands.get_text_channel_list():
-            log.log(
-                'Feed channel {} for {} is ok'.format(
-                    CHANNEL, FEED_NAME
+        if args.testmode:
+            log.debug('TESTMODE - Channels are ok')
+        else:
+            if CHANNEL in discord_commands.get_text_channel_list():
+                log.log(
+                    'Feed channel {} for {} is ok'.format(
+                        CHANNEL, FEED_NAME
+                    )
                 )
-            )
-            if CHANNEL_STATUS == envs.CHANNEL_STATUS_ERROR:
+                if CHANNEL_STATUS == envs.CHANNEL_STATUS_ERROR:
+                    if 'status_channel' not in db_updates:
+                        db_updates['status_channel'] = []
+                    db_updates['status_channel'].append(
+                        ('uuid', UUID, envs.CHANNEL_STATUS_SUCCESS)
+                    )
+            elif CHANNEL not in discord_commands.get_text_channel_list():
                 if 'status_channel' not in db_updates:
                     db_updates['status_channel'] = []
                 db_updates['status_channel'].append(
-                    ('uuid', UUID, envs.CHANNEL_STATUS_SUCCESS)
+                    ('uuid', UUID, envs.CHANNEL_STATUS_ERROR)
                 )
-        elif CHANNEL not in discord_commands.get_text_channel_list():
-            if 'status_channel' not in db_updates:
-                db_updates['status_channel'] = []
-            db_updates['status_channel'].append(
-                ('uuid', UUID, envs.CHANNEL_STATUS_ERROR)
-            )
-            failed_channels.append([FEED_NAME, CHANNEL])
+                failed_channels.append([FEED_NAME, CHANNEL])
     if len(failed_feeds) > 0:
         feed_error_msg = I18N.t(
             'feeds_core.commands.review_feeds_status.failed_feeds',
@@ -613,22 +627,21 @@ async def process_links_for_posting_or_editing(
         feed_db_log = envs.rss_db_log_schema
     elif feed_type == 'youtube':
         feed_db_log = envs.youtube_db_log_schema
-    log.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`')
-    log.verbose(f'Here\'s the `FEED_POSTS`: {FEED_POSTS}')
+    log.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`: {str(FEED_POSTS)[0:100]}')
     FEED_LOG = await db_helper.get_output(
         template_info=feed_db_log,
         select='url',
         where=[('uuid', uuid)]
     )
-    FEED_SETTINGS = await db_helper.get_output(
+    FEED_SETTINGS = dict(await db_helper.get_output(
         template_info=envs.rss_db_settings_schema,
-        select=[('setting', 'value')]
-    )
+        select=('setting', 'value')
+    ))
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
     FEED_POSTS = FEED_POSTS[0:3]
-    FEED_POSTS.reverse()
+    STOP_POSTING = False
     for item in FEED_POSTS:
         log.verbose(f'Got this item:\n{item}')
         if isinstance(item, str):
@@ -641,73 +654,84 @@ async def process_links_for_posting_or_editing(
             log.verbose(f'Link `{feed_link}` already logged. Skipping.')
             continue
         elif not link_in_log:
-            log.debug('Checking if link is similar to log')
-            feed_link_similar = link_similar_to_logged_post(
-                feed_link, FEED_LOG)
-            if not feed_link_similar:
-                # Consider this a whole new post and post link to channel
-                log.verbose(f'Posting link `{feed_link}`')
-                if isinstance(item, dict) and item['type'] == 'spotify':
-                    log.debug(
-                        'Found a podcast that should be embedded:',
-                        pretty=item
-                    )
-                    embed_color = await net_io.get_main_color_from_image_url(
-                        item['img']
-                    )
-                    embed = discord.Embed(
-                        title=item['title'],
-                        url=item['link'],
-                        description='{}\n\n{}'.format(
-                            item['description'],
-                            '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
-                                item['link']
+            # Add link to log
+            await db_helper.insert_many_all(
+                template_info=feed_db_log,
+                inserts=[
+                    (uuid, feed_link, str(
+                        datetime_handling.get_dt(
+                            format='ISO8601'
+                        )
+                    ))
+                ]
+            )
+            if STOP_POSTING:
+                continue
+            else:
+                log.debug('Checking if link is similar to log')
+                feed_link_similar = link_similar_to_logged_post(
+                    feed_link, FEED_LOG)
+                if not feed_link_similar:
+                    # Consider this a whole new post and post link to channel
+                    log.verbose(f'Posting link `{feed_link}`')
+                    if isinstance(item, dict) and item['type'] == 'spotify':
+                        log.debug(
+                            'Found a podcast that should be embedded:',
+                            pretty=item
+                        )
+                        embed_color = await net_io.get_main_color_from_image_url(
+                            item['img']
+                        )
+                        embed = discord.Embed(
+                            title=item['title'],
+                            url=item['link'],
+                            description='{}\n\n{}'.format(
+                                item['description'],
+                                '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
+                                    item['link']
+                                )
+                            ),
+                            colour=discord.Color.from_str(f'#{embed_color}')
+                        )
+                        embed.set_author(name=item['pod_name'])
+                        embed.set_image(url=item['img'])
+                        if FEED_SETTINGS['show_pod_description_in_embed'].lower() == 'true':
+                            embed.set_footer(text=item['pod_description'])
+                        log.debug(
+                            'Sending this embed to channel: ', pretty=embed
+                        )
+                        if args.testmode:
+                            log.verbose(embed, color='yellow')
+                        else:
+                            await discord_commands.post_to_channel(
+                                CHANNEL, embed_in=embed
                             )
-                        ),
-                        colour=discord.Color.from_str(f'#{embed_color}')
-                    )
-                    embed.set_author(name=item['pod_name'])
-                    embed.set_image(url=item['img'])
-                    if FEED_SETTINGS['show_pod_description_in_embed']:
-                        embed.set_footer(text=item['pod_description'])
-                    log.debug(
-                        'Sending this embed to channel: ', pretty=embed
-                    )
-                    await discord_commands.post_to_channel(
-                        CHANNEL, embed_in=embed
-                    )
-                else:
-                    log.debug('Found a regular text post')
-                    await discord_commands.post_to_channel(
-                        CHANNEL, feed_link
-                    )
-                # Add link to log
-                await db_helper.insert_many_all(
-                    template_info=feed_db_log,
-                    inserts=[
-                        (uuid, feed_link, str(
-                            datetime_handling.get_dt(
-                                format='ISO8601'
+                        STOP_POSTING = True
+                    else:
+                        log.debug('Found a regular text post')
+                        if args.testmode:
+                            log.verbose(feed_link, color='yellow')
+                        else:
+                            await discord_commands.post_to_channel(
+                                CHANNEL, feed_link
                             )
-                        ))
-                    ]
-                )
-            elif feed_link_similar:
-                # Consider this a similar post that needs to
-                # be edited in the channel
-                await discord_commands.replace_post(
-                    feed_link_similar, feed_link, CHANNEL
-                )
-                # Replace original link with new
-                await db_helper.update_fields(
-                    template_info=feed_db_log,
-                    where=[
-                        ('url', feed_link_similar)
-                    ],
-                    updates=[
-                        ('url', feed_link)
-                    ]
-                )
+                        STOP_POSTING = True
+                elif feed_link_similar:
+                    # Consider this a similar post that needs to
+                    # be edited in the channel
+                    await discord_commands.replace_post(
+                        feed_link_similar, feed_link, CHANNEL
+                    )
+                    # Replace original link with new
+                    await db_helper.update_fields(
+                        template_info=feed_db_log,
+                        where=[
+                            ('url', feed_link_similar)
+                        ],
+                        updates=[
+                            ('url', feed_link)
+                        ]
+                    )
 
 
 if __name__ == "__main__":

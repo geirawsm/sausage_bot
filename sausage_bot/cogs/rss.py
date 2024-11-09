@@ -115,19 +115,24 @@ class RSSfeed(commands.Cog):
         name='start', description=locale_str(I18N.t('rss.commands.start.cmd'))
     )
     async def rss_posting_start(
-        self, interaction: discord.Interaction
+        self, interaction: discord.Interaction, feed_type: typing.Literal[
+            'feeds', 'podcasts', 'ALL'
+        ]
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task started')
-        RSSfeed.post_feeds.start()
+        if feed_type == 'feeds':
+            RSSfeed.post_feeds.start()
+        elif feed_type == 'podcasts':
+            RSSfeed.post_podcasts.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
                 ('cog', 'rss'),
-                ('task', 'post_feeds')
+                ('task', f'post_{feed_type}')
             ],
             updates=('status', 'started')
         )
+        log.log('Task started')
         await interaction.followup.send(
             I18N.t('rss.commands.start.msg_confirm')
         )
@@ -136,19 +141,24 @@ class RSSfeed(commands.Cog):
         name='stop', description=locale_str(I18N.t('rss.commands.stop.cmd'))
     )
     async def rss_posting_stop(
-        self, interaction: discord.Interaction
+        self, interaction: discord.Interaction, feed_type: typing.Literal[
+            'feeds', 'podcasts'
+        ]
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task stopped')
-        RSSfeed.post_feeds.cancel()
+        if feed_type == 'feeds':
+            RSSfeed.post_feeds.cancel()
+        elif feed_type == 'podcasts':
+            RSSfeed.post_podcasts.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
-                ('task', 'post_feeds'),
+                ('task', f'post_{feed_type}'),
                 ('cog', 'rss'),
             ],
             updates=('status', 'stopped')
         )
+        log.log('Task stopped')
         await interaction.followup.send(
             I18N.t('rss.commands.stop.msg_confirm')
         )
@@ -174,17 +184,20 @@ class RSSfeed(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         AUTHOR = interaction.user.name
         # Verify that the url is a proper feed
-        if "open.spotify.com/show/" not in feed_link:
-            valid_feed = await feeds_core.check_feed_validity(feed_link)
-            if not valid_feed:
-                await interaction.followup.send(
-                    I18N.t('rss.commands.add.msg_feed_failed'),
-                    ephemeral=True
-                )
-                return
+        valid_feed = await feeds_core.check_feed_validity(feed_link)
+        if not valid_feed:
+            await interaction.followup.send(
+                I18N.t('rss.commands.add.msg_feed_failed'),
+                ephemeral=True
+            )
+            return
         log.verbose('Adding feed to db')
+        if 'open.spotify.com/show/' in feed_link:
+            feed_type = 'spotify'
+        else:
+            feed_type = 'rss'
         await feeds_core.add_to_feed_db(
-            'spotify', str(feed_name), str(feed_link), channel.name, AUTHOR
+            feed_type, str(feed_name), str(feed_link), channel.name, AUTHOR
         )
         await discord_commands.log_to_bot_channel(
             I18N.t(
@@ -547,7 +560,7 @@ class RSSfeed(commands.Cog):
         minutes=config.env.int('RSS_LOOP', default=5)
     )
     async def post_feeds():
-        log.log('Starting `rss_parse`')
+        log.log('Starting `post_feeds`')
         # Make sure that the feed links aren't stale / 404
         review_feeds = await feeds_core.review_feeds_status('rss')
         if review_feeds in [None, False]:
@@ -562,6 +575,9 @@ class RSSfeed(commands.Cog):
             where=[
                 ('status_url', envs.FEEDS_URL_SUCCESS),
                 ('status_channel', envs.CHANNEL_STATUS_SUCCESS)
+            ],
+            not_like=[
+                ('feed_type', 'spotify')
             ]
         )
         if len(feeds) == 0:
@@ -579,23 +595,13 @@ class RSSfeed(commands.Cog):
             log.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
-            if "open.spotify.com/show/" in URL:
-                log.debug('Is a spotify-link')
-                FEED_POSTS = await net_io.get_spotify_podcast_links(feed)
-                log.debug(
-                    f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
-                    f'{FEED_POSTS}'
-                )
-                await feeds_core.process_links_for_posting_or_editing(
-                    'spotify', UUID, FEED_POSTS, CHANNEL
-                )
-                log.log('Done with posting')
-                continue
-            else:
-                FEED_POSTS = await feeds_core.get_feed_links(
-                    feed_type='rss', feed_info=feed
-                )
-            log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
+            FEED_POSTS = await feeds_core.get_feed_links(
+                feed_type='rss', feed_info=feed
+            )
+            log.debug(
+                f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
+                f'{FEED_POSTS}'
+            )
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
                 await discord_commands.log_to_bot_channel(
@@ -612,6 +618,62 @@ class RSSfeed(commands.Cog):
     async def before_post_new_feeds():
         '#autodoc skip#'
         log.verbose('`post_feeds` waiting for bot to be ready...')
+        await config.bot.wait_until_ready()
+
+    @tasks.loop(
+        minutes=config.env.int('RSS_LOOP', default=5)
+    )
+    async def post_podcasts():
+        log.log('Starting `post_podcasts`')
+        # Make sure that the feed links aren't stale / 404
+        review_feeds = await feeds_core.review_feeds_status('spotify')
+        if review_feeds in [None, False]:
+            log.log('No feeds to post')
+            return
+        pod_check = await net_io.check_spotify_podcast_episodes()
+        if len(pod_check) == 0:
+            log.log(envs.RSS_NO_FEEDS_FOUND)
+            return
+        log.verbose('Got these feeds:')
+        for feed in pod_check:
+            log.verbose('- {}'.format(pod_check[feed]['name']))
+        # Start processing per feed settings
+        for feed in pod_check:
+            POD_ID = feed
+            UUID = pod_check[feed]['uuid']
+            FEED_NAME = pod_check[feed]['name']
+            CHANNEL = pod_check[feed]['channel']
+            NUM_EPISODES = pod_check[feed]['num_episodes_new']
+            log.debug(
+                f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
+            )
+            FEED_POSTS = await net_io.get_spotify_podcast_links(
+                POD_ID, UUID
+            )
+            log.debug(
+                f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
+                f'{FEED_POSTS}'
+            )
+            if FEED_POSTS is None:
+                log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
+                await discord_commands.log_to_bot_channel(
+                    envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME)
+                )
+            else:
+                await feeds_core.process_links_for_posting_or_editing(
+                    'spotify', UUID, FEED_POSTS, CHANNEL
+                )
+                await db_helper.update_fields(
+                    template_info=envs.rss_db_schema,
+                    where=('uuid', UUID),
+                    updates=('num_episodes', NUM_EPISODES)
+                )
+        log.log('Done with posting')
+
+    @post_podcasts.before_loop
+    async def before_post_new_podcasts():
+        '#autodoc skip#'
+        log.verbose('`post_podcasts` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
 
@@ -673,11 +735,16 @@ async def setup(bot):
         select=('task', 'status'),
         where=('cog', 'rss')
     )
-    if len(task_list) == 0:
+    _inserts = envs.tasks_db_schema['inserts']
+    task_check = [name[0] for name in task_list]
+    if len(task_list) < len(_inserts):
+        for _ins in _inserts:
+            if _ins[1] in task_check:
+                _inserts.remove(_ins)
         await db_helper.insert_many_all(
             template_info=envs.tasks_db_schema,
             inserts=(
-                ('rss', 'post_feeds', 'stopped')
+                _inserts
             )
         )
     for task in task_list:
@@ -688,7 +755,13 @@ async def setup(bot):
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
                 RSSfeed.post_feeds.cancel()
-
+        if task[0] == 'post_podcasts':
+            if task[1] == 'started':
+                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+                RSSfeed.post_podcasts.start()
+            elif task[1] == 'stopped':
+                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+                RSSfeed.post_podcasts.cancel()
 
 async def teardown(bot):
     RSSfeed.post_feeds.cancel()

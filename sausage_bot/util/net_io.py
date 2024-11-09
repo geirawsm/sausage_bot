@@ -15,14 +15,16 @@ import colorgram
 
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
+from requests.exceptions import ConnectionError
 try:
     _spotipy = spotipy.Spotify(
         auth_manager=SpotifyClientCredentials(
             client_id=config.SPOTIFY_ID,
             client_secret=config.SPOTIFY_SECRET
-        )
+        ),
+        requests_timeout=6
     )
-except SpotifyOauthError as _error:
+except (SpotifyOauthError, ConnectionError) as _error:
     _spotipy = None
     log.error(f'Error when connecting to Spotify: {_error}')
 
@@ -67,40 +69,84 @@ async def check_spotify_podcast(url):
         log.error(_spotipy_error)
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
-    pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', url).group(1)
     try:
-        log.verbose(f'Looking up show id ({pod_id})...')
-        _show = _spotipy.show(pod_id)
-        log.debug('`_show`: ', pretty=_show)
-        return _show
+        log.verbose(f'Looking up show ({url})...')
+        _show = _spotipy.show(url)
+        return _show['total_episodes']
     except Exception as e:
         log.error(f'ERROR: {e}')
         return False
 
 
-async def get_spotify_podcast_links(feed):
+async def check_spotify_podcast_episodes():
+    log.verbose('Getting num of episodes...')
+    if _spotipy is None:
+        _spotipy_error = 'Spotipy has no credentials. Check README'
+        log.error(_spotipy_error)
+        await discord_commands.log_to_bot_channel(_spotipy_error)
+        return None
+    spotify_feeds = await db_helper.get_output(
+        template_info=envs.rss_db_schema,
+        select=('url', 'num_episodes', 'uuid', 'feed_name', 'channel'),
+        order_by=[
+            ('feed_name', 'DESC')
+        ],
+        where=[
+            ('status_url', envs.FEEDS_URL_SUCCESS),
+            ('status_channel', envs.CHANNEL_STATUS_SUCCESS),
+            ('feed_type', 'spotify')
+        ]
+    )
+    checklist = {}
+    if len(spotify_feeds) == 0:
+        return checklist
+    for feed in spotify_feeds:
+        pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', feed[0]).group(1)
+        checklist[pod_id] = {
+            'name': feed[3],
+            'num_episodes_old': feed[1] if isinstance(feed[1], int) else 0,
+            'num_episodes_new': None,
+            'uuid': feed[2],
+            'channel': feed[4]
+        }
+    try:
+        show_ids = [feed for feed in checklist]
+        _shows = _spotipy.shows(show_ids)['shows']
+        log.verbose(f'Got ({len(_shows)}) shows')
+    except Exception as e:
+        log.error(f'ERROR: {e}')
+        return False
+    for show in _shows:
+        checklist[show['id']]['num_episodes_new'] = show['total_episodes']
+        _old_eps = checklist[show['id']]['num_episodes_old']
+        _new_eps = checklist[show['id']]['num_episodes_new']
+        if _new_eps > _old_eps:
+            _old_eps = _new_eps
+        else:
+            checklist.pop(show['id'])
+    return checklist
+
+
+async def get_spotify_podcast_links(pod_id = str, uuid = str):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         log.log(_spotipy_error)
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
-    UUID = feed[0]
-    URL = feed[2]
-    pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', URL).group(1)
     log.verbose('Getting show info...')
     _show = _spotipy.show(pod_id)
     log.verbose('Getting DB filters')
     filters_db = await db_helper.get_output(
         template_info=envs.rss_db_filter_schema,
         select=('allow_or_deny', 'filter'),
-        where=[('uuid', UUID)]
+        where=[('uuid', uuid)]
     )
     log.verbose('Getting DB log')
     log_db = await db_helper.get_output(
         template_info=envs.rss_db_log_schema,
-        where=[('uuid', UUID)]
+        where=[('uuid', uuid)]
     )
-    episodes = _show['episodes']['items'][0]
+    episodes = _show['episodes']['items']
     items_out = {
         'filters': filters_db,
         'items': [],

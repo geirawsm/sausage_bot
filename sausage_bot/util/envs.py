@@ -82,6 +82,10 @@ tasks_db_schema = {
         'cog TEXT NOT NULL',
         'task TEXT NOT NULL',
         'status TEXT NOT NULL'
+    ],
+    'inserts': [
+        ['rss', 'post_feeds', 'stopped'],
+        ['rss', 'post_podcasts', 'stopped']
     ]
 }
 
@@ -272,9 +276,11 @@ rss_db_schema = {
         'channel TEXT',
         'added TEXT',
         'added_by TEXT',
+        'feed_type TEXT',
         'status_url TEXT',
         'status_url_counter INTEGER',
-        'status_channel TEXT'
+        'status_channel TEXT',
+        'num_episodes INTEGER'
     ],
     'primary': 'uuid',
     'autoincrement': False
