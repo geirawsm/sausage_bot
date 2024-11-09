@@ -590,7 +590,6 @@ class RSSfeed(commands.Cog):
         for feed in feeds:
             UUID = feed[0]
             FEED_NAME = feed[1]
-            URL = feed[2]
             CHANNEL = feed[3]
             log.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
@@ -762,6 +761,7 @@ async def setup(bot):
             elif task[1] == 'stopped':
                 log.debug(f'`{task[0]}` is set as `{task[1]}`')
                 RSSfeed.post_podcasts.cancel()
+
 
 async def teardown(bot):
     RSSfeed.post_feeds.cancel()

@@ -614,12 +614,15 @@ class Quotes(commands.Cog):
             for _q in quote_in:
                 q_no = _q[0]
                 if any(item is None for item in _q):
-                    log.error(f'None-values discovered in DB-file (quotes): {_q}')
+                    log.error(
+                        f'None-values discovered in DB-file (quotes): {_q}'
+                    )
                     pass
                 else:
                     if shortened:
-                        q_text = '{}...'.format(_q[2][0:100]) if len(_q[2]) > 100\
-                            else _q[2]
+                        q_text = '{}...'.format(
+                            _q[2][0:100]
+                        ) if len(_q[2]) > 100 else _q[2]
                     else:
                         q_text = _q[2]
                     q_datetime = _q[3]

@@ -4,7 +4,6 @@ import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
 import typing
-import re
 from time import sleep
 from yt_dlp import YoutubeDL
 

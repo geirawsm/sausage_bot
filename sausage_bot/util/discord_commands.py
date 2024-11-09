@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import discord
 from tabulate import tabulate
+import re
 
 from sausage_bot.util import config, envs
 from sausage_bot.util.datetime_handling import get_dt

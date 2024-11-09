@@ -26,7 +26,8 @@ async def settings_db_autocomplete(
     settings_type = envs.stats_settings_db_schema['type_checking']
     return [
         discord.app_commands.Choice(
-            name=f'{setting[0]} = {setting[1]} ({settings_type[setting[0]]})', value=str(setting[0])
+            name=f'{setting[0]} = {setting[1]} ({settings_type[setting[0]]})',
+            value=str(setting[0])
         )
         for setting in settings_db if current.lower() in setting[0].lower()
     ]
