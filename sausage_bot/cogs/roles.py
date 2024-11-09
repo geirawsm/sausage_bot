@@ -262,7 +262,7 @@ async def sync_reaction_message_from_settings(
             'emoji': react[1]
         }
     if sorting:
-        sreactions_out = dict(sorted(reactions_out.items()))
+        reactions_out = dict(sorted(reactions_out.items()))
     log.verbose(f'reactions_out: {reactions_out}', color='yellow')
     # Recreate the embed
     new_embed_desc = ''
@@ -1840,7 +1840,6 @@ class Autoroles(commands.Cog):
         return
 
 
-
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'roles'
@@ -1951,7 +1950,8 @@ async def on_raw_reaction_add(payload):
                             id=int(reaction[1])
                         ),
                         reason=I18N.t(
-                            'roles.cogs.on_raw_reaction_add.channel_log_confirm'
+                            'roles.cogs.on_raw_reaction_add.'
+                            'channel_log_confirm'
                         )
                     )
                     break
@@ -2018,7 +2018,8 @@ async def on_raw_reaction_remove(payload):
                             ).remove_roles(
                                 _role,
                                 reason=I18N.t(
-                                    'roles.cogs.on_raw_reaction_remove.channel_log_confirm'
+                                    'roles.cogs.on_raw_reaction_remove.'
+                                    'channel_log_confirm'
                                 )
                             )
                             break
