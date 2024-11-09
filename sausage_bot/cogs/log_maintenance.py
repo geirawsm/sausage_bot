@@ -196,29 +196,21 @@ class LogMaintenance(commands.Cog):
     @tasks.loop(hours=4)
     async def log_maintenance():
         log_files = os.listdir(envs.LOG_DIR)
-        settings_type = await db_helper.get_output(
-            template_info=envs.log_db_schema,
-            select=('value'),
-            where=('setting', 'type')
+        settings_db = dict(
+            await db_helper.get_output(
+                template_info=envs.log_db_schema,
+                select=('setting', 'value')
+            )
         )
-        log.debug(f'Got `settings_type`: {settings_type}')
-        settings_limit = await db_helper.get_output(
-            template_info=envs.log_db_schema,
-            select=('value'),
-            where=('setting', 'limit')
-        )
-        settings_limit = int(settings_limit)
-        log.debug(f'Got `settings_limit`: {settings_limit}')
-        log.debug(
-            f'Log limit is {settings_limit} in {settings_type}'
-        )
-        if settings_limit == 0:
+        s_type = settings_db['type']
+        s_limit = int(settings_db['limit'])
+        if s_limit == 0:
             log.verbose(
-                f'`settings_type` is {settings_limit} {type(settings_limit)}'
+                f'`s_type` is {s_limit} {type(s_limit)}'
             )
             log.log('I\'m not deleting logs, but have notified the bot '
                     'channel about the situation')
-            if settings_type == 'size':
+            if s_type == 'size':
                 folder_size = file_io.folder_size(
                     str(envs.LOG_DIR), human=True
                 )
@@ -230,7 +222,7 @@ class LogMaintenance(commands.Cog):
                 discord_msg += I18N.t(
                     'log_maintenance.tasks.log_maintenance.msg.disable_posting'
                 )
-            elif settings_type in ['day', 'days']:
+            elif s_type in ['day', 'days']:
                 num_log_files = len(os.listdir(str(envs.LOG_DIR)))
                 discord_msg = I18N.t(
                     'log_maintenance.tasks.log_maintenance.msg.days_and_none',
@@ -240,25 +232,25 @@ class LogMaintenance(commands.Cog):
                     'log_maintenance.tasks.log_maintenance.msg.disable_posting'
                 )
             else:
-                log_msg = 'Wrong input in `settings_type`: '\
-                    f'{settings_type}'
+                log_msg = 'Wrong input in `s_type`: '\
+                    f'{s_type}'
                 discord_msg = log_msg
             log.verbose(log_msg)
             await discord_commands.log_to_bot_channel(discord_msg)
-        elif settings_limit > 0:
+        elif s_limit > 0:
             deleted_files = []
             discord_msg_out = ''
             log_msg_out = ''
             folder_size = file_io.folder_size(str(envs.LOG_DIR))
             log.debug(f'`folder_size` is {folder_size}')
-            if folder_size < settings_limit:
+            if folder_size < s_limit:
                 log.verbose(
-                    '`folder_size` is below threshold in `settings_type`'
+                    '`folder_size` is below threshold in `s_type`'
                 )
                 return
-            if settings_type == 'size':
+            if s_type == 'size':
                 # Check total size and get diff from wanted limit
-                size_diff = folder_size - settings_limit
+                size_diff = folder_size - s_limit
                 log.debug(f'`size_diff` is {size_diff}')
                 log.debug(f'Checking these files: {log_files}')
                 for _file in log_files:
@@ -275,15 +267,15 @@ class LogMaintenance(commands.Cog):
                 log.debug(
                     f'Folder went from {folder_size} to {new_folder_size}'
                 )
-            elif settings_type in ['day', 'days']:
+            elif s_type in ['day', 'days']:
                 if len(log_files) > 10:
                     for _file in log_files[0:-10]:
                         os.remove(envs.LOG_DIR / _file)
                         deleted_files.append(_file)
             else:
                 log.error(
-                    '`settings_type` empty or not parseable: '
-                    f'`{settings_type}`'
+                    '`s_type` empty or not parseable: '
+                    f'`{s_type}`'
                 )
                 return
             if len(deleted_files) > 0:
@@ -300,7 +292,7 @@ class LogMaintenance(commands.Cog):
                 log_msg_out += ', '.join(deleted_files)
                 log.log(log_msg_out)
         else:
-            _error_msg = '`settings_type` is less than 0'
+            _error_msg = '`s_type` is less than 0'
             log.error(_error_msg)
             await discord_commands.log_to_bot_channel(_error_msg)
 
