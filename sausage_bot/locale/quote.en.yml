@@ -46,3 +46,4 @@ en:
     edit:
       modal_title: Edit quote
       msg_confirm: Quote edited
+    error: 'Got error: %{error}'

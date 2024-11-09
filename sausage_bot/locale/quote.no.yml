@@ -39,10 +39,10 @@ no:
     quote_text: Sitat tekst
     quote_date: Sitat dato
     date_placeholder: Dato og tid (DD.MM.YYYY HH:MM)
-    error: 'Feil: %{error}'
     add:
       modal_title: Legg til sitat
       msg_confirm: La til følgende sitat
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
+    error: 'Fikk følgende feil: %{error}'
