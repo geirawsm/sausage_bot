@@ -196,7 +196,7 @@ async def sync_reaction_message_from_settings(
     log.verbose(f'`msg_info` is {msg_info}')
     msg_obj = await discord_commands.get_message_obj(
         msg_id=msg_id,
-        channel=msg_channel
+        channel_name_or_id=msg_channel
     )
     log.verbose(f'`msg_obj` is {msg_obj}')
     if msg_obj is None:

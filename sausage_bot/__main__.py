@@ -563,7 +563,7 @@ async def say(
         return
     if message_id:
         reply_msg = await discord_commands.get_message_obj(
-            msg_id=message_id, channel=channel.name
+            msg_id=message_id, channel_name_or_id=channel.name
         )
         log.debug(f'Got `reply_msg`: {reply_msg}')
     modal_in = SayModal(

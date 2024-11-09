@@ -10,7 +10,7 @@ from .log import log
 
 
 async def get_message_obj(
-        msg_id: str = None, channel: str = None
+        msg_id: str = None, channel_name_or_id: int | str = None
 ) -> dict:
     '''
     Get a message object
@@ -25,8 +25,10 @@ async def get_message_obj(
 
     _guild = get_guild()
     _channels = get_text_channel_list()
+    if not re.match(r'^\d{19}$', channel_name_or_id):
+        channel_name_or_id = _channels[channel_name_or_id]
     _channel = _guild.get_channel(
-        _channels[channel]
+        _channels[channel_name_or_id]
     )
     try:
         msg_out = await _channel.fetch_message(msg_id)
