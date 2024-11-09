@@ -213,7 +213,7 @@ log_db_schema = {
     ]
 }
 
-stats_db_settings_schema = {
+stats_settings_db_schema = {
     'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'settings',
     'items': [
@@ -224,7 +224,7 @@ stats_db_settings_schema = {
     ],
     'inserts': [
         ['channel', 'stats'],
-        ['stats_msg', ''],
+        ['stats_msg_id', ''],
         ['hide_bot_roles', 'True'],
         ['show_code_stats', 'False'],
         ['show_role_stats', 'True'],
@@ -235,7 +235,7 @@ stats_db_settings_schema = {
     ],
     'type_checking': {
         'channel': 'str',
-        'stats_msg': 'str',
+        'stats_msg_id': 'str',
         'hide_bot_roles': 'bool',
         'show_code_stats': 'bool',
         'show_role_stats': 'bool',

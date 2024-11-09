@@ -15,23 +15,20 @@ from sausage_bot.util.i18n import I18N
 from sausage_bot.util.log import log
 
 
-async def db_settings_autocomplete(
+async def settings_db_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    db_settings = await db_helper.get_output(
-        template_info=envs.stats_db_settings_schema,
-        select=('setting', 'value_help')
+    settings_db = await db_helper.get_output(
+        template_info=envs.stats_settings_db_schema,
+        select=('setting', 'value')
     )
-    settings = []
-    for setting in db_settings:
-        settings.append((setting[0], setting[1]))
-    log.debug(f'settings: {settings}')
+    settings_type = envs.stats_settings_db_schema['type_checking']
     return [
         discord.app_commands.Choice(
-            name=f'{setting[0]} ({setting[1]})', value=str(setting[0])
+            name=f'{setting[0]} = {setting[1]} ({settings_type[setting[0]]})', value=str(setting[0])
         )
-        for setting in settings if current.lower() in setting[0].lower()
+        for setting in settings_db if current.lower() in setting[0].lower()
     ]
 
 
@@ -39,8 +36,8 @@ async def env_settings_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    settings_info = envs.stats_db_settings_schema['inserts']
-    settings_type = envs.stats_db_settings_schema['type_checking']
+    settings_info = envs.stats_settings_db_schema['inserts']
+    settings_type = envs.stats_settings_db_schema['type_checking']
     return [
         discord.app_commands.Choice(
             name='{} ({})'.format(
@@ -184,7 +181,7 @@ class Stats(commands.Cog):
         if remove_post.lower() == 'yes':
             stats_settings = dict(
                 await db_helper.get_output(
-                    template_info=envs.stats_db_settings_schema,
+                    template_info=envs.stats_settings_db_schema,
                     select=('setting', 'value')
                 )
             )
@@ -227,13 +224,12 @@ class Stats(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
-            select=('setting', 'value', 'value_help')
+            template_info=envs.stats_settings_db_schema,
+            select=('setting', 'value')
         )
         headers_settings = [
             I18N.t('stats.commands.list.headers.settings.setting'),
-            I18N.t('stats.commands.list.headers.settings.value'),
-            I18N.t('stats.commands.list.headers.settings.value_type')
+            I18N.t('stats.commands.list.headers.settings.value')
         ]
         out = '## {}\n```{}```'.format(
             I18N.t('stats.commands.list.stats_msg_out.sub_settings'),
@@ -242,23 +238,23 @@ class Stats(commands.Cog):
         hidden_roles_in_db = await db_helper.get_output(
             template_info=envs.stats_db_hide_roles_schema
         )
-        hidden_roles_in_list = []
+        hidden_roles_in_db = []
         if hidden_roles_in_db is not None:
             for role in hidden_roles_in_db:
-                hidden_roles_in_list.append(role[0])
-        log.debug(f'`hidden_roles_in_list` is {hidden_roles_in_list}')
-        if len(hidden_roles_in_list) > 0:
+                hidden_roles_in_db.append(role[0])
+        log.debug(f'`hidden_roles_in_db` is {hidden_roles_in_db}')
+        if len(hidden_roles_in_db) > 0:
             headers_hidden_roles = [
                 I18N.t('stats.commands.list.headers.hidden_roles.hidden_name'),
                 I18N.t('stats.commands.list.headers.hidden_roles.hidden_id')
             ]
             populated_roles = []
-            for role in hidden_roles_in_list:
+            for role in hidden_roles_in_db:
                 populated_roles.append(
                     (
                         get(
                             discord_commands.get_guild().roles,
-                            id=int(role)
+                            name=role
                         ), role
                     )
                 )
@@ -273,7 +269,7 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @discord.app_commands.autocomplete(
-        name_of_setting=db_settings_autocomplete
+        name_of_setting=settings_db_autocomplete
     )
     @stats_settings_group.command(
         name='change',
@@ -285,7 +281,7 @@ class Stats(commands.Cog):
         name_of_setting=I18N.t('stats.commands.change.desc.name_of_setting'),
         value_in=I18N.t('stats.commands.change.desc.value_in')
     )
-    async def stats_setting(
+    async def change_setting(
         self, interaction: discord.Interaction, name_of_setting: str,
         value_in: str
     ):
@@ -295,18 +291,19 @@ class Stats(commands.Cog):
         Parameters
         ------------
         name_of_setting: str
-            The names of the role to add (default: None)
+            The names of the role to change (default: None)
         value_in: str
             The value of the settings (default: None)
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
-            select=('setting', 'value', 'value_check')
+            template_info=envs.stats_settings_db_schema,
+            select=('setting', 'value')
         )
+        settings_type = envs.stats_settings_db_schema['type_checking']
         for setting in settings_in_db:
             if setting[0] == name_of_setting:
-                if setting[2] == 'bool':
+                if settings_type[setting[0]] == 'bool':
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as _error:
@@ -316,15 +313,18 @@ class Stats(commands.Cog):
                         ))
                         return
                 log.debug(f'`value_in` is {value_in} ({type(value_in)})')
-                log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
-                if type(value_in) is eval(setting[2]):
+                log.debug(
+                    f'`settings_type` is {settings_type[setting[0]]} '
+                    f'({type(settings_type[setting[0]])})'
+                )
+                if type(value_in) is eval(settings_type[setting[0]]):
                     await db_helper.update_fields(
-                        template_info=envs.stats_db_settings_schema,
+                        template_info=envs.stats_settings_db_schema,
                         where=[('setting', name_of_setting)],
                         updates=[('value', value_in)]
                     )
                 await interaction.followup.send(
-                    content=I18N.t('stats.commands.setting.update_confirmed'),
+                    content=I18N.t('stats.commands.change.update_confirmed'),
                     ephemeral=True
                 )
                 Stats.task_update_stats.restart()
@@ -355,14 +355,14 @@ class Stats(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
+            template_info=envs.stats_settings_db_schema,
             select=('setting', 'value')
         )
         settings_db_json = file_io.make_db_output_to_json(
             ['setting', 'value'],
             settings_in_db
         )
-        settings_types = envs.stats_db_settings_schema['type_checking']
+        settings_types = envs.stats_settings_db_schema['type_checking']
         log.debug('settings_db_json is `{}`'.format(settings_db_json))
         if value_in.lower() in ['true', 'false']:
             value_in = value_in.capitalize()
@@ -396,7 +396,7 @@ class Stats(commands.Cog):
         elif type(value_in_check) is eval(settings_types[setting_in]):
             if setting_in:
                 await db_helper.insert_many_all(
-                    template_info=envs.stats_db_settings_schema,
+                    template_info=envs.stats_settings_db_schema,
                     inserts=[(setting_in, value_in)]
                 )
                 await interaction.followup.send(
@@ -418,7 +418,7 @@ class Stats(commands.Cog):
         commands.has_permissions(administrator=True)
     )
     @discord.app_commands.autocomplete(
-        setting_in=env_settings_autocomplete
+        setting_in=settings_db_autocomplete
     )
     @stats_settings_group.command(
         name='remove',
@@ -436,7 +436,7 @@ class Stats(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         try:
             await db_helper.del_row_by_AND_filter(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 where=[('setting', setting_in)]
             )
             await interaction.followup.send(
@@ -578,7 +578,7 @@ class Stats(commands.Cog):
             headers: list,
         ):
             hide_roles = await db_helper.get_output(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 select=('value'),
                 where=[('setting', 'hide_roles')]
             )
@@ -656,7 +656,7 @@ class Stats(commands.Cog):
         log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
         stats_settings = dict(
             await db_helper.get_output(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 select=('setting', 'value')
             )
         )
@@ -766,7 +766,7 @@ class Stats(commands.Cog):
             )
             stats_msg = await stats_channel.send(stats_info)
             await db_helper.update_fields(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 where=('setting', 'stats_msg'),
                 updates=('value', stats_msg.id)
             )
@@ -786,13 +786,13 @@ class Stats(commands.Cog):
                 # update db
                 if 'stats_msg' in stats_settings:
                     await db_helper.update_fields(
-                        template_info=envs.stats_db_settings_schema,
+                        template_info=envs.stats_settings_db_schema,
                         where=('setting', 'stats_msg'),
                         updates=('value', stats_msg.id)
                     )
                 else:
                     await db_helper.insert_many_all(
-                        template_info=envs.stats_db_settings_schema,
+                        template_info=envs.stats_settings_db_schema,
                         inserts=(
                             ('stats_msg', stats_msg.id)
                         )
@@ -819,7 +819,7 @@ async def setup(bot):
     stats_file_inserts = None
     stats_log_inserts = None
     stats_hide_roles_inserts = None
-    stats_settings_inserts = envs.stats_db_settings_schema['inserts']
+    stats_settings_inserts = envs.stats_settings_db_schema['inserts']
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
     stats_settings_prep_is_ok = False
     stats_log_prep_is_ok = False
@@ -834,10 +834,10 @@ async def setup(bot):
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
 
     # Prep of DBs should only be done if the db files does not exist
-    if not file_io.file_exist(envs.stats_db_settings_schema['db_file']):
+    if not file_io.file_exist(envs.stats_settings_db_schema['db_file']):
         log.verbose('Stats db does not exist')
         stats_settings_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.stats_db_settings_schema,
+            table_in=envs.stats_settings_db_schema,
             old_inserts=stats_settings_inserts
         )
         log.verbose(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
@@ -869,9 +869,9 @@ async def setup(bot):
     old_hide_roles_status = False
     old_stats_msg_name_status = False
     old_value_check_or_help_status = False
-    if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
+    if file_io.file_exist(envs.stats_settings_db_schema['db_file']):
         old_hide_roles = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
+            template_info=envs.stats_settings_db_schema,
             get_row_ids=True,
             where=('setting', 'hide_roles')
         )
@@ -879,14 +879,14 @@ async def setup(bot):
             needs_cleanup = True
             old_hide_roles_status = True
         old_stats_msg_name_status = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
+            template_info=envs.stats_settings_db_schema,
             where=('setting', 'stats_msg')
         )
         if len(old_stats_msg_name_status) > 0:
             needs_cleanup = True
             old_stats_msg_name_status = True
         old_value_check_or_help = await db_helper.find_cols(
-            template_info=envs.stats_db_settings_schema,
+            template_info=envs.stats_settings_db_schema,
             cols_find=('value_check', 'value_help')
         )
         if len(old_value_check_or_help) > 0:
@@ -897,7 +897,7 @@ async def setup(bot):
         if old_hide_roles_status:
             log.verbose('Moving hide_roles from settings tale to hide_roles')
             old_hide_roles = await db_helper.get_output(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 get_row_ids=True,
                 where=('setting', 'hide_roles'),
                 select=('value')
@@ -909,13 +909,13 @@ async def setup(bot):
                 inserts=values
             )
             await db_helper.del_row_ids(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 numbers=row_ids
             )
         if old_stats_msg_name_status:
             log.verbose('Renaming stats_msg to stats_msg_id')
             await db_helper.update_fields(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 where=('setting', 'stats_msg'),
                 updates=('setting', 'stats_msg_id')
             )
@@ -924,7 +924,7 @@ async def setup(bot):
                 ', '.join(old_value_check_or_help)
             ))
             await db_helper.remove_cols(
-                template_info=envs.stats_db_settings_schema,
+                template_info=envs.stats_settings_db_schema,
                 cols_remove=old_value_check_or_help
             )
     log.verbose('Registering cog to bot')
