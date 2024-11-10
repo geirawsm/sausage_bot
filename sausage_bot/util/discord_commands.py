@@ -191,25 +191,27 @@ def get_roles(
     roles_dict = {}
     # Get all roles and their IDs
     for role in get_guild().roles:
+        skip = False
         if hide_empties and len(role.members) == 0:
-            continue
+            skip = True
         if filter_bots:
             if role.is_bot_managed():
-                continue
-        if hide_roles:
+                skip = True
+        if hide_roles is not None:
             log.debug(f'Checking if {role.id} is in {hide_roles}')
-            if str(role.id) in hide_roles[0]:
-                continue
-            else:
-                log.debug(f'Not in {hide_roles}')
-        roles_dict[role.name.lower()] = {
-            'name': role.name,
-            'id': role.id,
-            'members': len(role.members),
-            'premium': role.is_premium_subscriber(),
-            'is_default': role.is_default(),
-            'bot_managed': role.is_bot_managed()
-        }
+            if str(role.id) in hide_roles:
+                log.debug(f'Found {role.id} in {hide_roles}')
+                skip = True
+        print(f'skip for {role.name} is {skip}')
+        if not skip:
+            roles_dict[role.name.lower()] = {
+                'name': role.name,
+                'id': role.id,
+                'members': len(role.members),
+                'premium': role.is_premium_subscriber(),
+                'is_default': role.is_default(),
+                'bot_managed': role.is_bot_managed()
+            }
     log.verbose(
         'Got these roles: {}'.format(
             ', '.join(name for name in roles_dict)

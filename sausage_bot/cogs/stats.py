@@ -579,13 +579,11 @@ class Stats(commands.Cog):
             headers: list,
         ):
             hide_roles = await db_helper.get_output(
-                template_info=envs.stats_settings_db_schema,
-                select=('value'),
-                where=[('setting', 'hide_roles')]
+                template_info=envs.stats_db_hide_roles_schema,
+                select=('role_id')
             )
-            hide_roles_lower = [x[0].lower() for x in hide_roles]
             log.debug(
-                f'Using this for filter:\n{hide_roles_lower}'
+                f'hide_roles: {hide_roles}'
             )
             text_out = ''
             if isinstance(dict_in, dict):
@@ -625,8 +623,8 @@ class Stats(commands.Cog):
                     'members': []
                 }
                 for role in dict_in:
-                    if role.lower() not in hide_roles_lower:
-                        if role != '@everyone':
+                    if dict_in[role]['id'] not in hide_roles:
+                        if dict_in[role]['name'] != '@everyone':
                             # Check for `sort_min_role_members`
                             if stats_settings['sort_min_role_members']:
                                 min_members = \
@@ -648,7 +646,7 @@ class Stats(commands.Cog):
                         dict_out, headers=headers, numalign='center'
                     )
                 )
-                log.debug(f'Returning: {text_out[0:100]}...')
+                log.debug(f'Returning: {text_out[0:200]}...')
                 return text_out
             else:
                 log.more('`dict_in` is not a dict. Check the input.')
@@ -674,7 +672,8 @@ class Stats(commands.Cog):
         stats_hide_roles = await db_helper.get_output(
             template_info=envs.stats_db_hide_roles_schema
         )
-        if stats_hide_roles:
+        stats_hide_roles = [role[0] for role in stats_hide_roles]
+        if len(stats_hide_roles) > 0:
             stats_hide_roles = list(stats_hide_roles)
         else:
             stats_hide_roles = None
