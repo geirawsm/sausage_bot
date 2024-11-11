@@ -7,10 +7,10 @@ no:
   commands:
     start:
       cmd: Start posting
-      msg_confirm: Startet RSS-posting
+      msg_confirm: "Startet RSS-posting: %{feed_type}"
     stop:
       cmd: Stopp posting
-      msg_confirm: Stoppet RSS-posting
+      msg_confirm: "Stoppet RSS-posting: %{feed_type}"
     add:
       cmd: Legg til en RSS-feed
       desc:

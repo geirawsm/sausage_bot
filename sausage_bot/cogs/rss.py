@@ -120,21 +120,29 @@ class RSSfeed(commands.Cog):
         ]
     ):
         await interaction.response.defer(ephemeral=True)
+        feed_type_list = []
         if feed_type == 'feeds':
+            feed_type_list.append(feed_type)
             RSSfeed.post_feeds.start()
         elif feed_type == 'podcasts':
+            feed_type_list.append(feed_type)
             RSSfeed.post_podcasts.start()
-        await db_helper.update_fields(
-            template_info=envs.tasks_db_schema,
-            where=[
-                ('cog', 'rss'),
-                ('task', f'post_{feed_type}')
-            ],
-            updates=('status', 'started')
-        )
-        log.log('Task started')
+        elif feed_type == 'ALL':
+            feed_type_list.append('feeds')
+            feed_type_list.append('podcasts')
+        for _feed_type in feed_type_list:
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[
+                    ('cog', 'rss'),
+                    ('task', f'post_{_feed_type}')
+                ],
+                updates=('status', 'started')
+            )
+            log.log('Task started: {}'.format(_feed_type))
+        feed_types = ', '.join(feed_type_list)
         await interaction.followup.send(
-            I18N.t('rss.commands.start.msg_confirm')
+            I18N.t('rss.commands.start.msg_confirm', feed_type=feed_types)
         )
 
     @rss_posting_group.command(
@@ -142,25 +150,33 @@ class RSSfeed(commands.Cog):
     )
     async def rss_posting_stop(
         self, interaction: discord.Interaction, feed_type: typing.Literal[
-            'feeds', 'podcasts'
+            'feeds', 'podcasts', 'ALL'
         ]
     ):
         await interaction.response.defer(ephemeral=True)
+        feed_type_list = []
         if feed_type == 'feeds':
+            feed_type_list.append(feed_type)
             RSSfeed.post_feeds.cancel()
         elif feed_type == 'podcasts':
+            feed_type_list.append(feed_type)
             RSSfeed.post_podcasts.cancel()
-        await db_helper.update_fields(
-            template_info=envs.tasks_db_schema,
-            where=[
-                ('task', f'post_{feed_type}'),
-                ('cog', 'rss'),
-            ],
-            updates=('status', 'stopped')
-        )
-        log.log('Task stopped')
+        elif feed_type == 'ALL':
+            feed_type_list.append('feeds')
+            feed_type_list.append('podcasts')
+        for _feed_type in feed_type_list:
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[
+                    ('cog', 'rss'),
+                    ('task', f'post_{_feed_type}'),
+                ],
+                updates=('status', 'stopped')
+            )
+            log.log('Task stopped: {}'.format(_feed_type))
+        feed_types = ', '.join(feed_type_list)
         await interaction.followup.send(
-            I18N.t('rss.commands.stop.msg_confirm')
+            I18N.t('rss.commands.stop.msg_confirm', feed_type=feed_types)
         )
 
     @commands.check_any(
