@@ -633,10 +633,11 @@ async def process_links_for_posting_or_editing(
         select='url',
         where=[('uuid', uuid)]
     )
-    FEED_SETTINGS = dict(await db_helper.get_output(
+    FEED_SETTINGS = await db_helper.get_output(
         template_info=envs.rss_db_settings_schema,
         select=('setting', 'value')
-    ))
+    )
+    FEED_SETTINGS = dict(FEED_SETTINGS)
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
