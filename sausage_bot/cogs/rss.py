@@ -720,7 +720,15 @@ async def setup(bot):
         log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
         log.verbose(f'`rss_log_prep_is_ok` is {rss_log_prep_is_ok}')
     else:
-        log.verbose('rss db exist!')
+        log.verbose('rss db exist, checking table!')
+        missing_cols = await db_helper.add_missing_cols(
+            envs.rss_db_schema
+        )
+        if len(missing_cols) > 0:
+            await discord_commands.log_to_bot_channel(
+                content_in=f'Missing columns in rss db: {missing_cols}'
+                'Make sure to populate missing information'
+            )
     # Delete old json files if they are not necessary anymore
     if rss_prep_is_ok:
         file_io.remove_file(envs.rss_feeds_file)

@@ -86,6 +86,41 @@ async def prep_table(
     return delete_json_ok
 
 
+async def add_missing_cols(
+        template_info
+):
+    db_file = template_info['db_file']
+    table_name = template_info['name']
+    wanted_cols = template_info['items']
+    log.verbose(f'Got `db_file`: {db_file}')
+    log.verbose(f'Got `table_name`: {table_name}')
+    table_info = f'PRAGMA table_info({table_name})'
+    async with aiosqlite.connect(db_file) as db:
+        db_out = await db.execute(table_info)
+        existing_cols = await db_out.fetchall()
+        row_ids = await db.execute(
+            f'SELECT rowid FROM {table_name}'
+        )
+        row_ids = await row_ids.fetchall()
+    _existing_cols = [col[1] for col in existing_cols]
+    log.debug(f'_existing_cols: {_existing_cols}')
+    missing_cols = []
+    for col_in in wanted_cols:
+        item = col_in.split(' ')
+        log.debug(f'Checking {item}')
+        if item[0] not in _existing_cols:
+            log.debug(f'Adding {item[0]}')
+            missing_cols.append(col_in)
+    async with aiosqlite.connect(db_file) as db:
+        for col in missing_cols:
+            item = col.split(' ')
+            log.debug(f'item: {item}')
+            _cmd = f'ALTER TABLE {table_name} ADD COLUMN {item[0]};'
+            log.db(f'Using this query: {_cmd}')
+            await db.execute(_cmd)
+    return missing_cols
+
+
 async def find_cols(
         template_info, cols_find: list = None
 ):
