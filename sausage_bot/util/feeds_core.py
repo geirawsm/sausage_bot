@@ -637,7 +637,7 @@ async def process_links_for_posting_or_editing(
         template_info=envs.rss_db_settings_schema,
         select=('setting', 'value')
     )
-    FEED_SETTINGS = dict(FEED_SETTINGS)
+    FEED_SETTINGS = dict(FEED_SETTINGS) if len(FEED_SETTINGS) > 0 else FEED_SETTINGS
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
