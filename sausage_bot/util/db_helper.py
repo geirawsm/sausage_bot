@@ -150,7 +150,7 @@ async def add_missing_db_setup(
                 temp_inserts.append(insert)
             elif insert[0] in db_out and db_out[insert[0]] is None:
                 temp_inserts.append(insert)
-    await insert_many_all(template_info, temp_inserts)
+        await insert_many_all(template_info, temp_inserts)
     return dict_in
 
 
