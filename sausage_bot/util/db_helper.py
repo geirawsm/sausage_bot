@@ -86,14 +86,32 @@ async def prep_table(
     return delete_json_ok
 
 
-async def add_missing_cols(
-        template_info
+async def add_missing_db_setup(
+        template_info, dict_in
 ):
+    log.verbose(f'Received `template_info`', pretty=template_info)
     db_file = template_info['db_file']
     table_name = template_info['name']
+    log.debug(f'Checking `{table_name}` in `{db_file}`')
+    if table_name not in dict_in:
+        dict_in[table_name] = []
+    if 'inserts' in template_info:
+        log.debug('Got `inserts`')
+        inserts = template_info['inserts']
+    else:
+        log.debug('No `inserts` received')
+        inserts = []
+    log.verbose('Got `inserts`', pretty=inserts)
     wanted_cols = template_info['items']
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
+    table_cmd = f'CREATE TABLE IF NOT EXISTS {table_name} ('\
+        'id TEXT NOT NULL, test TEXT'\
+        ');'
+    async with aiosqlite.connect(db_file) as db:
+        log.db(f'Using this query: {table_cmd}')
+        await db.execute(table_cmd)
+        await db.commit()
     table_info = f'PRAGMA table_info({table_name})'
     async with aiosqlite.connect(db_file) as db:
         db_out = await db.execute(table_info)
@@ -104,21 +122,36 @@ async def add_missing_cols(
         row_ids = await row_ids.fetchall()
     _existing_cols = [col[1] for col in existing_cols]
     log.debug(f'_existing_cols: {_existing_cols}')
-    missing_cols = []
     for col_in in wanted_cols:
         item = col_in.split(' ')
         log.debug(f'Checking {item}')
         if item[0] not in _existing_cols:
             log.debug(f'Adding {item[0]}')
-            missing_cols.append(col_in)
+            dict_in[table_name].append(col_in)
     async with aiosqlite.connect(db_file) as db:
-        for col in missing_cols:
+        for col in dict_in[table_name]:
             item = col.split(' ')
             log.debug(f'item: {item}')
             _cmd = f'ALTER TABLE {table_name} ADD COLUMN {item[0]};'
             log.db(f'Using this query: {_cmd}')
             await db.execute(_cmd)
-    return missing_cols
+    # Add existing inserts in columns where they don't exist yet
+    temp_inserts = []
+    if len(inserts) > 0:
+        log.debug('`inserts` has length')
+        db_out = await get_output(
+            template_info=template_info
+        )
+        log.verbose(f'Got `db_out`: {db_out}')
+        db_out = dict(db_out)
+        log.verbose(f'Got `dict(db_out)`: {db_out}')
+        for insert in inserts:
+            if insert[0] not in db_out:
+                temp_inserts.append(insert)
+            elif insert[0] in db_out and db_out[insert[0]] is None:
+                temp_inserts.append(insert)
+    await insert_many_all(template_info, temp_inserts)
+    return dict_in
 
 
 async def find_cols(
@@ -154,6 +187,29 @@ async def remove_cols(
         try:
             async with aiosqlite.connect(db_file) as db:
                 for col_in in cols_remove:
+                    __cmd = _cmd.format(table_name, col_in)
+                    log.db(f'Using this query: {__cmd}')
+                    await db.execute(__cmd)
+                await db.commit()
+        except aiosqlite.OperationalError as e:
+            log.error(f'Error: {e}')
+            return
+    return
+
+
+async def remove_table(
+        template_info, tables_remove: list = None
+):
+    db_file = template_info['db_file']
+    log.verbose(f'Got `db_file`: {db_file}')
+    log.verbose(f'Got `table_removes`: {table_removes}')
+    if args.not_write_database:
+        log.verbose('`not_write_database` activated')
+    else:
+        _cmd = 'ALTER TABLE {} DROP TABLE {};'
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                for col_in in tables_remove:
                     __cmd = _cmd.format(table_name, col_in)
                     log.db(f'Using this query: {__cmd}')
                     await db.execute(__cmd)
