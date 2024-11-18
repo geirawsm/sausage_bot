@@ -197,29 +197,6 @@ async def remove_cols(
     return
 
 
-async def remove_table(
-        template_info, tables_remove: list = None
-):
-    db_file = template_info['db_file']
-    log.verbose(f'Got `db_file`: {db_file}')
-    log.verbose(f'Got `table_removes`: {table_removes}')
-    if args.not_write_database:
-        log.verbose('`not_write_database` activated')
-    else:
-        _cmd = 'ALTER TABLE {} DROP TABLE {};'
-        try:
-            async with aiosqlite.connect(db_file) as db:
-                for col_in in tables_remove:
-                    __cmd = _cmd.format(table_name, col_in)
-                    log.db(f'Using this query: {__cmd}')
-                    await db.execute(__cmd)
-                await db.commit()
-        except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
-            return
-    return
-
-
 async def json_to_db_inserts(cog_name):
     '''
     This is a cleanup function to be used for converting from old json
