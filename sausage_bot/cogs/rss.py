@@ -615,7 +615,9 @@ class RSSfeed(commands.Cog):
             )
             log.debug(
                 f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
-                f'{FEED_POSTS}'
+                '{}'.format(
+                    pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                )
             )
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
@@ -667,7 +669,9 @@ class RSSfeed(commands.Cog):
             )
             log.debug(
                 f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
-                f'{FEED_POSTS}'
+                '{}'.format(
+                    pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                )
             )
             if FEED_POSTS is None:
                 log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
@@ -711,7 +715,8 @@ async def setup(bot):
         rss_inserts = await db_helper.json_to_db_inserts(cog_name)
     log.debug(f'Got these inserts:\n{rss_inserts}')
 
-    # Prep of DBs should only be done if the db files does not exist
+    # Prep of DBs with json inserts should only be done if the
+    # db files does not exist
     if not file_io.file_exist(envs.rss_db_schema['db_file']):
         log.verbose('RSS db does not exist')
         rss_prep_is_ok = await db_helper.prep_table(
@@ -736,14 +741,26 @@ async def setup(bot):
         log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
         log.verbose(f'`rss_log_prep_is_ok` is {rss_log_prep_is_ok}')
     else:
-        log.verbose('rss db exist, checking table!')
-        missing_cols = await db_helper.add_missing_cols(
-            envs.rss_db_schema
+        log.verbose('rss db exist, checking columns!')
+        missing_tbl_cols = {}
+        missing_tbl_cols = await db_helper.add_missing_db_setup(
+            envs.rss_db_schema, missing_tbl_cols
         )
-        if len(missing_cols) > 0:
+        missing_tbl_cols = await db_helper.add_missing_db_setup(
+            envs.rss_db_settings_schema, missing_tbl_cols
+        )
+        if len(missing_tbl_cols) > 0:
+            missing_tbl_cols_text = ''
+            for _tbl in missing_tbl_cols:
+                missing_tbl_cols_text += '{}:\n'.format(
+                    _tbl
+                )
+                missing_tbl_cols_text += '\n- '.join(missing_tbl_cols[_tbl])
             await discord_commands.log_to_bot_channel(
-                content_in=f'Missing columns in rss db: {missing_cols}'
-                'Make sure to populate missing information'
+                'Missing columns in rss db: {}\n'
+                'Make sure to populate missing information'.format(
+                    missing_tbl_cols_text
+                )
             )
     # Delete old json files if they are not necessary anymore
     if rss_prep_is_ok:
