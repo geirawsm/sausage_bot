@@ -140,7 +140,8 @@ async def add_missing_db_setup(
     if len(inserts) > 0:
         log.debug('`inserts` has length')
         db_out = await get_output(
-            template_info=template_info
+            template_info=template_info,
+            select=('setting', 'value')
         )
         log.verbose(f'Got `db_out`: {db_out}')
         db_out = dict(db_out)
@@ -150,6 +151,8 @@ async def add_missing_db_setup(
                 temp_inserts.append(insert)
             elif insert[0] in db_out and db_out[insert[0]] is None:
                 temp_inserts.append(insert)
+        log.debug(f'temp_inserts: {temp_inserts}')
+    if len(temp_inserts) > 0:
         await insert_many_all(template_info, temp_inserts)
     return dict_in
 
