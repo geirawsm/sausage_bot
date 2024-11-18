@@ -461,6 +461,7 @@ async def review_feeds_status(feed_type: str = None):
         else:
             log.verbose('Discovered a normal url')
             is_valid_feed = await check_feed_validity(URL)
+        log.debug(f'`is_valid_feed`: {is_valid_feed}')
         if is_valid_feed:
             log.log('Feed url for {} is ok!'.format(FEED_NAME))
             if URL_STATUS.lower() != envs.FEEDS_URL_SUCCESS.lower():

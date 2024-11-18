@@ -1,5 +1,5 @@
 en:
   commands:
     review_feeds_status:
-      failed_feeds: "The following feeds couldn't get links: %{feeds}"
+      failed_feeds: "The following feeds couldn't get links:\n%{feeds}"
       failed_channels: "The following feeds couldn't post to channels: %{channels}"

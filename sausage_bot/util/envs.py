@@ -304,7 +304,7 @@ rss_db_settings_schema = {
     'items': [
         'setting TEXT NOT NULL',
         'value TEXT',
-        'value_check TEXT'
+        'value_check TEXT NOT NULL'
     ],
     'inserts': [
         ['show_pod_description_in_embed', 'False', 'bool']

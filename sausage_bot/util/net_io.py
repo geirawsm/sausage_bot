@@ -127,7 +127,7 @@ async def check_spotify_podcast_episodes():
     return checklist
 
 
-async def get_spotify_podcast_links(pod_id = str, uuid = str):
+async def get_spotify_podcast_links(pod_id=str, uuid=str):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         log.log(_spotipy_error)

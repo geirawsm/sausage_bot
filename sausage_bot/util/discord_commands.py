@@ -202,7 +202,6 @@ def get_roles(
             if str(role.id) in hide_roles:
                 log.debug(f'Found {role.id} in {hide_roles}')
                 skip = True
-        print(f'skip for {role.name} is {skip}')
         if not skip:
             roles_dict[role.name.lower()] = {
                 'name': role.name,
