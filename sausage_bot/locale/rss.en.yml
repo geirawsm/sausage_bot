@@ -7,7 +7,7 @@ en:
   commands:
     start:
       cmd: Start posting
-      msg_confirm: "RSS posting started: %{feed_type}"
+      msg_confirm_ok: "RSS posting started: %{feed_type}"
     stop:
       cmd: Stop posting
       msg_confirm: "RSS posting stopped: %{feed_type}"
