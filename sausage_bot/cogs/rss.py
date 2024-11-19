@@ -262,7 +262,8 @@ class RSSfeed(commands.Cog):
             )
             await interaction.followup.send(
                 I18N.t(
-                    'rss.commands.remove.msg_feed_removed'
+                    'rss.commands.remove.msg_feed_removed',
+                    feed_name=feed_name
                 )
             )
         elif removal is False:
