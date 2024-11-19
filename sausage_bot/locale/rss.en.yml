@@ -8,9 +8,13 @@ en:
     start:
       cmd: Start posting
       msg_confirm_ok: "RSS posting started: %{feed_type}"
+      msg_confirm_fail_suffix: ", but failed for `%{feed_type}`"
+      msg_confirm_fail: "RSS post starting failed for `%{feed_type}`"
     stop:
       cmd: Stop posting
-      msg_confirm: "RSS posting stopped: %{feed_type}"
+      msg_confirm_ok: "RSS posting stopped: %{feed_type}"
+      msg_confirm_fail_suffix: ", but failed for `%{feed_type}`"
+      msg_confirm_fail: "RSS post stopping failed for `%{feed_type}`"
     add:
       cmd: Add a RSS feed
       desc:

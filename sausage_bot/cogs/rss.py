@@ -120,30 +120,49 @@ class RSSfeed(commands.Cog):
         ]
     ):
         await interaction.response.defer(ephemeral=True)
+        feed_type_in = []
+        failed_list = []
         feed_type_list = []
-        if feed_type == 'feeds':
-            feed_type_list.append(feed_type)
-            RSSfeed.post_feeds.start()
-        elif feed_type == 'podcasts':
-            feed_type_list.append(feed_type)
-            RSSfeed.post_podcasts.start()
-        elif feed_type == 'ALL':
-            feed_type_list.append('feeds')
-            feed_type_list.append('podcasts')
-        for _feed_type in feed_type_list:
-            await db_helper.update_fields(
-                template_info=envs.tasks_db_schema,
-                where=[
-                    ('cog', 'rss'),
-                    ('task', f'post_{_feed_type}')
-                ],
-                updates=('status', 'started')
+        if feed_type == 'ALL':
+            feed_type_in.append('feeds')
+            feed_type_in.append('podcasts')
+        else:
+            feed_type_in.append(feed_type)
+        for feed_type in feed_type_in:
+            try:
+                eval(f'RSSfeed.post_{feed_type}.start()')
+                feed_type_list.append(feed_type)
+            except RuntimeError:
+                failed_list.append(feed_type)
+        if len(feed_type_list) > 0:
+            for _feed_type in feed_type_list:
+                await db_helper.update_fields(
+                    template_info=envs.tasks_db_schema,
+                    where=[
+                        ('cog', 'rss'),
+                        ('task', f'post_{_feed_type}')
+                    ],
+                    updates=('status', 'started')
+                )
+                log.log('Task started: {}'.format(_feed_type))
+            feed_types = ', '.join(feed_type_list)
+        if len(failed_list) > 0:
+            failed_list_text = ', '.join(failed_list)
+        if len(feed_types) > 0:
+            _msg = I18N.t(
+                'rss.commands.start.msg_confirm_ok', feed_type=feed_types
             )
-            log.log('Task started: {}'.format(_feed_type))
-        feed_types = ', '.join(feed_type_list)
-        await interaction.followup.send(
-            I18N.t('rss.commands.start.msg_confirm', feed_type=feed_types)
-        )
+        if len(failed_list) > 0:
+            _msg += I18N.t(
+                'rss.commands.start.msg_confirm_fail_suffix',
+                feed_type=failed_list_text
+            )
+        if len(feed_types) == 0 and len(failed_list) > 0:
+            _msg = I18N.t(
+                'rss.commands.start.msg_confirm_fail',
+                feed_type=failed_list
+            )
+        await interaction.followup.send(_msg)
 
     @rss_posting_group.command(
         name='stop', description=locale_str(I18N.t('rss.commands.stop.cmd'))
@@ -154,30 +173,49 @@ class RSSfeed(commands.Cog):
         ]
     ):
         await interaction.response.defer(ephemeral=True)
+        feed_type_in = []
+        failed_list = []
         feed_type_list = []
-        if feed_type == 'feeds':
-            feed_type_list.append(feed_type)
-            RSSfeed.post_feeds.cancel()
-        elif feed_type == 'podcasts':
-            feed_type_list.append(feed_type)
-            RSSfeed.post_podcasts.cancel()
-        elif feed_type == 'ALL':
-            feed_type_list.append('feeds')
-            feed_type_list.append('podcasts')
-        for _feed_type in feed_type_list:
-            await db_helper.update_fields(
-                template_info=envs.tasks_db_schema,
-                where=[
-                    ('cog', 'rss'),
-                    ('task', f'post_{_feed_type}'),
-                ],
-                updates=('status', 'stopped')
+        if feed_type == 'ALL':
+            feed_type_in.append('feeds')
+            feed_type_in.append('podcasts')
+        else:
+            feed_type_in.append(feed_type)
+        for feed_type in feed_type_in:
+            try:
+                eval(f'RSSfeed.post_{feed_type}.cancel()')
+                feed_type_list.append(feed_type)
+            except RuntimeError:
+                failed_list.append(feed_type)
+        if len(feed_type_list) > 0:
+            for _feed_type in feed_type_list:
+                await db_helper.update_fields(
+                    template_info=envs.tasks_db_schema,
+                    where=[
+                        ('cog', 'rss'),
+                        ('task', f'post_{_feed_type}')
+                    ],
+                    updates=('status', 'stopped')
+                )
+                log.log('Task stopped: {}'.format(_feed_type))
+            feed_types = ', '.join(feed_type_list)
+        if len(failed_list) > 0:
+            failed_list_text = ', '.join(failed_list)
+        if len(feed_types) > 0:
+            _msg = I18N.t(
+                'rss.commands.stop.msg_confirm_ok', feed_type=feed_types
             )
-            log.log('Task stopped: {}'.format(_feed_type))
-        feed_types = ', '.join(feed_type_list)
-        await interaction.followup.send(
-            I18N.t('rss.commands.stop.msg_confirm', feed_type=feed_types)
-        )
+        if len(failed_list) > 0:
+            _msg += I18N.t(
+                'rss.commands.stop.msg_confirm_fail_suffix',
+                feed_type=failed_list_text
+            )
+        if len(feed_types) == 0 and len(failed_list) > 0:
+            _msg = I18N.t(
+                'rss.commands.stop.msg_confirm_fail',
+                feed_type=failed_list
+            )
+        await interaction.followup.send(_msg)
 
     @commands.check_any(
         commands.is_owner(),

@@ -9,10 +9,12 @@ no:
       cmd: Start posting
       msg_confirm_ok: "Startet RSS-posting: `%{feed_type}`"
       msg_confirm_fail_suffix: ", men feilet for `%{feed_type}`"
-      msg_confirm_fail: "RSS-posting feilet for `%{feed_type}`"
+      msg_confirm_fail: "Start RSS posting feilet for `%{feed_type}`"
     stop:
       cmd: Stopp posting
-      msg_confirm: "Stoppet RSS-posting: %{feed_type}"
+      msg_confirm_ok: "Stoppet RSS-posting: %{feed_type}"
+      msg_confirm_fail_suffix: ", men feilet for `%{feed_type}`"
+      msg_confirm_fail: "Stopping av RSS post feilet for `%{feed_type}`"
     add:
       cmd: Legg til en RSS-feed
       desc:
