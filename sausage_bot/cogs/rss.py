@@ -86,6 +86,62 @@ async def rss_settings_autocomplete(
     ]
 
 
+async def control_posting(feed_type, action):
+    feed_type_in = []
+    failed_list = []
+    feed_type_list = []
+    actions = {
+        'start': {'status_update': 'started'},
+        'stop': {'status_update': 'stopped'},
+        'restart': {'status_update': 'started'}
+
+    }
+    if feed_type == 'ALL':
+        feed_type_in.append('feeds')
+        feed_type_in.append('podcasts')
+    else:
+        feed_type_in.append(feed_type)
+    for feed_type in feed_type_in:
+        try:
+            eval(f'RSSfeed.post_{feed_type}.{action}()')
+            feed_type_list.append(feed_type)
+        except RuntimeError:
+            failed_list.append(feed_type)
+    if len(feed_type_list) > 0:
+        for _feed_type in feed_type_list:
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[
+                    ('cog', 'rss'),
+                    ('task', f'post_{_feed_type}')
+                ],
+                updates=('status', actions[action]['status_update']),
+            )
+            log.log('Task {}: {}'.format(
+                actions[action]['status_update'],
+                _feed_type
+            ))
+        feed_types = ', '.join(feed_type_list)
+    if len(failed_list) > 0:
+        failed_list_text = ', '.join(failed_list)
+    if len(feed_types) > 0:
+        _msg = I18N.t(
+            f'rss.commands.{action}.msg_confirm_ok',
+            feed_type=feed_types
+        )
+    if len(failed_list) > 0:
+        _msg += I18N.t(
+            f'rss.commands.{action}.msg_confirm_fail_suffix',
+            feed_type=failed_list_text
+        )
+    if len(feed_types) == 0 and len(failed_list) > 0:
+        _msg = I18N.t(
+            f'rss.commands.{action}.msg_confirm_fail',
+            feed_type=failed_list
+        )
+    return _msg
+
+
 class RSSfeed(commands.Cog):
     '''
     Administer RSS-feeds that will autopost to a given channel when published
@@ -120,49 +176,8 @@ class RSSfeed(commands.Cog):
         ]
     ):
         await interaction.response.defer(ephemeral=True)
-        feed_type_in = []
-        failed_list = []
-        feed_type_list = []
-        if feed_type == 'ALL':
-            feed_type_in.append('feeds')
-            feed_type_in.append('podcasts')
-        else:
-            feed_type_in.append(feed_type)
-        for feed_type in feed_type_in:
-            try:
-                eval(f'RSSfeed.post_{feed_type}.start()')
-                feed_type_list.append(feed_type)
-            except RuntimeError:
-                failed_list.append(feed_type)
-        if len(feed_type_list) > 0:
-            for _feed_type in feed_type_list:
-                await db_helper.update_fields(
-                    template_info=envs.tasks_db_schema,
-                    where=[
-                        ('cog', 'rss'),
-                        ('task', f'post_{_feed_type}')
-                    ],
-                    updates=('status', 'started')
-                )
-                log.log('Task started: {}'.format(_feed_type))
-            feed_types = ', '.join(feed_type_list)
-        if len(failed_list) > 0:
-            failed_list_text = ', '.join(failed_list)
-        if len(feed_types) > 0:
-            _msg = I18N.t(
-                'rss.commands.start.msg_confirm_ok', feed_type=feed_types
-            )
-        if len(failed_list) > 0:
-            _msg += I18N.t(
-                'rss.commands.start.msg_confirm_fail_suffix',
-                feed_type=failed_list_text
-            )
-        if len(feed_types) == 0 and len(failed_list) > 0:
-            _msg = I18N.t(
-                'rss.commands.start.msg_confirm_fail',
-                feed_type=failed_list
-            )
-        await interaction.followup.send(_msg)
+        msg = await control_posting(feed_type, 'start')
+        await interaction.followup.send(msg)
 
     @rss_posting_group.command(
         name='stop', description=locale_str(I18N.t('rss.commands.stop.cmd'))
@@ -173,49 +188,20 @@ class RSSfeed(commands.Cog):
         ]
     ):
         await interaction.response.defer(ephemeral=True)
-        feed_type_in = []
-        failed_list = []
-        feed_type_list = []
-        if feed_type == 'ALL':
-            feed_type_in.append('feeds')
-            feed_type_in.append('podcasts')
-        else:
-            feed_type_in.append(feed_type)
-        for feed_type in feed_type_in:
-            try:
-                eval(f'RSSfeed.post_{feed_type}.cancel()')
-                feed_type_list.append(feed_type)
-            except RuntimeError:
-                failed_list.append(feed_type)
-        if len(feed_type_list) > 0:
-            for _feed_type in feed_type_list:
-                await db_helper.update_fields(
-                    template_info=envs.tasks_db_schema,
-                    where=[
-                        ('cog', 'rss'),
-                        ('task', f'post_{_feed_type}')
-                    ],
-                    updates=('status', 'stopped')
-                )
-                log.log('Task stopped: {}'.format(_feed_type))
-            feed_types = ', '.join(feed_type_list)
-        if len(failed_list) > 0:
-            failed_list_text = ', '.join(failed_list)
-        if len(feed_types) > 0:
-            _msg = I18N.t(
-                'rss.commands.stop.msg_confirm_ok', feed_type=feed_types
-            )
-        if len(failed_list) > 0:
-            _msg += I18N.t(
-                'rss.commands.stop.msg_confirm_fail_suffix',
-                feed_type=failed_list_text
-            )
-        if len(feed_types) == 0 and len(failed_list) > 0:
-            _msg = I18N.t(
-                'rss.commands.stop.msg_confirm_fail',
-                feed_type=failed_list
-            )
-        await interaction.followup.send(_msg)
+        msg = await control_posting(feed_type, 'stop')
+        await interaction.followup.send(msg)
+
+    @rss_posting_group.command(
+        name='restart', description=locale_str(I18N.t('rss.commands.restart.cmd'))
+    )
+    async def rss_posting_restart(
+        self, interaction: discord.Interaction, feed_type: typing.Literal[
+            'feeds', 'podcasts', 'ALL'
+        ]
+    ):
+        await interaction.response.defer(ephemeral=True)
+        msg = await control_posting(feed_type, 'restart')
+        await interaction.followup.send(msg)
 
     @commands.check_any(
         commands.is_owner(),

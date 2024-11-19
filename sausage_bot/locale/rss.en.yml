@@ -15,6 +15,11 @@ en:
       msg_confirm_ok: "RSS posting stopped: %{feed_type}"
       msg_confirm_fail_suffix: ", but failed for `%{feed_type}`"
       msg_confirm_fail: "RSS post stopping failed for `%{feed_type}`"
+    restart:
+      cmd: Restart posting
+      msg_confirm_ok: "RSS posting restarted: %{feed_type}"
+      msg_confirm_fail_suffix: ", but failed for `%{feed_type}`"
+      msg_confirm_fail: "RSS post restarting failed for `%{feed_type}`"
     add:
       cmd: Add a RSS feed
       desc:
