@@ -82,3 +82,5 @@ en:
         value_in: Value to change the setting to
       value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
       msg_confirm: Setting updated
+  tasks:
+    feed_posts_is_none: 'Feed `%{feed_name}` returned NoneType'

@@ -622,7 +622,7 @@ class RSSfeed(commands.Cog):
             ]
         )
         if len(feeds) == 0:
-            log.log(envs.RSS_NO_FEEDS_FOUND)
+            log.log('No feeds found')
             return
         log.verbose('Got these feeds:')
         for feed in feeds:
@@ -645,9 +645,9 @@ class RSSfeed(commands.Cog):
                 )
             )
             if FEED_POSTS is None:
-                log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
+                log.log(f'Feed {FEED_NAME} returned NoneType')
                 await discord_commands.log_to_bot_channel(
-                    envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME)
+                    I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
                 )
             else:
                 await feeds_core.process_links_for_posting_or_editing(
@@ -674,7 +674,7 @@ class RSSfeed(commands.Cog):
             return
         pod_check = await net_io.check_spotify_podcast_episodes()
         if len(pod_check) == 0:
-            log.log(envs.RSS_NO_FEEDS_FOUND)
+            log.log('No feeds found')
             return
         log.verbose('Got these feeds:')
         for feed in pod_check:
@@ -699,9 +699,9 @@ class RSSfeed(commands.Cog):
                 )
             )
             if FEED_POSTS is None:
-                log.log(envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME))
+                log.log(f'Feed {FEED_NAME} returned NoneType')
                 await discord_commands.log_to_bot_channel(
-                    envs.RSS_FEED_POSTS_IS_NONE.format(FEED_NAME)
+                    I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
                 )
             else:
                 await feeds_core.process_links_for_posting_or_editing(

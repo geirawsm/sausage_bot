@@ -34,7 +34,7 @@ async def get_link(url):
     content_out = None
     url_status = 0
     if type(url) is not str:
-        log.error(envs.RSS_INVALID_URL.format(url))
+        log.error('Input `{url}`is not a proper URL. Check spelling.')
         return None
     if re.search(r'^http(s)?\:', url):
         log.debug('Found scheme in url')

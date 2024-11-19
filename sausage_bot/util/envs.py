@@ -408,36 +408,8 @@ POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
 COG_STARTING = 'Starting cog: `{}`'
 
 # COG
-# RSS
-RSS_INVALID_URL = 'Inputen `{}` er ikke en ordentlig URL. Dobbelsjekk staving.'
-RSS_NO_FEEDS_FOUND = 'Fant ingen RSS-feeds'
-RSS_FEED_POSTS_IS_NONE = '{}: this feed returned NoneType.'
-RSS_VARS = {
-    'feed_name': {
-        'title': 'Name', 'db_col': 'feed_name', 'max_len': 0, 'list_type': []
-    },
-    'url': {
-        'title': 'Feed', 'db_col': 'url', 'max_len': 0, 'list_type': []
-    },
-    'channel': {
-        'title': 'Channel', 'db_col': 'channel', 'max_len': 0, 'list_type': []
-    },
-    'added': {
-        'title': 'Added', 'db_col': 'added', 'max_len': 0,
-        'list_type': ['added']
-    },
-    'added_by': {
-        'title': 'Added by', 'db_col': 'added_by', 'max_len': 0,
-        'list_type': ['added']
-    },
-    'filter': {
-        'title': 'Filter', 'db_col': 'Filter', 'max_len': 30,
-        'list_type': ['filter']
-    }
-}
 
 # CORE
-FEEDS_SOUP_ERROR = 'Feil ved lesing av `soup` fra {}: {}'
 FEEDS_URL_ERROR = 'Failed'
 FEEDS_URL_STALE = 'Stale'
 FEEDS_URL_ERROR_LIMIT = 3
@@ -447,26 +419,6 @@ CHANNEL_STATUS_SUCCESS = 'OK'
 
 # COG - YOUTUBE
 YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
-YOUTUBE_VARS = {
-    'url': {
-        'title': 'Feed', 'max_len': 0, 'list_type': []
-    },
-    'channel': {
-        'title': 'Channel', 'max_len': 0, 'list_type': []
-    },
-    'filter_allow': {
-        'title': 'Allow', 'max_len': 30, 'list_type': ['filter']
-    },
-    'filter_deny': {
-        'title': 'Deny', 'max_len': 30, 'list_type': ['filter']
-    },
-    'added': {
-        'title': 'Added', 'max_len': 0, 'list_type': ['added']
-    },
-    'added_by': {
-        'title': 'Added by', 'max_len': 0, 'list_type': ['added']
-    }
-}
 
 # COG - AUTOEVENT
 AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
