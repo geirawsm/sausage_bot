@@ -72,7 +72,7 @@ async def get_items_from_rss(
     try:
         soup = BeautifulSoup(req, features='xml')
     except Exception as e:
-        log.error('Error when reading `soup` from {url}': {e}.format(url, e))
+        log.error(f'Error when reading `soup` from {url}: {e}')
         return None
     items_out = {
         'filters': filters_in,
