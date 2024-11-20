@@ -24,6 +24,8 @@ aiofiles = "*"
 i18nice = {extras = ["yaml"], version = "*"}
 pytest-asyncio = "*"
 tabulated = "*"
+pip = "*"
+pytest-mock = "*"
 
 [dev-packages]
 requests-testadapter = "*"
