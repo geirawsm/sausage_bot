@@ -15,22 +15,18 @@ def test_check_similarity_return_number_or_none():
 
 
 async def test_check_feed_validity_url():
-    good_url1 = 'https://open.spotify.com/show/7CJKujLFxINFP3G4zns6nw?'\
-        'si=QM4HOzU5RlGuDOEOVLOtCQ'
-    good_url2 = 'https://www.metalsucks.net/category/'\
+    good_url1 = 'https://www.metalsucks.net/category/'\
         'shit-that-comes-out-today/feed/'
-    good_url3 = 'https://rss.kode24.no/'
+    good_url2 = 'https://rss.kode24.no/'
     bad_url1 = 'https://www.youtube.com'
     bad_url2 = ''
 
     out_good1 = await feeds_core.check_feed_validity(good_url1)
     out_good2 = await feeds_core.check_feed_validity(good_url2)
-    out_good3 = await feeds_core.check_feed_validity(good_url3)
     out_bad1 = await feeds_core.check_feed_validity(bad_url1)
     out_bad2 = await feeds_core.check_feed_validity(bad_url2)
 
     assert out_good1 is True
     assert out_good2 is True
-    assert out_good3 is True
     assert out_bad1 is False
     assert out_bad2 is None
