@@ -959,6 +959,14 @@ async def setup(bot):
                 template_info=envs.stats_settings_db_schema,
                 cols_remove=old_value_check_or_help
             )
+        if old_value_numeral_instead_of_bool_status:
+            log.verbose('Converting old value numeral to bool')
+            for setting in new_bool_status:
+                await db_helper.update_fields(
+                    template_info=envs.stats_settings_db_schema,
+                    where=('setting', setting),
+                    updates=('value', new_bool_status[setting])
+                )
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
 
