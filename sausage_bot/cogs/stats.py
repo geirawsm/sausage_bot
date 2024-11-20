@@ -869,6 +869,7 @@ async def setup(bot):
     old_hide_roles_status = False
     old_stats_msg_name_status = False
     old_value_check_or_help_status = False
+    old_value_numeral_instead_of_bool_status = False
     if file_io.file_exist(envs.stats_settings_db_schema['db_file']):
         old_hide_roles = await db_helper.get_output(
             template_info=envs.stats_settings_db_schema,
@@ -892,6 +893,37 @@ async def setup(bot):
         if len(old_value_check_or_help) > 0:
             needs_cleanup = True
             old_value_check_or_help_status = True
+        old_value_numeral_instead_of_bool = await db_helper.get_output(
+            template_info=envs.stats_settings_db_schema
+        )
+        new_bool_status = \
+            dict(old_value_numeral_instead_of_bool)
+        type_checking = envs.stats_settings_db_schema['type_checking']
+        for setting in [
+            setting for setting in type_checking if
+            type_checking[setting] != 'bool'
+        ]:
+            new_bool_status.pop(setting)
+        for setting in new_bool_status.copy():
+            print(
+                'Checking {}: {}'.format(
+                    setting,
+                    type(new_bool_status[setting])
+                )
+            )
+            if type(eval(new_bool_status[setting])) is int:
+                if new_bool_status[setting] == 0:
+                    new_bool_status[setting] = False
+                elif new_bool_status[setting] == 1:
+                    new_bool_status[setting] = True
+                else:
+                    new_bool_status[setting] = \
+                        dict(envs.stats_settings_db_schema['inserts'])[setting]
+            else:
+                new_bool_status.pop(setting)
+        if len(new_bool_status) > 0:
+            needs_cleanup = True
+            old_value_numeral_instead_of_bool_status = True
     if needs_cleanup:
         log.verbose('Cleaning up DB')
         if old_hide_roles_status:
