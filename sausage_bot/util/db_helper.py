@@ -21,6 +21,19 @@ def db_exist(db_file_in):
         return False
 
 
+async def table_exist(template_info):
+    db_file = template_info['db_file']
+    log.log(f'Opening `{db_file}`')
+    table_name = template_info['name']
+    async with aiosqlite.connect(db_file) as db:
+        out = await db.execute(f'PRAGMA table_info({table_name})')
+        out = await out.fetchall()
+    if len(out) > 0:
+        return True
+    else:
+        return False
+
+
 async def prep_table(
             table_in, old_inserts: list = None
         ):

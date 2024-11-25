@@ -669,15 +669,21 @@ class Stats(commands.Cog):
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
-        stats_hide_roles = await db_helper.get_output(
-            template_info=envs.stats_db_hide_roles_schema
+        hide_roles_exist = await db_helper.table_exist(
+            envs.stats_db_hide_roles_schema
         )
-        stats_hide_roles = [role[0] for role in stats_hide_roles]
-        if len(stats_hide_roles) > 0:
-            stats_hide_roles = list(stats_hide_roles)
+        if hide_roles_exist:
+            stats_hide_roles = await db_helper.get_output(
+                template_info=envs.stats_db_hide_roles_schema
+            )
+            stats_hide_roles = [role[0] for role in stats_hide_roles]
+            if len(stats_hide_roles) > 0:
+                stats_hide_roles = list(stats_hide_roles)
+            else:
+                stats_hide_roles = None
+            log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
         else:
             stats_hide_roles = None
-        log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
         # Get server members
         members = get_role_numbers(
             hide_bots=eval(stats_settings['hide_bot_roles']),
@@ -833,23 +839,19 @@ async def setup(bot):
     log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
 
-    # Prep of DBs should only be done if the db files does not exist
-    if not file_io.file_exist(envs.stats_settings_db_schema['db_file']):
-        log.verbose('Stats db does not exist')
-        stats_settings_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.stats_settings_db_schema,
-            old_inserts=stats_settings_inserts
-        )
-        log.verbose(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
-        stats_hide_roles_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.stats_db_hide_roles_schema,
-            old_inserts=stats_hide_roles_inserts
-        )
-        log.verbose(
-            f'`stats_hide_roles_prep_is_ok` is {stats_hide_roles_prep_is_ok}'
-        )
-    else:
-        log.verbose('Stats db exist!')
+    log.verbose('Stats db does not exist')
+    stats_settings_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.stats_settings_db_schema,
+        old_inserts=stats_settings_inserts
+    )
+    log.verbose(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
+    stats_hide_roles_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.stats_db_hide_roles_schema,
+        old_inserts=stats_hide_roles_inserts
+    )
+    log.verbose(
+        f'`stats_hide_roles_prep_is_ok` is {stats_hide_roles_prep_is_ok}'
+    )
     if not file_io.file_exist(envs.stats_db_log_schema['db_file']):
         log.verbose('Stats log db does not exist')
         stats_log_prep_is_ok = await db_helper.prep_table(
