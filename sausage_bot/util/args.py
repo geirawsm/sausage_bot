@@ -12,6 +12,11 @@ settings_args.add_argument('--data-dir',
                            action='store',
                            default=False,
                            dest='data_dir')
+settings_args.add_argument('--db-dir',
+                           help='Set custom db dir',
+                           action='store',
+                           default=False,
+                           dest='db_dir')
 
 logging_args = parser.add_argument_group('Logging')
 logging_args.add_argument('--log', '-l',

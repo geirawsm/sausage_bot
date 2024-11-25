@@ -14,7 +14,10 @@ if args.data_dir:
 else:
     DATA_DIR = ROOT_DIR / 'data'
 JSON_DIR = DATA_DIR / 'json'
-DB_DIR = DATA_DIR / 'db'
+if args.db_dir:
+    DB_DIR = Path(args.db_dir).resolve()
+else:
+    DB_DIR = DATA_DIR / 'db'
 LOG_DIR = DATA_DIR / 'logs'
 STATIC_DIR = DATA_DIR / 'static'
 TEMP_DIR = ROOT_DIR / 'tempfiles'
