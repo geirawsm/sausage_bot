@@ -68,14 +68,16 @@ class Cogs(commands.Cog):
         Load cogs from the cog-dir
         #autodoc skip#
         '''
-        if args.single_cog:
+        if len(args.selected_cogs) > 0:
             cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
-            testing_cog = args.single_cog
-            if testing_cog in cog_files:
-                log.log('Loading cog: {}'.format(testing_cog))
-                await Cogs.load_cog_internal(testing_cog)
+            for testing_cog in args.selected_cogs:
+                if testing_cog in cog_files:
+                    log.log('Loading cog: {}'.format(testing_cog))
+                    await Cogs.load_cog_internal(testing_cog)
             log.debug(
-                f'Loading a single cog for testing purposes: {testing_cog}'
+                'Loading selected cogs for testing purposes:\n- {}'.format(
+                    '\n- '.join(args.selected_cogs)
+                )
             )
         else:
             log.debug(
