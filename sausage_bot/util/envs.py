@@ -216,7 +216,7 @@ log_db_schema = {
     ]
 }
 
-stats_settings_db_schema = {
+stats_db_settings_schema = {
     'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'settings',
     'items': [

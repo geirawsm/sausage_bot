@@ -294,7 +294,7 @@ async def json_to_db_inserts(cog_name):
         stats_inserts = []
         if file_io.file_exist(envs.stats_file):
             stats_file = file_io.read_json(envs.stats_file)
-            stats_settings_inserts = envs.stats_settings_db_schema['inserts']
+            stats_settings_inserts = envs.stats_db_settings_schema['inserts']
             for insert in stats_settings_inserts:
                 if insert[0] in stats_file:
                     under_inserts = stats_file[insert[0]]
