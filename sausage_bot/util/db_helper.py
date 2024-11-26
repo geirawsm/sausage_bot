@@ -3,6 +3,7 @@
 import aiosqlite
 from uuid import uuid4
 import re
+from pathlib import Path
 
 from sausage_bot.util import envs, file_io, discord_commands
 from sausage_bot.util.args import args
@@ -39,6 +40,7 @@ async def prep_table(
         ):
     log.verbose(f'Got `table_in`: {table_in}')
     db_file = table_in['db_file']
+    file_io.ensure_folder(Path(db_file).parent)
     table_name = table_in['name']
     item_list = table_in['items']
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
