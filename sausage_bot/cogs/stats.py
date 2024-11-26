@@ -865,109 +865,11 @@ async def setup(bot):
         file_io.remove_file(envs.stats_logs_file)
 
     # Cleaning DB if irregularities from previous instances of database
-    needs_cleanup = False
-    old_hide_roles_status = False
-    old_stats_msg_name_status = False
-    old_value_check_or_help_status = False
-    old_value_numeral_instead_of_bool_status = False
     if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
-        old_hide_roles = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
-            get_row_ids=True,
-            where=('setting', 'hide_roles')
-        )
-        if len(old_hide_roles) > 0:
-            needs_cleanup = True
-            old_hide_roles_status = True
-        old_stats_msg_name_status = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
-            where=('setting', 'stats_msg')
-        )
-        if len(old_stats_msg_name_status) > 0:
-            needs_cleanup = True
-            old_stats_msg_name_status = True
-        old_value_check_or_help = await db_helper.find_cols(
-            template_info=envs.stats_db_settings_schema,
-            cols_find=('value_check', 'value_help')
-        )
-        if len(old_value_check_or_help) > 0:
-            needs_cleanup = True
-            old_value_check_or_help_status = True
-        old_value_numeral_instead_of_bool = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema
-        )
-        new_bool_status = \
-            dict(old_value_numeral_instead_of_bool)
-        log.verbose('`new_bool_status` is ', pretty=new_bool_status)
-        type_checking = envs.stats_db_settings_schema['type_checking']
-        for setting in [
-            setting for setting in type_checking if
-            type_checking[setting] != 'bool'
-        ]:
-            new_bool_status.pop(setting)
-        for setting in new_bool_status.copy():
-            print(
-                'Checking {}: {}'.format(
-                    setting,
-                    type(new_bool_status[setting])
-                )
-            )
-            if type(eval(new_bool_status[setting])) is int:
-                if new_bool_status[setting] == 0:
-                    new_bool_status[setting] = False
-                elif new_bool_status[setting] == 1:
-                    new_bool_status[setting] = True
-                else:
-                    new_bool_status[setting] = \
-                        dict(envs.stats_db_settings_schema['inserts'])[setting]
-            else:
-                new_bool_status.pop(setting)
-        if len(new_bool_status) > 0:
-            needs_cleanup = True
-            old_value_numeral_instead_of_bool_status = True
-    if needs_cleanup:
-        log.verbose('Cleaning up DB')
-        if old_hide_roles_status:
-            log.verbose('Moving hide_roles from settings tale to hide_roles')
-            old_hide_roles = await db_helper.get_output(
-                template_info=envs.stats_db_settings_schema,
-                get_row_ids=True,
-                where=('setting', 'hide_roles'),
-                select=('value')
-            )
-            row_ids = [rowid[0] for rowid in old_hide_roles]
-            values = [[rowid[1]] for rowid in old_hide_roles]
-            await db_helper.insert_many_all(
-                template_info=envs.stats_db_hide_roles_schema,
-                inserts=values
-            )
-            await db_helper.del_row_ids(
-                template_info=envs.stats_db_settings_schema,
-                numbers=row_ids
-            )
-        if old_stats_msg_name_status:
-            log.verbose('Renaming stats_msg to stats_msg_id')
-            await db_helper.update_fields(
-                template_info=envs.stats_db_settings_schema,
-                where=('setting', 'stats_msg'),
-                updates=('setting', 'stats_msg_id')
-            )
-        if old_value_check_or_help_status:
-            log.verbose('Removing columns: {}'.format(
-                ', '.join(old_value_check_or_help)
-            ))
-            await db_helper.remove_cols(
-                template_info=envs.stats_db_settings_schema,
-                cols_remove=old_value_check_or_help
-            )
-        if old_value_numeral_instead_of_bool_status:
-            log.verbose('Converting old value numeral to bool')
-            for setting in new_bool_status:
-                await db_helper.update_fields(
-                    template_info=envs.stats_db_settings_schema,
-                    where=('setting', setting),
-                    updates=('value', new_bool_status[setting])
-                )
+        await db_helper.db_fix_old_hide_roles_status()
+        await db_helper.db_fix_old_stats_msg_name_status()
+        await db_helper.db_fix_old_value_check_or_help()
+        await db_helper.db_fix_old_value_numeral_instead_of_bool()
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
 
