@@ -5,7 +5,7 @@
 import discord
 from discord.ext import commands
 import json
-import sys
+from sys import exit
 from . import envs
 from environs import Env, EnvError
 from .log import log
@@ -39,8 +39,10 @@ try:
     BOT_ID = env('BOT_ID')
     DISCORD_TOKEN = env('DISCORD_TOKEN')
 except EnvError as e:
-    print(f'You need to set environment variables for the bot to work: {e}')
-    sys.exit()
+    print(
+        f'You need to set environment variables for the bot to work: {e}'
+    )
+    exit()
 
 try:
     intents = discord.Intents.all()
@@ -50,4 +52,4 @@ try:
     )
 except KeyError as e:
     log.error(f'Couldn\'t load basic env: {e}')
-    sys.exit()
+    exit()

@@ -5,8 +5,8 @@ import discord
 from discord.ext import commands
 from discord.app_commands import locale_str
 import os
-import asyncio
 from tabulate import tabulate
+from sys import exit
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper
@@ -148,15 +148,10 @@ for folder in check_and_create_folders:
         pass
 
 # Create necessary files before starting
-log.verbose('Creating necessary files')
-check_and_create_files = [
-    (envs.env_file, envs.env_template)
-]
-for file in check_and_create_files:
-    if isinstance(file, tuple):
-        file_io.ensure_file(file[0], file_template=file[1])
-    else:
-        file_io.ensure_file(file)
+if args.create_env:
+    log.verbose('Create .env file')
+    file_io.ensure_file(envs.env_file, envs.env_template)
+    exit()
 
 
 @config.bot.event

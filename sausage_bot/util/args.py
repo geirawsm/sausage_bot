@@ -17,6 +17,11 @@ settings_args.add_argument('--db-dir',
                            action='store',
                            default=False,
                            dest='db_dir')
+settings_args.add_argument('--create-env',
+                           help='Create template .env file',
+                           action='store_true',
+                           default=False,
+                           dest='create_env')
 
 logging_args = parser.add_argument_group('Logging')
 logging_args.add_argument('--log', '-l',
@@ -107,6 +112,7 @@ testing_args.add_argument('--rss-skip-url-validation',
                           action='store_true',
                           default=False,
                           dest='rss_skip_url_validation')
+
 version_info_args = parser.add_argument_group('Version info')
 version_info_args.add_argument('--last-commit',
                                help='Load info about last commit this bot '

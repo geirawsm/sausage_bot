@@ -3,7 +3,7 @@
 import os
 import stat
 import json
-import pathlib
+from pathlib import Path
 from difflib import SequenceMatcher
 from ..util.log import log
 
@@ -147,7 +147,7 @@ def ensure_folder(folder_path: str):
         _path = ''
         for _dir in _dirs:
             _path += '{}/'.format(_dir)
-        pathlib.Path(_path).mkdir(parents=True, exist_ok=True)
+        Path(_path).mkdir(parents=True, exist_ok=True)
 
 
 def ensure_file(file_path_in: str, file_template=False):
