@@ -409,11 +409,14 @@ async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     version_in = file_io.read_json(envs.version_file)
     await interaction.followup.send(
-        'Branch: {}\nLast run number: {}\n'
-        'Last commit: {}'.format(
+        'Branch: {}\n'
+        'Last commit message: {}\n'
+        'Last commit: {}\n'
+        'Last run number: {}'.format(
             version_in['BRANCH'],
-            version_in['LAST_RUN_NUMBER'],
-            version_in['LAST_COMMIT']
+            version_in['LAST_COMMIT_MSG'],
+            version_in['LAST_COMMIT'],
+            version_in['LAST_RUN_NUMBER']
         ),
         ephemeral=True
     )

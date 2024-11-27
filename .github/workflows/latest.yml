@@ -56,10 +56,12 @@ jobs:
         file: ./dockerfile
         tags: ${{secrets.DOCKER_USER}}/sausage_bot:latest
         labels: |
-          Last run number=${{ github.run_number }}
-          Last commit=${{ github.sha }}
           Branch=${{ github.ref_name }}
+          Last commit_msg=${{ github.event.head_commit.message }}
+          Last commit=${{ github.sha }}
+          Last run number=${{ github.run_number }}
         build-args: |
-          LAST_RUN_NUMBER=${{ github.run_number }}
-          LAST_COMMIT=${{ github.sha }}
           BRANCH=${{ github.ref_name }}
+          LAST_COMMIT_MSG=${{ github.event.head_commit.message }}
+          LAST_COMMIT=${{ github.sha }}
+          LAST_RUN_NUMBER=${{ github.run_number }}
