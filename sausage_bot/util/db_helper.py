@@ -70,7 +70,7 @@ async def prep_table(
     if old_inserts:
         db_len = len(await get_row_ids(table_in))
         if db_len <= 0:
-            log.verbose('Inserting old info into db file')
+            log.verbose(f'Inserting old info into db file ({table_name})')
             # Make the returned status from `insert_many_all` decide
             # whether the json file can be deleted or not
             delete_json_ok = await insert_many_all(
@@ -80,8 +80,8 @@ async def prep_table(
         elif db_len == len(old_inserts):
             log.log(
                 'Length of table and inserts are the same '
-                '({} vs {}), will not import'.format(
-                    db_len, len(old_inserts)
+                '({} vs {}), will not import to {}'.format(
+                    db_len, len(old_inserts), table_name
                 )
             )
             delete_json_ok = True
