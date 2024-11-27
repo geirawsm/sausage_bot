@@ -57,7 +57,7 @@ jobs:
         tags: ${{ secrets.DOCKER_USER }}/sausage_bot:${{ github.ref_name }}
         labels: |
           Branch=${{ github.ref_name }}
-          Last commit_msg=${{ github.event.head_commit.message }}
+          Last commit msg=${{ github.event.head_commit.message }}
           Last commit=${{ github.sha }}
           Last run number=${{ github.run_number }}
         build-args: |
