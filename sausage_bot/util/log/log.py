@@ -314,7 +314,7 @@ def i18n(log_in: str):
         log_out = '[ {dt} ] {log_in}\n'.format(dt=dt_full, log_in=str(log_in))
         dt = pendulum.now(config.TIMEZONE)
         _logfilename = envs.LOG_DIR / 'i18n.log'
-        file_io.ensure_file(_logfilename)
+        internal_cmd.ensure_file(_logfilename)
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
         write_log.close()
