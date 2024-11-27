@@ -68,7 +68,7 @@ class Cogs(commands.Cog):
         Load cogs from the cog-dir
         #autodoc skip#
         '''
-        if len(args.selected_cogs) > 0:
+        if args.selected_cogs:
             cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
             for testing_cog in args.selected_cogs:
                 if testing_cog in cog_files:

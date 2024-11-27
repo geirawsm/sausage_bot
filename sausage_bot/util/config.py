@@ -39,8 +39,7 @@ try:
     BOT_ID = env('BOT_ID')
     DISCORD_TOKEN = env('DISCORD_TOKEN')
 except EnvError as e:
-    print(f'Error: {e}')
-    print('You need to set environment variables for the bot to work')
+    log.error('You need to set environment variables for the bot to work: {e}')
 
 try:
     intents = discord.Intents.all()
