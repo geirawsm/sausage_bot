@@ -403,6 +403,7 @@ async def clear_locals(ctx):
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     version_in = file_io.read_json(envs.version_file)
+    log.debug(f'Got `version_in`: {version_in}')
     await interaction.followup.send(
         'Branch: {}\n'
         'Last commit message: {}\n'
