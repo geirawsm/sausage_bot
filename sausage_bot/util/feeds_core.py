@@ -554,7 +554,7 @@ async def review_feeds_status(feed_type: str = None):
         channel_error_msg = I18N.t(
             'feeds_core.commands.review_feeds_status.failed_channels',
             channels='\n- '.join(
-                f'{failed_channels[0]}: {failed_channels[1]}'
+                f'{fail[0]}: {fail[1]}' for fail in failed_channels
             )
         )
         await discord_commands.log_to_bot_channel(channel_error_msg)

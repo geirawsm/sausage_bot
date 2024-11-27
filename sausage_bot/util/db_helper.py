@@ -116,17 +116,7 @@ async def add_missing_db_setup(
     else:
         log.debug('No `inserts` received')
         inserts = []
-    log.verbose('Got `inserts`', pretty=inserts)
     wanted_cols = template_info['items']
-    log.verbose(f'Got `db_file`: {db_file}')
-    log.verbose(f'Got `table_name`: {table_name}')
-    table_cmd = f'CREATE TABLE IF NOT EXISTS {table_name} ('\
-        'id TEXT NOT NULL, test TEXT'\
-        ');'
-    async with aiosqlite.connect(db_file) as db:
-        log.db(f'Using this query: {table_cmd}')
-        await db.execute(table_cmd)
-        await db.commit()
     table_info = f'PRAGMA table_info({table_name})'
     async with aiosqlite.connect(db_file) as db:
         db_out = await db.execute(table_info)
@@ -246,12 +236,13 @@ async def db_fix_old_stats_msg_name_status():
         template_info=envs.stats_db_settings_schema,
         where=('setting', 'stats_msg')
     )
-    log.verbose('Renaming stats_msg to stats_msg_id')
-    await update_fields(
-        template_info=envs.stats_db_settings_schema,
-        where=('setting', 'stats_msg'),
-        updates=('setting', 'stats_msg_id')
-    )
+    if len(old_stats_msg_name_status) > 0:
+        log.verbose('Renaming stats_msg to stats_msg_id')
+        await update_fields(
+            template_info=envs.stats_db_settings_schema,
+            where=('setting', 'stats_msg'),
+            updates=('setting', 'stats_msg_id')
+        )
 
 
 async def db_fix_old_value_check_or_help():
@@ -307,7 +298,6 @@ async def db_fix_old_value_numeral_instead_of_bool():
                 where=('setting', setting),
                 updates=('value', new_bool_status[setting])
             )
-
 
 
 async def json_to_db_inserts(cog_name):
@@ -859,6 +849,7 @@ async def get_output(
         Only return one single result
     '''
     db_file = template_info['db_file']
+    log.db(f'Opening `{db_file}`')
     table_name = template_info['name']
     _cmd = 'SELECT '
     if get_row_ids:
@@ -936,6 +927,7 @@ async def get_output(
                     out = out[0]
             else:
                 out = await out.fetchall()
+            log.verbose(f'Returning from db:', pretty=out)
             return out
     except aiosqlite.OperationalError as e:
         log.error(f'Error: {e}')

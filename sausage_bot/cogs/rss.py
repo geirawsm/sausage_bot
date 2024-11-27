@@ -774,7 +774,8 @@ async def setup(bot):
         missing_tbl_cols = await db_helper.add_missing_db_setup(
             envs.rss_db_settings_schema, missing_tbl_cols
         )
-        if len(missing_tbl_cols) > 0:
+        log.debug(f'`missing_tbl_cols` is {missing_tbl_cols}')
+        if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
             missing_tbl_cols_text = ''
             for _tbl in missing_tbl_cols:
                 missing_tbl_cols_text += '{}:\n'.format(
