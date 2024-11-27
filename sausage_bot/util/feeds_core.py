@@ -429,13 +429,17 @@ async def review_feeds_status(feed_type: str = None):
         return False
     if feed_type in ['rss', 'spotify']:
         feed_db = envs.rss_db_schema
+        feeds_status_db_in = await db_helper.get_output(
+            template_info=feed_db,
+            order_by=[('feed_name', 'DESC')],
+            where=[('feed_type', feed_type)]
+        )
     elif feed_type == 'youtube':
         feed_db = envs.youtube_db_schema
-    feeds_status_db_in = await db_helper.get_output(
-        template_info=feed_db,
-        order_by=[('feed_name', 'DESC')],
-        where=[('feed_type', feed_type)]
-    )
+        feeds_status_db_in = await db_helper.get_output(
+            template_info=feed_db,
+            order_by=[('feed_name', 'DESC')]
+        )
     failed_feeds = []
     failed_channels = []
     if feeds_status_db_in is None:
