@@ -42,7 +42,6 @@ except EnvError as e:
     print(
         f'You need to set environment variables for the bot to work: {e}'
     )
-    exit()
 
 try:
     intents = discord.Intents.all()
