@@ -30,58 +30,6 @@ if args.log_all:
     args.log_i18n = True
 
 
-class internal_cmd():
-    def __init__():
-        pass
-
-    @staticmethod
-    def file_size(filename):
-        '''
-        Checks the file size of a file. If it can't find the file it will
-        return False
-        '''
-        try:
-            _stats = os.stat(filename, follow_symlinks=True)
-            return _stats[stat.ST_SIZE]
-        except FileNotFoundError:
-            return False
-
-    @staticmethod
-    def ensure_folder(folder_path: str):
-        '''
-        Create folders in `folder_path` if it doesn't exist
-        '''
-        folder_path = str(folder_path)
-        # Make the folders if necessary
-        if not os.path.exists(folder_path):
-            _dirs = str(folder_path).split(os.sep)
-            _path = ''
-            for _dir in _dirs:
-                _path += '{}/'.format(_dir)
-            Path(_path).mkdir(parents=True, exist_ok=True)
-
-    @staticmethod
-    def ensure_file(file_path_in: str, file_template=False):
-        '''
-        Create file `file_path_in` if it doesn't exist and include the
-        `file_template` if provided.
-        '''
-        full_file_path = str(file_path_in).split(os.sep)
-        folder_path = '/'.join(full_file_path[0:-1])
-        folder_path += '/'
-        # Make the folders if necessary
-        if not os.path.exists(file_path_in):
-            internal_cmd.ensure_folder(folder_path)
-        # Don't overwrite the file unless it's empty
-        # Create the file if it doesn't exist
-        if not internal_cmd.file_size(file_path_in):
-            with open(file_path_in, 'w+') as fout:
-                if file_template:
-                    fout.write(file_template)
-                else:
-                    fout.write('')
-
-
 def log_function(
         log_in: str, color: str = None, extra_info: str = None,
         extra_color: str = None, pretty: dict | list | tuple = None,
@@ -169,10 +117,9 @@ def log_function(
         dt = pendulum.now(config.TIMEZONE)
         _dt_rev = dt.format('YYYY-MM-DD')
         _logfilename = envs.LOG_DIR / f'{_dt_rev}.log'
-        internal_cmd.ensure_file(_logfilename)
-        write_log = open(_logfilename, 'a+', encoding="utf-8")
-        write_log.write(log_out)
-        write_log.close()
+        with open(_logfilename, 'a+', encoding="utf-8") as fout:
+            fout.write(str(log_out))
+            return True
 
 
 def log(
@@ -314,7 +261,6 @@ def i18n(log_in: str):
         log_out = '[ {dt} ] {log_in}\n'.format(dt=dt_full, log_in=str(log_in))
         dt = pendulum.now(config.TIMEZONE)
         _logfilename = envs.LOG_DIR / 'i18n.log'
-        internal_cmd.ensure_file(_logfilename)
         write_log = open(_logfilename, 'a+', encoding="utf-8")
         write_log.write(log_out)
         write_log.close()
