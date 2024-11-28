@@ -461,12 +461,19 @@ class Youtube(commands.Cog):
             FEED_NAME = feed[1]
             CHANNEL = feed[3]
             log.debug(
-                f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
+                    f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='youtube', feed_info=feed
             )
-            log.debug(f'Got this for `FEED_POSTS`: {FEED_POSTS}')
+            log.debug(
+                f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
+                '{}'.format(
+                    ', '.join(
+                        [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+                    )
+                )
+            )
             if FEED_POSTS is None:
                 log.log(f'{feed}: this feed returned NoneType.')
                 await discord_commands.log_to_bot_channel(

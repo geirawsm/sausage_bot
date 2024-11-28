@@ -200,10 +200,10 @@ def filter_links(items):
         filter_priority = eval(config.env(
             'RSS_FILTER_PRIORITY', default='deny'))
         for filter_out in filter_priority:
-            log.debug(f'Using filter: {filter_out}')
+            log.verbose(f'Using filter: {filter_out}')
             try:
                 if item['title'] is not None:
-                    log.debug(
+                    log.verbose(
                         'Checking filter against title `{}`'.format(
                             item['title'].lower()
                         )
@@ -257,23 +257,23 @@ def filter_links(items):
             item['title']
         ))
         if item['type'] == 'youtube':
-            log.debug('Checking Youtube item')
+            log.verbose('Checking Youtube item')
             if not config.env('YT_INCLUDE_SHORTS', default='true'):
                 shorts_keywords = ['#shorts', '(shorts)']
                 if any(kw in str(item['title']).lower()
                         for kw in shorts_keywords) or\
                         any(kw in str(item['description']).lower()
                             for kw in shorts_keywords):
-                    log.debug(
+                    log.verbose(
                         'Skipped {} because of `#Shorts` '
                         'or `(shorts)`'.format(
                             item['title']
                         )
                     )
                     continue
-        log.debug('Filters: {}'.format(items['filters']))
+        log.verbose('Filters: {}'.format(items['filters']))
         if items['filters'] is not None and len(items['filters']) > 0:
-            log.debug('Found active filters, checking...')
+            log.verbose('Found active filters, checking...')
             link_filter = post_based_on_filter(item, items['filters'])
             if link_filter:
                 links_out.append(item)
@@ -582,7 +582,7 @@ async def download_pod_image(img_url):
     await session.close()
 
 
-async def get_main_color_from_image_url(image_url):
+async def extract_color_from_image_url(image_url):
     def rgb_to_hex(value1, value2, value3):
         """
         Convert RGB color to hex color

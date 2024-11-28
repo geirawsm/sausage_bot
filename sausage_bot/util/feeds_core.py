@@ -630,25 +630,29 @@ async def process_links_for_posting_or_editing(
         return None
     if feed_type in ['rss', 'spotify']:
         feed_db_log = envs.rss_db_log_schema
+        FEED_SETTINGS = await db_helper.get_output(
+            template_info=envs.rss_db_settings_schema,
+            select=('setting', 'value')
+        )
     elif feed_type == 'youtube':
         feed_db_log = envs.youtube_db_log_schema
-    log.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`: {str(FEED_POSTS)[0:100]}')
+        FEED_SETTINGS = None
+    if FEED_POSTS is None:
+        log.debug('`FEED_POSTS` is None')
+        return None
+    log.debug(
+        f'Got {len(FEED_POSTS)} items in '
+        f'`FEED_POSTS`: {str(FEED_POSTS)[0:100]}'
+    )
     FEED_LOG = await db_helper.get_output(
         template_info=feed_db_log,
         select='url',
         where=[('uuid', uuid)]
     )
-    FEED_SETTINGS = await db_helper.get_output(
-        template_info=envs.rss_db_settings_schema,
-        select=('setting', 'value')
-    )
-    FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None else FEED_SETTINGS
-    if FEED_POSTS is None:
-        log.debug('`FEED_POSTS` is None')
-        return None
-    FEED_POSTS = FEED_POSTS[0:3]
+    FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None\
+        else FEED_SETTINGS
     STOP_POSTING = False
-    for item in FEED_POSTS:
+    for item in FEED_POSTS[0:3]:
         log.verbose(f'Got this item:\n{item}')
         if isinstance(item, str):
             feed_link = item
@@ -685,7 +689,7 @@ async def process_links_for_posting_or_editing(
                             'Found a podcast that should be embedded:',
                             pretty=item
                         )
-                        embed_color = await net_io.get_main_color_from_image_url(
+                        embed_color = await net_io.extract_color_from_image_url(
                             item['img']
                         )
                         embed = discord.Embed(
@@ -716,7 +720,10 @@ async def process_links_for_posting_or_editing(
                     else:
                         log.debug('Found a regular text post')
                         if args.testmode:
-                            log.verbose(feed_link, color='yellow')
+                            log.verbose(
+                                f'TESTMODE: Would post this link: {feed_link}',
+                                color='yellow'
+                            )
                         else:
                             await discord_commands.post_to_channel(
                                 CHANNEL, feed_link
