@@ -746,20 +746,22 @@ async def setup(bot):
         log.verbose('RSS db does not exist')
         rss_prep_is_ok = await db_helper.prep_table(
             table_in=envs.rss_db_schema,
-            old_inserts=rss_inserts['feeds'] if rss_inserts is not None
+            inserts=rss_inserts['feeds'] if rss_inserts is not None
             else rss_inserts
         )
         rss_filter_prep_is_ok = await db_helper.prep_table(
-            envs.rss_db_filter_schema,
-            rss_inserts['filter'] if rss_inserts is not None else rss_inserts
+            table_in=envs.rss_db_filter_schema,
+            inserts=rss_inserts['filter'] if rss_inserts is not None
+            else rss_inserts
         )
         rss_settings_prep_is_ok = await db_helper.prep_table(
-            envs.rss_db_settings_schema,
-            envs.rss_db_settings_schema['inserts']
+            table_in=envs.rss_db_settings_schema,
+            inserts=envs.rss_db_settings_schema['inserts']
         )
         rss_log_prep_is_ok = await db_helper.prep_table(
-            envs.rss_db_log_schema,
-            rss_inserts['logs'] if rss_inserts is not None else rss_inserts
+            table_in=envs.rss_db_log_schema,
+            inserts=rss_inserts['logs'] if rss_inserts is not None
+            else rss_inserts
         )
         log.verbose(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
         log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')

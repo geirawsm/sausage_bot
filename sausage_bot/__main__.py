@@ -164,7 +164,7 @@ async def on_ready():
     log.verbose('Checking locale db')
     await db_helper.prep_table(
         table_in=envs.locale_db_schema,
-        old_inserts=['en']
+        inserts=['en']
     )
     locale_db = await db_helper.get_output(
         template_info=envs.locale_db_schema,

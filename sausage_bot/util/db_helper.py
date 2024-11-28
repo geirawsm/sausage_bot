@@ -36,7 +36,7 @@ async def table_exist(template_info):
 
 
 async def prep_table(
-            table_in, old_inserts: list = None
+            table_in, inserts: list = None
         ):
     log.verbose(f'Got `table_in`: {table_in}')
     db_file = table_in['db_file']
@@ -67,7 +67,7 @@ async def prep_table(
             log.error(f'Error: {e}')
             return None
     delete_json_ok = False
-    if old_inserts:
+    if inserts:
         db_len = len(await get_row_ids(table_in))
         if db_len <= 0:
             log.verbose(f'Inserting old info into db file ({table_name})')
@@ -75,13 +75,13 @@ async def prep_table(
             # whether the json file can be deleted or not
             delete_json_ok = await insert_many_all(
                 template_info=table_in,
-                inserts=old_inserts
+                inserts=inserts
             )
-        elif db_len == len(old_inserts):
+        elif db_len == len(inserts):
             log.log(
                 'Length of table and inserts are the same '
                 '({} vs {}), will not import to {}'.format(
-                    db_len, len(old_inserts), table_name
+                    db_len, len(inserts), table_name
                 )
             )
             delete_json_ok = True
@@ -94,7 +94,7 @@ async def prep_table(
                 content_in='Want to insert info from old json into '
                 f'{table_name}, but something is wrong'
                 '({} vs {})'.format(
-                    db_len, len(old_inserts)
+                    db_len, len(inserts)
                 )
             )
             delete_json_ok = False
@@ -108,14 +108,17 @@ async def add_missing_db_setup(
     db_file = template_info['db_file']
     table_name = template_info['name']
     log.debug(f'Checking `{table_name}` in `{db_file}`')
-    if table_name not in dict_in:
-        dict_in[table_name] = []
     if 'inserts' in template_info:
         log.debug('Got `inserts`')
         inserts = template_info['inserts']
     else:
         log.debug('No `inserts` received')
         inserts = []
+    await prep_table(
+        table_in=template_info, inserts=inserts
+    )
+    if table_name not in dict_in:
+        dict_in[table_name] = []
     wanted_cols = template_info['items']
     table_info = f'PRAGMA table_info({table_name})'
     async with aiosqlite.connect(db_file) as db:

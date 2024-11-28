@@ -509,7 +509,7 @@ async def setup(bot):
         log.verbose('Youtube db does not exist')
         youtube_prep_is_ok = await db_helper.prep_table(
             table_in=envs.youtube_db_schema,
-            old_inserts=youtube_inserts['feeds'] if youtube_inserts is not None
+            inserts=youtube_inserts['feeds'] if youtube_inserts is not None
             else youtube_inserts
         )
         youtube_filter_prep_is_ok = await db_helper.prep_table(

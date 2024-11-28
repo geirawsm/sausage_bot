@@ -309,7 +309,7 @@ async def setup(bot):
         log_settings_inserts = envs.log_db_schema['inserts']
         log_prep_is_ok = await db_helper.prep_table(
             table_in=envs.log_db_schema,
-            old_inserts=log_settings_inserts
+            inserts=log_settings_inserts
         )
         log.verbose(f'`log_prep_is_ok` is {log_prep_is_ok}')
     else:

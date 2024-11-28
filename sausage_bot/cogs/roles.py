@@ -1874,17 +1874,17 @@ async def setup(bot):
         log.debug(f'`roles_inserts_settings` is {roles_inserts_settings}')
         msgs_is_ok = await db_helper.prep_table(
             table_in=envs.roles_db_msgs_schema,
-            old_inserts=roles_inserts_msg
+            inserts=roles_inserts_msg
         )
         log.verbose(f'`msgs_is_ok` is {msgs_is_ok}')
         reacts_is_ok = await db_helper.prep_table(
             table_in=envs.roles_db_roles_schema,
-            old_inserts=roles_inserts_reactions
+            inserts=roles_inserts_reactions
         )
         log.verbose(f'`reacts_is_ok` is {reacts_is_ok}')
         settings_is_ok = await db_helper.prep_table(
             table_in=envs.roles_db_settings_schema,
-            old_inserts=roles_inserts_settings
+            inserts=roles_inserts_settings
         )
         log.verbose(f'`settings_is_ok` is {settings_is_ok}')
 
