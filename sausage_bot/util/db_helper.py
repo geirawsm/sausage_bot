@@ -930,7 +930,7 @@ async def get_output(
                     out = out[0]
             else:
                 out = await out.fetchall()
-            log.verbose(f'Returning from db:', pretty=out)
+            log.verbose(f'Returning {len(out)} items from from db')
             return out
     except aiosqlite.OperationalError as e:
         log.error(f'Error: {e}')

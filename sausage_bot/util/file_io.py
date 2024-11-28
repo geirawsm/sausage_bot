@@ -222,7 +222,7 @@ def check_similarity(
             )
             return input2
         else:
-            log.debug(
+            log.verbose(
                 f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
                 f'`{input1}` vs `{input2}`'
             )

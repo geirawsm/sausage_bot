@@ -838,14 +838,20 @@ async def setup(bot):
         stats_log_inserts = stats_file_inserts['stats_logs_inserts']
     log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+    # Cleaning DB if irregularities from previous instances of database
+    if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
+        await db_helper.db_fix_old_hide_roles_status()
+        await db_helper.db_fix_old_stats_msg_name_status()
+        await db_helper.db_fix_old_value_check_or_help()
+        await db_helper.db_fix_old_value_numeral_instead_of_bool()
     stats_settings_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_settings_schema,
-        old_inserts=stats_settings_inserts
+        inserts=stats_settings_inserts
     )
     log.verbose(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
     stats_hide_roles_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_hide_roles_schema,
-        old_inserts=stats_hide_roles_inserts
+        inserts=stats_hide_roles_inserts
     )
     log.verbose(
         f'`stats_hide_roles_prep_is_ok` is {stats_hide_roles_prep_is_ok}'
@@ -863,13 +869,6 @@ async def setup(bot):
         file_io.remove_file(envs.stats_file)
     if stats_log_prep_is_ok and file_io.file_exist(envs.stats_logs_file):
         file_io.remove_file(envs.stats_logs_file)
-
-    # Cleaning DB if irregularities from previous instances of database
-    if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
-        await db_helper.db_fix_old_hide_roles_status()
-        await db_helper.db_fix_old_stats_msg_name_status()
-        await db_helper.db_fix_old_value_check_or_help()
-        await db_helper.db_fix_old_value_numeral_instead_of_bool()
     log.verbose('Registering cog to bot')
     await bot.add_cog(Stats(bot))
 

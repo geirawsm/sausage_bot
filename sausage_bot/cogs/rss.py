@@ -641,7 +641,9 @@ class RSSfeed(commands.Cog):
             log.debug(
                 f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
                 '{}'.format(
-                    pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                    ', '.join(
+                        [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+                    )
                 )
             )
             if FEED_POSTS is None:
