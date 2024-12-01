@@ -536,6 +536,27 @@ async def setup(bot):
         log.verbose(f'`youtube_log_prep_is_ok` is {youtube_log_prep_is_ok}')
     else:
         log.verbose('youtube db exist!')
+        missing_tbl_cols = {}
+        missing_tbl_cols = await db_helper.add_missing_db_setup(
+            envs.youtube_db_schema, missing_tbl_cols
+        )
+        missing_tbl_cols = await db_helper.add_missing_db_setup(
+            envs.youtube_db_filter_schema, missing_tbl_cols
+        )
+        log.debug(f'`missing_tbl_cols` is {missing_tbl_cols}')
+        if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
+            missing_tbl_cols_text = ''
+            for _tbl in missing_tbl_cols:
+                missing_tbl_cols_text += '{}:\n'.format(
+                    _tbl
+                )
+                missing_tbl_cols_text += '\n- '.join(missing_tbl_cols[_tbl])
+            await discord_commands.log_to_bot_channel(
+                'Missing columns in rss db: {}\n'
+                'Make sure to populate missing information'.format(
+                    missing_tbl_cols_text
+                )
+            )
     # Delete old json files if they are not necessary anymore
     if youtube_prep_is_ok:
         file_io.remove_file(envs.youtube_feeds_file)
