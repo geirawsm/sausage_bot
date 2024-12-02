@@ -275,7 +275,8 @@ async def db_fix_old_value_numeral_instead_of_bool():
         setting for setting in type_checking if
         type_checking[setting] != 'bool'
     ]:
-        new_bool_status.pop(setting)
+        if setting in new_bool_status:
+            new_bool_status.pop(setting)
     for setting in new_bool_status.copy():
         print(
             'Checking {}: {}'.format(
