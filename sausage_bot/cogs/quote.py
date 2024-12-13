@@ -4,7 +4,6 @@ import discord
 from discord.ext import commands
 from discord.app_commands import locale_str, describe
 import uuid
-from asyncio import TimeoutError
 from tabulate import tabulate
 import typing
 

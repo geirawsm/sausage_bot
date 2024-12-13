@@ -331,6 +331,7 @@ async def setup(bot):
                 ('log', 'log_maintenance', 'stopped')
             )
         )
+    log.verbose(f'Got `task_list`: {task_list}')
     for task in task_list:
         if task[0] == 'log_maintenance':
             if task[1] == 'started':

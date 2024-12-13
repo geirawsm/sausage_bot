@@ -192,7 +192,9 @@ class RSSfeed(commands.Cog):
         await interaction.followup.send(msg)
 
     @rss_posting_group.command(
-        name='restart', description=locale_str(I18N.t('rss.commands.restart.cmd'))
+        name='restart', description=locale_str(I18N.t(
+            'rss.commands.restart.cmd'
+        ))
     )
     async def rss_posting_restart(
         self, interaction: discord.Interaction, feed_type: typing.Literal[
