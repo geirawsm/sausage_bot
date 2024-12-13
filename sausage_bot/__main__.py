@@ -7,6 +7,7 @@ from discord.app_commands import locale_str
 import os
 from tabulate import tabulate
 from sys import exit
+import typing
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper
@@ -549,7 +550,9 @@ async def ban(
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
-    message_id: str = None, mention: discord.Member = None
+    message_id: str = None, mention: typing.Union[
+        discord.Member, discord.Role
+    ] = None
 ):
     reply_msg = None
     log.debug(f'`channel` is {channel} ({type(channel)})')
