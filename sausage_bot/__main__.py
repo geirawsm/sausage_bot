@@ -549,7 +549,9 @@ async def ban(
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
-    message_id: str = None, mention: discord.Member = None
+    message_id: str = None, mention: typing.Union[
+        discord.Member, discord.Role
+    ] = None
 ):
     reply_msg = None
     log.debug(f'`channel` is {channel} ({type(channel)})')
