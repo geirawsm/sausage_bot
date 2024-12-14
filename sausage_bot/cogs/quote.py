@@ -611,7 +611,7 @@ class Quotes(commands.Cog):
                 )
             log.debug('Got quotes: {}'.format(quote_in))
             for _q in quote_in:
-                q_no = _q[0]
+                q_no = _q['rowid']
                 if any(item is None for item in _q):
                     log.error(
                         f'None-values discovered in DB-file (quotes): {_q}'
@@ -620,11 +620,11 @@ class Quotes(commands.Cog):
                 else:
                     if shortened:
                         q_text = '{}...'.format(
-                            _q[2][0:100]
-                        ) if len(_q[2]) > 100 else _q[2]
+                            _q['quote_text'][0:100]
+                        ) if len(_q['quote_text']) > 100 else _q['quote_text']
                     else:
-                        q_text = _q[2]
-                    q_datetime = _q[3]
+                        q_text = _q['quote_text']
+                    q_datetime = _q['datetime']
                     quotes_out.append(
                         (
                             q_no, q_text, q_datetime

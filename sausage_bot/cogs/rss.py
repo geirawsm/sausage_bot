@@ -515,8 +515,8 @@ class RSSfeed(commands.Cog):
             select=('setting', 'value', 'value_check')
         )
         for setting in settings_in_db:
-            if setting[0] == name_of_setting:
-                if setting[2] == 'bool':
+            if setting['setting'] == name_of_setting:
+                if setting['value_check'] == 'bool':
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as _error:
@@ -528,9 +528,20 @@ class RSSfeed(commands.Cog):
                             )
                         )
                         return
-                log.debug(f'`value_in` is {value_in} ({type(value_in)})')
-                log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
-                if type(value_in) is eval(setting[2]):
+                log.debug(
+                    '`value_in` is {value_in} ({type_value_in})'.format(
+                        value_in=value_in,
+                        type_value_in=type(value_in)
+                    )
+                )
+                log.debug(
+                    '`setting[\'value_check\']` is {value_check} '
+                    '({type_value_check})'.format(
+                        value_check=setting['value_check'],
+                        type_value_check=type(setting['value_check'])
+                    )
+                )
+                if type(value_in) is eval(setting['value_check']):
                     await db_helper.update_fields(
                         template_info=envs.rss_db_settings_schema,
                         where=[('setting', name_of_setting)],
@@ -628,12 +639,12 @@ class RSSfeed(commands.Cog):
             return
         log.verbose('Got these feeds:')
         for feed in feeds:
-            log.verbose('- {}'.format(feed[1]))
+            log.verbose('- {}'.format(feed['feed_name']))
         # Start processing per feed settings
         for feed in feeds:
-            UUID = feed[0]
-            FEED_NAME = feed[1]
-            CHANNEL = feed[3]
+            UUID = feed['uuid']
+            FEED_NAME = feed['feed_name']
+            CHANNEL = feed['channel']
             log.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
@@ -808,7 +819,7 @@ async def setup(bot):
         where=('cog', 'rss')
     )
     _inserts = envs.tasks_db_schema['inserts']
-    task_check = [name[0] for name in task_list]
+    task_check = [task['task'] for task in task_list]
     if len(task_list) < len(_inserts):
         for _ins in _inserts:
             if _ins[1] in task_check:
@@ -820,19 +831,35 @@ async def setup(bot):
             )
         )
     for task in task_list:
-        if task[0] == 'post_feeds':
-            if task[1] == 'started':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+        if task['task'] == 'post_feeds':
+            if task['status'] == 'started':
+                log.debug(
+                    '`{task}` is set as `{status}`, starting...'.format(
+                        task=task['task'], status=task['status']
+                    )
+                )
                 RSSfeed.post_feeds.start()
-            elif task[1] == 'stopped':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+            elif task['status'] == 'stopped':
+                log.debug(
+                    '`{task}` is set as `{status}`'.format(
+                        task=task['task'], status=task['status']
+                    )
+                )
                 RSSfeed.post_feeds.cancel()
-        if task[0] == 'post_podcasts':
-            if task[1] == 'started':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+        if task['task'] == 'post_podcasts':
+            if task['status'] == 'started':
+                log.debug(
+                    '`{task}` is set as `{status}`, starting...'.format(
+                        task=task['task'], status=task['status']
+                    )
+                )
                 RSSfeed.post_podcasts.start()
-            elif task[1] == 'stopped':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+            elif task['status'] == 'stopped':
+                log.debug(
+                    '`{task}` is set as `{status}`'.format(
+                        task=task['task'], status=task['status']
+                    )
+                )
                 RSSfeed.post_podcasts.cancel()
 
 

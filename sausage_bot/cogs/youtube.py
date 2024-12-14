@@ -17,7 +17,7 @@ async def feed_name_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    feed_names = [name[0] for name in await db_helper.get_output(
+    feed_names = [name['feed_name'] for name in await db_helper.get_output(
             template_info=envs.youtube_db_schema,
             select=('feed_name')
         )
@@ -448,18 +448,18 @@ class Youtube(commands.Cog):
                 ('status_channel', envs.CHANNEL_STATUS_SUCCESS)
             ]
         )
-        if len(feeds) == 0:
+        if len(feeds) == 0 or feeds is None:
             log.log('Couldn\'t find any Youtube feeds')
             return
         log.verbose('Got these feeds:')
         for feed in feeds:
-            log.verbose('- {}'.format(feed[1]))
+            log.verbose('- {}'.format(feed['feed_name']))
         # Start processing per feed settings
         for feed in feeds:
-            log.log(f'Checking {feed[1]}', sameline=True)
-            UUID = feed[0]
-            FEED_NAME = feed[1]
-            CHANNEL = feed[3]
+            UUID = feed['uuid']
+            FEED_NAME = feed['feed_name']
+            CHANNEL = feed['channel']
+            log.log(f'Checking {FEED_NAME}', sameline=True)
             log.debug(
                     f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
@@ -578,12 +578,18 @@ async def setup(bot):
             )
         )
     for task in task_list:
-        if task[0] == 'post_videos':
-            if task[1] == 'started':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+        if task['task'] == 'post_videos':
+            if task['status'] == 'started':
+                log.debug(
+                    '`{}` is set as `{}`, starting...'.format(
+                        task['task'], task['status']
+                    ))
                 Youtube.post_videos.start()
-            elif task[1] == 'stopped':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+            elif task['status'] == 'stopped':
+                log.debug(
+                    '`{}` is set as `{}`'.format(
+                        task['task'], task['status']
+                    ))
                 Youtube.post_videos.cancel()
 
 

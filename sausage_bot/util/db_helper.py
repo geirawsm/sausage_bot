@@ -263,44 +263,52 @@ async def db_fix_old_value_check_or_help():
         )
 
 
-async def db_fix_old_value_numeral_instead_of_bool():
+async def db_replace_numeral_bool_with_bool():
     old_value_numeral_instead_of_bool = await get_output(
         template_info=envs.stats_db_settings_schema
     )
-    new_bool_status = \
-        dict(old_value_numeral_instead_of_bool)
-    log.verbose('`new_bool_status` is ', pretty=new_bool_status)
+    new_bool_status = old_value_numeral_instead_of_bool.copy()
+    log.verbose(new_bool_status)
     type_checking = envs.stats_db_settings_schema['type_checking']
-    for setting in [
-        setting for setting in type_checking if
-        type_checking[setting] != 'bool'
-    ]:
-        if setting in new_bool_status:
-            new_bool_status.pop(setting)
-    for setting in new_bool_status.copy():
+    for setting in new_bool_status:
+        log.verbose(f'Checking type of {setting}')
+        if type_checking[setting['setting']] == 'bool':
+            pass
+        if type(eval(setting['value'])) is \
+            type(eval(type_checking[setting['setting']])):
+            log.verbose('Removing...')
+            new_bool_status.pop(new_bool_status.index(setting))
+    log.verbose('`new_bool_status` after checking is ', pretty=new_bool_status)
+    for setting in new_bool_status:
         print(
             'Checking {}: {}'.format(
-                setting,
-                type(new_bool_status[setting])
+                setting['setting'],
+                type(eval(setting['value']))
             )
         )
-        if type(eval(new_bool_status[setting])) is int:
-            if new_bool_status[setting] == 0:
-                new_bool_status[setting] = False
-            elif new_bool_status[setting] == 1:
-                new_bool_status[setting] = True
+        if type(eval(setting['value'])) is int:
+            if setting['value'] == 0:
+                setting['value'] = False
+            elif setting['value'] == 1:
+                setting['value'] = True
             else:
-                new_bool_status[setting] = \
-                    dict(envs.stats_db_settings_schema['inserts'])[setting]
+                setting['value'] = \
+                    dict(envs.stats_db_settings_schema['inserts'])[setting['setting']]
         else:
-            new_bool_status.pop(setting)
+            new_bool_status.pop(new_bool_status.index(setting))
     if len(new_bool_status) > 0:
-        log.verbose('Converting old value numeral to bool')
+        log.verbose(new_bool_status)
+        log.verbose(
+            'Length of `new_bool_status` is more than 0. Converting old '
+            'value numeral to bool'
+        )
+        log.verbose(new_bool_status)
         for setting in new_bool_status:
+            # TODO Denne fungerer ikke
             await update_fields(
                 template_info=envs.stats_db_settings_schema,
                 where=('setting', setting),
-                updates=('value', new_bool_status[setting])
+                updates=('value', new_bool_status)[setting]
             )
 
 
@@ -922,15 +930,16 @@ async def get_output(
     log.db(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
+            db.row_factory = aiosqlite.Row
             out = await db.execute(_cmd)
             if single:
                 out = await out.fetchone()
                 if out is None:
                     return None
                 else:
-                    out = out[0]
+                    return dict(out)
             else:
-                out = await out.fetchall()
+                out = [dict(row) for row in await out.fetchall()]
             log.verbose(f'Returning {len(out)} items from from db')
             return out
     except aiosqlite.OperationalError as e:
@@ -1128,8 +1137,9 @@ async def get_output_by_rowid(
     log.db(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
+            db.row_factory = aiosqlite.Row
             out = await db.execute(_cmd)
-            out = await out.fetchall()
+            out = [dict(row) for row in await out.fetchall()]
             return out
     except aiosqlite.OperationalError:
         return None

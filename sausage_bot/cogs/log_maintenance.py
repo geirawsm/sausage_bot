@@ -22,13 +22,16 @@ async def name_of_settings_autocomplete(
     )
     settings = []
     for setting in db_settings:
-        settings.append((setting[0], setting[1]))
+        settings.append((setting['setting'], setting['value']))
     log.debug(f'settings: {settings}')
     return [
         discord.app_commands.Choice(
-            name=f'{setting[0]} ({setting[1]})', value=str(setting[0])
+            name='{} ({})'.format(
+                setting['setting'], setting['value']
+            ), value=str(setting['setting'])
         )
-        for setting in settings if current.lower() in setting[0].lower()
+        for setting in settings if current.lower() in
+        setting['setting'].lower()
     ]
 
 
@@ -120,11 +123,13 @@ class LogMaintenance(commands.Cog):
             template_info=envs.log_db_schema,
             select=('setting', 'value', 'value_help')
         )
-        headers = [
-            I18N.t('log_maintenance.commands.list.headers.setting'),
-            I18N.t('log_maintenance.commands.list.headers.value'),
-            I18N.t('log_maintenance.commands.list.headers.value_type')
-        ]
+        headers = {
+            'setting': I18N.t('log_maintenance.commands.list.headers.setting'),
+            'value': I18N.t('log_maintenance.commands.list.headers.value'),
+            'value_help': I18N.t(
+                'log_maintenance.commands.list.headers.value_type'
+            )
+        }
         await interaction.followup.send(
             content='```{}```'.format(
                 tabulate(settings_in_db, headers=headers)
@@ -162,8 +167,8 @@ class LogMaintenance(commands.Cog):
             select=('setting', 'value', 'value_check')
         )
         for setting in settings_in_db:
-            if setting[0] == name_of_setting:
-                if setting[2] == 'bool':
+            if setting['setting'] == name_of_setting:
+                if setting['value_check'] == 'bool':
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as _error:
@@ -177,8 +182,13 @@ class LogMaintenance(commands.Cog):
                         )
                         return
                 log.debug(f'`value_in` is {value_in} ({type(value_in)})')
-                log.debug(f'`setting[2]` is {setting[2]} ({type(setting[2])})')
-                if type(value_in) is eval(setting[2]):
+                log.debug(
+                    '`setting[\'value_check\']` is {} ({})'.format(
+                        setting['value_check'],
+                        type(setting['value_check'])
+                    )
+                )
+                if type(value_in) is eval(setting['value_check']):
                     await db_helper.update_fields(
                         template_info=envs.log_db_schema,
                         where=[('setting', name_of_setting)],
@@ -333,10 +343,18 @@ async def setup(bot):
         )
     log.verbose(f'Got `task_list`: {task_list}')
     for task in task_list:
-        if task[0] == 'log_maintenance':
-            if task[1] == 'started':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+        if task['task'] == 'log_maintenance':
+            if task['status'] == 'started':
+                log.debug(
+                    '`{task}` is set as `{status}`, starting...'.format(
+                        task=task['task'], status=task['status']
+                    )
+                )
                 LogMaintenance.log_maintenance.start()
-            elif task[1] == 'stopped':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+            elif task['status'] == 'stopped':
+                log.debug(
+                    '`{task}` is set as `{status}`'.format(
+                        task=task['task'], status=task['status']
+                    )
+                )
                 LogMaintenance.log_maintenance.cancel()

@@ -118,34 +118,32 @@ async def settings_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    settings_db = [setting for setting in await db_helper.get_output(
+    settings_db = await db_helper.get_output(
         template_info=envs.roles_db_settings_schema,
         get_row_ids=True
     )
-    ]
     print(f'SETTINGS_DB: {settings_db}')
-    settings_in_list = []
-    for setting in settings_db:
-        settings_in_list.append(
-            (
-                setting[0], setting[1], setting[2], get(
-                    discord_commands.get_guild().roles,
-                    id=int(setting[2])
-                ).name
-            )
-        )
-    log.debug(f'`settings_in_list`: {settings_in_list}')
+    temp_settings = settings_db.copy()
+    for setting in temp_settings:
+        list_num = settings_db.index(setting)
+        temp_settings[list_num]['name'] = get(
+            discord_commands.get_guild().roles,
+            id=int(setting['value'])
+        ).name
+    log.debug(f'`settings_db`: {settings_db}')
     return [
         discord.app_commands.Choice(
             name='{}. {} = {} ({})'.format(
-                setting[0], setting[1], setting[3], setting[2]
+                setting['rowid'], setting['setting'], setting['name'],
+                setting['value']
             ),
-            value=str(setting[0])
+            value=str(setting['rowid'])
         )
-        for setting in settings_in_list
-        if current.lower() in setting[3].lower()
-        for setting in settings_in_list
-        if current.lower() in setting[3].lower()
+        for setting in temp_settings
+        if current.lower() in '{}-{}-{}-{}'.format(
+            setting['rowid'], setting['setting'], setting['name'],
+            setting['value']
+        ).lower()
     ]
 
 
@@ -167,13 +165,14 @@ async def get_msg_id_and_name(msg_id_or_name):
         where=[
             (where_in, msg_id_or_name)
         ],
-        select=('msg_id', 'channel', 'name')
+        select=('msg_id', 'channel', 'name'),
+        single=True
     )
     log.verbose(f'db_message: {db_message}', color='yellow')
     return {
-        'id': db_message[0][0],
-        'channel': db_message[0][1],
-        'name': db_message[0][2]
+        'id': db_message['msg_id'],
+        'channel': db_message['channel'],
+        'name': db_message['name']
     }
 
 
@@ -211,7 +210,7 @@ async def sync_reaction_message_from_settings(
         )
         # Make a placeholder message
         msg_obj = await discord_commands.post_to_channel(
-            msg_channel, content_in=str(db_message[0][3])
+            msg_channel, content_in='placeholder'
         )
         # Update databases with correct message ID
         log.verbose(
@@ -241,7 +240,8 @@ async def sync_reaction_message_from_settings(
         template_info=envs.roles_db_msgs_schema,
         where=[
             ('msg_id', msg_id)
-        ]
+        ],
+        single=True
     )
     log.verbose(f'db_message: {db_message}')
     db_reactions = await db_helper.get_output(
@@ -255,11 +255,11 @@ async def sync_reaction_message_from_settings(
     reactions_out = {}
     for react in db_reactions:
         role_name = get(
-            discord_commands.get_guild().roles, id=int(react[0])
+            discord_commands.get_guild().roles, id=int(react['msg_id'])
         ).name
         reactions_out[role_name] = {
-            'role_id': react[0],
-            'emoji': react[1]
+            'role_id': react['role'],
+            'emoji': react['emoji']
         }
     if sorting:
         reactions_out = dict(sorted(reactions_out.items()))
@@ -269,7 +269,7 @@ async def sync_reaction_message_from_settings(
     new_embed_content = ''
     await msg_obj.clear_reactions()
     # Add header if in db
-    new_embed_header = db_message[0][3]
+    new_embed_header = db_message['header']
     if new_embed_header:
         new_embed_content += f'## {new_embed_header}'
     for reaction in reactions_out:
@@ -287,7 +287,7 @@ async def sync_reaction_message_from_settings(
         await msg_obj.add_reaction(emoji_out)
         if len(new_embed_content) > 0:
             new_embed_content += '\n'
-        new_embed_content += db_message[0][4]
+        new_embed_content += db_message['content']
         if len(new_embed_desc) > 0:
             new_embed_desc += '\n'
         new_embed_desc += '{} {}'.format(
@@ -300,7 +300,7 @@ async def sync_reaction_message_from_settings(
     }
     # Edit discord message
     await msg_obj.edit(
-        content=db_message[0][3],
+        content=db_message['content'],
         embed=discord.Embed.from_dict(embed_json)
     )
     return
@@ -538,15 +538,14 @@ async def reaction_msgs_autocomplete(
             ('name', 'ASC')
         ]
     )
-    reactions = []
-    for reaction in db_reactions:
-        reactions.append((reaction[0], reaction[1]))
-    log.debug(f'reactions: {reactions}')
+    log.debug(f'db_reactions: {db_reactions}')
     return [
         discord.app_commands.Choice(
-            name=str(reaction[0]), value=str(reaction[1])
+            name=str(reaction['name']), value=str(reaction['msg_id'])
         )
-        for reaction in reactions if current.lower() in reaction[0].lower()
+        for reaction in db_reactions if current.lower() in '{}-{}'.format(
+            reaction['name'], reaction['msg_id']
+        ).lower()
     ]
 
 
@@ -563,13 +562,15 @@ async def reaction_msgs_roles_autocomplete(
     )
     reactions = []
     for reaction in db_reactions:
-        reactions.append((reaction[0], reaction[1]))
+        reactions.append((reaction['name'], reaction['msg_id']))
     log.debug(f'reactions: {reactions}')
     return [
         discord.app_commands.Choice(
-            name=str(reaction[0]), value=str(reaction[1])
+            name=str(reaction['name']), value=str(reaction['msg_id'])
         )
-        for reaction in reactions if current.lower() in reaction[0].lower()
+        for reaction in reactions if current.lower() in '{}-{}'.format(
+            reaction['name'], reaction['msg_id']
+        ).lower()
     ]
 
 
@@ -1218,7 +1219,7 @@ class Autoroles(commands.Cog):
             where=('channel', channel),
             select=('msg_order', 'name')
         )
-        if order in [msg_order[0] for msg_order in msg_db_orders]:
+        if order in [msg_order['msg_order'] for msg_order in msg_db_orders]:
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.add_reaction_msg.msg_order_exist',
@@ -1595,6 +1596,7 @@ class Autoroles(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         # Get all reaction messages in order from database
+        # TODO Test reordering etter endring i GET_OUTPUT
         react_msgs = await db_helper.get_output(
             envs.roles_db_msgs_schema,
             where=('channel', channel.name),
@@ -1622,33 +1624,27 @@ class Autoroles(commands.Cog):
             for idx, d_msg in enumerate(discord_msgs):
                 log.debug(
                     '`d_msg.id` ({})  -  `react_msgs`: {}'.format(
-                        d_msg.id, react_msgs[idx][0]
+                        d_msg.id, react_msgs[idx]['msg_id']
                     )
                 )
-                if str(d_msg.id) != str(react_msgs[idx][0]):
+                if str(d_msg.id) != str(react_msgs[idx]['msg_id']):
                     trigger_reordering = True
                     break
         log.debug(f'`trigger_reordering`: {trigger_reordering}')
         if trigger_reordering:
             # Delete the old message and recreate messages
             for react_msg in react_msgs:
-                log.verbose(f'Getting object for react_msg: {react_msg}')
-                # TODO convert to `from discord.utils import get`
-                old_react_msg = await discord_commands.get_message_obj(
-                    react_msg[0],
-                    react_msg[1]
-                )
                 log.debug('Deleting old_react_msg')
                 new_reaction_msg = await discord_commands.post_to_channel(
-                    react_msg[1],
-                    content_in=react_msg[3],
+                    react_msg['channel'],
+                    content_in=react_msg['header'],
                     embed_in={
-                        'description': react_msg[4]
+                        'description': react_msg['content']
                     }
                 )
                 # Update msg id in both dbs
                 await update_msg_id(
-                    old_msg=react_msg[0],
+                    old_msg=react_msg['msg_id'],
                     new_msg=new_reaction_msg.id
                 )
                 # Recreate reactions by syncing settings
@@ -1698,14 +1694,13 @@ class Autoroles(commands.Cog):
             'roles.commands.settings_add.literal.setting.unique'
         ):
             _setting = 'unique'
-            # TODO Add a check, unique should only appear once
             unique = await db_helper.get_output(
                 template_info=envs.roles_db_settings_schema,
                 select=('value'),
                 where=('setting', 'unique'),
                 single=True
             )
-            if unique:
+            if unique['value']:
                 await interaction.followup.send(
                     I18N.t('roles.commands.settings_add.role_already_set')
                 )
@@ -1776,20 +1771,24 @@ class Autoroles(commands.Cog):
         settings_db = await db_helper.get_output(
             template_info=envs.roles_db_settings_schema
         )
-        _settings_db_expanded = []
-        for setting in settings_db:
+        temp_settings_db = settings_db.copy()
+        log.verbose('temp_settings_db', pretty=temp_settings_db)
+        for setting in temp_settings_db:
             _role = get(
                 discord_commands.get_guild().roles,
-                id=int(setting[1])
+                id=int(setting['value'])
             )
-            _settings_db_expanded.append(
-                (setting[0], _role, setting[1])
-            )
-        _settings = tabulate(_settings_db_expanded, headers=[
-            I18N.t('roles.commands.settings_list.headers.setting'),
-            I18N.t('roles.commands.settings_list.headers.role'),
-            I18N.t('roles.commands.settings_list.headers.value')
-        ])
+            setting['role'] = _role
+        log.verbose(f'temp_settings_db: {temp_settings_db}')
+        _settings = tabulate(
+            temp_settings_db, headers={
+                'setting': I18N.t(
+                    'roles.commands.settings_list.headers.setting'
+                ),
+                'role': I18N.t('roles.commands.settings_list.headers.role'),
+                'value': I18N.t('roles.commands.settings_list.headers.value')
+            }
+        )
         await interaction.followup.send(f'```{_settings}```')
         return
 
@@ -1828,16 +1827,17 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @roles_group.command(
-        name='test',
-        description='TEST'
-    )
-    async def role_test(
-        self, interaction: discord.Interaction
-    ):
-        #await interaction.response.defer(ephemeral=True)
-        await sync_reaction_message_from_settings(1295750251164074047)
-        return
+# TODO Only for test
+#    @roles_group.command(
+#        name='test',
+#        description='TEST'
+#    )
+#    async def role_test(
+#        self, interaction: discord.Interaction
+#    ):
+#        #await interaction.response.defer(ephemeral=True)
+#        await sync_reaction_message_from_settings(1295750251164074047)
+#        return
 
 
 async def setup(bot):

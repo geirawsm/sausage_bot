@@ -172,7 +172,7 @@ async def on_ready():
         single=True
     )
     log.debug(f'Setting locale to `{locale_db}`')
-    I18N.set('locale', locale_db)
+    I18N.set('locale', locale_db['locale'])
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
@@ -609,7 +609,9 @@ async def get_tasks_list(interaction: discord.Interaction):
     log.debug(f'Got this from `tasks_in_db`: {tasks_in_db}')
     text_out = '```{}```'.format(
         tabulate(
-            tasks_in_db, headers=['Cog', 'Task', 'Status']
+            tasks_in_db, headers={
+                'cog': 'Cog', 'task': 'Task', 'status': 'Status'
+            }
         )
     )
     log.debug(f'Returning:\n{text_out}')

@@ -19,7 +19,7 @@ async def check_if_feed_name_exist(feed_name):
         template_info=envs.rss_db_schema,
         select='feed_name'
     )
-    feeds = [feed[0] for feed in feeds]
+    feeds = [feed['feed_name'] for feed in feeds]
     log.debug(f'`feeds`: {feeds}')
     if feed_name not in feeds:
         return False
@@ -244,17 +244,17 @@ async def remove_feed_from_db(feed_type, feed_name):
 
 async def get_feed_links(feed_type, feed_info):
     'Get the links from a feed'
-    UUID = feed_info[0]
+    UUID = feed_info['uuid']
     if feed_type == 'rss':
-        URL = feed_info[2]
+        URL = feed_info['url']
         feed_db_filter = envs.rss_db_filter_schema
         feed_db_log = envs.rss_db_log_schema
     elif feed_type == 'youtube':
-        URL = envs.YOUTUBE_RSS_LINK.format(feed_info[9])
+        URL = envs.YOUTUBE_RSS_LINK.format(feed_info['youtube_id'])
         feed_db_filter = envs.youtube_db_filter_schema
         feed_db_log = envs.youtube_db_log_schema
     else:
-        URL = feed_info[2]
+        URL = feed_info['url']
     # Get the url and make it parseable
     if feed_type in ['rss', 'youtube']:
         req = await net_io.get_link(URL)
@@ -448,14 +448,14 @@ async def review_feeds_status(feed_type: str = None):
     db_updates = {}
     for feed in feeds_status_db_in:
         log.debug('Got this feed: ', pretty=feed)
-        UUID = feed[0]
-        FEED_NAME = feed[1]
-        URL_STATUS = feed[6]
-        URL_STATUS_COUNTER = feed[7]
+        UUID = feed['uuid']
+        FEED_NAME = feed['feed_name']
+        URL_STATUS = feed['status_url']
+        URL_STATUS_COUNTER = feed['status_url_counter']
         if feed_type in ['rss', 'spotify']:
-            URL = feed[2]
+            URL = feed['url']
         elif feed_type == 'youtube':
-            URL = envs.YOUTUBE_RSS_LINK.format(feed[9])
+            URL = envs.YOUTUBE_RSS_LINK.format(feed['youtube_id'])
         if not isinstance(URL_STATUS_COUNTER, int):
             URL_STATUS_COUNTER = 0
         log.debug(f'Checking `URL`: {URL}')
@@ -524,8 +524,8 @@ async def review_feeds_status(feed_type: str = None):
                 db_updates['status_url_counter'].append(
                     ('uuid', UUID, (URL_STATUS_COUNTER + 1))
                 )
-        CHANNEL = feed[3]
-        CHANNEL_STATUS = feed[8]
+        CHANNEL = feed['channel']
+        CHANNEL_STATUS = feed['status_channel']
         if args.testmode:
             log.debug('TESTMODE - Channels are ok')
         else:
@@ -581,7 +581,7 @@ def link_similar_to_logged_post(link: str, feed_log: list):
     If no links are found to be similar, return None.
     '''
     for log_item in feed_log:
-        if file_io.check_similarity(log_item[0], link):
+        if file_io.check_similarity(log_item['url'], link):
             log.debug('Found similar link log)')
             return True
         log.debug('No similar link found')
@@ -593,7 +593,7 @@ def link_is_in_log(link, log_in):
         log.verbose('Log is empty')
         return False
     try:
-        if link not in [log_url[0] for log_url in log_in]:
+        if link not in [log_url['url'] for log_url in log_in]:
             log.verbose('Link not in log')
             return False
         else:

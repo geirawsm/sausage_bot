@@ -31,10 +31,13 @@ def make_dt(date_in):
     - 1122
     - 11.22
     - 2022-05-17 11:22:00.987
+    - 1652779320
     '''
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
         log.debug('Found a Z/T/+ in `date_in`')
         return pendulum.parse(str(date_in))
+    elif re.match(r'\d{10}|\d{13}', str(date_in)):
+        return pendulum.from_timestamp(int(date_in))
     else:
         # Remove all special characters from input
         date_in = re.sub(r'\s+|\s*,\s*| |\.+|:+|-+', ' ', str(date_in).strip())

@@ -270,7 +270,9 @@ class MakePoll(commands.Cog):
         # Move reaction to the text
         desc_out = f'{poll_text}\n'
         for reaction in sorted_reacts:
-            desc_out += f'\n{reaction[0]}: {reaction[1]}'
+            desc_out += '\n{}: {}'.format(
+                reaction['input'], reaction['count']
+            )
         embed_json = discord.Embed.from_dict(
             {
                 'title': I18N.t('poll.commands.poll.msg.embed_title'),

@@ -26,10 +26,12 @@ async def settings_db_autocomplete(
     settings_type = envs.stats_db_settings_schema['type_checking']
     return [
         discord.app_commands.Choice(
-            name=f'{setting[0]} = {setting[1]} ({settings_type[setting[0]]})',
-            value=str(setting[0])
+            name=f"{setting['setting']} = {setting['value']} ({settings_type[setting['setting']]})",
+            value=str(setting['setting'])
         )
-        for setting in settings_db if current.lower() in setting[0].lower()
+        for setting in settings_db if current.lower() in '{}-{}'.format(
+            setting['setting'], setting['value']
+        ).lower()
     ]
 
 
@@ -58,35 +60,33 @@ async def hidden_roles_autocomplete(
         template_info=envs.stats_db_hide_roles_schema,
         get_row_ids=True
     )
-    hidden_roles_in_list = []
+    temp_hidden_roles = hidden_roles_in_db.copy()
     for role in hidden_roles_in_db:
-        hidden_roles_in_list.append(
-            (
-                role[0], role[1], get(
-                    discord_commands.get_guild().roles,
-                    id=int(role[1])
-                ).name
-            )
-        )
-    log.debug(f'hidden_roles_in_list: {hidden_roles_in_list}')
+        temp_hidden_roles[role]['name'] = get(
+            discord_commands.get_guild().roles,
+            id=int(role[1])
+        ).name
+    log.debug(f'temp_hidden_roles: {temp_hidden_roles}')
     return [
         discord.app_commands.Choice(
-            name=f'{hidden_role[2]} ({hidden_role[1]})',
-            value=str(hidden_role[0])
-        ) for hidden_role in hidden_roles_in_list if current
-        in hidden_role[2]
+            name=f"{hidden_role['name']} ({hidden_role['role_id']})",
+            value=str(hidden_role['rowid'])
+        ) for hidden_role in temp_hidden_roles if current
+        in '{}-{}'.format(
+            hidden_role['role_id'], hidden_role['name']
+        ).lower()
     ]
 
 
-def get_role_numbers(
-    hide_bots: bool = None,
-    hide_empties: bool = None,
-    hide_roles: list = None
-):
+def get_role_numbers(settings_in):
     'Get roles and number of members'
+    temp_settings = {}
+    for setting in settings_in:
+        temp_settings[setting['setting']] = setting['value']
+    log.verbose(f'temp_settings: {temp_settings}')
     roles_info = discord_commands.get_roles(
-        hide_empties=hide_empties, filter_bots=hide_bots,
-        hide_roles=hide_roles
+        hide_empties=temp_settings['hide_empty_roles'],
+        filter_bots=temp_settings['hide_bot_roles']
     )
     num_members = discord_commands.get_guild().member_count
     return {
@@ -653,14 +653,12 @@ class Stats(commands.Cog):
 
         upd_mins = config.env.int('STATS_LOOP', default=5)
         log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
-        stats_settings = dict(
-            await db_helper.get_output(
-                template_info=envs.stats_db_settings_schema,
-                select=('setting', 'value')
-            )
+        stats_settings = await db_helper.get_output(
+            template_info=envs.stats_db_settings_schema,
+            select=('setting', 'value')
         )
         log.debug(f'`stats_settings` is {stats_settings}')
-        if len(stats_settings['channel']) > 0:
+        if 'channel' in stats_settings:
             stats_channel = stats_settings['channel']
         else:
             stats_channel = 'stats'
@@ -676,7 +674,7 @@ class Stats(commands.Cog):
             stats_hide_roles = await db_helper.get_output(
                 template_info=envs.stats_db_hide_roles_schema
             )
-            stats_hide_roles = [role[0] for role in stats_hide_roles]
+            stats_hide_roles = [role['role_id'] for role in stats_hide_roles]
             if len(stats_hide_roles) > 0:
                 stats_hide_roles = list(stats_hide_roles)
             else:
@@ -685,11 +683,7 @@ class Stats(commands.Cog):
         else:
             stats_hide_roles = None
         # Get server members
-        members = get_role_numbers(
-            hide_bots=eval(stats_settings['hide_bot_roles']),
-            hide_empties=eval(stats_settings['hide_empty_roles']),
-            hide_roles=stats_hide_roles
-        )
+        members = get_role_numbers(stats_settings)
         # Update log database if not already this day
         log.debug('Logging stats')
         date_exist = await db_helper.get_output(
@@ -886,12 +880,20 @@ async def setup(bot):
             )
         )
     for task in task_list:
-        if task[0] == 'post_stats':
-            if task[1] == 'started':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+        if task['task'] == 'post_stats':
+            if task['status'] == 'started':
+                log.debug(
+                    '`{}` is set as `{}`, starting...'.format(
+                        task['task'], task['status']
+                    )
+                )
                 Stats.task_update_stats.start()
-            elif task[1] == 'stopped':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+            elif task['status'] == 'stopped':
+                log.debug(
+                    '`{}` is set as `{}`'.format(
+                        task['task'], task['status']
+                    )
+                )
                 Stats.task_update_stats.cancel()
 
 

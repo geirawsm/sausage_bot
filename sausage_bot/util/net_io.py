@@ -87,7 +87,7 @@ async def check_spotify_podcast_episodes():
         return None
     spotify_feeds = await db_helper.get_output(
         template_info=envs.rss_db_schema,
-        select=('url', 'num_episodes', 'uuid', 'feed_name', 'channel'),
+        select=('uuid', 'feed_name', 'url', 'channel', 'num_episodes'),
         order_by=[
             ('feed_name', 'DESC')
         ],
@@ -101,13 +101,13 @@ async def check_spotify_podcast_episodes():
     if len(spotify_feeds) == 0:
         return checklist
     for feed in spotify_feeds:
-        pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', feed[0]).group(1)
+        pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', feed['url']).group(1)
         checklist[pod_id] = {
-            'name': feed[3],
-            'num_episodes_old': feed[1] if isinstance(feed[1], int) else 0,
+            'name': feed['feed_name'],
+            'num_episodes_old': feed['num_episodes'] if isinstance(feed['num_episodes'], int) else 0,
             'num_episodes_new': None,
-            'uuid': feed[2],
-            'channel': feed[4]
+            'uuid': feed['uuid'],
+            'channel': feed['channel']
         }
     try:
         show_ids = [feed for feed in checklist]
