@@ -689,9 +689,10 @@ async def process_links_for_posting_or_editing(
                             'Found a podcast that should be embedded:',
                             pretty=item
                         )
-                        embed_color = await net_io.extract_color_from_image_url(
-                            item['img']
-                        )
+                        embed_color = await net_io.\
+                            extract_color_from_image_url(
+                                item['img']
+                            )
                         embed = discord.Embed(
                             title=item['title'],
                             url=item['link'],
@@ -705,7 +706,10 @@ async def process_links_for_posting_or_editing(
                         )
                         embed.set_author(name=item['pod_name'])
                         embed.set_image(url=item['img'])
-                        if FEED_SETTINGS['show_pod_description_in_embed'].lower() == 'true':
+                        desc_setting = 'show_pod_description_in_embed'
+                        if desc_setting in FEED_SETTINGS\
+                                and FEED_SETTINGS[desc_setting].lower()\
+                                == 'true':
                             embed.set_footer(text=item['pod_description'])
                         log.debug(
                             'Sending this embed to channel: ', pretty=embed

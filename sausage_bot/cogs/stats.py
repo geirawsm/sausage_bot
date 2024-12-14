@@ -691,6 +691,7 @@ class Stats(commands.Cog):
             order_by=[('datetime', 'DESC')],
             single=True
         )
+        date_exist = date_exist['datetime']
         log_stats = False
         if date_exist:
             date_now = datetime_handling.get_dt(format='date')
@@ -832,6 +833,13 @@ async def setup(bot):
         stats_log_inserts = stats_file_inserts['stats_logs_inserts']
     log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+    # Cleaning DB if irregularities from previous instances of database
+    if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
+        await db_helper.db_fix_old_hide_roles_status()
+        await db_helper.db_fix_old_stats_msg_name_status()
+        await db_helper.db_fix_old_value_check_or_help()
+        # TODO Denne venter på omskriving
+        #await db_helper.db_replace_numeral_bool_with_bool()
     stats_settings_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_settings_schema,
         inserts=stats_settings_inserts
@@ -851,13 +859,6 @@ async def setup(bot):
         )
     else:
         log.verbose('Stats db log exist!')
-
-    # Cleaning DB if irregularities from previous instances of database
-    if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
-        await db_helper.db_fix_old_hide_roles_status()
-        await db_helper.db_fix_old_stats_msg_name_status()
-        await db_helper.db_fix_old_value_check_or_help()
-        await db_helper.db_fix_old_value_numeral_instead_of_bool()
 
     # Delete old json files if they exist
     if stats_settings_prep_is_ok and file_io.file_exist(envs.stats_file):
