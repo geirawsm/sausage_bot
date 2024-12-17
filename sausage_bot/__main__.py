@@ -4,10 +4,9 @@
 import discord
 from discord.ext import commands
 from discord.app_commands import locale_str
-import os
 from tabulate import tabulate
-from sys import exit
 import typing
+
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper
@@ -137,24 +136,6 @@ async def locales_autocomplete(
     ]
 
 
-# Create necessary folders before starting
-check_and_create_folders = [
-    envs.DB_DIR,
-    envs.LOG_DIR
-]
-for folder in check_and_create_folders:
-    try:
-        os.makedirs(folder)
-    except (FileExistsError):
-        pass
-
-# Create necessary files before starting
-if args.create_env:
-    log.verbose('Create .env file')
-    file_io.ensure_file(envs.env_file, envs.env_template)
-    exit()
-
-
 @config.bot.event
 async def on_ready():
     '''
@@ -209,8 +190,8 @@ async def on_ready():
             )
         )
     # Make sure that the BOT_CHANNEL is present
-    if config.BOT_CHANNEL not in discord_commands.get_text_channel_list():
-        bot_channel = config.BOT_CHANNEL
+    bot_channel = config.BOT_CHANNEL
+    if bot_channel not in discord_commands.get_text_channel_list():
         log.debug(f'Bot channel `{bot_channel}` does not exist, creating...')
         guild = discord_commands.get_guild()
         overwrites = {

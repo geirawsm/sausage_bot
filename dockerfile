@@ -8,7 +8,6 @@ WORKDIR /app/
 
 RUN pip install --upgrade pip
 RUN pip install pipenv
-RUN pipenv install --system --deploy --ignore-pipfile
 
 VOLUME [ "/data" ]
 
@@ -24,5 +23,7 @@ RUN echo -e \
     "\"LAST_RUN_NUMBER\": \"${LAST_RUN_NUMBER}\"}"\
     > /app/sausage_bot/version.json
 
+RUN pipenv install --system --deploy --ignore-pipfile
+
 # Run bot
-CMD ["python", "-m", "sausage_bot", "--log", "--log-print", "--log-database", "--debug", "--log-file", "--data-dir", "/data"]
+CMD ["python", "-m", "sausage_bot", "--log", "--log-print", "--log-error", "--log-database", "--debug", "--log-file", "--data-dir", "/data"]

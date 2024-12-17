@@ -1,4 +1,4 @@
-sausage_bot/data/*
+sausage_bot/data*/*
 sausage_bot/tempfiles/*
 .cache
 *.code-workspace
