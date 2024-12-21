@@ -228,10 +228,10 @@ class Stats(commands.Cog):
             template_info=envs.stats_db_settings_schema,
             select=('setting', 'value')
         )
-        headers_settings = [
-            I18N.t('stats.commands.list.headers.settings.setting'),
-            I18N.t('stats.commands.list.headers.settings.value')
-        ]
+        headers_settings = {
+            'setting': I18N.t('stats.commands.list.headers.settings.setting'),
+            'value': I18N.t('stats.commands.list.headers.settings.value')
+        }
         out = '## {}\n```{}```'.format(
             I18N.t('stats.commands.list.stats_msg_out.sub_settings'),
             tabulate(settings_in_db, headers=headers_settings)
