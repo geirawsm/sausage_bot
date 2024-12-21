@@ -2007,14 +2007,18 @@ async def on_raw_reaction_remove(payload):
                 elif str(payload.emoji.name) == reaction['emoji']:
                     incoming_emoji = str(payload.emoji.name)
                 log.debug(
-                    f'Comparing emoji from payload ({incoming_emoji}) '
-                    f'with emoji from db ({reaction['emoji']})'
+                    'Comparing emoji from payload ({}) '
+                    'with emoji from db ({})'.format(
+                        incoming_emoji, reaction['emoji']
+                    )
                 )
                 if str(incoming_emoji) == str(reaction['emoji']):
                     for _role in _guild.roles:
                         if str(_role.id) in reaction['role'].lower():
                             log.debug(
-                                f'Removing role {reaction['role']} from user'
+                                'Removing role {} from user'.format(
+                                    reaction['role']
+                                )
                             )
                             await _guild.get_member(
                                 payload.user_id
