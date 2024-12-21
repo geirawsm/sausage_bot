@@ -251,7 +251,7 @@ async def sync_reaction_message_from_settings(
             ('msg_id', msg_id)
         ],
     )
-    log.verbose(f'db_reactions: {db_reactions}', color='yellow')
+    log.verbose(f'db_reactions: {db_reactions}')
     reactions_out = {}
     for react in db_reactions:
         role_name = get(
@@ -263,7 +263,7 @@ async def sync_reaction_message_from_settings(
         }
     if sorting:
         reactions_out = dict(sorted(reactions_out.items()))
-    log.verbose(f'reactions_out: {reactions_out}', color='yellow')
+    log.verbose(f'reactions_out: {reactions_out}')
     # Recreate the embed
     new_embed_desc = ''
     new_embed_content = ''
@@ -1359,14 +1359,15 @@ class Autoroles(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         msg_info = await get_msg_id_and_name(msg_name)
-        reactions_db_in = await db_helper.get_output(
-            template_info=envs.roles_db_roles_schema,
-            where=(
-                ('msg_id', msg_info['id'])
-            ),
-            select=('role_name', 'emoji')
-        )
-        log.verbose(f'Got `reactions_db_in:` {reactions_db_in}', color='red')
+        # TODO Denne skal sørge for at den ikke legger inn duplikater
+        # reactions_db_in = await db_helper.get_output(
+        #    template_info=envs.roles_db_roles_schema,
+        #    where=(
+        #        ('msg_id', msg_info['id'])
+        #    ),
+        #    select=('role_name', 'emoji')
+        # )
+        # log.verbose(f'Got `reactions_db_in:` {reactions_db_in}')
 
         merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
         new_inserts = []
@@ -1913,7 +1914,7 @@ async def on_raw_reaction_add(payload):
     )
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
-        if str(payload.message_id) == str(reaction_message[0]):
+        if str(payload.message_id) == str(reaction_message['msg_id']):
             log.debug('Found message, checking add reactions...')
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
@@ -1938,8 +1939,10 @@ async def on_raw_reaction_add(payload):
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
                 log.debug(
-                    f'Comparing emoji from payload ({incoming_emoji}) '
-                    f'with emoji from db ({reaction[0]})'
+                    'Comparing emoji from payload ({}) '
+                    'with emoji from db ({})'.format(
+                        incoming_emoji, reaction['emoji']
+                    )
                 )
                 if str(incoming_emoji) == str(reaction[0]):
                     await _guild.get_member(
@@ -1947,7 +1950,7 @@ async def on_raw_reaction_add(payload):
                     ).add_roles(
                         get(
                             discord_commands.get_guild().roles,
-                            id=int(reaction[1])
+                            id=int(reaction['role'])
                         ),
                         reason=I18N.t(
                             'roles.cogs.on_raw_reaction_add.'
@@ -1975,7 +1978,7 @@ async def on_raw_reaction_remove(payload):
     )
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
-        if str(payload.message_id) == str(reaction_message[0]):
+        if str(payload.message_id) == str(reaction_message['msg_id']):
             log.debug('Found message, checking remove reactions...')
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
@@ -1999,19 +2002,19 @@ async def on_raw_reaction_remove(payload):
                 return
             for reaction in reactions:
                 log.debug(f'`reaction` is {reaction}')
-                if str(payload.emoji.id) == reaction[1]:
+                if str(payload.emoji.id) == reaction['emoji']:
                     incoming_emoji = str(payload.emoji.id)
-                elif str(payload.emoji.name) == reaction[1]:
+                elif str(payload.emoji.name) == reaction['emoji']:
                     incoming_emoji = str(payload.emoji.name)
                 log.debug(
                     f'Comparing emoji from payload ({incoming_emoji}) '
-                    f'with emoji from db ({reaction[1]})'
+                    f'with emoji from db ({reaction['emoji']})'
                 )
-                if str(incoming_emoji) == str(reaction[1]):
+                if str(incoming_emoji) == str(reaction['emoji']):
                     for _role in _guild.roles:
-                        if str(_role.id) in reaction[0].lower():
+                        if str(_role.id) in reaction['role'].lower():
                             log.debug(
-                                f'Removing role {reaction[0]} from user'
+                                f'Removing role {reaction['role']} from user'
                             )
                             await _guild.get_member(
                                 payload.user_id
