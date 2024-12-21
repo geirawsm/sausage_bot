@@ -60,11 +60,11 @@ ensure_file(envs.env_file, envs.env_template)
 
 try:
     env = Env()
-    env.read_env(envs.env_file)
+    env.read_env(path=envs.env_file)
     # Set basic env values
-    DISCORD_TOKEN = env('DISCORD_TOKEN')
-    DISCORD_GUILD = env('DISCORD_GUILD')
-    BOT_ID = env('BOT_ID')
+    DISCORD_TOKEN = env('DISCORD_TOKEN', default=None)
+    DISCORD_GUILD = env('DISCORD_GUILD', default=None)
+    BOT_ID = env('BOT_ID', default=None)
     PREFIX = env('PREFIX', default='!')
     BOT_CHANNEL = env('BOT_DUMP_CHANNEL', default='bot-log')
     TIMEZONE = env('TIMEZONE', default='Europe/Oslo')
@@ -72,16 +72,13 @@ try:
     ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
     SPOTIFY_ID = env('SPOTIFY_ID', default=None)
     SPOTIFY_SECRET = env('SPOTIFY_SECRET', default=None)
-    if any(len(envvar) <= 0 for envvar in [
-        DISCORD_GUILD, BOT_ID, DISCORD_TOKEN
+    if any(envvar is None for envvar in [
+        DISCORD_TOKEN, DISCORD_GUILD, BOT_ID
     ]):
         print('Something is wrong with the env file.')
         exit()
 except EnvError as e:
-    print(env.dump())
-    print(
-        f'You need to set environment variables for the bot to work: {e}'
-    )
+    print(f'You need to set environment variables for the bot to work: {e}')
     exit()
 
 try:
