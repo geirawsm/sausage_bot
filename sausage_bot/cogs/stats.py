@@ -80,13 +80,11 @@ async def hidden_roles_autocomplete(
 
 def get_role_numbers(settings_in):
     'Get roles and number of members'
-    temp_settings = {}
-    for setting in settings_in:
-        temp_settings[setting['setting']] = setting['value']
-    log.verbose(f'temp_settings: {temp_settings}')
+
+    log.verbose(f'settings_in: {settings_in}')
     roles_info = discord_commands.get_roles(
-        hide_empties=temp_settings['hide_empty_roles'],
-        filter_bots=temp_settings['hide_bot_roles']
+        hide_empties=settings_in['hide_empty_roles'],
+        filter_bots=settings_in['hide_bot_roles']
     )
     num_members = discord_commands.get_guild().member_count
     return {
@@ -653,10 +651,13 @@ class Stats(commands.Cog):
 
         upd_mins = config.env.int('STATS_LOOP', default=5)
         log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
-        stats_settings = await db_helper.get_output(
+        stats_settings_db = await db_helper.get_output(
             template_info=envs.stats_db_settings_schema,
             select=('setting', 'value')
         )
+        stats_settings = {}
+        for setting in stats_settings_db:
+            stats_settings[setting['setting']] = setting['value']
         log.debug(f'`stats_settings` is {stats_settings}')
         if 'channel' in stats_settings:
             stats_channel = stats_settings['channel']
@@ -689,8 +690,10 @@ class Stats(commands.Cog):
         date_exist = await db_helper.get_output(
             template_info=envs.stats_db_log_schema,
             order_by=[('datetime', 'DESC')],
+            select=('datetime'),
             single=True
         )
+        log.verbose(f'`date_exist`: {date_exist}')
         date_exist = date_exist['datetime']
         log_stats = False
         if date_exist:
