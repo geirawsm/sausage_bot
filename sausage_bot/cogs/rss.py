@@ -26,18 +26,21 @@ async def feed_name_autocomplete(
     )
     feeds = []
     for feed in db_feeds:
-        feeds.append((feed[0], feed[1], feed[2], feed[3]))
+        feeds.append(
+            (feed['uuid'], feed['feed_name'], feed['url'], feed['channel'])
+        )
         length_counter = 87
-        length_counter -= len(str(feed[1]))
-        length_counter -= len(str(feed[3]))
+        length_counter -= len(str(feed['feed_name']))
+        length_counter -= len(str(feed['channel']))
     log.debug(f'feeds: {feeds}')
     return [
         discord.app_commands.Choice(
             name='{feed_name}: #{channel} ({url})'.format(
-                feed_name=feed[1], channel=feed[3], url=str(feed[2])
-            )[0:length_counter], value=str(feed[1])
+                feed_name=feed['feed_name'], channel=feed['channel'],
+                url=str(feed['url'])
+            )[0:length_counter], value=str(feed['feed_name'])
         )
-        for feed in feeds if current.lower() in feed[0].lower()
+        for feed in feeds if current.lower() in feed['uuid'].lower()
     ]
 
 
@@ -57,14 +60,18 @@ async def rss_filter_autocomplete(
     )
     filters = []
     for filter in db_filters:
-        filters.append((filter[0], filter[1], filter[2]))
+        filters.append(
+            (filter['uuid'], filter['allow_or_deny'], filter['filter'])
+        )
     log.debug(f'filters: {filters}')
     return [
         discord.app_commands.Choice(
-            name=f'{filter[0]} - {filter[1]} - {filter[2]}',
-            value=str(filter[2])
+            name='{} - {} - {}'.format(
+                filter['uuid'], filter['allow_or_deny'], filter['filter']
+            ),
+            value=str(filter['filter'])
         )
-        for filter in filters if current.lower() in filter[2].lower()
+        for filter in filters if current.lower() in filter['filter'].lower()
     ]
 
 
@@ -79,7 +86,9 @@ async def rss_settings_autocomplete(
     log.debug(f'settings_in_db: {settings_in_db}')
     return [
         discord.app_commands.Choice(
-            name=f'{setting[0]}: {setting[1]}',
+            name='{}: {}'.format(
+                setting[0], setting[1]
+            ),
             value=str(setting[0])
         )
         for setting in settings_in_db if current.lower() in setting[0].lower()
