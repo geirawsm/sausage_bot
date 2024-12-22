@@ -91,10 +91,10 @@ async def prep_table(
                 'This should be looked into, so messaging the bot-dump'
             )
             await discord_commands.log_to_bot_channel(
-                content_in='Want to insert info from old json into '
-                f'{table_name}, but something is wrong'
-                '({} vs {})'.format(
-                    db_len, len(inserts)
+                content_in='Want to insert info from old json or inserts into '
+                f'`{table_name}` in `{db_file}`, but something is wrong'
+                '({} vs {})\nInserts:\n{}'.format(
+                    db_len, len(inserts), inserts
                 )
             )
             delete_json_ok = False

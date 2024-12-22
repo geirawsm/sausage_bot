@@ -58,13 +58,12 @@ def log_function(
         else:
             extra_color = eval('Fore.{}'.format(extra_color.upper()))
     function_name = log_func_name()
-    if args.log_print:
-        if args.log_highlight is not None:
-            if str(args.log_highlight) in function_name['name'] or\
-                    str(args.log_highlight) in log_in:
-                color = eval('Fore.{}'.format(
-                    args.log_highlight_color.upper()
-                ))
+    if args.log_print and args.log_highlight is not None and\
+            str(args.log_highlight) in function_name['name'] or\
+            str(args.log_highlight) in log_in:
+        color = eval('Fore.{}'.format(
+            args.log_highlight_color.upper()
+        ))
     dt = pendulum.now(config.TIMEZONE)
     dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
     log_out = '[ {dt} ]{extra_info} [ {func_name} ({func_line}) '\
@@ -171,7 +170,7 @@ def verbose(
 
 def debug(
         log_in: str, color: str = None,
-        extra_info: str = envs.log_extra_info('database'),
+        extra_info: str = envs.log_extra_info('debug'),
         extra_color: str = None, pretty: dict | list | tuple = None,
         sameline: bool = False
 ):
@@ -289,12 +288,17 @@ def log_func_name() -> dict:
 if __name__ == "__main__":
     args.log_print = True
     args.log = True
+    print('This should produce "This is a log"')
     log('This is a log')
     args.log_verbose = True
+    print('This should produce "This is a verbose"')
     verbose('This is a verbose')
     args.debug = True
+    print('This should produce "This is a debug"')
     debug('This is a debug')
     args.log_db = True
+    print('This should produce "This is a db"')
     db('This is a db')
     args.log_error = True
+    print('This should produce "This is a error"')
     error('This is an error')
