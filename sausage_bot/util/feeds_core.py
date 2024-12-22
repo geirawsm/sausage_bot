@@ -212,7 +212,7 @@ async def add_to_feed_db(
 async def remove_feed_from_db(feed_type, feed_name):
     'Remove a feed from `feed file` based on `feed_name`'
     removal_ok = True
-    if feed_type == 'rss':
+    if feed_type in ['rss', 'spotify']:
         feed_db = envs.rss_db_schema
         feed_db_filter = envs.rss_db_filter_schema
     elif feed_type == 'youtube':
@@ -224,6 +224,7 @@ async def remove_feed_from_db(feed_type, feed_name):
         where=[('feed_name', feed_name)],
         single=True
     )
+    uuid_from_db = uuid_from_db['uuid']
     log.debug(f'`uuid_from_db` is {uuid_from_db}')
     removal = await db_helper.del_row_by_AND_filter(
         feed_db,

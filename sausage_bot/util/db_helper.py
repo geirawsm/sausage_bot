@@ -151,13 +151,13 @@ async def add_missing_db_setup(
             template_info=template_info,
             select=('setting', 'value')
         )
+        db_out_cols = [col['setting'] for col in db_out]
+        log.verbose(f'Got `inserts`: {inserts}')
         log.verbose(f'Got `db_out`: {db_out}')
-        db_out = dict(db_out)
-        log.verbose(f'Got `dict(db_out)`: {db_out}')
         for insert in inserts:
-            if insert[0] not in db_out:
+            if insert[0] not in db_out_cols:
                 temp_inserts.append(insert)
-            elif insert[0] in db_out and db_out[insert[0]] is None:
+            elif insert[0] in db_out and db_out[db_out_cols.index(insert[0])] is None:
                 temp_inserts.append(insert)
         log.debug(f'temp_inserts: {temp_inserts}')
     if len(temp_inserts) > 0:

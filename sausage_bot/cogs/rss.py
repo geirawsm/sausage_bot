@@ -99,6 +99,7 @@ async def control_posting(feed_type, action):
     feed_type_in = []
     failed_list = []
     feed_type_list = []
+    feed_types = ''
     actions = {
         'start': {'status_update': 'started'},
         'stop': {'status_update': 'stopped'},
@@ -112,7 +113,8 @@ async def control_posting(feed_type, action):
         feed_type_in.append(feed_type)
     for feed_type in feed_type_in:
         try:
-            eval(f'RSSfeed.post_{feed_type}.{action}()')
+            log.verbose(f'RSSfeed.{feed_type}_posting.{action}()')
+            eval(f'RSSfeed.{feed_type}_posting.{action}()')
             feed_type_list.append(feed_type)
         except RuntimeError:
             failed_list.append(feed_type)
@@ -133,8 +135,9 @@ async def control_posting(feed_type, action):
         feed_types = ', '.join(feed_type_list)
     if len(failed_list) > 0:
         failed_list_text = ', '.join(failed_list)
+    _msg = ''
     if len(feed_types) > 0:
-        _msg = I18N.t(
+        _msg += I18N.t(
             f'rss.commands.{action}.msg_confirm_ok',
             feed_type=feed_types
         )
@@ -179,7 +182,7 @@ class RSSfeed(commands.Cog):
     @rss_posting_group.command(
         name='start', description=locale_str(I18N.t('rss.commands.start.cmd'))
     )
-    async def rss_posting_start(
+    async def feeds_posting_start(
         self, interaction: discord.Interaction, feed_type: typing.Literal[
             'feeds', 'podcasts', 'ALL'
         ]
@@ -191,7 +194,7 @@ class RSSfeed(commands.Cog):
     @rss_posting_group.command(
         name='stop', description=locale_str(I18N.t('rss.commands.stop.cmd'))
     )
-    async def rss_posting_stop(
+    async def feeds_posting_stop(
         self, interaction: discord.Interaction, feed_type: typing.Literal[
             'feeds', 'podcasts', 'ALL'
         ]
@@ -205,7 +208,7 @@ class RSSfeed(commands.Cog):
             'rss.commands.restart.cmd'
         ))
     )
-    async def rss_posting_restart(
+    async def feeds_posting_restart(
         self, interaction: discord.Interaction, feed_type: typing.Literal[
             'feeds', 'podcasts', 'ALL'
         ]
@@ -355,21 +358,21 @@ class RSSfeed(commands.Cog):
             updates_in.append(('feed_name', new_feed_name))
             changes_out += '\n- {}: `{}` -> `{}`'.format(
                     I18N.t('rss.commands.edit.changes_out.feed_name'),
-                    feed_info[0][0],
+                    feed_info[0]['feed_name'],
                     new_feed_name
                 )
         if channel:
             updates_in.append(('channel', channel))
             changes_out += '\n- {}: `{}` -> `{}`'.format(
                 I18N.t('rss.commands.edit.changes_out.channel'),
-                feed_info[0][1],
+                feed_info[0]['channel'],
                 channel
             )
         if url:
             updates_in.append(('url', url))
             changes_out += '\n- {}: `{}` -> `{}`'.format(
                 I18N.t('rss.commands.edit.changes_out.url'),
-                feed_info[0][2],
+                feed_info[0]['url'],
                 url
             )
         await db_helper.update_fields(
