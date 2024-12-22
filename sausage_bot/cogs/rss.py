@@ -24,23 +24,23 @@ async def feed_name_autocomplete(
             ('feed_name', 'ASC')
         ]
     )
-    feeds = []
-    for feed in db_feeds:
-        feeds.append(
-            (feed['uuid'], feed['feed_name'], feed['url'], feed['channel'])
-        )
-        length_counter = 87
-        length_counter -= len(str(feed['feed_name']))
-        length_counter -= len(str(feed['channel']))
-    log.debug(f'feeds: {feeds}')
+    log.verbose('db_feeds:', pretty=db_feeds)
+    feeds = db_feeds.copy()
+    for feed in feeds:
+        _counter = 87
+        _counter -= len(str(feed['feed_name']))
+        _counter -= len(str(feed['channel']))
+        feed['length_counter'] = _counter
     return [
         discord.app_commands.Choice(
             name='{feed_name}: #{channel} ({url})'.format(
                 feed_name=feed['feed_name'], channel=feed['channel'],
                 url=str(feed['url'])
-            )[0:length_counter], value=str(feed['feed_name'])
+            )[0:feed['length_counter']   ], value=str(feed['feed_name'])
         )
-        for feed in feeds if current.lower() in feed['uuid'].lower()
+        for feed in feeds if current.lower() in '{}-{}-{}-{}'.format(
+            feed['uuid'], feed['feed_name'], feed['url'], feed['channel']
+        ).lower()
     ]
 
 

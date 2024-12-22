@@ -44,14 +44,18 @@ async def youtube_filter_autocomplete(
     )
     filters = []
     for filter in db_filters:
-        filters.append((filter[0], filter[1], filter[2]))
+        filters.append(
+            (filter['feed_name'], filter['allow_or_deny'], filter['filter'])
+        )
     log.debug(f'filters: {filters}')
     return [
         discord.app_commands.Choice(
-            name=f'{filter[0]} - {filter[1]} - {filter[2]}',
-            value=str(filter[2])
+            name='{} - {} - {}'.format(
+                filter['feed_name'], filter['allow_or_deny'], filter['filter']
+            ),
+            value=str(filter['filter'])
         )
-        for filter in filters if current.lower() in filter[2].lower()
+        for filter in filters if current.lower() in filter['filter'].lower()
     ]
 
 

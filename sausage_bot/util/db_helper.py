@@ -1047,8 +1047,9 @@ async def get_combined_output(
     log.db(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
+            db.row_factory = aiosqlite.Row
             out = await db.execute(_cmd)
-            out = await out.fetchall()
+            out = [dict(row) for row in await out.fetchall()]
             return out
     except aiosqlite.OperationalError:
         return None
