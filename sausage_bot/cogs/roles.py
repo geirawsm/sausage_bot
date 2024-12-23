@@ -1944,7 +1944,7 @@ async def on_raw_reaction_add(payload):
                         incoming_emoji, reaction['emoji']
                     )
                 )
-                if str(incoming_emoji) == str(reaction[0]):
+                if str(incoming_emoji) == str(reaction['emoji']):
                     await _guild.get_member(
                         payload.user_id
                     ).add_roles(
@@ -1976,6 +1976,7 @@ async def on_raw_reaction_remove(payload):
         envs.roles_db_msgs_schema,
         select=('msg_id')
     )
+    log.verbose(f'reaction_messages: {reaction_messages}')
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message['msg_id']):
@@ -1989,7 +1990,7 @@ async def on_raw_reaction_remove(payload):
                     'emoji'
                 ],
                 where=[
-                    ('A.msg_id', reaction_message[0])
+                    ('A.msg_id', reaction_message['msg_id'])
                 ]
             )
             log.verbose(f'`reactions`: {reactions}')
@@ -2048,6 +2049,7 @@ async def on_member_update(before, after):
         where=('setting', 'unique'),
         single=True
     )
+    unique_role = unique_role['value']
     log.debug(f'Got `unique_role`: {unique_role}')
     if not unique_role or unique_role == '':
         log.log('No unique role provided or setting is not string')
