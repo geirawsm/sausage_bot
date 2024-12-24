@@ -180,12 +180,20 @@ async def setup(bot):
         task_list = await get_tasks()
     for task in task_list:
         log.debug(f'checking task: {task}')
-        if task[0] == 'post_news':
-            if task[1] == 'started':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`, starting...')
+        if task['task'] == 'post_news':
+            if task['status'] == 'started':
+                log.debug(
+                    '`{}` is set as `{}`, stopping...'.format(
+                        task['task'], task['status']
+                    )
+                )
                 scrape_and_post.post_fcb_news.start()
-            elif task[1] == 'stopped':
-                log.debug(f'`{task[0]}` is set as `{task[1]}`')
+            elif task['status'] == 'stopped':
+                log.debug(
+                    '`{}` is set as `{}`, starting...'.format(
+                        task['task'], task['status']
+                    )
+                )
                 scrape_and_post.post_fcb_news.cancel()
 
 
