@@ -39,6 +39,7 @@ no:
     quote_text: Sitat tekst
     quote_date: Sitat dato
     date_placeholder: Dato og tid (DD.MM.YYYY HH:MM)
+    quote_public: Legg til sitatet offentlig (ja eller nei)
     add:
       modal_title: Legg til sitat
       msg_confirm: La til følgende sitat

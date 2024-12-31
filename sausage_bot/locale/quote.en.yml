@@ -40,6 +40,7 @@ en:
     quote_text: Quote text
     quote_date: Quote date
     date_placeholder: Date and time (DD.MM.YYYY HH:MM)
+    quote_public: Add the quote publicly (yes or no)
     add:
       modal_title: Add quote
       msg_confirm: Added this quote

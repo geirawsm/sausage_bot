@@ -102,12 +102,14 @@ class QuoteTextInput(discord.ui.TextInput):
 
 class QuoteAddModal(discord.ui.Modal):
     def __init__(
-        self, title_in=None, quote_in=None, available_row_id=None
+        self, public_in=False, title_in=None, quote_in=None,
+        available_row_id=None
     ):
         super().__init__(
             title=title_in, timeout=120
         )
         self.quote_in = quote_in
+        log.verbose(f'self.quote_in: {self.quote_in}')
         self.available_row_id = available_row_id
         self.quote_out = {
             'row_id': None,
@@ -115,7 +117,13 @@ class QuoteAddModal(discord.ui.Modal):
             'quote_text': None,
             'datetime': None
         }
-        log.verbose(f'self.quote_in is: {self.quote_in}')
+        self.public_in = public_in
+        if public_in in [None, False]:
+            self.public_in_text = I18N.t('common.literal_yes_no.yes')
+        elif public_in is True:
+            self.public_in_text = I18N.t('common.literal_yes_no.no')
+        log.verbose(f'self.public_in: {self.public_in}')
+        log.verbose(f'self.public_in_text: {self.public_in_text}')
 
         # Create elements
         num_label = QuoteTextInput(
@@ -123,7 +131,7 @@ class QuoteAddModal(discord.ui.Modal):
             label_in=I18N.t('quote.modals.quote_num'),
             default_in=self.quote_in[0][0] if self.quote_in else
             self.available_row_id,
-            required_in=False if self.quote_in else True
+            required_in=not self.quote_in
         )
 
         quote_text = QuoteTextInput(
@@ -142,9 +150,16 @@ class QuoteAddModal(discord.ui.Modal):
             placeholder_in=I18N.t('quote.modals.date_placeholder')
         )
 
+        quote_public = QuoteTextInput(
+            style_in=discord.TextStyle.short,
+            label_in=I18N.t('quote.modals.quote_public'),
+            default_in=self.public_in_text
+        )
+
         self.add_item(num_label)
         self.add_item(quote_text)
         self.add_item(quote_date)
+        self.add_item(quote_public)
 
     async def on_submit(self, interaction: discord.Interaction):
         self.quote_out['row_id'] = self.children[0].value
@@ -171,9 +186,13 @@ class QuoteAddModal(discord.ui.Modal):
         msg_out = I18N.t(
             'quote.modals.add.msg_confirm'
         )
+        if self.children[3].value == I18N.t('common.literal_yes_no.yes'):
+            _ephemeral = False
+        elif self.children[3].value == I18N.t('common.literal_yes_no.no'):
+            _ephemeral = True
         await interaction.response.send_message(
             f'{msg_out}:\n```{tab_quote}```',
-            ephemeral=True
+            ephemeral=_ephemeral
         )
 
     async def on_error(self, interaction: discord.Interaction, error):
@@ -393,8 +412,16 @@ class Quotes(commands.Cog):
     )
     async def quote_add(
         self, interaction: discord.Interaction,
+        public: typing.Literal[
+                I18N.t('common.literal_yes_no.yes'),
+                I18N.t('common.literal_yes_no.no')
+            ] = I18N.t('common.literal_yes_no.no')
     ):
         'Add a quote'
+        if public == I18N.t('common.literal_yes_no.yes'):
+            _ephemeral = False
+        elif public == I18N.t('common.literal_yes_no.no'):
+            _ephemeral = True
         # Get available row id
         _row_ids = await db_helper.get_row_ids(
             envs.quote_db_schema, sort=True
@@ -405,6 +432,7 @@ class Quotes(commands.Cog):
         else:
             last_row_id = _row_ids[-1]+1
         modal_in = QuoteAddModal(
+            public_in=_ephemeral,
             title_in=I18N.t('quote.modals.add.modal_title'),
             available_row_id=last_row_id
         )
