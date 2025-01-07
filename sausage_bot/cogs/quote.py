@@ -622,7 +622,8 @@ class Quotes(commands.Cog):
     ):
         async def prep_quotes(
             keyword: str = None,
-            quote_number: int = None, shortened: bool = False
+            quote_number: int = None,
+            shortened: bool = False
         ):
             quotes_out = []
             if quote_number and not keyword:
@@ -630,13 +631,15 @@ class Quotes(commands.Cog):
                     template_info=envs.quote_db_schema,
                     rowid=quote_number
                 )
-            else:
+            elif keyword and not quote_number:
                 quote_in = await db_helper.get_output(
                     envs.quote_db_schema,
                     get_row_ids=True,
                     rowid_sort=True,
                     like=('quote_text', keyword) if keyword else None
                 )
+            else:
+                return None
             log.debug('Got quotes: {}'.format(quote_in))
             for _q in quote_in:
                 q_no = _q['rowid']
@@ -667,11 +670,13 @@ class Quotes(commands.Cog):
             quote_number=quote_number,
             shortened=shortened
         )
-        tab_header = [
-            I18N.t('quote.commands.list.header.number'),
-            I18N.t('quote.commands.list.header.quote'),
-            I18N.t('quote.commands.list.header.date')
-        ]
+        if quote_in is None:
+            await interaction.followup.send(
+                I18N.t(
+                    'quote.commands.list.msg_nonexisting_quote'
+                ),
+                ephemeral=True
+            )
         temp_out = []
         for quote in quote_in:
             temp_out.append(
@@ -679,30 +684,17 @@ class Quotes(commands.Cog):
             )
         log.debug(f'`temp_out` is {temp_out}')
         paginated = []
-        tabulated_quotes = tabulate(
-            tablefmt='plain',
-            tabular_data=temp_out,
-            headers=tab_header,
-            maxcolwidths=[None, 80, None]
-        )
-        if len(tabulated_quotes) > 1900:
-            page_header = tabulated_quotes.splitlines(keepends=True)[0]
-            rest_of_quotes = tabulated_quotes.splitlines(keepends=True)[1:]
-            temp_page_out = ''
-            for line in rest_of_quotes:
-                if temp_page_out == '':
-                    temp_page_out = page_header
-                if len(temp_page_out) + len(line) > 1900:
-                    log.debug('Hit 1900 mark')
-                    paginated.append(temp_page_out)
-                    temp_page_out = ''
-                else:
-                    temp_page_out += line
-            if len(temp_page_out) > 0:
-                paginated.append(temp_page_out)
-        else:
-            paginated.append(tabulated_quotes)
-        log.debug(f'paginated is {paginated}')
+        msg = ''
+        for quote in temp_out:
+            msg_in = f'# {quote[0]}\n{quote[1]}\n({quote[2]})'
+            if quote != temp_out[-1]:
+                msg_in += '\n\n'
+            if len(msg) + len(msg_in) > 1900:
+                paginated.append(msg)
+                msg = ''
+            msg += msg_in
+            if quote == temp_out[-1]:
+                paginated.append(msg)
         for page in paginated:
             await interaction.followup.send(f'```{page}```')
         return

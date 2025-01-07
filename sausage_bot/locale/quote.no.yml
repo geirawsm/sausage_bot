@@ -28,12 +28,9 @@ no:
       msg_fail: Sitatet slettes ikke, sjekk logger
     count:
       cmd: Tell antall sitater
+      msg_confirm: 'Jeg har for øyeblikket %{num_quotes} sitater i databasen'
     list:
       cmd: Vis sitater
-      header:
-        number: 'Nr.'
-        quote: 'Sitat'
-        date: 'Dato'
   modals:
     quote_num: Sitat nummer
     quote_text: Sitat tekst

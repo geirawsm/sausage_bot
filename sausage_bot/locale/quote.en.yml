@@ -31,10 +31,6 @@ en:
       msg_confirm: 'I currently have %{num_quotes} quotes in my database'
     list:
       cmd: List quotes
-      header:
-        number: 'No.'
-        quote: 'Quote'
-        date: 'Date'
   modals:
     quote_num: Quote number
     quote_text: Quote text
