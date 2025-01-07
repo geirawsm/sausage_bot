@@ -263,52 +263,61 @@ async def db_fix_old_value_check_or_help():
         )
 
 
-async def db_replace_numeral_bool_with_bool():
-    old_value_numeral_instead_of_bool = await get_output(
-        template_info=envs.stats_db_settings_schema
-    )
-    new_bool_status = old_value_numeral_instead_of_bool.copy()
-    log.verbose(new_bool_status)
-    type_checking = envs.stats_db_settings_schema['type_checking']
-    for setting in new_bool_status:
-        log.verbose(f'Checking type of {setting}')
-        if type_checking[setting['setting']] == 'bool':
-            pass
-        if type(eval(setting['value'])) is \
-            type(eval(type_checking[setting['setting']])):
-            log.verbose('Removing...')
-            new_bool_status.pop(new_bool_status.index(setting))
-    log.verbose('`new_bool_status` after checking is ', pretty=new_bool_status)
-    for setting in new_bool_status:
-        print(
-            'Checking {}: {}'.format(
-                setting['setting'],
-                type(eval(setting['value']))
-            )
-        )
-        if type(eval(setting['value'])) is int:
-            if setting['value'] == 0:
-                setting['value'] = False
-            elif setting['value'] == 1:
-                setting['value'] = True
+async def db_replace_numeral_bool_with_bool(template_info):
+    old_value_numeral_instead_of_bool = await get_output(template_info)
+    log.verbose(f'old_value_numeral_instead_of_bool: {old_value_numeral_instead_of_bool}')
+    # Make a copy of the db-dict to use as a checklist for converting
+    # numerals to bools if need be
+    db_new_bool_status = old_value_numeral_instead_of_bool.copy()
+    if 'type_checking' not in template_info:
+        return
+    db_type_checking = template_info['type_checking']
+    for setting in old_value_numeral_instead_of_bool:
+        print(f'------\nChecking {setting}')
+        setting_in = list(setting.values())
+        remove_status = False
+        if setting_in[0] in db_type_checking:
+            # Remove item from copied list if it's ok
+            print('Is `{}` same as `{}`?'.format(
+                type(eval(setting_in[1])), eval(db_type_checking[setting_in[0]])
+            ))
+            if db_type_checking[setting_in[0]] == 'bool':
+                if type(eval(setting_in[1])) is not\
+                        eval(db_type_checking[setting_in[0]]):
+                    remove_status = False
+                    print('Will NOT remove this setting')
+                else:
+                    remove_status = True
+                    print('Will remove this setting')
             else:
-                setting['value'] = \
-                    dict(envs.stats_db_settings_schema['inserts'])[setting['setting']]
+                remove_status = True
+            if remove_status:
+                db_new_bool_status.pop(db_new_bool_status.index(setting))
+    log.verbose('`db_new_bool_status` after checking is ', pretty=db_new_bool_status)
+    for setting in db_new_bool_status:
+        setting_in = list(setting.values())
+        if type(eval(setting_in[1])) is int:
+            if setting_in[1] == 0:
+                setting_in[1] = False
+            elif setting_in[1] == 1:
+                setting_in[1] = True
         else:
-            new_bool_status.pop(new_bool_status.index(setting))
-    if len(new_bool_status) > 0:
-        log.verbose(new_bool_status)
+            db_new_bool_status.pop(db_new_bool_status.index(setting))
+    if len(db_new_bool_status) > 0:
         log.verbose(
-            'Length of `new_bool_status` is more than 0. Converting old '
+            'Length of `db_new_bool_status` is more than 0. Converting old '
             'value numeral to bool'
         )
-        log.verbose(new_bool_status)
-        for setting in new_bool_status:
-            # TODO Denne fungerer ikke
+        for setting in db_new_bool_status:
+            setting_in = list(setting.values())
+            if setting_in[1] == '0':
+                new_setting_in = False
+            elif setting_in[1] == '1':
+                new_setting_in = True
             await update_fields(
-                template_info=envs.stats_db_settings_schema,
-                where=('setting', setting),
-                updates=('value', new_bool_status)[setting]
+                template_info=template_info,
+                where=('setting', setting_in[0]),
+                updates=('value', new_setting_in)
             )
 
 
