@@ -17,6 +17,16 @@ from ..args import args
 # colorama specific reset routine
 init(autoreset=True)
 
+COLOR_MAP = {
+    'black': Fore.BLACK,
+    'red': Fore.RED,
+    'green': Fore.GREEN,
+    'yellow': Fore.YELLOW,
+    'blue': Fore.BLUE,
+    'magenta': Fore.MAGENTA,
+    'cyan': Fore.CYAN,
+    'white': Fore.WHITE,
+}
 
 # Checking if log_all is activated
 if args.log_all:
@@ -48,22 +58,19 @@ def log_function(
     pretty          Prettify specific output. Works on dict, list and tuple
     sameline        Reuse line for next output
     '''
-    if args.log_print:
+    def get_color(color: str = None):
         if color is None:
-            color = Fore.GREEN
+            return COLOR_MAP.get('green', Fore.GREEN)
         else:
-            color = eval('Fore.{}'.format(color.upper()))
-        if extra_color is None:
-            extra_color = Fore.GREEN
-        else:
-            extra_color = eval('Fore.{}'.format(extra_color.upper()))
+            return COLOR_MAP.get(color.lower(), Fore.GREEN)
+
+    if args.log_print:
+        color = get_color(color)
     function_name = log_func_name()
     if args.log_print and args.log_highlight is not None and\
             str(args.log_highlight) in function_name['name'] or\
             str(args.log_highlight) in log_in:
-        color = eval('Fore.{}'.format(
-            args.log_highlight_color.upper()
-        ))
+        color = get_color(color)
     dt = pendulum.now(config.TIMEZONE)
     dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
     log_out = '[ {dt} ]{extra_info} [ {func_name} ({func_line}) '\
