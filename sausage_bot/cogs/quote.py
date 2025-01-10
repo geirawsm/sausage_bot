@@ -19,8 +19,7 @@ class EditButtons(discord.ui.View):
         self.value = None
 
     @discord.ui.button(
-        label="Yes, edit", style=discord.ButtonStyle.green,
-        custom_id='edit_yes'
+        label="Yes, edit", style=discord.ButtonStyle.green
     )
     async def edit_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -50,40 +49,42 @@ class EditButtons(discord.ui.View):
         self.stop()
 
 
-class SimpleButton(discord.ui.Button):
-    def __init__(self, style, label, value):
-        super().__init__(style=style, label=label)
-        self.value = value
-
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
-        self.disabled = True
-        buttons = [x for x in self.view.children]
-        for _btn in buttons:
-            _btn.disabled = True
-        await interaction.response.edit_message(view=self.view)
-        self.view.stop()
-
-
 class ConfirmButtons(discord.ui.View):
     def __init__(self, *, timeout=10):
         super().__init__(timeout=timeout)
         self.value = None
-        self.add_item(
-            SimpleButton(
-                style=discord.ButtonStyle.green,
-                label=I18N.t('common.literal_yes_no.yes'),
-                value=True
-            )
-        )
-        self.add_item(
-            SimpleButton(
-                style=discord.ButtonStyle.red,
-                label=I18N.t('common.literal_yes_no.no'),
-                value=False
-            )
-        )
+
+    @discord.ui.button(
+        label=I18N.t('common.literal_yes_no.yes'),
+        style=discord.ButtonStyle.green
+    )
+    async def yes_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.value = True
+        # Disable all buttons
+        buttons = [x for x in self.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        # Update message
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @discord.ui.button(
+        label=I18N.t('common.literal_yes_no.no'),
+        style=discord.ButtonStyle.red
+    )
+    async def no_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.value = False
+        # Disable all buttons
+        buttons = [x for x in self.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        # Update message
+        await interaction.response.edit_message(view=self)
+        self.stop()
 
 
 class QuoteTextInput(discord.ui.TextInput):
@@ -521,26 +522,35 @@ class Quotes(commands.Cog):
         )
     )
     @describe(
-        quote_in=I18N.t('quote.commands.delete.desc.quote_in')
+        quote_number=I18N.t('quote.commands.delete.desc.quote_in')
     )
     async def quote_delete(
             self, interaction: discord.Interaction,
-            quote_in: str
+            quote_number: str
     ):
         'Delete an existing quote'
         await interaction.response.defer(ephemeral=True)
-        quote_from_db = await get_quote_from_db(quote_in)
+        quote_from_db = await get_quote_from_db(quote_number)
         log.db(f'quote_from_db is: {quote_from_db}')
+        if quote_from_db is None:
+            await interaction.followup.send(
+                I18N.t(
+                    'quote.commands.delete.msg_nonexisting_quote',
+                    quote_number=quote_number
+                ),
+                ephemeral=True
+            )
+            return
         quote = quote_from_db[0]
         log.db(f'quote is: {quote}')
         confirm_buttons = ConfirmButtons()
         tab_quote = tabulate(
             [
-                [I18N.t('quote.tab_headers.quote_num'), quote[0]],
-                [I18N.t('quote.tab_headers.quote'), quote[2]],
+                [I18N.t('quote.tab_headers.quote_num'), quote['rowid']],
+                [I18N.t('quote.tab_headers.quote'), quote['quote_text']],
                 [I18N.t('quote.tab_headers.quote_date'), get_dt(
                     format='datetime',
-                    dt=quote[3]
+                    dt=quote['datetime']
                 )]
             ], tablefmt='plain'
         )
@@ -556,17 +566,17 @@ class Quotes(commands.Cog):
         )
         await confirm_buttons.wait()
         log.debug(f'Got `confirm_buttons.value`: {confirm_buttons.value}')
-        if confirm_buttons.value:
+        if confirm_buttons.value is True:
             # Remove the quote
             await db_helper.del_row_id(
                 envs.quote_db_schema,
-                quote[0]
+                quote['rowid']
             )
             # Confirm that the quote has been deleted
             await interaction.followup.send(
                 I18N.t(
                     'quote.commands.delete.msg_confirm_delete',
-                    quote_num=quote[0]
+                    quote_num=quote['rowid']
                 ),
                 ephemeral=True
             )

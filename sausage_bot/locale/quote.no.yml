@@ -21,11 +21,12 @@ no:
     delete:
       cmd: Slett sitat
       desc:
-        quote_in: Sitat som skal slettes
+        quote_number: Sitat-nummer som skal slettes
       confirm_delete: 'Er du sikker på at du vil slette følgende sitat?'
       msg_confirm_delete: 'Slettet sitat nummer %{quote_num}'
       msg_confirm_not_delete: Sitat ikke slettet
       msg_fail: Sitatet slettes ikke, sjekk logger
+      msg_nonexisting_quote: 'Sitat nr %{quote_number} eksisterer ikke'
     count:
       cmd: Tell antall sitater
       msg_confirm: 'Jeg har for øyeblikket %{num_quotes} sitater i databasen'

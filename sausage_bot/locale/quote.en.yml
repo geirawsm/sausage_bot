@@ -21,11 +21,12 @@ en:
     delete:
       cmd: Delete a quote
       desc:
-        quote_in: Quote to delete
+        quote_number: Quote number to delete
       confirm_delete: 'Are you sure you want to delete the following quote?'
       msg_confirm_delete: 'Deleted quote # %{quote_num}'
       msg_confirm_not_delete: Quote not deleted
       msg_fail: Will not delete quote, check logs
+      msg_nonexisting_quote: 'Quote \#%{quote_number} does not exist'
     count:
       cmd: Count the number of quotes
       msg_confirm: 'I currently have %{num_quotes} quotes in my database'
