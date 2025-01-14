@@ -87,8 +87,8 @@ async def prep_table(
             delete_json_ok = True
         else:
             log.verbose(
-                'Inserts given, but db file already has input. '
-                'This should be looked into, so messaging the bot-dump'
+                'Inserts given, but db file already has input and setup of'
+                'cog could not fix it. Botlogging this.
             )
             await discord_commands.log_to_bot_channel(
                 content_in='Want to insert info from old json or inserts into '
@@ -102,11 +102,12 @@ async def prep_table(
 
 
 async def add_missing_db_setup(
-        template_info, dict_in
+        template_info, dict_in: dict = None
 ):
     log.verbose(f'Received `template_info`', pretty=template_info)
     db_file = template_info['db_file']
     table_name = template_info['name']
+    type_checking = template_info['type_checking']
     log.debug(f'Checking `{table_name}` in `{db_file}`')
     if 'inserts' in template_info:
         log.debug('Got `inserts`')
@@ -117,6 +118,8 @@ async def add_missing_db_setup(
     await prep_table(
         table_in=template_info, inserts=inserts
     )
+    if not dict_in:
+        dict_in = {}
     if table_name not in dict_in:
         dict_in[table_name] = []
     wanted_cols = template_info['items']
@@ -155,13 +158,21 @@ async def add_missing_db_setup(
         log.verbose(f'Got `inserts`: {inserts}')
         log.verbose(f'Got `db_out`: {db_out}')
         for insert in inserts:
+            add_to_temp = None
             if insert[0] not in db_out_cols:
-                temp_inserts.append(insert)
-            elif insert[0] in db_out and db_out[db_out_cols.index(insert[0])] is None:
-                temp_inserts.append(insert)
+                add_to_temp = True
+            elif insert[0] in db_out and\
+                    db_out[db_out_cols.index(insert[0])] is None:
+                add_to_temp = True
+            if add_to_temp:
+                temp_inserts.append((insert))
         log.debug(f'temp_inserts: {temp_inserts}')
     if len(temp_inserts) > 0:
-        await insert_many_all(template_info, temp_inserts)
+        await insert_many_some(
+            template_info=template_info,
+            rows=template_info['items'],
+            inserts=temp_inserts
+        )
     return dict_in
 
 
