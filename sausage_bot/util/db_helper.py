@@ -289,19 +289,27 @@ async def db_replace_numeral_bool_with_bool(template_info):
         remove_status = False
         if setting_in[0] in db_type_checking:
             # Remove item from copied list if it's ok
-            print('Is `{}` same as `{}`?'.format(
-                type(eval(setting_in[1])), eval(db_type_checking[setting_in[0]])
-            ))
-            if db_type_checking[setting_in[0]] == 'bool':
-                if type(eval(setting_in[1])) is not\
-                        eval(db_type_checking[setting_in[0]]):
-                    remove_status = False
-                    print('Will NOT remove this setting')
+            if db_type_checking[setting_in[0]] == 'str':
+                print('Not checking `{}` with `{}`?'.format(
+                    type(setting_in[1]),
+                    eval(db_type_checking[setting_in[0]])
+                ))
+                remove_status = True
+            else:
+                print('Is `{}` same as `{}`?'.format(
+                    type(eval(setting_in[1])),
+                    eval(db_type_checking[setting_in[0]])
+                ))
+                if db_type_checking[setting_in[0]] == 'bool':
+                    if type(eval(setting_in[1])) is not\
+                            eval(db_type_checking[setting_in[0]]):
+                        remove_status = False
+                        print('Will NOT remove this setting')
+                    else:
+                        remove_status = True
+                        print('Will remove this setting')
                 else:
                     remove_status = True
-                    print('Will remove this setting')
-            else:
-                remove_status = True
             if remove_status:
                 db_new_bool_status.pop(db_new_bool_status.index(setting))
     log.verbose('`db_new_bool_status` after checking is ', pretty=db_new_bool_status)
