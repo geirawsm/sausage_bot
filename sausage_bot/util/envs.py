@@ -82,9 +82,9 @@ tasks_db_schema = {
     'db_file': str(DB_DIR / 'tasks.sqlite'),
     'name': 'tasks',
     'items': [
-        'cog TEXT NOT NULL',
-        'task TEXT NOT NULL',
-        'status TEXT NOT NULL'
+        ['cog', 'TEXT NOT NULL'],
+        ['task', 'TEXT NOT NULL'],
+        ['status', 'TEXT NOT NULL']
     ],
     'inserts': [
         ['rss', 'post_feeds', 'stopped'],
@@ -97,16 +97,16 @@ poll_db_polls_schema = {
     'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll',
     'items': [
-        'uuid TEXT NOT NULL',
-        'msg_id TEXT',
-        'channel TEXT',
-        'poll_text TEXT',
-        'post_time TEXT',
-        'lock_time TEXT',
-        'status_wait_post INTEGER',
-        'status_posted INTEGER',
-        'status_wait_lock INTEGER',
-        'status_locked INTEGER'
+        ['uuid', 'TEXT NOT NULL'],
+        ['msg_id', 'TEXT'],
+        ['channel', 'TEXT'],
+        ['poll_text', 'TEXT'],
+        ['post_time', 'TEXT'],
+        ['lock_time', 'TEXT'],
+        ['status_wait_post', 'INTEGER'],
+        ['status_posted', 'INTEGER'],
+        ['status_wait_lock', 'INTEGER'],
+        ['status_locked', 'INTEGER']
     ]
 }
 
@@ -114,10 +114,10 @@ poll_db_alternatives_schema = {
     'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll_alternatives',
     'items': [
-        'uuid TEXT NOT NULL',
-        'emoji TEXT NOT NULL',
-        'input TEXT NOT NULL',
-        'count INTEGER'
+        ['uuid TEXT NOT NULL'],
+        ['emoji TEXT NOT NULL'],
+        ['input TEXT NOT NULL'],
+        ['count INTEGER']
     ]
 }
 
@@ -126,8 +126,8 @@ dilemmas_db_schema = {
     'db_file': str(DB_DIR / 'dilemmas.sqlite'),
     'name': 'dilemmas',
     'items': [
-        'id TEXT NOT NULL',
-        'dilemmas_text TEXT'
+        ['id', 'TEXT NOT NULL'],
+        ['dilemmas_text', 'TEXT']
     ],
     'primary': 'id'
 }
@@ -136,8 +136,8 @@ dilemmas_db_log_schema = {
     'db_file': str(DB_DIR / 'dilemmas.sqlite'),
     'name': 'log',
     'items': [
-        'id TEXT NOT NULL',
-        'msg_id TEXT'
+        ['id', ' TEXT NOT NULL'],
+        ['msg_id', ' TEXT']
     ]
 }
 
@@ -146,9 +146,9 @@ quote_db_schema = {
     'db_file': str(DB_DIR / 'quote.sqlite'),
     'name': 'quote',
     'items': [
-        'uuid TEXT NOT NULL UNIQUE',
-        'quote_text TEXT',
-        'datetime TEXT'
+        ['uuid', 'TEXT NOT NULL UNIQUE'],
+        ['quote_text', 'TEXT'],
+        ['datetime', 'TEXT']
     ],
     'primary': 'uuid',
     'autoincrement': False
@@ -158,8 +158,8 @@ quote_db_log_schema = {
     'db_file': str(DB_DIR / 'quote.sqlite'),
     'name': 'log',
     'items': [
-        'uuid TEXT NOT NULL',
-        'msg_id TEXT'
+        ['uuid', 'TEXT NOT NULL'],
+        ['msg_id', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False
@@ -170,13 +170,13 @@ roles_db_msgs_schema = {
     'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'messages',
     'items': [
-        'msg_id TEXT NOT NULL',
-        'channel TEXT',
-        'name TEXT',
-        'header TEXT',
-        'content TEXT',
-        'description TEXT',
-        'msg_order INTEGER'
+        ['msg_id', ' TEXT NOT NULL'],
+        ['channel', ' TEXT'],
+        ['name', ' TEXT'],
+        ['header', ' TEXT'],
+        ['content', ' TEXT'],
+        ['description', ' TEXT'],
+        ['msg_order', ' INTEGER']
     ],
     'primary': 'msg_id'
 }
@@ -185,9 +185,9 @@ roles_db_roles_schema = {
     'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'roles',
     'items': [
-        'msg_id TEXT NOT NULL',
-        'role TEXT',
-        'emoji TEXT'
+        ['msg_id', 'TEXT NOT NULL'],
+        ['role', 'TEXT'],
+        ['emoji', 'TEXT']
     ]
 }
 
@@ -195,8 +195,8 @@ roles_db_settings_schema = {
     'db_file': str(DB_DIR / 'roles.sqlite'),
     'name': 'settings',
     'items': [
-        'setting TEXT NOT NULL',
-        'value TEXT'
+        ['setting', 'TEXT NOT NULL'],
+        ['value', 'TEXT']
     ]
 }
 
@@ -205,10 +205,10 @@ log_db_schema = {
     'db_file': str(DB_DIR / 'log.sqlite'),
     'name': 'log',
     'items': [
-        'setting TEXT NOT NULL',
-        'value TEXT NOT NULL',
-        'value_check TEXT',
-        'value_help TEXT'
+        ['setting', 'TEXT NOT NULL'],
+        ['value', 'TEXT NOT NULL'],
+        ['value_check', 'TEXT'],
+        ['value_help', 'TEXT']
     ],
     'inserts': [
         ['type', 'size', 'str', '`size` or `days`'],
@@ -220,10 +220,8 @@ stats_db_settings_schema = {
     'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'settings',
     'items': [
-        'setting TEXT NOT NULL',
-        'value TEXT NOT NULL',
-        'value_check TEXT',
-        'value_help TEXT'
+        ['setting', 'TEXT NOT NULL'],
+        ['value', 'TEXT NOT NULL']
     ],
     'inserts': [
         ['channel', 'stats'],
@@ -238,14 +236,14 @@ stats_db_settings_schema = {
     ],
     'type_checking': {
         'channel': 'str',
-        'stats_msg_id': 'str',
         'hide_bot_roles': 'bool',
+        'hide_empty_roles': 'bool',
         'show_code_stats': 'bool',
         'show_role_stats': 'bool',
-        'sort_roles_abc': 'bool',
-        'sort_roles_321': 'bool',
         'sort_min_role_members': 'int',
-        'hide_empty_roles': 'bool'
+        'sort_roles_321': 'bool',
+        'sort_roles_abc': 'bool',
+        'stats_msg_id': 'str'
     }
 }
 
@@ -253,7 +251,7 @@ stats_db_hide_roles_schema = {
     'db_file': str(DB_DIR / 'stats.sqlite'),
     'name': 'hide_roles',
     'items': [
-        'role_id TEXT NOT NULL',
+        ['role_id', 'TEXT NOT NULL'],
     ]
 }
 
@@ -261,10 +259,10 @@ stats_db_log_schema = {
     'db_file': str(DB_DIR / 'stats_log.sqlite'),
     'name': 'log',
     'items': [
-        'datetime TEXT',
-        'code_files INTEGER',
-        'code_lines INTEGER',
-        'members INTEGER'
+        ['datetime', 'TEXT'],
+        ['code_files', 'INTEGER'],
+        ['code_lines', 'INTEGER'],
+        ['members', 'INTEGER']
     ]
 }
 
@@ -273,17 +271,17 @@ rss_db_schema = {
     'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
     'name': 'rss_feeds',
     'items': [
-        'uuid TEXT NOT NULL',
-        'feed_name TEXT',
-        'url TEXT',
-        'channel TEXT',
-        'added TEXT',
-        'added_by TEXT',
-        'feed_type TEXT',
-        'status_url TEXT',
-        'status_url_counter INTEGER',
-        'status_channel TEXT',
-        'num_episodes INTEGER'
+        ['uuid', 'TEXT NOT NULL'],
+        ['feed_name', 'TEXT'],
+        ['url', 'TEXT'],
+        ['channel', 'TEXT'],
+        ['added', 'TEXT'],
+        ['added_by', 'TEXT'],
+        ['feed_type', 'TEXT'],
+        ['status_url', 'TEXT'],
+        ['status_url_counter', 'INTEGER'],
+        ['status_channel', 'TEXT'],
+        ['num_episodes', 'INTEGER']
     ],
     'primary': 'uuid',
     'autoincrement': False
@@ -293,9 +291,9 @@ rss_db_filter_schema = {
     'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
     'name': 'filter',
     'items': [
-        'uuid TEXT NOT NULL',
-        'allow_or_deny TEXT NOT NULL',
-        'filter TEXT NOT NULL'
+        ['uuid', 'TEXT NOT NULL'],
+        ['allow_or_deny', 'TEXT NOT NULL'],
+        ['filter', 'TEXT NOT NULL']
     ],
     'primary': None,
     'autoincrement': False
@@ -305,9 +303,9 @@ rss_db_settings_schema = {
     'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
     'name': 'settings',
     'items': [
-        'setting TEXT NOT NULL',
-        'value TEXT',
-        'value_check TEXT NOT NULL'
+        ['setting', 'TEXT NOT NULL'],
+        ['value', 'TEXT'],
+        ['value_check', 'TEXT NOT NULL']
     ],
     'inserts': [
         ['show_pod_description_in_embed', 'False', 'bool']
@@ -320,9 +318,9 @@ rss_db_log_schema = {
     'db_file': str(DB_DIR / 'rss_log.sqlite'),
     'name': 'log',
     'items': [
-        'uuid TEXT NOT NULL',
-        'url TEXT',
-        'date TEXT'
+        ['uuid', 'TEXT NOT NULL'],
+        ['url', 'TEXT'],
+        ['date', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False
@@ -333,16 +331,16 @@ youtube_db_schema = {
     'db_file': str(DB_DIR / 'youtube_feeds.sqlite'),
     'name': 'youtube_feeds',
     'items': [
-        'uuid TEXT NOT NULL',
-        'feed_name TEXT',
-        'url TEXT',
-        'channel TEXT',
-        'added TEXT',
-        'added_by TEXT',
-        'status_url TEXT',
-        'status_url_counter INTEGER',
-        'status_channel TEXT',
-        'youtube_id TEXT'
+        ['uuid', 'TEXT NOT NULL'],
+        ['feed_name', 'TEXT'],
+        ['url', 'TEXT'],
+        ['channel', 'TEXT'],
+        ['added', 'TEXT'],
+        ['added_by', 'TEXT'],
+        ['status_url', 'TEXT'],
+        ['status_url_counter', 'INTEGER'],
+        ['status_channel', 'TEXT'],
+        ['youtube_id', 'TEXT']
     ],
     'primary': 'uuid',
     'autoincrement': False
@@ -352,9 +350,9 @@ youtube_db_filter_schema = {
     'db_file': str(DB_DIR / 'youtube_feeds.sqlite'),
     'name': 'filter',
     'items': [
-        'uuid TEXT NOT NULL',
-        'allow_or_deny TEXT NOT NULL',
-        'filter TEXT NOT NULL'
+        ['uuid', 'TEXT NOT NULL'],
+        ['allow_or_deny', 'TEXT NOT NULL'],
+        ['filter', 'TEXT NOT NULL']
     ],
     'primary': None,
     'autoincrement': False
@@ -364,9 +362,9 @@ youtube_db_log_schema = {
     'db_file': str(DB_DIR / 'youtube_log.sqlite'),
     'name': 'log',
     'items': [
-        'uuid TEXT NOT NULL',
-        'url TEXT',
-        'date TEXT'
+        ['uuid', ' TEXT NOT NULL'],
+        ['url', ' TEXT'],
+        ['date', ' TEXT']
     ],
     'primary': None,
     'autoincrement': False
@@ -376,7 +374,7 @@ locale_db_schema = {
     'db_file': str(DB_DIR / 'locale.sqlite'),
     'name': 'locale',
     'items': [
-        'locale TEXT'
+        ['locale', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False

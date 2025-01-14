@@ -44,7 +44,11 @@ async def prep_table(
     table_name = table_in['name']
     item_list = table_in['items']
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
-    _cmd += ', '.join(item for item in item_list)
+    _cmd += ', '.join(
+        '{} {}'.format(
+            item[0], item[1]
+        ) for item in item_list
+    )
     if 'primary' in table_in and\
             table_in['primary'] is not None:
         _cmd += ', PRIMARY KEY({}'.format(
@@ -107,7 +111,6 @@ async def add_missing_db_setup(
     log.verbose(f'Received `template_info`', pretty=template_info)
     db_file = template_info['db_file']
     table_name = template_info['name']
-    type_checking = template_info['type_checking']
     log.debug(f'Checking `{table_name}` in `{db_file}`')
     if 'inserts' in template_info:
         log.debug('Got `inserts`')
@@ -134,16 +137,13 @@ async def add_missing_db_setup(
     _existing_cols = [col[1] for col in existing_cols]
     log.debug(f'_existing_cols: {_existing_cols}')
     for col_in in wanted_cols:
-        item = col_in.split(' ')
-        log.debug(f'Checking {item}')
-        if item[0] not in _existing_cols:
-            log.debug(f'Adding {item[0]}')
+        if col_in[0] not in _existing_cols:
+            log.debug(f'Adding {col_in[0]}')
             dict_in[table_name].append(col_in)
     async with aiosqlite.connect(db_file) as db:
         for col in dict_in[table_name]:
-            item = col.split(' ')
-            log.debug(f'item: {item}')
-            _cmd = f'ALTER TABLE {table_name} ADD COLUMN {item[0]};'
+            log.debug(f'col: {col}')
+            _cmd = f'ALTER TABLE {table_name} ADD COLUMN {col[0]};'
             log.db(f'Using this query: {_cmd}')
             await db.execute(_cmd)
     # Add existing inserts in columns where they don't exist yet
@@ -170,7 +170,7 @@ async def add_missing_db_setup(
     if len(temp_inserts) > 0:
         await insert_many_some(
             template_info=template_info,
-            rows=template_info['items'],
+            rows=[item[0] for item in template_info['items']],
             inserts=temp_inserts
         )
     return dict_in
