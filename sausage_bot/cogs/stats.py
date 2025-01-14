@@ -838,11 +838,18 @@ async def setup(bot):
     log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
     # Cleaning DB if irregularities from previous instances of database
     if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
+        await db_helper.add_missing_db_setup(
+            envs.stats_db_settings_schema
+        )
         await db_helper.db_fix_old_hide_roles_status()
         await db_helper.db_fix_old_stats_msg_name_status()
         await db_helper.db_fix_old_value_check_or_help()
-        # TODO Denne venter på omskriving
-        #await db_helper.db_replace_numeral_bool_with_bool()
+        await db_helper.db_replace_numeral_bool_with_bool(
+            envs.stats_db_settings_schema
+        )
+        await db_helper.db_remove_old_cols(
+            envs.stats_db_settings_schema
+        )
     stats_settings_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_settings_schema,
         inserts=stats_settings_inserts

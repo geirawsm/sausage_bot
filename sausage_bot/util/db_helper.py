@@ -322,6 +322,33 @@ async def db_replace_numeral_bool_with_bool(template_info):
             )
 
 
+async def db_remove_old_cols(template_info):
+    '''
+    Sjekke hvilke kolonner som ikke finnes i ny envs
+    Fjern disse
+    '''
+    async def list_cols(template_info):
+        db_file = template_info['db_file']
+        table_name = template_info['name']
+        log.verbose(f'Got `db_file`: {db_file}')
+        log.verbose(f'Got `table_name`: {table_name}')
+        table_info = f'PRAGMA table_info({table_name})'
+        async with aiosqlite.connect(db_file) as db:
+            db_out = await db.execute(table_info)
+            list_out = await db_out.fetchall()
+        return [col[1] for col in list_out] if list_out is not None else None
+
+    log.verbose(f'Received `template_info`', pretty=template_info)
+    cols = template_info['items']
+    cols_to_remove = []
+    # Check existing columns in db
+    cols_in_db = await list_cols(template_info)
+    for db_col in cols_in_db:
+        if db_col not in [col[0] for col in cols]:
+            cols_to_remove.append(db_col)
+    await remove_cols(template_info, cols_to_remove)
+
+
 async def json_to_db_inserts(cog_name):
     '''
     This is a cleanup function to be used for converting from old json
