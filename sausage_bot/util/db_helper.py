@@ -88,7 +88,7 @@ async def prep_table(
         else:
             log.verbose(
                 'Inserts given, but db file already has input and setup of'
-                'cog could not fix it. Botlogging this.
+                'cog could not fix it. Botlogging this.'
             )
             await discord_commands.log_to_bot_channel(
                 content_in='Want to insert info from old json or inserts into '
