@@ -90,18 +90,8 @@ async def prep_table(
             )
             delete_json_ok = True
         else:
-            log.verbose(
-                'Inserts given, but db file already has input and setup of'
-                'cog could not fix it. Botlogging this.'
-            )
-            await discord_commands.log_to_bot_channel(
-                content_in='Want to insert info from old json or inserts into '
-                f'`{table_name}` in `{db_file}`, but something is wrong'
-                '({} vs {})\nInserts:\n{}'.format(
-                    db_len, len(inserts), inserts
-                )
-            )
-            delete_json_ok = False
+            await add_missing_db_setup(table_in)
+            delete_json_ok = True
     return delete_json_ok
 
 
@@ -111,16 +101,8 @@ async def add_missing_db_setup(
     log.verbose(f'Received `template_info`', pretty=template_info)
     db_file = template_info['db_file']
     table_name = template_info['name']
+    inserts = template_info['inserts']
     log.debug(f'Checking `{table_name}` in `{db_file}`')
-    if 'inserts' in template_info:
-        log.debug('Got `inserts`')
-        inserts = template_info['inserts']
-    else:
-        log.debug('No `inserts` received')
-        inserts = []
-    await prep_table(
-        table_in=template_info, inserts=inserts
-    )
     if not dict_in:
         dict_in = {}
     if table_name not in dict_in:
@@ -165,12 +147,12 @@ async def add_missing_db_setup(
                     db_out[db_out_cols.index(insert[0])] is None:
                 add_to_temp = True
             if add_to_temp:
-                temp_inserts.append((insert))
+                temp_inserts.append(tuple(insert))
         log.debug(f'temp_inserts: {temp_inserts}')
     if len(temp_inserts) > 0:
         await insert_many_some(
             template_info=template_info,
-            rows=[item[0] for item in template_info['items']],
+            rows=tuple(item[0] for item in template_info['items']),
             inserts=temp_inserts
         )
     return dict_in
