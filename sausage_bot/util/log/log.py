@@ -67,10 +67,10 @@ def log_function(
     if args.log_print:
         color = get_color(color)
     function_name = log_func_name()
-    if args.log_print and args.log_highlight is not None and\
-            str(args.log_highlight) in function_name['name'] or\
-            str(args.log_highlight) in log_in:
-        color = get_color(color)
+    if args.log_print and args.log_highlight and\
+            str(args.log_highlight).lower() in function_name['name'].lower()\
+            or str(args.log_highlight).lower() in log_in.lower():
+        color = get_color(str(args.log_highlight_color))
     dt = pendulum.now(config.TIMEZONE)
     dt_full = dt.format('DD.MM.YYYY HH.mm.ss')
     log_out = '[ {dt} ]{extra_info} [ {func_name} ({func_line}) '\
