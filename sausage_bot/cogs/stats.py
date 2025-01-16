@@ -60,20 +60,27 @@ async def hidden_roles_autocomplete(
         template_info=envs.stats_db_hide_roles_schema,
         get_row_ids=True
     )
-    temp_hidden_roles = hidden_roles_in_db.copy()
-    for role in hidden_roles_in_db:
-        temp_hidden_roles[role]['name'] = get(
-            discord_commands.get_guild().roles,
-            id=int(role['role_id'])
-        ).name
-    log.debug(f'temp_hidden_roles: {temp_hidden_roles}')
+    log.debug('hidden_roles_from_db', pretty=hidden_roles_in_db)
+    temp_hidden_roles = {}
+    for i in hidden_roles_in_db:
+        temp_hidden_roles[i['role_id']] = {
+            'rowid': i['rowid'],
+            'name': get(
+                discord_commands.get_guild().roles,
+                id=int(i['role_id'])
+            ).name
+        }
+    log.debug('temp_hidden_roles', pretty=temp_hidden_roles)
     return [
         discord.app_commands.Choice(
-            name=f"{hidden_role['name']} ({hidden_role['role_id']})",
-            value=str(hidden_role['rowid'])
+            name="{} ({})".format(
+                temp_hidden_roles[hidden_role]['name'],
+                hidden_role
+            ),
+            value=str(temp_hidden_roles[hidden_role]['rowid'])
         ) for hidden_role in temp_hidden_roles if current
         in '{}-{}'.format(
-            hidden_role['role_id'], hidden_role['name']
+            hidden_role, temp_hidden_roles[hidden_role]['name']
         ).lower()
     ]
 
