@@ -64,7 +64,7 @@ async def hidden_roles_autocomplete(
     for role in hidden_roles_in_db:
         temp_hidden_roles[role]['name'] = get(
             discord_commands.get_guild().roles,
-            id=int(role[1])
+            id=int(role['role_id'])
         ).name
     log.debug(f'temp_hidden_roles: {temp_hidden_roles}')
     return [
@@ -80,8 +80,9 @@ async def hidden_roles_autocomplete(
 
 def get_role_numbers(settings_in):
     'Get roles and number of members'
-
     log.verbose(f'settings_in: {settings_in}')
+    log.debug('hide_empty_roles: {}'.format(settings_in['hide_empty_roles']))
+    log.debug('hide_bot_roles: {}'.format(settings_in['hide_bot_roles']))
     roles_info = discord_commands.get_roles(
         hide_empties=settings_in['hide_empty_roles'],
         filter_bots=settings_in['hide_bot_roles']
@@ -299,35 +300,38 @@ class Stats(commands.Cog):
             template_info=envs.stats_db_settings_schema,
             select=('setting', 'value')
         )
-        settings_type = envs.stats_db_settings_schema['type_checking']
+        settings_from_db = {}
         for setting in settings_in_db:
-            if setting[0] == name_of_setting:
-                if settings_type[setting[0]] == 'bool':
-                    try:
-                        value_in = eval(str(value_in).capitalize())
-                    except NameError as _error:
-                        log.error(f'Invalid input for `value_in`: {_error}')
-                        await interaction.followup.send(I18N.t(
-                            'stats.setting_input_reply'
-                        ))
-                        return
-                log.debug(f'`value_in` is {value_in} ({type(value_in)})')
-                log.debug(
-                    f'`settings_type` is {settings_type[setting[0]]} '
-                    f'({type(settings_type[setting[0]])})'
+            settings_from_db[setting['setting']] = setting['value']
+        log.debug(f'settings_from_db:', pretty=settings_from_db)
+        settings_type = envs.stats_db_settings_schema['type_checking']
+        for setting in settings_from_db:
+            if settings_type[setting] == 'bool':
+                try:
+                    value_in = eval(str(value_in).capitalize())
+                except NameError as _error:
+                    log.error(f'Invalid input for `value_in`: {_error}')
+                    await interaction.followup.send(I18N.t(
+                        'stats.setting_input_reply'
+                    ))
+                    return
+            log.debug(f'`value_in` is {value_in} ({type(value_in)})')
+            log.debug(
+                f'`settings_type` is {settings_type[setting]} '
+                f'({type(settings_type[setting])})'
+            )
+            if type(value_in) is eval(settings_type[setting]):
+                await db_helper.update_fields(
+                    template_info=envs.stats_db_settings_schema,
+                    where=[('setting', name_of_setting)],
+                    updates=[('value', value_in)]
                 )
-                if type(value_in) is eval(settings_type[setting[0]]):
-                    await db_helper.update_fields(
-                        template_info=envs.stats_db_settings_schema,
-                        where=[('setting', name_of_setting)],
-                        updates=[('value', value_in)]
-                    )
-                await interaction.followup.send(
-                    content=I18N.t('stats.commands.change.update_confirmed'),
-                    ephemeral=True
-                )
-                Stats.task_update_stats.restart()
-                break
+            await interaction.followup.send(
+                content=I18N.t('stats.commands.change.update_confirmed'),
+                ephemeral=True
+            )
+            Stats.task_update_stats.restart()
+            break
         return
 
     @commands.check_any(
