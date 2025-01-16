@@ -579,14 +579,8 @@ class Stats(commands.Cog):
         async def tabify(
             dict_in: dict,
             headers: list,
+            hide_roles: list = None
         ):
-            hide_roles = await db_helper.get_output(
-                template_info=envs.stats_db_hide_roles_schema,
-                select=('role_id')
-            )
-            log.debug(
-                f'hide_roles: {hide_roles}'
-            )
             text_out = ''
             if isinstance(dict_in, dict):
                 log.debug(
@@ -604,7 +598,7 @@ class Stats(commands.Cog):
                     stats_settings['sort_roles_abc'] = True
                 if eval(stats_settings['sort_roles_abc']):
                     dict_in = dict(sorted(
-                        dict_in.items(), key=lambda x: x[1]['name']
+                        dict_in.items(), key=lambda x: x[1]['name'].lower()
                     ))
                     log.debug(
                         f'Sorting roles alphabetically: {list(dict_in)[0:4]}'
@@ -625,24 +619,27 @@ class Stats(commands.Cog):
                     'members': []
                 }
                 for role in dict_in:
-                    if dict_in[role]['id'] not in hide_roles:
-                        if dict_in[role]['name'] != '@everyone':
-                            # Check for `sort_min_role_members`
-                            if stats_settings['sort_min_role_members']:
-                                min_members = \
-                                    stats_settings['sort_min_role_members']
-                                if dict_in[role]['members'] >= \
-                                        int(min_members):
-                                    dict_out['name'].append(
-                                        dict_in[role]['name'])
-                                    dict_out['members'].append(
-                                        dict_in[role]['members']
-                                    )
-                            else:
-                                dict_out['name'].append(dict_in[role]['name'])
+                    if dict_in[role]['id'] in hide_roles or \
+                            hide_roles is None:
+                        continue
+                    # Check for `sort_min_role_members`
+                    if dict_in[role]['name'] != '@everyone':
+                        if stats_settings['sort_min_role_members']:
+                            min_members = \
+                                stats_settings['sort_min_role_members']
+                            if dict_in[role]['members'] >= \
+                                    int(min_members):
+                                dict_out['name'].append(
+                                    dict_in[role]['name']
+                                )
                                 dict_out['members'].append(
                                     dict_in[role]['members']
                                 )
+                        else:
+                            dict_out['name'].append(dict_in[role]['name'])
+                            dict_out['members'].append(
+                                dict_in[role]['members']
+                            )
                 text_out = '{}'.format(
                     tabulate(
                         dict_out, headers=headers, numalign='center'
@@ -659,14 +656,12 @@ class Stats(commands.Cog):
             template_info=envs.stats_db_settings_schema,
             select=('setting', 'value')
         )
+        log.debug(f'`stats_settings_db` is {stats_settings_db}')
         stats_settings = {}
         for setting in stats_settings_db:
             stats_settings[setting['setting']] = setting['value']
         log.debug(f'`stats_settings` is {stats_settings}')
-        if 'channel' in stats_settings:
-            stats_channel = stats_settings['channel']
-        else:
-            stats_channel = 'stats'
+        stats_channel = stats_settings.get('channel', 'stats')
         stats_log_inserts = []
         # Get stats about the code
         _codebase = get_stats_codebase()
@@ -677,7 +672,7 @@ class Stats(commands.Cog):
         )
         if hide_roles_exist:
             stats_hide_roles = await db_helper.get_output(
-                template_info=envs.stats_db_hide_roles_schema
+                envs.stats_db_hide_roles_schema
             )
             stats_hide_roles = [role['role_id'] for role in stats_hide_roles]
             if len(stats_hide_roles) > 0:
@@ -689,6 +684,7 @@ class Stats(commands.Cog):
             stats_hide_roles = None
         # Get server members
         members = get_role_numbers(stats_settings)
+        log.debug(f'`members`:', pretty=members)
         # Update log database if not already this day
         log.debug('Logging stats')
         date_exist = await db_helper.get_output(
@@ -728,8 +724,10 @@ class Stats(commands.Cog):
         if eval(stats_settings['show_role_stats']):
             total_members = members['member_count']
             roles_members = await tabify(
-                dict_in=members['roles'], headers=['Rolle', 'Brukere']
+                dict_in=members['roles'], headers=['Rolle', 'Brukere'],
+                hide_roles=stats_hide_roles
             )
+            log.debug(f'`roles_members`:\n{roles_members}')
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_info = ''
         log.debug('`show_role_stats` is {}'.format(
