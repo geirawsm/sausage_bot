@@ -484,33 +484,41 @@ class Stats(commands.Cog):
         Parameters
         ------------
         role_in: discord.Role
-            The role to add/remove
+            The role to add
         '''
         await interaction.response.defer(ephemeral=True)
         hidden_roles_in_db = await db_helper.get_output(
-            template_info=envs.stats_db_hide_roles_schema
+            template_info=envs.stats_db_hide_roles_schema,
+            select=('role_id')
         )
         hidden_roles_in_list = []
-        for role in hidden_roles_in_db:
-            hidden_roles_in_list.append(role[0])
-        if str(role_in.id) in hidden_roles_in_list:
-            await interaction.followup.send(
-                I18N.t('stats.commands.hide_roles_add.msg.already_hidden')
-            )
-            return
+        if type(hidden_roles_in_db) is not None:
+            for role in hidden_roles_in_db:
+                hidden_roles_in_list.append(role['role_id'])
+            if str(role_in.id) in hidden_roles_in_list:
+                await interaction.followup.send(
+                    I18N.t('stats.commands.hide_roles_add.msg.already_hidden')
+                )
+                return
+            else:
+                await db_helper.insert_many_all(
+                    template_info=envs.stats_db_hide_roles_schema,
+                    inserts=[
+                        (str(role_in.id))
+                    ]
+                )
+                await interaction.followup.send(
+                    content=I18N.t(
+                        'stats.commands.hide_roles_add.msg.confirm_added'),
+                    ephemeral=True
+                )
+                Stats.task_update_stats.restart()
         else:
-            await db_helper.insert_many_all(
-                template_info=envs.stats_db_hide_roles_schema,
-                inserts=[
-                    (str(role_in.id))
-                ]
-            )
             await interaction.followup.send(
-                content=I18N.t(
-                    'stats.commands.hide_roles_add.msg.confirm_added'),
+                # TODO i18n
+                content='No hidden roles exist',
                 ephemeral=True
             )
-            Stats.task_update_stats.restart()
         return
 
     @commands.check_any(
