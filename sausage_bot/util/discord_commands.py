@@ -185,32 +185,43 @@ def get_roles(
     Get a dict of all roles on server and their ID's
     #autodoc skip#
     '''
-    log.debug(f'`hide_empties` is {hide_empties}')
-    log.debug(f'`filter_bots` is {filter_bots}')
-    log.debug(f'`hide_roles` is {hide_roles}')
-    roles_dict = {}
+    hide_empties = eval(hide_empties)
+    filter_bots = eval(filter_bots)
+    log.debug(f'hide_empties: {hide_empties} {type(hide_empties)}')
+    log.debug(f'filter_bots: {filter_bots} {type(filter_bots)}')
+    log.debug(f'hide_roles: {hide_roles} {type(hide_roles)}')
     # Get all roles and their IDs
+    roles_dict = {}
     for role in get_guild().roles:
-        skip = False
-        if hide_empties and len(role.members) == 0:
-            skip = True
+        log.debug(role.name)
+        log.debug('role info', pretty=role)
+        if hide_empties is True:
+            log.debug(f'`role.members`: {len(role.members)}')
+            if len(role.members) <= 0:
+                log.debug('- Skipping because empty', color='yellow')
+                continue
         if filter_bots:
+            log.debug(f'`role.is_bot_managed()`: {str(role.is_bot_managed())}')
             if role.is_bot_managed():
-                skip = True
-        if hide_roles is not None:
-            log.debug(f'Checking if {role.id} is in {hide_roles}')
+                log.debug('- Skipping because bot', color='yellow')
+                continue
+        if hide_roles:
+            log.debug(f'- Checking if {role.id} is in {hide_roles}')
             if str(role.id) in hide_roles:
-                log.debug(f'Found {role.id} in {hide_roles}')
-                skip = True
-        if not skip:
-            roles_dict[role.name.lower()] = {
-                'name': role.name,
-                'id': role.id,
-                'members': len(role.members),
-                'premium': role.is_premium_subscriber(),
-                'is_default': role.is_default(),
-                'bot_managed': role.is_bot_managed()
-            }
+                log.debug(
+                    f'- Found {role.id} in {hide_roles}', color='yellow'
+                )
+                continue
+        else:
+            log.debug('No rules for removing from output')
+        roles_dict[role.name.lower()] = {
+            'name': role.name,
+            'id': role.id,
+            'members': len(role.members),
+            'premium': role.is_premium_subscriber(),
+            'is_default': role.is_default(),
+            'bot_managed': role.is_bot_managed()
+        }
     log.verbose(
         'Got these roles: {}'.format(
             ', '.join(name for name in roles_dict)
@@ -278,7 +289,6 @@ async def replace_post(replace_content, replace_with, channel_in):
         return
 
 
-
 async def remove_stats_post(stats_channel):
     '''
     Remove stats-post
@@ -306,7 +316,6 @@ async def log_to_bot_channel(content_in=None):
     log_channel = config.BOT_CHANNEL
     log.debug(f'`log_channel` er {log_channel}')
     guild = get_guild()
-
     channel_out = guild.get_channel(int(get_text_channel_list()[log_channel]))
     msg_out = await channel_out.send(
         content=content_in

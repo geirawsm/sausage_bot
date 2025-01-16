@@ -105,13 +105,13 @@ def get_stats_codebase():
     'Get statistics for the code base'
     total_lines = 0
     total_files = 0
-    for root, dirs, files in os.walk(envs.ROOT_DIR):
+    for root, _, files in os.walk(envs.ROOT_DIR):
         for filename in files:
             filename_without_extension, extension = os.path.splitext(filename)
             if extension == '.py':
                 total_files += 1
                 with open(os.path.join(root, filename), 'r') as _file:
-                    for line in _file:
+                    for _ in _file:
                         total_lines += 1
     return {
         'total_lines': total_lines,
@@ -634,9 +634,9 @@ class Stats(commands.Cog):
                     'members': []
                 }
                 for role in dict_in:
-                    if dict_in[role]['id'] in hide_roles or \
-                            hide_roles is None:
-                        continue
+                    if hide_roles is not None:
+                        if str(dict_in[role]['id']) in hide_roles:
+                            continue
                     # Check for `sort_min_role_members`
                     if dict_in[role]['name'] != '@everyone':
                         if stats_settings['sort_min_role_members']:

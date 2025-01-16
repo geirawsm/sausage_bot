@@ -231,7 +231,7 @@ stats_db_settings_schema = {
         ['show_role_stats', 'True'],
         ['sort_roles_abc', 'True'],
         ['sort_roles_321', 'False'],
-        ['sort_min_role_members', 0],
+        ['sort_min_role_members', -1],
         ['hide_empty_roles', 'False']
     ],
     'type_checking': {
