@@ -999,9 +999,11 @@ class Autoroles(commands.Cog):
             )
         if permissions:
             perms_in = []
+            log.debug(f'`role_name.permissions`: {role_name.permissions}')
             for perm in role_name.permissions:
                 if perm[1] is True:
                     perms_in.append(perm[0])
+            log.debug(f'`perms_in`: {perms_in}')
             perm_view = PermissionsView(
                 permissions_in=perms_in
             )
@@ -1010,27 +1012,23 @@ class Autoroles(commands.Cog):
             )
             await perm_view.wait()
             perms_out = perm_view.permissions_out
-            perms_added = [item for item in perms_in if item not in perms_out]
-            perms_removed = [
-                item for item in perms_out if item not in perms_in
-            ]
-            if permissions:
-                if len(perms_added) > 0:
-                    i18n_added = I18N.t(
-                        'roles.commands.edit.changelist_perms_added'
-                    )
-                    changes.append('\n- {}: {}'.format(
-                        i18n_added,
-                        ', '.join(perms_added)
-                    ))
-                if len(perms_removed) > 0:
-                    i18n_removed = I18N.t(
-                        'roles.commands.edit.changelist_perms_removed'
-                    )
-                    changes.append('\n- {}: {}'.format(
-                        i18n_removed,
-                        ', '.join(perms_removed)
-                    ))
+            log.debug(
+                f'`perm_view.permissions_out`: {perm_view.permissions_out}'
+            )
+            new_perms = ''
+            if len(perms_out) > 0:
+                new_perms = ', '.join(f'{perm}=True' for perm in perms_out)
+            # Edit role in guild
+            await role_name.edit(
+                permissions=eval(f'discord.Permissions({new_perms})')
+            )
+            log.debug('Changed permissions')
+            perms_in_text = ', '.join(perm for perm in perms_in)
+            perms_out_text = ', '.join(perm for perm in perms_out)
+            i18n_perms = I18N.t('roles.commands.edit.change_perms')
+            changes.append(
+                f'\n- {i18n_perms}: `{perms_in_text}` -> `{perms_out_text}`'
+            )
         if len(changes) > 0:
             changes_out = '{}:'.format(
                 I18N.t(
