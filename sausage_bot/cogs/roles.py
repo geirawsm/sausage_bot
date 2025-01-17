@@ -1080,6 +1080,7 @@ class Autoroles(commands.Cog):
                     ('A.msg_id', reaction_msg)
                 ]
             )
+            log.verbose(f'db_reactions: ', pretty=db_reactions)
             if len(db_reactions) <= 0 or db_reactions is None:
                 await interaction.followup.send(
                     I18N.t(
@@ -1095,43 +1096,42 @@ class Autoroles(commands.Cog):
                 'role_name': []
             }
             for reaction in db_reactions:
-                if re.match(r'\d{19,22}', reaction[4]):
+                if re.match(r'\d{19,22}', reaction['role']):
                     role = get(
                         discord_commands.get_guild().roles,
-                        id=int(reaction[4])
+                        id=int(reaction['role'])
                     )
                     role_name = role.name
                     role_id = role.id
                 else:
                     role_name = I18N.t('roles.commands.react_list.role_error')
-                    role_id = reaction[4]
-                if re.match(r'\d{19,22}', reaction[5]):
+                    role_id = reaction['role']
+                if re.match(r'\d{19,22}', reaction['emoji']):
                     emoji = get(
                         discord_commands.get_guild().emojis,
-                        id=int(reaction[5])
+                        id=int(reaction['emoji'])
                     )
                     emoji_name = emoji.name
                     emoji_id = emoji.id
                 else:
                     emoji_name = I18N.t(
                         'roles.commands.react_list.emoji_error')
-                    emoji_id = reaction[5]
+                    emoji_id = reaction['emoji']
                 tabulate_dict['emoji_id'].append(emoji_id)
                 tabulate_dict['emoji_name'].append(emoji_name)
                 tabulate_dict['role_id'].append(role_id)
                 tabulate_dict['role_name'].append(role_name)
+            tabulated_reactions = tabulate_emojis_and_roles(tabulate_dict)
             await interaction.followup.send(
                 '{}: `{}`\n{}: `{}`\n{}: `{}`\n'
-                '{}: `{}`'.format(
-                    I18N.t('common.name'), db_reactions[0][0],
-                    I18N.t('common.channel'), db_reactions[0][1],
-                    I18N.t('common.message_id'), db_reactions[0][2],
-                    I18N.t('common.text'), db_reactions[0][3]
+                '{}: `{}`\n\n{}'.format(
+                    I18N.t('common.name'), db_reactions[0]['name'],
+                    I18N.t('common.channel'), db_reactions[0]['channel'],
+                    I18N.t('common.message_id'), db_reactions[0]['msg_id'],
+                    I18N.t('common.text'), db_reactions[0]['content'],
+                    '\n'.join(tabulated_reactions)
                 )
             )
-            pages = tabulate_emojis_and_roles(tabulate_dict)
-            for page in pages:
-                await interaction.followup.send(page)
         elif not reaction_msg:
             tabulate_dict = {
                 'name': [],
@@ -1158,27 +1158,28 @@ class Autoroles(commands.Cog):
                     ('msg_order', 'ASC')
                 ]
             )
+            log.debug(f'`sorted_reacts` is {sorted_reacts}')
             if sorted_reacts is None:
                 await interaction.followup.send(
                     'Ingen meldinger i databasen'
                 )
                 return
             for _sort in sorted_reacts:
-                tabulate_dict['name'].append(_sort[0])
-                tabulate_dict['channel'].append(_sort[1])
-                tabulate_dict['order'].append(_sort[2])
-                tabulate_dict['id'].append(_sort[3])
+                tabulate_dict['name'].append(_sort['name'])
+                tabulate_dict['channel'].append(_sort['channel'])
+                tabulate_dict['order'].append(_sort['msg_order'])
+                tabulate_dict['id'].append(_sort['msg_id'])
                 tabulate_dict['content'].append(
                     '{}…'.format(
-                        str(_sort[4])[0:20]
+                        str(_sort['content'])[0:30]
                     )
                 )
-                tabulate_dict['reactions'].append(_sort[5])
+                tabulate_dict['reactions'].append(_sort['COUNT(*)'])
             await interaction.followup.send(
                 '```{}```'.format(
                     tabulate(
                         tabulate_dict, headers=[
-                            I18N.t(''), I18N.t('common.name'),
+                            I18N.t('common.name'),
                             I18N.t('common.channel'),
                             I18N.t('common.order'),
                             I18N.t('common.id'),
