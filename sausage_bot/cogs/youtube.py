@@ -17,7 +17,8 @@ async def feed_name_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    feed_names = [name['feed_name'] for name in await db_helper.get_output(
+    feed_names = [
+        name['feed_name'] for name in await db_helper.get_output(
             template_info=envs.youtube_db_schema,
             select=('feed_name')
         )
@@ -465,7 +466,7 @@ class Youtube(commands.Cog):
             CHANNEL = feed['channel']
             log.log(f'Checking {FEED_NAME}', sameline=True)
             log.debug(
-                    f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
+                f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='youtube', feed_info=feed

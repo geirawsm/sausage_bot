@@ -36,7 +36,7 @@ async def feed_name_autocomplete(
             name='{feed_name}: #{channel} ({url})'.format(
                 feed_name=feed['feed_name'], channel=feed['channel'],
                 url=str(feed['url'])
-            )[0:feed['length_counter']   ], value=str(feed['feed_name'])
+            )[0:feed['length_counter']], value=str(feed['feed_name'])
         )
         for feed in feeds if current.lower() in '{}-{}-{}-{}'.format(
             feed['uuid'], feed['feed_name'], feed['url'], feed['channel']
@@ -357,10 +357,10 @@ class RSSfeed(commands.Cog):
         if new_feed_name:
             updates_in.append(('feed_name', new_feed_name))
             changes_out += '\n- {}: `{}` -> `{}`'.format(
-                    I18N.t('rss.commands.edit.changes_out.feed_name'),
-                    feed_info[0]['feed_name'],
-                    new_feed_name
-                )
+                I18N.t('rss.commands.edit.changes_out.feed_name'),
+                feed_info[0]['feed_name'],
+                new_feed_name
+            )
         if channel:
             updates_in.append(('channel', channel))
             changes_out += '\n- {}: `{}` -> `{}`'.format(

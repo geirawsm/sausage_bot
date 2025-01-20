@@ -26,7 +26,10 @@ async def settings_db_autocomplete(
     settings_type = envs.stats_db_settings_schema['type_checking']
     return [
         discord.app_commands.Choice(
-            name=f"{setting['setting']} = {setting['value']} ({settings_type[setting['setting']]})",
+            name='{} = {} ({})'.format(
+                setting['setting'], setting['value'],
+                settings_type[setting['setting']]
+            ),
             value=str(setting['setting'])
         )
         for setting in settings_db if current.lower() in '{}-{}'.format(
@@ -310,7 +313,7 @@ class Stats(commands.Cog):
         settings_from_db = {}
         for setting in settings_in_db:
             settings_from_db[setting['setting']] = setting['value']
-        log.debug(f'settings_from_db:', pretty=settings_from_db)
+        log.debug('settings_from_db:', pretty=settings_from_db)
         settings_type = envs.stats_db_settings_schema['type_checking']
         for setting in settings_from_db:
             if settings_type[setting] == 'bool':
@@ -699,7 +702,7 @@ class Stats(commands.Cog):
             stats_hide_roles = None
         # Get server members
         members = get_role_numbers(stats_settings)
-        log.debug(f'`members`:', pretty=members)
+        log.debug('`members`:', pretty=members)
         # Update log database if not already this day
         log.debug('Logging stats')
         date_exist = await db_helper.get_output(

@@ -136,9 +136,9 @@ def make_dt(date_in):
                     )
             else:
                 return None
-            log.verbose('-'*10)
+            log.verbose('-' * 10)
         except ValueError:
-            log.error('-'*10)
+            log.error('-' * 10)
             return None
 
 
@@ -259,7 +259,7 @@ def change_dt(
     if not isinstance(count, (int, float)):
         log.log(f'Count `{count}` is not a number')
         return None
-    p = pendulum_object_in
+    p = pendulum_object_in  # noqa: F841
     if change == 'add':
         return eval(f'p.add({unit}={count})')
     elif change == 'remove':

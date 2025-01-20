@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 import discord
 from tabulate import tabulate
-import re
 
 from sausage_bot.util import config, envs
 from sausage_bot.util.datetime_handling import get_dt
@@ -193,27 +192,15 @@ def get_roles(
     # Get all roles and their IDs
     roles_dict = {}
     for role in get_guild().roles:
-        log.debug(role.name)
-        log.debug('role info', pretty=role)
         if hide_empties is True:
-            log.debug(f'`role.members`: {len(role.members)}')
             if len(role.members) <= 0:
-                log.debug('- Skipping because empty', color='yellow')
                 continue
         if filter_bots:
-            log.debug(f'`role.is_bot_managed()`: {str(role.is_bot_managed())}')
             if role.is_bot_managed():
-                log.debug('- Skipping because bot', color='yellow')
                 continue
         if hide_roles:
-            log.debug(f'- Checking if {role.id} is in {hide_roles}')
             if str(role.id) in hide_roles:
-                log.debug(
-                    f'- Found {role.id} in {hide_roles}', color='yellow'
-                )
                 continue
-        else:
-            log.debug('No rules for removing from output')
         roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
@@ -303,7 +290,9 @@ async def remove_stats_post(stats_channel):
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID:
                 if 'Serverstats sist' in str(msg.content):
-                    log.debug('Found post with `Serverstats sist`, removing...')
+                    log.debug(
+                        'Found post with `Serverstats sist`, removing...'
+                    )
                     await msg.delete()
                     found_stats_msg = True
                     return

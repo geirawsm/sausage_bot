@@ -315,7 +315,7 @@ async def get_feed_list(
             log.debug(f'Each line is {line_len} chars long')
             post_limit = int(max_post_limit / line_len)
             log.debug(f'Each post can therefore hold {post_limit} lines')
-            splits = split_list(table_in.split('\n')[2:], post_limit-2)
+            splits = split_list(table_in.split('\n')[2:], post_limit - 2)
             header = table_in.split('\n')[0]
             header += '\n{}'.format(table_in.split('\n')[1])
             temp_page = ''

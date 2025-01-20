@@ -414,9 +414,9 @@ class Quotes(commands.Cog):
     async def quote_add(
         self, interaction: discord.Interaction,
         public: typing.Literal[
-                I18N.t('common.literal_yes_no.yes'),
-                I18N.t('common.literal_yes_no.no')
-            ] = I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.yes'),
+            I18N.t('common.literal_yes_no.no')
+        ] = I18N.t('common.literal_yes_no.no')
     ):
         'Add a quote'
         if public == I18N.t('common.literal_yes_no.yes'):
@@ -431,7 +431,7 @@ class Quotes(commands.Cog):
         if len(_row_ids) <= 0:
             last_row_id = 1
         else:
-            last_row_id = _row_ids[-1]+1
+            last_row_id = _row_ids[-1] + 1
         modal_in = QuoteAddModal(
             public_in=_ephemeral,
             title_in=I18N.t('quote.modals.add.modal_title'),

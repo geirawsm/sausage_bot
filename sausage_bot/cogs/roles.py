@@ -18,7 +18,8 @@ class DropdownPermissions(discord.ui.Select):
             self, placeholder_in, options_out, options_in
     ):
         super().__init__(
-            placeholder=placeholder_in, min_values=0,
+            placeholder=placeholder_in,
+            min_values=0,
             max_values=len(options_in),
             options=options_in
         )
@@ -463,13 +464,9 @@ def tabulate_emojis_and_roles(dict_in):
     for dict_item in dict_in:
         log.debug(f'Processing: {dict_item}')
         for item in dict_in[dict_item]:
-            print('if {} > {}'.format(
-                len(str(item)),
-                str(content[dict_item]['length'])
-            ))
             if len(str(item)) > content[dict_item]['length']:
                 content[dict_item]['length'] = len(str(item)) + 1
-    header = '`   {:>{}} {:>{}} {:>{}} {:>{}}`'.format(
+    header = '`   {:{}} {:{}} {:{}} {:{}}`'.format(
         content['emoji_name']['header'],
         content['emoji_name']['length'],
         content['emoji_id']['header'],
@@ -483,7 +480,7 @@ def tabulate_emojis_and_roles(dict_in):
     temp_out = header
     counter = 0
     while counter <= len(dict_in['emoji_id'])-1:
-        line_out = '{} `{:>{}} {:>{}} {:>{}} {:<{}}`'.format(
+        line_out = '{} `{:{}} {:{}} {:{}} {:{}}`'.format(
             '<:{}:{}>'.format(
                 dict_in['emoji_name'][counter],
                 dict_in['emoji_id'][counter]
@@ -493,7 +490,9 @@ def tabulate_emojis_and_roles(dict_in):
             dict_in['role_name'][counter], content['role_name']['length'],
             dict_in['role_id'][counter], content['role_id']['length']
         )
-        if len(temp_out) + len(line_out) > 1900:
+        if len(line_out) == 0:
+            line_out = temp_out
+        if (len(temp_out) + len(line_out)) > 1900:
             log.debug('Hit 1900 mark')
             paginated.append(temp_out)
             temp_out = header
@@ -501,7 +500,7 @@ def tabulate_emojis_and_roles(dict_in):
         else:
             temp_out += f'\n{line_out}'
         counter += 1
-        paginated.append(temp_out)
+    paginated.append(temp_out)
     return paginated
 
 
@@ -1078,7 +1077,7 @@ class Autoroles(commands.Cog):
                     ('A.msg_id', reaction_msg)
                 ]
             )
-            log.verbose(f'db_reactions: ', pretty=db_reactions)
+            log.verbose('db_reactions: ', pretty=db_reactions)
             if len(db_reactions) <= 0 or db_reactions is None:
                 await interaction.followup.send(
                     I18N.t(
@@ -1223,7 +1222,7 @@ class Autoroles(commands.Cog):
                 I18N.t(
                     'roles.commands.add_reaction_msg.msg_order_exist',
                     channel=channel,
-                    num=len(msg_db_orders)+1
+                    num=len(msg_db_orders) + 1
                 )
             )
             return

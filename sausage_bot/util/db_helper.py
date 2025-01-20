@@ -5,7 +5,7 @@ from uuid import uuid4
 import re
 from pathlib import Path
 
-from sausage_bot.util import envs, file_io, discord_commands
+from sausage_bot.util import envs, file_io
 from sausage_bot.util.args import args
 from sausage_bot.util.log import log
 from .datetime_handling import get_dt
@@ -36,8 +36,8 @@ async def table_exist(template_info):
 
 
 async def prep_table(
-            table_in, inserts: list = None
-        ):
+    table_in, inserts: list = None
+):
     log.verbose(f'Got `table_in`: {table_in}')
     db_file = table_in['db_file']
     file_io.ensure_folder(Path(db_file).parent)
@@ -98,7 +98,7 @@ async def prep_table(
 async def add_missing_db_setup(
         template_info, dict_in: dict = None
 ):
-    log.verbose(f'Received `template_info`', pretty=template_info)
+    log.verbose('Received `template_info`', pretty=template_info)
     db_file = template_info['db_file']
     table_name = template_info['name']
     inserts = template_info['inserts']
@@ -258,7 +258,10 @@ async def db_fix_old_value_check_or_help():
 
 async def db_replace_numeral_bool_with_bool(template_info):
     old_value_numeral_instead_of_bool = await get_output(template_info)
-    log.verbose(f'old_value_numeral_instead_of_bool: {old_value_numeral_instead_of_bool}')
+    log.verbose(
+        'old_value_numeral_instead_of_bool: '
+        f'{old_value_numeral_instead_of_bool}'
+    )
     # Make a copy of the db-dict to use as a checklist for converting
     # numerals to bools if need be
     db_new_bool_status = old_value_numeral_instead_of_bool.copy()
@@ -294,7 +297,10 @@ async def db_replace_numeral_bool_with_bool(template_info):
                     remove_status = True
             if remove_status:
                 db_new_bool_status.pop(db_new_bool_status.index(setting))
-    log.verbose('`db_new_bool_status` after checking is ', pretty=db_new_bool_status)
+    log.verbose(
+        '`db_new_bool_status` after checking is ',
+        pretty=db_new_bool_status
+    )
     for setting in db_new_bool_status:
         setting_in = list(setting.values())
         if type(eval(setting_in[1])) is int:
@@ -338,7 +344,7 @@ async def db_remove_old_cols(template_info):
             list_out = await db_out.fetchall()
         return [col[1] for col in list_out] if list_out is not None else None
 
-    log.verbose(f'Received `template_info`', pretty=template_info)
+    log.verbose('Received `template_info`', pretty=template_info)
     cols = template_info['items']
     cols_to_remove = []
     # Check existing columns in db
@@ -627,7 +633,7 @@ async def insert_many_all(
     log.verbose(f'Got `table_name`: {table_name}')
     log.verbose(
         'Got `inserts`: {}'.format(
-            str(inserts)[0:200]+'...' if len(str(inserts)) > 200 else inserts
+            str(inserts)[0:200] + '...' if len(str(inserts)) > 200 else inserts
         )
     )
     input_singles = False
@@ -636,11 +642,11 @@ async def insert_many_all(
     log.debug(f'Got {len(inserts)} `inserts`')
     if isinstance(inserts[0], (list, tuple)):
         log.debug('Got multiple inserts')
-        _cmd += ', '.join('?'*len(inserts[0]))
+        _cmd += ', '.join('?' * len(inserts[0]))
         input_multiples = True
     else:
         log.debug('Got single insert')
-        _cmd += ', '.join('?'*len(inserts))
+        _cmd += ', '.join('?' * len(inserts))
         input_singles = True
     _cmd += ')'
     log.db(f'Using this query: {_cmd}')
@@ -693,7 +699,7 @@ async def insert_many_some(
         return None
     log.verbose(f'Got `db_file`: {db_file}')
     log.verbose(f'Got `table_name`: {table_name}')
-    log.verbose(f'Got `rows`: {rows} {type(rows)} {len(rows)}')
+    log.verbose(f'Got `rows`: {rows}')
     log.verbose(
         f'Got `inserts`: {type(inserts)} {len(inserts)}', pretty=inserts
     )
@@ -707,9 +713,9 @@ async def insert_many_some(
     _cmd += ', '.join(row for row in rows)
     _cmd += ') VALUES ('
     if input_singles:
-        _cmd += ', '.join('?'*len(inserts))
+        _cmd += ', '.join('?' * len(inserts))
     elif input_multiples:
-        _cmd += ', '.join('?'*len(inserts[0]))
+        _cmd += ', '.join('?' * len(inserts[0]))
     _cmd += ')'
     log.db(f'Using this query: {_cmd} {inserts}')
     if args.not_write_database:
@@ -781,7 +787,7 @@ async def insert_single(
 
 async def update_fields(
     template_info, where=None, updates: list = None
-        ):
+):
     '''
     Update a table with listed tuples in `updates` where you can
     find the specific `where`.

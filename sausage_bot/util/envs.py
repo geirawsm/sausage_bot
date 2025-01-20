@@ -395,7 +395,7 @@ def log_extra_info(type):
     }
     split = int((infos['length'] - len(infos['info'][type])) / 2)
     return '{s}{text}{s}'.format(
-        s=' '*split, text=infos['info'][type]
+        s=' ' * split, text=infos['info'][type]
     )
 
 

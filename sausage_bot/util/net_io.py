@@ -104,7 +104,8 @@ async def check_spotify_podcast_episodes():
         pod_id = re.search(r'.*/show/([a-zA-Z0-9]+).*', feed['url']).group(1)
         checklist[pod_id] = {
             'name': feed['feed_name'],
-            'num_episodes_old': feed['num_episodes'] if isinstance(feed['num_episodes'], int) else 0,
+            'num_episodes_old': feed['num_episodes'] if
+            isinstance(feed['num_episodes'], int) else 0,
             'num_episodes_new': None,
             'uuid': feed['uuid'],
             'channel': feed['channel']
@@ -230,9 +231,10 @@ def filter_links(items):
                     if filter_out.lower() in str(item['description']).lower():
                         log.debug(
                             f'Found filter `{filter_out}` in '
-                            'description ({}) - not posting!').format(
+                            'description ({}) - not posting!'.format(
                                 item['description']
                             )
+                        )
                         return False
             except TypeError:
                 log.error(
