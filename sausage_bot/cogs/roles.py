@@ -552,22 +552,37 @@ async def reaction_msgs_roles_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    db_reactions = await db_helper.get_output(
-        template_info=envs.roles_db_msgs_schema,
-        select=('name', 'msg_id'),
-        order_by=[
-            ('name', 'ASC')
+    db_reactions = await db_helper.get_combined_output(
+        template_info_1=envs.roles_db_msgs_schema,
+        template_info_2=envs.roles_db_roles_schema,
+        key='msg_id',
+        select=[
+            'name',
+            'channel',
+            'A.msg_id',
+            'role',
+            'emoji'
         ]
     )
-    reactions = []
-    for reaction in db_reactions:
-        reactions.append((reaction['name'], reaction['msg_id']))
-    log.debug(f'reactions: {reactions}')
+    log.debug('db_reactions', pretty=db_reactions)
     return [
         discord.app_commands.Choice(
-            name=str(reaction['name']), value=str(reaction['msg_id'])
-        )
-        for reaction in reactions if current.lower() in '{}-{}'.format(
+            name='{}: #{} - {}'.format(
+                reaction['name'].lower(),
+                reaction['channel'].lower(),
+                str(
+                    get(
+                        discord_commands.get_guild().roles,
+                        id=int(reaction['role'])
+                    )
+                ).lower()),
+            # A dirty little hack here, returning msg_id and role as a
+            # combined string
+            value='{}-{}'.format(
+                reaction['msg_id'],
+                reaction['role']
+            )
+        ) for reaction in db_reactions if current.lower() in '{}-{}'.format(
             reaction['name'], reaction['msg_id']
         ).lower()
     ]
@@ -1517,41 +1532,40 @@ class Autoroles(commands.Cog):
         ))
     )
     @describe(
-        reaction_msg=I18N.t('roles.commands.remove_role.desc.reaction_msg'),
-        role_name=I18N.t('roles.commands.remove_role.desc.role_name')
+        # reaction_msg=I18N.t('roles.commands.remove_role.desc.reaction_msg'),
+        reaction_role=I18N.t('roles.commands.remove_role.desc.role_name')
     )
     @discord.app_commands.autocomplete(
-        reaction_msg=reaction_msgs_autocomplete
+        reaction_role=reaction_msgs_roles_autocomplete
     )
     async def remove_reaction_role(
-        self, interaction: discord.Interaction, reaction_msg: str,
-        role_name: discord.Role
+        self, interaction: discord.Interaction, reaction_role: str
     ):
         '''
         Remove a reaction from reaction message
         '''
         await interaction.response.defer(ephemeral=True)
-        # Get message object
-        msg_info = await get_msg_id_and_name(reaction_msg)
-        ###
-        from pprint import pprint
-        pprint(msg_info)
-        ###
         # Delete reaction from db
-        role_name_out = f'<@&{role_name.id}>'
+        reaction_role = reaction_role.split('-')
+        msg_id = reaction_role[0]
+        role_id = reaction_role[1]
+        log.debug(f'Got `msg_id` {msg_id} and `role_id` {role_id}')
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
             where=[
-                ('msg_id', str(msg_info['id'])),
-                ('role', str(role_name.id))
+                ('msg_id', str(msg_id)),
+                ('role', str(role_id))
             ]
         )
         # Sync settings
-        await sync_reaction_message_from_settings(reaction_msg)
+        await sync_reaction_message_from_settings(msg_id)
+        _role_name = get(
+            discord_commands.get_guild().roles, id=int(role_id)
+        ).name
         await interaction.followup.send(
             I18N.t(
                 'roles.commands.remove_role.msg_confirm',
-                rolename=role_name.name
+                rolename=_role_name
             ),
             ephemeral=True
         )
