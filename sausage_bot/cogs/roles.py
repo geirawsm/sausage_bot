@@ -191,12 +191,14 @@ async def sync_reaction_message_from_settings(
 ):
     # Assert that the reaction message exist on discord
     msg_info = await get_msg_id_and_name(msg_id_or_name)
+    _guild = discord_commands.get_guild()
+    log.debug('msg_info', pretty=msg_info)
     msg_id = msg_info['id']
     msg_channel = msg_info['channel']
     log.verbose(f'`msg_info` is {msg_info}')
     msg_obj = await discord_commands.get_message_obj(
         msg_id=msg_id,
-        channel_name_or_id=msg_channel
+        channel_id=msg_channel
     )
     log.verbose(f'`msg_obj` is {msg_obj}')
     if msg_obj is None:
@@ -255,8 +257,9 @@ async def sync_reaction_message_from_settings(
     log.verbose(f'db_reactions: {db_reactions}')
     reactions_out = {}
     for react in db_reactions:
+        log.debug('Processing `react`', pretty=react)
         role_name = get(
-            discord_commands.get_guild().roles, id=int(react['msg_id'])
+            _guild.roles, id=int(react['role'])
         ).name
         reactions_out[role_name] = {
             'role_id': react['role'],
@@ -277,14 +280,11 @@ async def sync_reaction_message_from_settings(
         _emoji_id = reactions_out[reaction]['emoji']
         _role_id = reactions_out[reaction]['role_id']
         log.debug('Trying to add emoji: `{}`'.format(_emoji_id))
-        if re.match(r'<.*\b(\d+)>', _emoji_id):
-            emoji_out = _emoji_id
-        elif re.match(r'(\d+)', _emoji_id):
-            emoji_out = get(
-                discord_commands.get_guild().emojis, id=int(_emoji_id)
-            )
+        if re.match(r'(\d+)', _emoji_id):
+            emoji_out = get(_guild.emojis, id=int(_emoji_id))
         else:
             emoji_out = _emoji_id
+        log.debug(f'`emoji_out` ({type(emoji_out)}) is `{emoji_out}`')
         await msg_obj.add_reaction(emoji_out)
         if len(new_embed_content) > 0:
             new_embed_content += '\n'
@@ -293,7 +293,7 @@ async def sync_reaction_message_from_settings(
             new_embed_desc += '\n'
         new_embed_desc += '{} {}'.format(
             emoji_out,
-            get(discord_commands.get_guild().roles, id=int(_role_id))
+            get(_guild.roles, id=int(_role_id))
         )
     embed_json = {
         'description': new_embed_desc,
@@ -1447,7 +1447,7 @@ class Autoroles(commands.Cog):
             )
             return
         sync_errors = await sync_reaction_message_from_settings(
-            reaction_msg
+            reaction_msg, sorting=True
         )
         if sync_errors:
             await interaction.followup.send(
