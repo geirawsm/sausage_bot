@@ -41,7 +41,6 @@ class DropdownPermissions(discord.ui.Select):
 class ButtonConfirm(discord.ui.Button):
     def __init__(self, label):
         super().__init__(style=discord.ButtonStyle.green, label=label)
-        self.value = False
 
     async def callback(
         self, interaction: discord.Interaction
@@ -56,13 +55,14 @@ class ButtonConfirm(discord.ui.Button):
 
 class PermissionsView(discord.ui.View):
     def __init__(self, permissions_in=None):
-        def prep_dropdown(perm_name, permissions_in):
+        def prep_dropdown(perm_name, permissions_in: dict = None):
             list_out = []
             for perm in envs.SELECT_PERMISSIONS[perm_name]:
                 _desc = envs.SELECT_PERMISSIONS[perm_name][perm]
                 if len(_desc) >= 100:
                     _desc = f'{str(_desc):.90}...'
-                if perm in permissions_in:
+                if isinstance(permissions_in, (dict, list)) and\
+                        perm in permissions_in:
                     list_out.append(
                         discord.SelectOption(
                             label=perm,
