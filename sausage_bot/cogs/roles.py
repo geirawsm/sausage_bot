@@ -171,8 +171,8 @@ async def get_msg_id_and_name(msg_id_or_name):
     )
     log.verbose(f'db_message: {db_message}', color='yellow')
     return {
-        'id': db_message['msg_id'],
-        'channel': db_message['channel'],
+        'id': int(db_message['msg_id']),
+        'channel': int(db_message['channel']),
         'name': db_message['name']
     }
 
@@ -311,30 +311,30 @@ def tabulate_emoji(dict_in):
     content = {
         'emoji': {
             'length': 7,
-            'header': 'Emoji'
+            'header': I18N.t('roles.emoji_headers.emoji')
         },
         'name': {
             'length': 0,
-            'header': 'Navn'
+            'header': I18N.t('roles.emoji_headers.name')
         },
         'id': {
             'length': 20,
-            'header': 'ID'
+            'header': I18N.t('roles.emoji_headers.id')
         },
         'animated': {
             'length': 11,
-            'header': 'Animert?'
+            'header': I18N.t('roles.emoji_headers.animated')
         },
         'managed': {
             'length': 17,
-            'header': 'Auto-håndtert?'
+            'header': I18N.t('roles.emoji_headers.managed')
         }
     }
     for dict_item in dict_in:
         for item in dict_in[dict_item]:
             if len(str(item)) > content[dict_item]['length']:
                 content[dict_item]['length'] = len(str(item)) + 1
-    header = '`    {:>{}} {:>{}} {:>{}} {:>{}}`'.format(
+    header = '`      {:>{}} {:>{}} {:>{}} {:>{}}`'.format(
         content['name']['header'],
         content['name']['length'],
         content['id']['header'],
@@ -453,7 +453,7 @@ def tabulate_emojis_and_roles(dict_in):
         'role_name': {
             'length': len(str(
                 I18N.t('roles.tabulate_emojis_and_roles.role_name')
-            ))+1,
+            )) + 1,
             'header': str(I18N.t('roles.tabulate_emojis_and_roles.role_name'))
         },
         'role_id': {
@@ -479,7 +479,7 @@ def tabulate_emojis_and_roles(dict_in):
     paginated = []
     temp_out = header
     counter = 0
-    while counter <= len(dict_in['emoji_id'])-1:
+    while counter <= len(dict_in['emoji_id']) - 1:
         line_out = '{} `{:{}} {:{}} {:{}} {:{}}`'.format(
             '<:{}:{}>'.format(
                 dict_in['emoji_name'][counter],
@@ -635,7 +635,9 @@ async def combine_roles_and_emojis(roles_in, emojis_in):
         )
         return None
     # Process the splits
-    return tuple(zip(role_split, emoji_split))
+    splits = list(zip(role_split, emoji_split))
+    log.debug(f'Got `splits`: {splits}')
+    return splits
 
 
 class Autoroles(commands.Cog):
@@ -803,7 +805,9 @@ class Autoroles(commands.Cog):
                     _guild.roles, key=lambda role: role.id
                 ))
             for role in _roles:
-                tabulate_dict['emoji'].append(role.display_icon)
+                tabulate_dict['emoji'].append(
+                    role.display_icon if not 'None' else ':question:'
+                )
                 tabulate_dict['name'].append(role.name)
                 tabulate_dict['id'].append(role.id)
                 tabulate_dict['members'].append(len(role.members))
@@ -857,10 +861,7 @@ class Autoroles(commands.Cog):
                         I18N.t('common.literal_yes_no.no')
                     )
             # Returning pagination
-            return tabulate_emoji(
-                type_in='roles_list_emoji',
-                dict_in=tabulate_dict
-            )
+            return tabulate_emoji(dict_in=tabulate_dict)
 
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
@@ -1229,14 +1230,14 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         msg_db_orders = await db_helper.get_output(
             envs.roles_db_msgs_schema,
-            where=('channel', channel),
+            where=('channel', channel.id),
             select=('msg_order', 'name')
         )
         if order in [msg_order['msg_order'] for msg_order in msg_db_orders]:
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.add_reaction_msg.msg_order_exist',
-                    channel=channel,
+                    channel=channel.id,
                     num=len(msg_db_orders) + 1
                 )
             )
@@ -1335,7 +1336,7 @@ class Autoroles(commands.Cog):
             envs.roles_db_msgs_schema,
             inserts=[
                 (
-                    reaction_msg.id, channel.name, msg_name, header,
+                    reaction_msg.id, channel.id, msg_name, header,
                     message_text, desc_out, order
                 )
             ]
@@ -1372,32 +1373,55 @@ class Autoroles(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         msg_info = await get_msg_id_and_name(msg_name)
-        # TODO Denne skal sørge for at den ikke legger inn duplikater
-        # reactions_db_in = await db_helper.get_output(
-        #    template_info=envs.roles_db_roles_schema,
-        #    where=(
-        #        ('msg_id', msg_info['id'])
-        #    ),
-        #    select=('role_name', 'emoji')
-        # )
-        # log.verbose(f'Got `reactions_db_in:` {reactions_db_in}')
-
+        reactions_db_in = await db_helper.get_output(
+            template_info=envs.roles_db_roles_schema,
+            where=(
+                ('msg_id', msg_info['id'])
+            ),
+            select=('role', 'emoji')
+        )
+        log.verbose(f'Got `reactions_db_in:` {reactions_db_in}')
         merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
+        log.verbose(f'Got `merged_roles_emojis`: {merged_roles_emojis}')
         new_inserts = []
+        duplicates = []
         for item in merged_roles_emojis:
+            if item[0] in [item['role'] for item in reactions_db_in]:
+                duplicates.append(item)
+                continue
             temp_item = [msg_info['id']]
             for unit in item:
                 temp_item.append(unit)
             new_inserts.append(temp_item)
-        await db_helper.insert_many_all(
-            envs.roles_db_roles_schema,
-            inserts=new_inserts
-        )
-        await sync_reaction_message_from_settings(msg_name)
-        await interaction.followup.send(
-            I18N.t('roles.commands.add_reaction_role.msg_confirm'),
-            ephemeral=True
-        )
+        if len(new_inserts) > 0:
+            await db_helper.insert_many_all(
+                envs.roles_db_roles_schema,
+                inserts=new_inserts
+            )
+            await sync_reaction_message_from_settings(msg_name)
+            await interaction.followup.send(
+                I18N.t('roles.commands.add_reaction_role.msg_confirm'),
+                ephemeral=True
+            )
+        if len(duplicates) > 0:
+            dupl_msg = I18N.t(
+                'roles.commands.add_reaction_role.msg_duplicate',
+                msg_name=msg_info['name']
+            )
+            dupl_msg += ':'
+            _guild = discord_commands.get_guild()
+            for item in duplicates:
+                # Convert role
+                role_out = get(_guild.roles, id=int(item[0]))
+                # Convert emoji
+                if re.match(r'(\d+)', item[1]):
+                    emoji_out = get(_guild.emojis, id=int(item[1]))
+                else:
+                    emoji_out = item[1]
+                dupl_msg += f'\n- {role_out} - {emoji_out}'
+            await interaction.followup.send(
+                dupl_msg, ephemeral=True
+            )
         return
 
     @commands.check_any(
@@ -1609,10 +1633,9 @@ class Autoroles(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         # Get all reaction messages in order from database
-        # TODO Test reordering etter endring i GET_OUTPUT
         react_msgs = await db_helper.get_output(
             envs.roles_db_msgs_schema,
-            where=('channel', channel.name),
+            where=('channel', channel.id),
             order_by=[
                 ('msg_order', 'ASC')
             ]
@@ -1645,11 +1668,11 @@ class Autoroles(commands.Cog):
                     break
         log.debug(f'`trigger_reordering`: {trigger_reordering}')
         if trigger_reordering:
-            # Delete the old message and recreate messages
+            # Recreate messages and delete the old ones
             for react_msg in react_msgs:
                 log.debug('Deleting old_react_msg')
                 new_reaction_msg = await discord_commands.post_to_channel(
-                    react_msg['channel'],
+                    channel_id=int(react_msg['channel']),
                     content_in=react_msg['header'],
                     embed_in={
                         'description': react_msg['content']
@@ -1660,9 +1683,16 @@ class Autoroles(commands.Cog):
                     old_msg=react_msg['msg_id'],
                     new_msg=new_reaction_msg.id
                 )
+                # Delete message
+                old_msg = await discord_commands.get_message_obj(
+                    channel_id=channel.id,
+                    msg_id=react_msg['msg_id']
+                )
+                if old_msg is not None:
+                    await old_msg.delete()
                 # Recreate reactions by syncing settings
                 await sync_reaction_message_from_settings(
-                    str(new_reaction_msg.id)
+                    new_reaction_msg.id
                 )
             await interaction.followup.send(
                 I18N.t('roles.commands.reorder.msg_confirm')
