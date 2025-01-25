@@ -1930,11 +1930,16 @@ async def setup(bot):
             inserts=roles_inserts_settings
         )
         log.verbose(f'`settings_is_ok` is {settings_is_ok}')
-
     # Delete old json files if they exist
     if msgs_is_ok and reacts_is_ok and settings_is_ok:
         file_io.remove_file(envs.roles_settings_file)
-
+    # Cleaning DB if irregularities from previous instances of database
+    if file_io.file_exist(envs.roles_db_msgs_schema['db_file']):
+        # Change channel name to id
+        await db_helper.db_channel_name_to_id(
+            template_info=envs.roles_db_msgs_schema, channel_col='channel'
+        )
+        pass
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 

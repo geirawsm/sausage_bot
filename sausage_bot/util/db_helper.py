@@ -4,8 +4,9 @@ import aiosqlite
 from uuid import uuid4
 import re
 from pathlib import Path
+from discord.utils import get
 
-from sausage_bot.util import envs, file_io
+from sausage_bot.util import envs, file_io, discord_commands
 from sausage_bot.util.args import args
 from sausage_bot.util.log import log
 from .datetime_handling import get_dt
@@ -29,10 +30,7 @@ async def table_exist(template_info):
     async with aiosqlite.connect(db_file) as db:
         out = await db.execute(f'PRAGMA table_info({table_name})')
         out = await out.fetchall()
-    if len(out) > 0:
-        return True
-    else:
-        return False
+    return len(out) > 0
 
 
 async def prep_table(
@@ -141,9 +139,7 @@ async def add_missing_db_setup(
         log.verbose(f'Got `db_out`: {db_out}')
         for insert in inserts:
             add_to_temp = None
-            if insert[0] not in db_out_cols:
-                add_to_temp = True
-            elif insert[0] in db_out and\
+            if (insert[0] not in db_out_cols) or insert[0] in db_out and\
                     db_out[db_out_cols.index(insert[0])] is None:
                 add_to_temp = True
             if add_to_temp:
@@ -328,6 +324,68 @@ async def db_replace_numeral_bool_with_bool(template_info):
             )
 
 
+async def db_channel_name_to_id(template_info, channel_col: str):
+    reactions_msgs = await get_output(
+        template_info=template_info,
+        select=('msg_id', channel_col)
+    )
+    # Replace channel names with channel id in list
+    reactions_copy = reactions_msgs.copy()
+    for reaction_msg in reactions_msgs:
+        log.debug(f'--- Checking {reaction_msg}')
+        print(reaction_msg['channel'], type(reaction_msg['channel']))
+        print(re.match(r'(\d+)', reaction_msg['channel']))
+        if not re.match(r'(\d+)', reaction_msg['channel']):
+            # Try to search for channel ID
+            log.debug('channel is not an id, searching for name...')
+            try:
+                channel_id = get(
+                    discord_commands.get_guild().text_channels,
+                    name=reaction_msg['channel']
+                ).id
+                log.debug(f'Found channel id: {channel_id}')
+                reaction_msg['channel_new'] = channel_id
+            except AttributeError as e:
+                # TODO i18n
+                error_msg = 'Could not find channel `{}` in `{}` (`{}`)'\
+                    ': {}'.format(
+                        reaction_msg['channel'],
+                        template_info['name'],
+                        template_info['db_file'],
+                        e
+                    )
+                log.error(error_msg)
+                await discord_commands.log_to_bot_channel(
+                    f'`db_channel_name_to_id`: {error_msg}'
+                )
+                reactions_copy.pop(reactions_copy.index(reaction_msg))
+        elif re.match(r'(\d+)', reaction_msg['channel']):
+            log.debug(
+                'Channel `{}` is an id, removing...'.format(
+                    reaction_msg['channel']
+                )
+            )
+            reactions_copy.pop(reactions_copy.index(reaction_msg))
+        else:
+            log.error('Unexpected error')
+            reactions_copy.pop(reactions_copy.index(reaction_msg))
+    changes = {channel_col: []}
+    for reaction in reactions_copy:
+        changes[channel_col].append(
+            (
+                channel_col,
+                reaction['channel'],
+                reaction['channel_new']
+            )
+        )
+    # Replace channel names with channel id in db
+    await update_fields(
+        template_info=template_info,
+        updates=changes
+    )
+    return
+
+
 async def db_remove_old_cols(template_info):
     '''
     Sjekke hvilke kolonner som ikke finnes i ny envs
@@ -470,13 +528,9 @@ async def json_to_db_inserts(cog_name):
                     for _d in stats_logs_file[_y][_m]:
                         _stats_in = stats_logs_file[_y][_m][_d]
                         if 'files_in_codebase' in _stats_in:
-                            files_in = _stats_in['files_in_codebase']
-                        else:
-                            files_in = 0
+                            files_in = _stats_in.get(['files_in_codebase'], 0)
                         if 'lines_in_codebase' in _stats_in:
-                            lines_in = _stats_in['lines_in_codebase']
-                        else:
-                            lines_in = 0
+                            lines_in = _stats_in.get(['lines_in_codebase'], 0)
                         if 'members' in _stats_in:
                             members_in = _stats_in['members']['total']
                         else:
@@ -808,6 +862,8 @@ async def update_fields(
             `updates[1][0]` = CASE
                 WHEN `updates[1][1][0][0]` = `updates[1][1][0][1]`
                     THEN `updates[1][1][0][2]`
+                WHEN `updates[1][1][1][0]` = `updates[1][1][1][1]`
+                    THEN `updates[1][1][1][2]`
                 ELSE `updates[1][0]`
             END,
             `updates[2][0]` = `updates[2][1]`
@@ -832,6 +888,7 @@ async def update_fields(
         return
     _cmd = f'UPDATE {table_name} SET '
     if isinstance(updates, dict):
+        log.debug('`updates` is dict')
         for update in updates:
             log.verbose(f'Got `update`: {update}')
             _cmd += "{} = CASE".format(update)
@@ -843,7 +900,8 @@ async def update_fields(
             if update != list(updates)[-1]:
                 _cmd += ', '
     elif isinstance(updates, (list, tuple)):
-        if isinstance(updates[0], str):
+        log.debug('`updates` is list or tuple')
+        if isinstance(updates[0], (str, int)):
             _cmd += "{} = '{}'".format(updates[0], updates[1])
         elif isinstance(updates[0], (list, tuple)):
             for update in updates:

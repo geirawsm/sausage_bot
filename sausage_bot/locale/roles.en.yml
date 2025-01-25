@@ -41,7 +41,7 @@ en:
         public: Make the reply public
         role_in: Role to get info about
     list:
-      cms:
+      cmd:
       desc:
         public: Make the reply public
         type: Type of list
@@ -83,7 +83,7 @@ en:
       changelist_perms_added: Permissions added
       changelist_perms_removed: Permissions removed
       changes_out: 'Did following changes on role `%{role_name}`'
-      change_perms: Change permissions 
+      change_perms: Change permissions
       msg_confirm: 'Role `%{role_name}` has been edited'
       msg_error: 'Error when editing role: %{_error}'
     react_list:
@@ -94,6 +94,9 @@ en:
       role_error: Role not found
       emoji_error: Emoji not found
       msg_no_msgs: No messages in database
+      headers:
+        role: Role
+        value: Value
     add_reaction_msg:
       cmd: Add reaction message
       desc:
@@ -111,6 +114,8 @@ en:
       desc:
         msg_name: Name of the message for the reaction roles
       msg_confirm: Roles added
+      msg_duplicate: These roles are already registered to the reaction
+        message `%{msg_name}`
     sync:
       cmd: Synchronize reactions messages with database
       desc:

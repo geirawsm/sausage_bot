@@ -16,7 +16,7 @@ no:
     id: ID
     members: Medlemmer
     managed: Auto-håndtert?
-  tabulate_emojis_and_roles: 
+  tabulate_emojis_and_roles:
     emoji_name: Emoji
     emoji_id: Emoji ID
     role_name: Rolle
@@ -41,7 +41,7 @@ no:
         public: Gjør svaret offentlig
         role_in: Rolle å hente informasjon om
     list:
-      cms:
+      cmd:
       desc:
         public: Gjør svaret offentlig
         type: Listetype
@@ -69,9 +69,9 @@ no:
       desc:
         role_name: Navn på rollen som skal fjernes
       msg_confirm: 'Rollen `%{rolename}` har blitt fjernet'
-    edit: 
+    edit:
       cmd: Rediger en rolle på serveren
-      desc: 
+      desc:
         role_name: Navn på rollen som skal redigeres
         new_name: Nytt navn for rollen
         color: 'Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
@@ -83,17 +83,20 @@ no:
       changelist_perms_added: Tillatelser lagt til
       changelist_perms_removed: Tillatelser fjernet
       changes_out: 'Utførte følgende endringer på rollen `%{role_name}`'
-      change_perms: Endre tillatelser 
+      change_perms: Endre tillatelser
       msg_confirm: 'Rollen `%{role_name}` har blitt redigert'
       msg_error: 'Feil ved redigering av rolle: %{_error}'
     react_list:
       cmd: Vis reaksjonsmeldinger eller info om en reaksjonsmelding
-      desc: 
+      desc:
         reaction_msg: Reaksjonsmelding som skal vises
       msg_error: 'Fant ikke %{reaction_msg}'
       role_error: 'Rolle ikke funnet'
       emoji_error: 'Emoji ikke funnet'
       msg_no_msgs: Ingen meldinger i databasen
+      headers:
+        role: Rolle
+        value: Verdi
     add_reaction_msg:
       cmd: Legg til reaksjonsmelding
       desc:
@@ -110,7 +113,9 @@ no:
       cmd: Legg til roller på en reaksjonsmelding
       desc:
         msg_name: Navn på melding for reaksjonsroller
-      msg_confirm: Roles added
+      msg_confirm: Roller lagt til
+      msg_duplicate: Disse rollene er allerede registrert i
+        reaksjonsmeldingen `%{msg_name}`
     sync:
       cmd: Synkroniser reaksjonmeldinger med database
       desc:

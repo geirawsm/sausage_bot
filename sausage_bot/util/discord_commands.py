@@ -10,28 +10,27 @@ from .log import log
 
 
 async def get_message_obj(
-        msg_id: str = None, channel_name_or_id: int | str = None
+        msg_id: int, channel_id: int
 ) -> dict:
     '''
     Get a message object
 
     Parameters
     ------------
-    msg_id: int/str
+    msg_id: int
         The message ID to look for
-    channel: str
+    channel_id: int
         Channel to get message from (default: None)
     '''
 
     _guild = get_guild()
-    _channels = get_text_channel_list()
-    if not re.match(r'^\d{19}$', channel_name_or_id):
-        channel_name_or_id = _channels[channel_name_or_id]
-    _channel = _guild.get_channel(
-        _channels[channel_name_or_id]
-    )
+    log.debug(f'Getting channel with id `{channel_id}` ({type(channel_id)})')
+    _channel = _guild.get_channel(int(channel_id))
+    log.debug(f'Got channel `{_channel}`')
     try:
-        msg_out = await _channel.fetch_message(msg_id)
+        log.debug(f'Getting message with id `{msg_id}` ({type(msg_id)})')
+        msg_out = await _channel.fetch_message(int(msg_id))
+        log.debug(f'Got msg_out `{msg_out}`')
     except discord.errors.NotFound:
         msg_out = None
     return msg_out
@@ -218,20 +217,16 @@ def get_roles(
 
 
 async def post_to_channel(
-    channel_in, content_in=None,
+    channel_id: int, content_in=None,
     embed_in=None
 ) -> discord.message.Message:
     '''
     Post `content_in` in plain text or `embed_in` to channel
-    `channel_in`
+    `channel_id`
     '''
-    if embed_in:
-        if isinstance(embed_in, dict):
-            embed_in = discord.Embed.from_dict(embed_in)
-    server_channels = get_text_channel_list()
-    log.debug(f'Got these channels: {server_channels}')
-    if channel_in in server_channels:
-        channel_out = config.bot.get_channel(server_channels[channel_in])
+    if embed_in and isinstance(embed_in, dict):
+        embed_in = discord.Embed.from_dict(embed_in)
+        channel_out = config.bot.get_channel(channel_id)
         try:
             msg_out = await channel_out.send(
                 content=content_in,
@@ -247,7 +242,7 @@ async def post_to_channel(
     else:
         log.log(
             envs.POST_TO_NON_EXISTING_CHANNEL.format(
-                channel_in
+                channel_id
             )
         )
         return None
