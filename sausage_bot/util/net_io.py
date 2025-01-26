@@ -402,7 +402,10 @@ async def parse(url: str = None):
             return None
         try:
             parse = await parse_vglive(url)
-            return parse
+            if parse is None:
+                return None
+            else:
+                return parse
         except Exception as e:
             error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
             log.error(error_msg)
@@ -471,7 +474,12 @@ async def parse_vglive(url_in):
 
     _id = re.match(r'.*/kamp/.*/(\d+)/.*', url_in).group(1)
     _match_info = await get_link(base_url.format(_id))
-
+    if isinstance(_match_info, int):
+        # TODO i18n
+        error_msg = 'Link received HTTP status code {}'.format(_match_info)
+        log.error(error_msg)
+        await discord_commands.log_to_bot_channel(error_msg)
+        return None
     # Get info relevant for the event
     match_json = json.loads(_match_info)
     log.verbose('Got `match_json`: ', pretty=match_json)
