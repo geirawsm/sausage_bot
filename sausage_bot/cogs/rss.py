@@ -96,14 +96,16 @@ async def rss_settings_autocomplete(
 
 
 async def control_posting(feed_type, action):
+    # TODO Denne må gås over, sirkelkoder?
+    status_change = False
     feed_type_in = []
     failed_list = []
-    feed_type_list = []
+    feed_statuses = []
     feed_types = ''
     actions = {
         'start': {'status_update': 'started'},
         'stop': {'status_update': 'stopped'},
-        'restart': {'status_update': 'started'}
+        'restart': {'status_update': 'restarted'}
 
     }
     if feed_type == 'ALL':
@@ -112,27 +114,45 @@ async def control_posting(feed_type, action):
     else:
         feed_type_in.append(feed_type)
     for feed_type in feed_type_in:
-        try:
-            log.verbose(f'RSSfeed.{feed_type}_posting.{action}()')
-            eval(f'RSSfeed.{feed_type}_posting.{action}()')
-            feed_type_list.append(feed_type)
-        except RuntimeError:
-            failed_list.append(feed_type)
-    if len(feed_type_list) > 0:
-        for _feed_type in feed_type_list:
+        if action in actions:
+            try:
+                log.debug('RSSfeed.post_{}.{}()'.format(
+                    feed_type, action
+                ))
+                eval('RSSfeed.post_{}.{}()'.format(
+                    feed_type, action
+                ))
+                feed_statuses.append(
+                    {
+                        'feed_type': feed_type,
+                        'status': actions[action]['status_update']
+                    }
+                )
+            except RuntimeError as e:
+                log.error('Error when {}ing feed `{}`: {}'.format(
+                    actions[action]['status_update'], feed_type, e
+                ))
+                failed_list.append(feed_type['feed_type'])
+    # Update status in db
+    if len(feed_statuses) > 0:
+        for feed_type in feed_statuses:
             await db_helper.update_fields(
                 template_info=envs.tasks_db_schema,
                 where=[
                     ('cog', 'rss'),
-                    ('task', f'post_{_feed_type}')
+                    ('task', 'post_{}'.format(
+                        feed_type['feed_type']
+                    ))
                 ],
-                updates=('status', actions[action]['status_update']),
+                updates=('status', feed_type['status']),
             )
             log.log('Task {}: {}'.format(
-                actions[action]['status_update'],
-                _feed_type
+                feed_type['feed_type'],
+                feed_type['status']
             ))
-        feed_types = ', '.join(feed_type_list)
+        feed_types = ', '.join(
+            feed_type['feed_type'] for feed_type in feed_statuses
+        )
     if len(failed_list) > 0:
         failed_list_text = ', '.join(failed_list)
     _msg = ''
