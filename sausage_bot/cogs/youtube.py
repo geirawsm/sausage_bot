@@ -168,7 +168,7 @@ class Youtube(commands.Cog):
             )
             return
         await feeds_core.add_to_feed_db(
-            'youtube', str(feed_name), str(youtube_link), channel.name,
+            'youtube', str(feed_name), str(youtube_link), channel.id,
             AUTHOR, youtube_info['channel_id']
         )
         await discord_commands.log_to_bot_channel(
@@ -557,6 +557,11 @@ async def setup(bot):
                     missing_tbl_cols_text
                 )
             )
+        # Change channel name to id
+        await db_helper.db_channel_name_to_id(
+            template_info=envs.youtube_db_schema,
+            id_col='uuid', channel_col='channel'
+        )
     # Delete old json files if they are not necessary anymore
     if youtube_prep_is_ok:
         file_io.remove_file(envs.youtube_feeds_file)

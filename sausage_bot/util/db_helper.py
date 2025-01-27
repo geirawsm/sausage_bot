@@ -324,10 +324,10 @@ async def db_replace_numeral_bool_with_bool(template_info):
             )
 
 
-async def db_channel_name_to_id(template_info, channel_col: str):
+async def db_channel_name_to_id(template_info, id_col, channel_col: str):
     reactions_msgs = await get_output(
         template_info=template_info,
-        select=('msg_id', channel_col)
+        select=(id_col, channel_col)
     )
     # Replace channel names with channel id in list
     reactions_copy = reactions_msgs.copy()

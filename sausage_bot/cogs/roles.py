@@ -1937,9 +1937,9 @@ async def setup(bot):
     if file_io.file_exist(envs.roles_db_msgs_schema['db_file']):
         # Change channel name to id
         await db_helper.db_channel_name_to_id(
-            template_info=envs.roles_db_msgs_schema, channel_col='channel'
+            template_info=envs.roles_db_msgs_schema,
+            id_col='msg_id', channel_col='channel'
         )
-        pass
     log.verbose('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 

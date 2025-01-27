@@ -251,7 +251,7 @@ class RSSfeed(commands.Cog):
         else:
             feed_type = 'rss'
         await feeds_core.add_to_feed_db(
-            feed_type, str(feed_name), str(feed_link), channel.name, AUTHOR
+            feed_type, str(feed_name), str(feed_link), channel.id, AUTHOR
         )
         await discord_commands.log_to_bot_channel(
             I18N.t(
