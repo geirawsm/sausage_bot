@@ -292,9 +292,9 @@ async def synclocal(ctx):
             I18N.t('main.commands.synclocal.msg_starting')
         )
     )
-    #log.debug('Clearing commands...')
-    #config.bot.tree.clear_commands(guild=None)
-    #config.bot.tree.clear_commands(guild=ctx.guild)
+    # log.debug('Clearing commands...')
+    # config.bot.tree.clear_commands(guild=None)
+    # config.bot.tree.clear_commands(guild=ctx.guild)
     await _reply.edit(
         content='✅💭 {}'.format(
             I18N.t('main.commands.synclocal.msg_cont_copy')
@@ -343,7 +343,7 @@ async def clear_globals(ctx):
     _reply = await ctx.reply(
         '💭 {}'.format(
             'Deleting global commands...'
-            #I18N.t('main.commands.synclocal.msg_starting')
+            # I18N.t('main.commands.synclocal.msg_starting')
         )
     )
     config.bot.tree.clear_commands(guild=None)
@@ -351,7 +351,7 @@ async def clear_globals(ctx):
     log.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            #I18N.t('main.commands.synclocal.msg_confirm')
+            # I18N.t('main.commands.synclocal.msg_confirm')
             'Global commands deleted'
         )
     )
@@ -364,7 +364,7 @@ async def clear_locals(ctx):
     _reply = await ctx.reply(
         '💭 {}'.format(
             'Deleting local commands...'
-            #I18N.t('main.commands.synclocal.msg_starting')
+            # I18N.t('main.commands.synclocal.msg_starting')
         )
     )
     config.bot.tree.clear_commands(guild=ctx.guild)
@@ -372,7 +372,7 @@ async def clear_locals(ctx):
     log.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            #I18N.t('main.commands.synclocal.msg_confirm')
+            # I18N.t('main.commands.synclocal.msg_confirm')
             'Local commands deleted'
         )
     )

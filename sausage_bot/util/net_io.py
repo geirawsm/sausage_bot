@@ -166,23 +166,30 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         'type': 'spotify',
     }
     log.verbose('Processing episodes')
-    for ep in episodes:
-        temp_info = items_info.copy()
-        temp_info['title'] = ep['name']
-        temp_info['description'] = ep['description']
-        temp_info['link'] = ep['external_urls']['spotify']
-        temp_info['img'] = ep['images'][0]['url']
-        temp_info['id'] = ep['id']
-        temp_info['duration'] = ep['duration_ms'] * 1000
-        log.verbose('Populated `temp_info`: ', pretty=temp_info)
-        items_out['items'].append(temp_info)
-        log.debug(
-            'len of `items_out[\'items\']` is {}'.format(
-                len(items_out['items'])
+    try:
+        for ep in episodes:
+            temp_info = items_info.copy()
+            temp_info['title'] = ep['name']
+            temp_info['description'] = ep['description']
+            temp_info['link'] = ep['external_urls']['spotify']
+            temp_info['img'] = ep['images'][0]['url']
+            temp_info['id'] = ep['id']
+            temp_info['duration'] = ep['duration_ms'] * 1000
+            log.verbose('Populated `temp_info`: ', pretty=temp_info)
+            items_out['items'].append(temp_info)
+            log.debug(
+                'len of `items_out[\'items\']` is {}'.format(
+                    len(items_out['items'])
+                )
             )
+        items_out = filter_links(items_out)
+        return items_out
+    except TypeError as e:
+        _msg = 'Error processing episodes from {}: {}'.format(
+            items_info['pod_name'], e
         )
-    items_out = filter_links(items_out)
-    return items_out
+        log.error(_msg)
+        await discord_commands.log_to_bot_channel(_msg)
 
 
 def filter_links(items):

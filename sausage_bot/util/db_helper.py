@@ -99,7 +99,7 @@ async def add_missing_db_setup(
     log.verbose('Received `template_info`', pretty=template_info)
     db_file = template_info['db_file']
     table_name = template_info['name']
-    inserts = template_info['inserts']
+    inserts = template_info['inserts'] if 'inserts' in template_info else None
     log.debug(f'Checking `{table_name}` in `{db_file}`')
     if not dict_in:
         dict_in = {}
@@ -128,7 +128,7 @@ async def add_missing_db_setup(
             await db.execute(_cmd)
     # Add existing inserts in columns where they don't exist yet
     temp_inserts = []
-    if len(inserts) > 0:
+    if inserts is not None and len(inserts) > 0:
         log.debug('`inserts` has length')
         db_out = await get_output(
             template_info=template_info,

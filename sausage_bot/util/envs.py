@@ -402,8 +402,6 @@ def log_extra_info(type):
 ### Botlines ###
 # Generiske
 GUILD_NOT_FOUND = 'Fant ikke serveren {}, dobbeltsjekk navnet i .env'
-POST_TO_NON_EXISTING_CHANNEL = 'Prøver å poste til {}, men kanalen '\
-    'finnes ikke'
 
 # COG - GENERIC MESSAGES
 COG_STARTING = 'Starting cog: `{}`'
