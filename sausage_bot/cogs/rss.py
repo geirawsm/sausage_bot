@@ -627,11 +627,6 @@ class RSSfeed(commands.Cog):
     )
     async def post_feeds():
         log.log('Starting `post_feeds`')
-        # Make sure that the feed links aren't stale / 404
-        review_feeds = await feeds_core.review_feeds_status('rss')
-        if review_feeds in [None, False]:
-            log.log('No feeds to post')
-            return
         # Start processing feeds
         feeds = await db_helper.get_output(
             template_info=envs.rss_db_schema,
@@ -694,11 +689,6 @@ class RSSfeed(commands.Cog):
     )
     async def post_podcasts():
         log.log('Starting `post_podcasts`')
-        # Make sure that the feed links aren't stale / 404
-        review_feeds = await feeds_core.review_feeds_status('spotify')
-        if review_feeds in [None, False]:
-            log.log('No feeds to post')
-            return
         pod_check = await net_io.check_spotify_podcast_episodes()
         if len(pod_check) == 0:
             log.log('No feeds found')

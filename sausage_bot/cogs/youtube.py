@@ -437,11 +437,6 @@ class Youtube(commands.Cog):
     )
     async def post_videos():
         log.log('Starting `post_videos`')
-        # Make sure that the feed links aren't stale / 404
-        review_feeds = await feeds_core.review_feeds_status('youtube')
-        if review_feeds in [None, False]:
-            log.log('No videos to post')
-            return
         # Start processing feeds
         feeds = await db_helper.get_output(
             template_info=envs.youtube_db_schema,
