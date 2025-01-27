@@ -8,7 +8,6 @@ from pathlib import Path
 from time import sleep
 import os
 import json
-import stat
 
 from .. import config, envs
 from ..args import args
@@ -114,7 +113,7 @@ def log_function(
             print(log_out_print)
         if pretty_log:
             print(pretty_log)
-            print('-'*20)
+            print('-' * 20)
     if args.log_file:
         log_out += '\n'
         if pretty_log:
@@ -145,7 +144,8 @@ def log(
     if args.log:
         log_function(
             log_in, color=color, sameline=sameline,
-            extra_info=envs.log_extra_info('log'), pretty=pretty if pretty else None
+            extra_info=envs.log_extra_info('log'),
+            pretty=pretty if pretty else None
         )
     if args.log_slow:
         sleep(3)

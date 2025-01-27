@@ -710,9 +710,12 @@ class RSSfeed(commands.Cog):
                 POD_ID, UUID
             )
             log.debug(
-                f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
+                'Got {} items for `FEED_POSTS`: '
                 '{}'.format(
-                    pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                    len(FEED_POSTS) if FEED_POSTS else 0,
+                    [
+                        pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                    ] if FEED_POSTS else None
                 )
             )
             if FEED_POSTS is None:

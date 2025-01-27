@@ -73,10 +73,7 @@ def channel_exist(channel_in):
     #autodoc skip#
     '''
     all_channels = get_text_channel_list()
-    if channel_in in all_channels:
-        return True
-    else:
-        return False
+    return channel_in in all_channels
 
 
 def get_voice_channel_list():
@@ -191,15 +188,12 @@ def get_roles(
     # Get all roles and their IDs
     roles_dict = {}
     for role in get_guild().roles:
-        if hide_empties is True:
-            if len(role.members) <= 0:
-                continue
-        if filter_bots:
-            if role.is_bot_managed():
-                continue
-        if hide_roles:
-            if str(role.id) in hide_roles:
-                continue
+        if hide_empties is True and len(role.members) <= 0:
+            continue
+        if filter_bots and role.is_bot_managed():
+            continue
+        if hide_roles and str(role.id) in hide_roles:
+            continue
         roles_dict[role.name.lower()] = {
             'name': role.name,
             'id': role.id,
@@ -226,26 +220,19 @@ async def post_to_channel(
     '''
     if embed_in and isinstance(embed_in, dict):
         embed_in = discord.Embed.from_dict(embed_in)
-        channel_out = config.bot.get_channel(channel_id)
-        try:
-            msg_out = await channel_out.send(
-                content=content_in,
-                embed=embed_in
-            )
-            return msg_out
-        except discord.errors.HTTPException as e:
-            log.error(
-                f'{e} - this is the offending message:\n'
-                f'`content`: {content_in}\n`embed`: {embed_in}'
-            )
-            return None
-    else:
-        log.log(
-            envs.POST_TO_NON_EXISTING_CHANNEL.format(
-                channel_id
-            )
+    channel_out = config.bot.get_channel(int(channel_id))
+    try:
+        msg_out = await channel_out.send(
+            content=content_in,
+            embed=embed_in
         )
-        return None
+        return msg_out
+    except discord.errors.HTTPException as e:
+        log.error(
+            f'{e} - this is the offending message:\n'
+            f'`content`: {content_in}\n`embed`: {embed_in}'
+        )
+    return None
 
 
 async def replace_post(replace_content, replace_with, channel_in):
@@ -258,10 +245,10 @@ async def replace_post(replace_content, replace_with, channel_in):
     channel_out = config.bot.get_channel(server_channels[channel_in])
     if channel_in in server_channels:
         async for msg in channel_out.history(limit=30):
-            if str(msg.author.id) == config.BOT_ID:
-                if replace_content == msg.content:
-                    await msg.edit(content=replace_with)
-                    return
+            if str(msg.author.id) == config.BOT_ID and\
+                    replace_content == msg.content:
+                await msg.edit(content=replace_with)
+                return
     else:
         log.error(
             envs.CHANNEL_DOES_NOT_EXIST.format(
@@ -283,14 +270,14 @@ async def remove_stats_post(stats_channel):
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
             log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
-            if str(msg.author.id) == config.BOT_ID:
-                if 'Serverstats sist' in str(msg.content):
-                    log.debug(
-                        'Found post with `Serverstats sist`, removing...'
-                    )
-                    await msg.delete()
-                    found_stats_msg = True
-                    return
+            if str(msg.author.id) == config.BOT_ID and\
+                    'Serverstats sist' in str(msg.content):
+                log.debug(
+                    'Found post with `Serverstats sist`, removing...'
+                )
+                await msg.delete()
+                found_stats_msg = True
+                return
         if found_stats_msg is False:
             log.debug('No stats post found')
 

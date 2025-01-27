@@ -9,7 +9,6 @@ import discord
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper
 from sausage_bot.util.args import args
-from sausage_bot.util.i18n import I18N
 
 from .log import log
 
@@ -21,10 +20,7 @@ async def check_if_feed_name_exist(feed_name):
     )
     feeds = [feed['feed_name'] for feed in feeds]
     log.debug(f'`feeds`: {feeds}')
-    if feed_name not in feeds:
-        return False
-    else:
-        return True
+    return feed_name not in feeds
 
 
 async def check_feed_validity(URL):
@@ -492,7 +488,6 @@ async def process_links_for_posting_or_editing(
     )
     FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None\
         else FEED_SETTINGS
-    STOP_POSTING = False
     for item in FEED_POSTS[0:3]:
         log.verbose(f'Got this item:\n{item}')
         if isinstance(item, str):
@@ -516,80 +511,75 @@ async def process_links_for_posting_or_editing(
                     ))
                 ]
             )
-            if STOP_POSTING:
-                continue
-            else:
-                log.debug('Checking if link is similar to log')
-                feed_link_similar = link_similar_to_logged_post(
-                    feed_link, FEED_LOG)
-                if not feed_link_similar:
-                    # Consider this a whole new post and post link to channel
-                    log.verbose(f'Posting link `{feed_link}`')
-                    if isinstance(item, dict) and item['type'] == 'spotify':
-                        log.debug(
-                            'Found a podcast that should be embedded:',
-                            pretty=item
+            log.debug('Checking if link is similar to log')
+            feed_link_similar = link_similar_to_logged_post(
+                feed_link, FEED_LOG)
+            if not feed_link_similar:
+                # Consider this a whole new post and post link to channel
+                log.verbose(f'Posting link `{feed_link}`')
+                if isinstance(item, dict) and item['type'] == 'spotify':
+                    log.debug(
+                        'Found a podcast that should be embedded:',
+                        pretty=item
+                    )
+                    embed_color = await net_io.\
+                        extract_color_from_image_url(
+                            item['img']
                         )
-                        embed_color = await net_io.\
-                            extract_color_from_image_url(
-                                item['img']
+                    embed = discord.Embed(
+                        title=item['title'],
+                        url=item['link'],
+                        description='{}\n\n{}'.format(
+                            item['description'],
+                            '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
+                                item['link']
                             )
-                        embed = discord.Embed(
-                            title=item['title'],
-                            url=item['link'],
-                            description='{}\n\n{}'.format(
-                                item['description'],
-                                '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
-                                    item['link']
-                                )
-                            ),
-                            colour=discord.Color.from_str(f'#{embed_color}')
-                        )
-                        embed.set_author(name=item['pod_name'])
-                        embed.set_image(url=item['img'])
-                        desc_setting = 'show_pod_description_in_embed'
-                        if desc_setting in FEED_SETTINGS\
-                                and FEED_SETTINGS[desc_setting].lower()\
-                                == 'true':
-                            embed.set_footer(text=item['pod_description'])
-                        log.debug(
-                            'Sending this embed to channel: ', pretty=embed
-                        )
-                        if args.testmode:
-                            log.verbose(embed, color='yellow')
-                        else:
-                            await discord_commands.post_to_channel(
-                                CHANNEL, embed_in=embed
-                            )
-                        STOP_POSTING = True
+                        ),
+                        colour=discord.Color.from_str(f'#{embed_color}')
+                    )
+                    embed.set_author(name=item['pod_name'])
+                    embed.set_image(url=item['img'])
+                    desc_setting = 'show_pod_description_in_embed'
+                    if desc_setting in FEED_SETTINGS\
+                            and FEED_SETTINGS[desc_setting].lower()\
+                            == 'true':
+                        embed.set_footer(text=item['pod_description'])
+                    log.debug(
+                        'Sending this embed to channel: ', pretty=embed
+                    )
+                    if args.testmode:
+                        log.verbose(embed, color='yellow')
                     else:
-                        log.debug('Found a regular text post')
-                        if args.testmode:
-                            log.verbose(
-                                f'TESTMODE: Would post this link: {feed_link}',
-                                color='yellow'
-                            )
-                        else:
-                            await discord_commands.post_to_channel(
-                                CHANNEL, feed_link
-                            )
-                        STOP_POSTING = True
-                elif feed_link_similar:
-                    # Consider this a similar post that needs to
-                    # be edited in the channel
-                    await discord_commands.replace_post(
-                        feed_link_similar, feed_link, CHANNEL
-                    )
-                    # Replace original link with new
-                    await db_helper.update_fields(
-                        template_info=feed_db_log,
-                        where=[
-                            ('url', feed_link_similar)
-                        ],
-                        updates=[
-                            ('url', feed_link)
-                        ]
-                    )
+                        await discord_commands.post_to_channel(
+                            CHANNEL, embed_in=embed
+                        )
+                else:
+                    log.debug('Found a regular text post')
+                    if args.testmode:
+                        log.verbose(
+                            f'TESTMODE: Would post this link: {feed_link}',
+                            color='yellow'
+                        )
+                    else:
+                        await discord_commands.post_to_channel(
+                            CHANNEL, feed_link
+                        )
+            elif feed_link_similar:
+                # Consider this a similar post that needs to
+                # be edited in the channel
+                await discord_commands.replace_post(
+                    feed_link_similar, feed_link, CHANNEL
+                )
+                # Replace original link with new
+                await db_helper.update_fields(
+                    template_info=feed_db_log,
+                    where=[
+                        ('url', feed_link_similar)
+                    ],
+                    updates=[
+                        ('url', feed_link)
+                    ]
+                )
 
 
 if __name__ == "__main__":
