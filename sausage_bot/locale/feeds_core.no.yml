@@ -3,3 +3,11 @@ no:
     review_feeds_status:
       failed_feeds: "Følgende feeds hadde feil ved henting av linker:\n%{feeds}"
       failed_channels: "Følgende feeds hadde feil ved posting til kanaler: %{channels}"
+  list_headers:
+    feed_name: Feed
+    url: URL
+    channel: Kanal
+    added: Lagt til
+    added_by: Lagt til av
+    allow: Tillat
+    deny: Nekt

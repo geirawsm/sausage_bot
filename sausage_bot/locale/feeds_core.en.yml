@@ -3,3 +3,11 @@ en:
     review_feeds_status:
       failed_feeds: "The following feeds couldn't get links:\n- %{feeds}"
       failed_channels: "The following feeds couldn't post to channels:\n- %{channels}"
+  list_headers:
+    feed_name: Feed
+    url: URL
+    channel: Channel
+    added: Added
+    added_by: Added by
+    allow: Allow
+    deny: Deny

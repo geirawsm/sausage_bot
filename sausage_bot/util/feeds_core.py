@@ -5,11 +5,12 @@ from lxml import etree
 from tabulate import tabulate
 from uuid import uuid4
 import discord
+from re import match
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper
 from sausage_bot.util.args import args
-
+from sausage_bot.util.i18n import I18N
 from .log import log
 
 
@@ -324,6 +325,7 @@ async def get_feed_list(
             paginated.append(table_in)
         return paginated
 
+    _guild = discord_commands.get_guild()
     if list_type is None:
         feeds_out = await db_helper.get_output(
             template_info=db_in,
@@ -334,12 +336,20 @@ async def get_feed_list(
                 ('feed_name', 'ASC')
             ]
         )
+        for feed in feeds_out:
+            feed['channel'] = _guild.get_channel(
+                int(feed['channel'])
+            ).name
         log.debug(f'`feeds_out` is {feeds_out}')
         # Return None if empty db
         if feeds_out is None:
             log.log('No feeds in database')
             return None
-        headers = ('Feed', 'URL', 'Channel')
+        headers = {
+            'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
+            'url': I18N.t('feeds_core.list_headers.url'),
+            'channel': I18N.t('feeds_core.list_headers.channel')
+        }
         maxcolwidths = [None, None, None]
     elif list_type == 'added':
         feeds_out = await db_helper.get_output(
@@ -351,11 +361,25 @@ async def get_feed_list(
                 ('feed_name', 'ASC')
             ]
         )
+        for feed in feeds_out:
+            feed['channel'] = _guild.get_channel(
+                int(feed['channel'])
+            ).name
+            if match(r'(\d+)', feed['added_by']):
+                feed['added_by'] = _guild.get_member(
+                    int(feed['added_by'])
+                ).name
         # Return None if empty db
         if len(feeds_out) <= 0:
             log.log('No feeds in database')
             return None
-        headers = ('Feed', 'URL', 'Channel', 'Added', 'Added by')
+        headers = {
+            'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
+            'url': I18N.t('feeds_core.list_headers.url'),
+            'channel': I18N.t('feeds_core.list_headers.channel'),
+            'added': I18N.t('feeds_core.list_headers.added'),
+            'added_by': I18N.t('feeds_core.list_headers.added_by')
+        }
         maxcolwidths = [None, None, None, None, None]
     elif list_type == 'filter':
         if db_filter_in is None:
@@ -370,6 +394,7 @@ async def get_feed_list(
                 ('feed_name', 'ASC')
             ]
         )
+        log.verbose('Got `feeds_db`', pretty=feeds_db)
         feeds_filter = await db_helper.get_output(
             template_info=db_filter_in,
             order_by=[
@@ -377,20 +402,29 @@ async def get_feed_list(
                 ('filter', 'ASC')
             ]
         )
+        log.verbose('Got `feeds_filter`', pretty=feeds_filter)
         feeds_out = []
         for feed in feeds_db:
             filter_uuid = [filter_item for filter_item in feeds_filter
-                           if filter_item[0] == feed[0]]
+                           if filter_item['uuid'] == feed['uuid']]
             log.debug(f'`filter_uuid` is {filter_uuid}')
-            filter_allow = [filter_item[2] for filter_item in filter_uuid
-                            if filter_item[1].lower() == 'allow']
+            filter_allow = [
+                filter_item['filter'] for filter_item in filter_uuid
+                if filter_item['allow_or_deny'].lower() == 'allow'
+            ]
             log.debug(f'`filter_allow` is {filter_allow}')
-            filter_deny = [filter_item[2] for filter_item in filter_uuid
-                           if filter_item[1].lower() == 'deny']
+            filter_deny = [
+                filter_item['filter'] for filter_item in filter_uuid
+                if filter_item['allow_or_deny'].lower() == 'deny'
+            ]
             log.debug(f'`filter_deny` is {filter_deny}')
             temp_list = []
-            for item in feed[1:]:
-                temp_list.append(item)
+            temp_list.append(feed['feed_name'])
+            temp_list.append(
+                _guild.get_channel(
+                    int(feed['channel'])
+                ).name
+            )
             temp_list.append(
                 ', '.join(item for item in filter_allow)
             )
