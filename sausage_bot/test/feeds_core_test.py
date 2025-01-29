@@ -15,9 +15,8 @@ def test_check_similarity_return_number_or_none():
 
 
 async def test_check_feed_validity_url():
-    good_url1 = 'https://www.metalsucks.net/category/'\
-        'shit-that-comes-out-today/feed/'
-    good_url2 = 'https://rss.kode24.no/'
+    good_url1 = 'https://www.metalsucks.net/category/shit-that-comes-out-today/feed/'
+    good_url2 = 'http://feeds.bbci.co.uk/news/rss.xml'
     bad_url1 = 'https://www.youtube.com'
     bad_url2 = ''
 

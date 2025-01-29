@@ -50,7 +50,7 @@ async def check_feed_validity(URL):
         )
         if isinstance(_items, list):
             sample_item = _items[0]
-    log.debug(f'`sample_item`: {sample_item}')
+    log.debug(f'Got `sample_item`: {sample_item}')
     if sample_item is None:
         return False
     try:
@@ -68,6 +68,11 @@ async def get_items_from_rss(
 ) -> list:
     try:
         soup = BeautifulSoup(req, features='xml')
+        if not soup.find('rss') or not soup.find(
+            'link', attrs={'type': 'application/rss+xml'}
+        ):
+            log.error(f'No rss feed found in {url}')
+            return None
     except Exception as e:
         log.error(f'Error when reading `soup` from {url}: {e}')
         return None
