@@ -594,6 +594,69 @@ class Stats(commands.Cog):
         the log db.
         The channel is defined in stats settings db.
         '''
+
+        async def get_db_settings():
+            stats_settings_db = await db_helper.get_output(
+                template_info=envs.stats_db_settings_schema,
+                select=('setting', 'value')
+            )
+            log.debug(f'`stats_settings_db` is {stats_settings_db}')
+            stats_settings = {}
+            for setting in stats_settings_db:
+                stats_settings[setting['setting']] = setting['value']
+            log.debug(f'`stats_settings` is {stats_settings}')
+            return stats_settings
+
+        async def get_db_hide_roles():
+            hide_roles_exist = await db_helper.table_exist(
+                envs.stats_db_hide_roles_schema
+            )
+            if hide_roles_exist:
+                stats_hide_roles = await db_helper.get_output(
+                    envs.stats_db_hide_roles_schema
+                )
+                stats_hide_roles = [role['role_id'] for role in stats_hide_roles]
+                if len(stats_hide_roles) > 0:
+                    return list(stats_hide_roles)
+            return None
+
+        async def log_stats():
+            stats_log_inserts = []
+            date_exist = await db_helper.get_output(
+                template_info=envs.stats_db_log_schema,
+                order_by=[('datetime', 'DESC')],
+                select=('datetime'),
+                single=True
+            )
+            if date_exist is not None:
+                log.verbose(f'`date_exist`: {date_exist}')
+                date_exist = date_exist['datetime']
+            log_stats = False
+            if date_exist:
+                date_now = datetime_handling.get_dt(format='date')
+                date_exist = datetime_handling.get_dt(
+                    format='date', dt=date_exist
+                )
+                if date_now > date_exist:
+                    log_stats = True
+                else:
+                    log.verbose('Today has already been logged, skipping...')
+            elif date_exist is None:
+                log_stats = True
+            if log_stats:
+                stats_log_inserts.append(
+                    (
+                        str(datetime_handling.get_dt('ISO8601')),
+                        files_in_codebase, lines_in_codebase,
+                        members['member_count']
+                    )
+                )
+                # Write changes to database
+                await db_helper.insert_many_all(
+                    template_info=envs.stats_db_log_schema,
+                    inserts=stats_log_inserts
+                )
+
         async def tabify(
             dict_in: dict,
             headers: list,
@@ -637,9 +700,9 @@ class Stats(commands.Cog):
                     'members': []
                 }
                 for role in dict_in:
-                    if hide_roles is not None:
-                        if str(dict_in[role]['id']) in hide_roles:
-                            continue
+                    if hide_roles is not None and\
+                            str(dict_in[role]['id']) in hide_roles:
+                        continue
                     # Check for `sort_min_role_members`
                     if dict_in[role]['name'] != '@everyone':
                         if stats_settings['sort_min_role_members']:
@@ -668,76 +731,118 @@ class Stats(commands.Cog):
             else:
                 log.more('`dict_in` is not a dict. Check the input.')
 
+        async def check_and_post_to_stats_msg_id(
+                stats_settings, stats_info
+        ):
+            # Get `stats_msg_id` from db to update stats post
+            stats_channel = get(
+                _guild.channels,
+                name=stats_settings.get('channel', 'stats')
+            )
+            log.verbose(
+                f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
+            )
+            # If `stats_msg_id` is not in db, check if `stats_msg` is in db
+            # If `stats_msg` is not in db, add `stats_msg_id` to db
+            if 'stats_msg_id' not in stats_settings:
+                stats_msg_id = None
+                if 'stats_msg' not in stats_settings:
+                    # Add new post and update db
+                    stats_msg_id = None
+                elif 'stats_msg' in stats_settings:
+                    stats_msg_id = stats_settings.get('stats_msg')
+                    # Change 'stats_msg' to 'stats_msg_id'
+                    await db_helper.update_fields(
+                        envs.stats_db_settings_schema,
+                        where=('setting', 'stats_msg'),
+                        updates=('setting', 'stats_msg_id')
+                    )
+                else:
+                    log.error('Noe rart har skjedd?!')
+            elif 'stats_msg_id' in stats_settings:
+                stats_msg_id = stats_settings.get('stats_msg_id')
+            # Now we should have `stats_msg_id`, check it's value and
+            # decide what to do
+            post_new = False
+            if stats_msg_id == '' or stats_msg_id is None:
+                log.verbose(
+                    '`stats_msg_id` is empty, is there already a stats msg?'
+                )
+                # Look for a stats message
+                stats_msgs = [
+                    message async for message in stats_channel.history(
+                        limit=20, oldest_first=True
+                    )
+                ]
+                for _msg in stats_msgs:
+                    last_update_text = I18N.t(
+                        'stats.tasks.update_stats.stats_msg.code_last_updated'
+                    )
+                    if last_update_text in str(_msg.content):
+                        log.verbose(f'Found stats message: {_msg.id}')
+                        stats_msg_id = _msg.id
+                        log.verbose('Updating db')
+                        await db_helper.update_fields(
+                            template_info=envs.stats_db_settings_schema,
+                            where=('setting', 'stats_msg_id'),
+                            updates=('value', _msg.id)
+                        )
+                        break
+                if not re.match(r'^\d{19}$', str(stats_msg_id)):
+                    log.verbose(
+                        'Did not find a stats message, posting a new one'
+                    )
+                    post_new = True
+            if re.match(r'^\d{19}$', str(stats_msg_id)):
+                try:
+                    # Edit the stats message if found
+                    stats_msg = await stats_channel.fetch_message(stats_msg_id)
+                    await stats_msg.edit(content=stats_info)
+                    return
+                except discord.errors.NotFound:
+                    log.error(
+                        'Could not find msg id `{stats_msg_id}` in channel '
+                        '`{stats_channel}`'
+                    )
+                    post_new = True
+                    log.debug('Creating new stats message')
+            if post_new:
+                # Post it
+                stats_msg = await stats_channel.send(stats_info)
+                stats_msg_id = stats_msg.id
+                # Update db
+                if 'stats_msg_id' in stats_settings:
+                    await db_helper.update_fields(
+                        template_info=envs.stats_db_settings_schema,
+                        where=('setting', 'stats_msg_id'),
+                        updates=('value', stats_msg.id)
+                    )
+                else:
+                    await db_helper.insert_many_all(
+                        template_info=envs.stats_db_settings_schema,
+                        inserts=(
+                            ('stats_msg_id', stats_msg.id)
+                        )
+                    )
+            else:
+                log.error('Could not find stats_msg_id')
+            return
+
         upd_mins = config.env.int('STATS_LOOP', default=5)
         log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
-        stats_settings_db = await db_helper.get_output(
-            template_info=envs.stats_db_settings_schema,
-            select=('setting', 'value')
-        )
-        log.debug(f'`stats_settings_db` is {stats_settings_db}')
-        stats_settings = {}
-        for setting in stats_settings_db:
-            stats_settings[setting['setting']] = setting['value']
-        log.debug(f'`stats_settings` is {stats_settings}')
-        stats_channel = stats_settings.get('channel', 'stats')
-        stats_log_inserts = []
+        stats_settings = await get_db_settings()
         # Get stats about the code
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
-        hide_roles_exist = await db_helper.table_exist(
-            envs.stats_db_hide_roles_schema
-        )
-        if hide_roles_exist:
-            stats_hide_roles = await db_helper.get_output(
-                envs.stats_db_hide_roles_schema
-            )
-            stats_hide_roles = [role['role_id'] for role in stats_hide_roles]
-            if len(stats_hide_roles) > 0:
-                stats_hide_roles = list(stats_hide_roles)
-            else:
-                stats_hide_roles = None
-            log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
-        else:
-            stats_hide_roles = None
+        stats_hide_roles = await get_db_hide_roles()
+        log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
         # Get server members
         members = get_role_numbers(stats_settings)
-        log.debug('`members`:', pretty=members)
+        log.debug(f'Got {len(members)} members')
         # Update log database if not already this day
         log.debug('Logging stats')
-        date_exist = await db_helper.get_output(
-            template_info=envs.stats_db_log_schema,
-            order_by=[('datetime', 'DESC')],
-            select=('datetime'),
-            single=True
-        )
-        log.verbose(f'`date_exist`: {date_exist}')
-        date_exist = date_exist['datetime']
-        log_stats = False
-        if date_exist:
-            date_now = datetime_handling.get_dt(format='date')
-            date_exist = datetime_handling.get_dt(
-                format='date', dt=date_exist
-            )
-            if date_now > date_exist:
-                log_stats = True
-            else:
-                log.verbose('Today has already been logged, skipping...')
-        elif date_exist is None:
-            log_stats = True
-        if log_stats:
-            stats_log_inserts.append(
-                (
-                    str(datetime_handling.get_dt('ISO8601')),
-                    files_in_codebase, lines_in_codebase,
-                    members['member_count']
-                )
-            )
-            # Write changes to database
-            await db_helper.insert_many_all(
-                template_info=envs.stats_db_log_schema,
-                inserts=stats_log_inserts
-            )
+        log_stats = await log_stats()
         # Update the stats-msg
         if eval(stats_settings['show_role_stats']):
             total_members = members['member_count']
@@ -775,55 +880,14 @@ class Stats(commands.Cog):
             'stats.tasks.update_stats.stats_msg.code_last_updated')
         stats_info += f'```{code_last_updated} {dt_log}```\n'
         log.verbose(
-            f'Trying to post stats to `{stats_channel}`:\n'
+            f'Trying to post stats to `stats_channel`:\n'
             f'{stats_info[0:100]}'
         )
         _guild = discord_commands.get_guild()
-        stats_msg_id = stats_settings['stats_msg_id']
-        stats_channel = get(_guild.channels, name=stats_channel)
-        log.verbose(
-            f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
-        )
-        if stats_msg_id == '':
-            log.verbose(
-                '`stats_msg` not found in database, creating new stats message'
+        check_and_post_to_stats_msg_id = \
+            await check_and_post_to_stats_msg_id(
+                stats_settings, stats_info
             )
-            stats_msg = await stats_channel.send(stats_info)
-            await db_helper.update_fields(
-                template_info=envs.stats_db_settings_schema,
-                where=('setting', 'stats_msg'),
-                updates=('value', stats_msg.id)
-            )
-            stats_msg_id = stats_msg.id
-        elif re.match(r'^\d{19}$', stats_msg_id):
-            try:
-                stats_msg = await stats_channel.fetch_message(stats_msg_id)
-                await stats_msg.edit(content=stats_info)
-                return
-            except discord.errors.NotFound:
-                log.error(
-                    'Could not find msg id `{stats_msg_id}` in channel '
-                    '`{stats_channel}`'
-                )
-                log.debug('Creating new stats message')
-                stats_msg = await stats_channel.send(stats_info)
-                # update db
-                if 'stats_msg' in stats_settings:
-                    await db_helper.update_fields(
-                        template_info=envs.stats_db_settings_schema,
-                        where=('setting', 'stats_msg'),
-                        updates=('value', stats_msg.id)
-                    )
-                else:
-                    await db_helper.insert_many_all(
-                        template_info=envs.stats_db_settings_schema,
-                        inserts=(
-                            ('stats_msg', stats_msg.id)
-                        )
-                    )
-        else:
-            log.error('Could not find stats_msg_id')
-        return
 
     @task_update_stats.before_loop
     async def before_update_stats():
@@ -882,14 +946,9 @@ async def setup(bot):
     log.verbose(
         f'`stats_hide_roles_prep_is_ok` is {stats_hide_roles_prep_is_ok}'
     )
-    if not file_io.file_exist(envs.stats_db_log_schema['db_file']):
-        log.verbose('Stats log db does not exist')
-        stats_log_prep_is_ok = await db_helper.prep_table(
-            envs.stats_db_log_schema, stats_log_inserts
-        )
-    else:
-        log.verbose('Stats db log exist!')
-
+    stats_log_prep_is_ok = await db_helper.prep_table(
+        envs.stats_db_log_schema, stats_log_inserts
+    )
     # Delete old json files if they exist
     if stats_settings_prep_is_ok and file_io.file_exist(envs.stats_file):
         file_io.remove_file(envs.stats_file)
