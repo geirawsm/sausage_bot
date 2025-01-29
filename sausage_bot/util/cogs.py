@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 from discord.ext import commands
+from contextlib import suppress
 
 from sausage_bot.util import envs, config
 from sausage_bot.util.args import args
@@ -13,10 +14,8 @@ check_and_create_folders = [
     envs.COGS_DIR
 ]
 for folder in check_and_create_folders:
-    try:
+    with suppress(FileExistsError):
         os.makedirs(folder)
-    except (FileExistsError):
-        pass
 
 
 class Cogs(commands.Cog):

@@ -18,5 +18,5 @@ en:
         embed_title: Poll
         timed_out: Timed out
         post_confirm: 'Poll was posted %{post_text}'
-        lock_confirm_future: 'Poll is closed in <t:%{dt_lock_epoch}:R>'
-        lock_confirm: 'Poll was closed after %{dt_lock_text}'
+        lock_confirm_future: 'Poll is closed <t:%{dt_lock_epoch}:R>'
+        lock_confirm: 'Poll was closed %{dt_lock_text}'

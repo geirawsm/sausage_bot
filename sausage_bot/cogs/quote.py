@@ -478,11 +478,10 @@ class Quotes(commands.Cog):
         await interaction.response.send_modal(modal_in)
         await modal_in.wait()
         update_triggered = False
-        # Check for changes in quote text
-        if str(quote_from_db[0][2]) != str(modal_in.quote_out['quote_text']):
-            update_triggered = True
-        # Check for changes in quote date
-        elif str(quote_from_db[0][2]) != str(modal_in.quote_out['datetime']):
+        # Check for changes in quote text or quote date
+        if str(quote_from_db[0][2]) != str(modal_in.quote_out['quote_text'])\
+                or str(quote_from_db[0][2]) !=\
+                str(modal_in.quote_out['datetime']):
             update_triggered = True
         else:
             log.error('No changes discovered in quote')

@@ -18,9 +18,9 @@ if log.i18n:
     # Clean i18n log file before starting
     _logfilename = envs.LOG_DIR / 'i18n.log'
     file_io.ensure_file(_logfilename)
-    write_log = open(_logfilename, 'w', encoding="utf-8")
-    write_log.write('')
-    write_log.close()
+    with open(_logfilename, 'w', encoding="utf-8") as write_log:
+        write_log.write('')
+        write_log.close()
 
 
 class MyTranslator(app_commands.Translator):

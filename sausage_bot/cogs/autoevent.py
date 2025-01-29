@@ -11,6 +11,7 @@ import os
 import re
 import typing
 import asyncio
+from contextlib import suppress
 
 from sausage_bot.util import envs, config, datetime_handling, net_io
 from sausage_bot.util import discord_commands
@@ -23,10 +24,8 @@ check_and_create_folders = [
     envs.STATIC_DIR
 ]
 for folder in check_and_create_folders:
-    try:
+    with suppress(FileExistsError):
         os.makedirs(folder)
-    except (FileExistsError):
-        pass
 
 
 async def event_names_autocomplete(

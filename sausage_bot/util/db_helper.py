@@ -42,11 +42,17 @@ async def prep_table(
     table_name = table_in['name']
     item_list = table_in['items']
     _cmd = '''CREATE TABLE IF NOT EXISTS {} ('''.format(table_name)
-    _cmd += ', '.join(
-        '{} {}'.format(
-            item[0], item[1]
-        ) for item in item_list
-    )
+    try:
+        _cmd += ', '.join(
+            '{} {}'.format(
+                item[0], item[1]
+            ) for item in item_list
+        )
+    except IndexError as e:
+        log.error(
+            f'Error when creating table `{table_name}` in {db_file}: {e}'
+        )
+        return None
     if 'primary' in table_in and\
             table_in['primary'] is not None:
         _cmd += ', PRIMARY KEY({}'.format(
@@ -1112,12 +1118,13 @@ async def get_combined_output(
         WHERE `where[0]` = `where[1]`
         GROUP BY `group_by`
         ORDER BY `order_by` (tuples in list)
-
-    Note: `select` will only get values from `template_info_1`
     '''
     db_file = template_info_1['db_file']
     table_name1 = template_info_1['name']
     table_name2 = template_info_2['name']
+    log.debug('Getting combined info from `{}` and `{}`'.format(
+        table_name1, table_name2
+    ))
     _cmd = 'SELECT '
     if select is None or len(select) == 0:
         _cmd += '*'

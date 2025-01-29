@@ -615,7 +615,9 @@ class Stats(commands.Cog):
                 stats_hide_roles = await db_helper.get_output(
                     envs.stats_db_hide_roles_schema
                 )
-                stats_hide_roles = [role['role_id'] for role in stats_hide_roles]
+                stats_hide_roles = [
+                    role['role_id'] for role in stats_hide_roles
+                ]
                 if len(stats_hide_roles) > 0:
                     return list(stats_hide_roles)
             return None

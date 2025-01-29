@@ -1870,18 +1870,6 @@ class Autoroles(commands.Cog):
         )
         return
 
-# TODO Only for test
-#    @roles_group.command(
-#        name='test',
-#        description='TEST'
-#    )
-#    async def role_test(
-#        self, interaction: discord.Interaction
-#    ):
-#        #await interaction.response.defer(ephemeral=True)
-#        await sync_reaction_message_from_settings(1295750251164074047)
-#        return
-
 
 async def setup(bot):
     # Create necessary databases before starting

@@ -114,10 +114,10 @@ poll_db_alternatives_schema = {
     'db_file': str(DB_DIR / 'poll.sqlite'),
     'name': 'poll_alternatives',
     'items': [
-        ['uuid TEXT NOT NULL'],
-        ['emoji TEXT NOT NULL'],
-        ['input TEXT NOT NULL'],
-        ['count INTEGER']
+        ['uuid', 'TEXT NOT NULL'],
+        ['emoji', 'TEXT NOT NULL'],
+        ['input', 'TEXT NOT NULL'],
+        ['count', 'INTEGER']
     ]
 }
 
@@ -386,12 +386,12 @@ def log_extra_info(type):
         'info': {
             'log': 'LOG',
             'verbose': 'VERBOSE',
-            'database': 'DATABASES',
+            'db': 'DBs',
             'debug': 'DEBUG',
             'error': 'ERROR',
             'i18n': 'I18N'
         },
-        'length': 9
+        'length': 7
     }
     split = int((infos['length'] - len(infos['info'][type])) / 2)
     return '{s}{text}{s}'.format(

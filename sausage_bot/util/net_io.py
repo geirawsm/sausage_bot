@@ -203,10 +203,10 @@ def filter_links(items):
         allow = []
         deny = []
         for filter_in in filters_in:
-            if filter_in[0].lower() == 'allow':
-                allow.append(filter_in[1])
-            elif filter_in[0].lower() == 'deny':
-                deny.append(filter_in[1])
+            if filter_in['allow_or_deny'].lower() == 'allow':
+                allow.append(filter_in['filter'])
+            elif filter_in['allow_or_deny'].lower() == 'deny':
+                deny.append(filter_in['filter'])
         filter_priority = eval(config.env(
             'RSS_FILTER_PRIORITY', default='deny'))
         for filter_out in filter_priority:

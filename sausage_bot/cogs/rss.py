@@ -96,8 +96,6 @@ async def rss_settings_autocomplete(
 
 
 async def control_posting(feed_type, action):
-    # TODO Denne må gås over, sirkelkoder?
-    status_change = False
     feed_type_in = []
     failed_list = []
     feed_statuses = []
