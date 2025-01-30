@@ -466,14 +466,16 @@ class Youtube(commands.Cog):
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='youtube', feed_info=feed
             )
-            log.debug(
-                f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
-                '{}'.format(
-                    ', '.join(
-                        [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+            if FEED_POSTS is not None:
+                log.debug(
+                    'Got {} items for `FEED_POSTS`: '
+                    '{}'.format(
+                        len(FEED_POSTS),
+                        ', '.join(
+                            [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+                        )
                     )
                 )
-            )
             if FEED_POSTS is None:
                 log.log(f'{feed}: this feed returned NoneType.')
                 await discord_commands.log_to_bot_channel(
