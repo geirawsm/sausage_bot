@@ -4,10 +4,139 @@ SausageBot - affectionately known as "pølsa" among its Norwegian users - is a D
 
 ## Functions
 
-To be updated
+### Administration (main)
+
+- Kick/ban users (/kick, /ban)
+- Set language (/language)
+- Show active tasks (/tasks)
+- Make the bot talk (/say, right-click message to edit already posted message)
+
+### Autoevent
+Takes links to soccer games on predefined sites, and make them into an event for the server.
+
+Command: `/autoevent`
+
+- Add, remove or list events
+- Create a sync timer for a live event on TV/stream so everyone watching on their own is more or less in sync
+- Announce an event in a specific channel
 
 
-## Usage
+### Dilemmas
+Create dilemmas for discussion on the server
+
+Command: `/dilemmas`
+
+- Add dilemma
+- Post dilemma
+- Count no. of dilemmas
+
+
+### Log Maintenance
+Manage logging settings. How many days of logs to keep, or how big the log files should be.
+
+Command: `/log_maintenance`
+
+- Start and stop log maintenance
+- List available settings
+- Change settings
+
+
+### Poll
+Make a simple poll.
+
+Command: `/poll`
+
+- Make a poll
+
+
+### Quote
+Save and post quotes from the server.
+
+Command: `/quote`
+
+- Add a quote
+- Edit a quote
+- Delete a quote
+- Count no. of quote
+- List quote from quote number or search for a keyword
+
+
+### Roles
+Manage roles and reaction messages.
+Can autoadd role for new users.
+
+Command: `/roles`
+
+#### Roles
+- Add roles to server
+- Remove roles to server
+- Edit a role
+- Show info about a role
+- List roles or emojis
+
+#### Reaction messages
+- Add reaction message
+- Remove reaction message
+- List reaction messages
+- Sort reaction messages
+- Sync reaction messages
+- Add roles to reaction messages
+- Remove roles from reaction messages
+
+#### Settings
+Settings for roles and reaction messages on the server
+- Set a unique role for new users. This is great if you want a certain role to be added to new users to separate them when it comes to moderation or restriction in permissions.
+- Chose roles not to be included when deciding if the unique role is a user's only role or not.
+
+
+### RSS
+Post RSS-feeds to a channel, both normal RSS-feeds and podcasts from Spotify.
+
+Command: `/rss`
+
+- Start, stop and restart posting of feeds
+- Add a RSS feed
+- Remove a RSS feed
+- Edit a RSS feed's settings
+
+- List all active rss feeds
+- Add an allow-/deny-filter for a RSS feed
+- Remove an allow-/deny-filter from a RSS feed
+- List all RSS feeds: normal, added by or filter
+
+
+### Scrape FCB
+(A very specific cog for one of my servers)
+Scrape the football website https://www.fcbarcelona.com and post news from the website to specific team channels.
+Autposting news to specific channels: `first-team`, `femení`, `atlètic`, `juvenil` and `club`.
+
+
+### Stats
+Get stats to post in a stats channel. Can post stats about the codebase, roles and their members.
+
+Command: `/stats`
+
+- Start, stop and restart posting of stats
+- Add setting
+- Remove setting
+- Change setting
+- List settings
+- Hide roles from stats
+
+### Youtube
+Post new videos from given Youtube channels
+
+Command: `/youtube`
+
+- Start and stop posting of videos
+- Add a youtube channel for posting
+- Remove a youtube channel
+- Add an allow-/deny-filter for a youtube channel
+- Remove an allow-/deny-filter from a youtube channel
+- List all youtube channels: normal, added by or filter
+
+
+## Set up
 
 Ok, so you want to run a Discord bot?
 
