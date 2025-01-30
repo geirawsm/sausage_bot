@@ -87,7 +87,7 @@ class LogMaintenance(commands.Cog):
             I18N.t('log_maintenance.commands.stop.cmd')
         )
     )
-    async def rss_posting_stop(
+    async def log_maintenance_stop(
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)

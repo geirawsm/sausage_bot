@@ -780,6 +780,7 @@ async def setup(bot):
 
     # Prep of DBs with json inserts should only be done if the
     # db files does not exist
+    missing_tbl_cols = {}
     if not file_io.file_exist(envs.rss_db_schema['db_file']):
         log.verbose('RSS db does not exist')
         rss_prep_is_ok = await db_helper.prep_table(
@@ -801,7 +802,6 @@ async def setup(bot):
         log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
     else:
         log.verbose('rss db exist, checking columns!')
-        missing_tbl_cols = {}
         missing_tbl_cols = await db_helper.add_missing_db_setup(
             envs.rss_db_schema, missing_tbl_cols
         )
