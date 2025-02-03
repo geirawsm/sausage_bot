@@ -802,11 +802,14 @@ async def setup(bot):
         log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
     else:
         log.verbose('rss db exist, checking columns!')
-        missing_tbl_cols = await db_helper.add_missing_db_setup(
+        await db_helper.add_missing_db_setup(
             envs.rss_db_schema, missing_tbl_cols
         )
-        missing_tbl_cols = await db_helper.add_missing_db_setup(
+        await db_helper.add_missing_db_setup(
             envs.rss_db_settings_schema, missing_tbl_cols
+        )
+        await db_helper.add_missing_db_setup(
+            envs.rss_db_log_schema, missing_tbl_cols
         )
         log.debug(f'rss db: `missing_tbl_cols` is {missing_tbl_cols}')
         if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):

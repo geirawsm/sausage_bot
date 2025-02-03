@@ -179,11 +179,6 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
             temp_info['duration'] = ep['duration_ms'] * 1000
             log.verbose('Populated `temp_info`: ', pretty=temp_info)
             items_out['items'].append(temp_info)
-            log.debug(
-                'len of `items_out[\'items\']` is {}'.format(
-                    len(items_out['items'])
-                )
-            )
         items_out = filter_links(items_out)
         return items_out
     except TypeError as e:
