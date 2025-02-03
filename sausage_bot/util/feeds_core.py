@@ -6,6 +6,8 @@ from tabulate import tabulate
 from uuid import uuid4
 import discord
 from re import match
+from hashlib import md5
+
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
 from sausage_bot.util import net_io, db_helper
@@ -61,6 +63,17 @@ async def check_feed_validity(URL):
     except (etree.XMLSyntaxError) as e:
         log.error('Error: {}'.format(e))
         return False
+
+
+async def get_page_hash(url):
+    'Get hash of page at `url`'
+    req = await net_io.get_link(url)
+    if req is None:
+        log.error('Could not get link')
+        return None
+    soup = BeautifulSoup(req, features='xml')
+    desc = soup.find('meta', attrs={'name': 'description'})
+    return md5(str(desc).encode('utf-8')).hexdigest()
 
 
 async def get_items_from_rss(
@@ -459,35 +472,81 @@ async def get_feed_list(
     return await split_lengthy_list(table_out)
 
 
-def link_similar_to_logged_post(link: str, feed_log: list):
+async def link_is_in_log(link, log_in, channel, uuid):
     '''
-    Checks if `link` is similar to any other logged link in `feed_log`.
-    If similiar, return the similar link from log.
-    If no links are found to be similar, return None.
+    Check if a link already is in the log. Replace and repost if it is
+    similar to a logged link.
     '''
-    for log_item in feed_log:
-        if file_io.check_similarity(log_item['url'], link):
-            log.debug('Found similar link log)')
-            return True
-        log.debug('No similar link found')
-    return False
+    async def log_and_replace(link, log_in, link_hash, channel, uuid):
+        # Replace link on discord and add link to log
+        list_of_old_links = []
+        for item in log_in:
+            if item['post_hash'] == link_hash:
+                list_of_old_links.append(item['url'])
+        log.debug('Replacing link in discord message')
+        await discord_commands.replace_post(
+            list_of_old_links, link, channel
+        )
+        log.debug('Adding link to log')
+        await log_link(
+            envs.rss_db_log_schema, uuid, link, link_hash
+        )
 
-
-def link_is_in_log(link, log_in):
     if log_in is None:
         log.verbose('Log is empty')
         return False
     try:
-        if link not in [log_url['url'] for log_url in log_in]:
-            log.verbose('Link not in log')
-            return False
+        link_in_log = None
+        hash_in_log = None
+        link_hash = await get_page_hash(link)
+        log.verbose(f'Link hash is `{link_hash}`')
+        if link in [log_url['url'] for log_url in log_in]:
+            log.debug('Link in log')
+            link_in_log = True
         else:
-            log.verbose(f'Found link logs ({link})')
+            link_in_log = False
+        if link_hash in [log_url['post_hash'] for log_url in log_in]:
+            log.verbose('Hash in log')
+            hash_in_log = True
+        else:
+            hash_in_log = False
+        print('----')
+        print(f'link_in_log: {link_in_log}')
+        print(f'hash_in_log: {hash_in_log}')
+        print('----')
+        if link_in_log and hash_in_log:
+            log.debug('Link is in log, returning True')
+            return True
+        if link_in_log and not hash_in_log:
+            log.debug('Link is in log, but hash has changed. Replacing...')
+            return True
+        if not link_in_log and hash_in_log:
+            log.debug(
+                'Hash in log, but link is not. '
+                'Adding to log and replacing post'
+            )
+            await log_and_replace(link, log_in, link_hash, channel, uuid)
             return True
     except Exception as e:
         log.error(
             f'Error: {e}:', pretty=log_in)
         return None
+
+
+async def log_link(template_info, uuid, feed_link, page_hash):
+    await db_helper.insert_many_all(
+        template_info=template_info,
+        inserts=[
+            (
+                uuid, feed_link, str(
+                    datetime_handling.get_dt(
+                        format='ISO8601'
+                    )
+                ),
+                page_hash
+            )
+        ]
+    )
 
 
 async def process_links_for_posting_or_editing(
@@ -527,13 +586,20 @@ async def process_links_for_posting_or_editing(
         return None
     log.debug(
         f'Got {len(FEED_POSTS)} items in '
-        f'`FEED_POSTS`: {str(FEED_POSTS)[0:100]}'
+        f'`FEED_POSTS`'
     )
-    FEED_LOG = await db_helper.get_output(
-        template_info=feed_db_log,
-        select='url',
-        where=[('uuid', uuid)]
-    )
+    if feed_type == 'rss':
+        FEED_LOG = await db_helper.get_output(
+            template_info=feed_db_log,
+            select=('url', 'post_hash'),
+            where=[('uuid', uuid)]
+        )
+    else:
+        FEED_LOG = await db_helper.get_output(
+            template_info=feed_db_log,
+            select=('url'),
+            where=[('uuid', uuid)]
+        )
     FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None\
         else FEED_SETTINGS
     for item in FEED_POSTS[0:3]:
@@ -543,91 +609,68 @@ async def process_links_for_posting_or_editing(
         elif isinstance(item, dict):
             feed_link = item['link']
         # Check if the link is in the log
-        link_in_log = link_is_in_log(feed_link, FEED_LOG)
+        link_in_log = await link_is_in_log(
+            feed_link, FEED_LOG, CHANNEL, uuid
+        )
         if link_in_log:
             log.verbose(f'Link `{feed_link}` already logged. Skipping.')
             continue
         elif not link_in_log:
             # Add link to log
-            await db_helper.insert_many_all(
-                template_info=feed_db_log,
-                inserts=[
-                    (uuid, feed_link, str(
-                        datetime_handling.get_dt(
-                            format='ISO8601'
-                        )
-                    ))
-                ]
-            )
-            log.debug('Checking if link is similar to log')
-            feed_link_similar = link_similar_to_logged_post(
-                feed_link, FEED_LOG)
-            if not feed_link_similar:
-                # Consider this a whole new post and post link to channel
-                log.verbose(f'Posting link `{feed_link}`')
-                if isinstance(item, dict) and item['type'] == 'spotify':
-                    log.debug(
-                        'Found a podcast that should be embedded:',
-                        pretty=item
+            _page_hash = await get_page_hash(feed_link)
+            if _page_hash is not None:
+                log.debug(
+                    f'Link {feed_link} got hash {_page_hash}'
+                )
+            # Consider this a whole new post and post link to channel
+            log.verbose(f'Posting link `{feed_link}`')
+            if isinstance(item, dict) and item['type'] == 'spotify':
+                log.debug(
+                    'Found a podcast that should be embedded:',
+                    pretty=item
+                )
+                embed_color = await net_io.\
+                    extract_color_from_image_url(
+                        item['img']
                     )
-                    embed_color = await net_io.\
-                        extract_color_from_image_url(
-                            item['img']
+                embed = discord.Embed(
+                    title=item['title'],
+                    url=item['link'],
+                    description='{}\n\n{}'.format(
+                        item['description'],
+                        '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
+                            item['link']
                         )
-                    embed = discord.Embed(
-                        title=item['title'],
-                        url=item['link'],
-                        description='{}\n\n{}'.format(
-                            item['description'],
-                            '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
-                                item['link']
-                            )
-                        ),
-                        colour=discord.Color.from_str(f'#{embed_color}')
-                    )
-                    embed.set_author(name=item['pod_name'])
-                    embed.set_image(url=item['img'])
-                    desc_setting = 'show_pod_description_in_embed'
-                    if desc_setting in FEED_SETTINGS\
-                            and FEED_SETTINGS[desc_setting].lower()\
-                            == 'true':
-                        embed.set_footer(text=item['pod_description'])
-                    log.debug(
-                        'Sending this embed to channel: ', pretty=embed
-                    )
-                    if args.testmode:
-                        log.verbose(embed, color='yellow')
-                    else:
-                        await discord_commands.post_to_channel(
-                            CHANNEL, embed_in=embed
-                        )
+                    ),
+                    colour=discord.Color.from_str(f'#{embed_color}')
+                )
+                embed.set_author(name=item['pod_name'])
+                embed.set_image(url=item['img'])
+                desc_setting = 'show_pod_description_in_embed'
+                if desc_setting in FEED_SETTINGS\
+                        and FEED_SETTINGS[desc_setting].lower()\
+                        == 'true':
+                    embed.set_footer(text=item['pod_description'])
+                log.debug(
+                    'Sending this embed to channel: ', pretty=embed
+                )
+                if args.testmode:
+                    log.verbose(embed, color='yellow')
                 else:
-                    log.debug('Found a regular text post')
-                    if args.testmode:
-                        log.verbose(
-                            f'TESTMODE: Would post this link: {feed_link}',
-                            color='yellow'
-                        )
-                    else:
-                        await discord_commands.post_to_channel(
-                            CHANNEL, feed_link
-                        )
-            elif feed_link_similar:
-                # Consider this a similar post that needs to
-                # be edited in the channel
-                await discord_commands.replace_post(
-                    feed_link_similar, feed_link, CHANNEL
-                )
-                # Replace original link with new
-                await db_helper.update_fields(
-                    template_info=feed_db_log,
-                    where=[
-                        ('url', feed_link_similar)
-                    ],
-                    updates=[
-                        ('url', feed_link)
-                    ]
-                )
+                    await discord_commands.post_to_channel(
+                        CHANNEL, embed_in=embed
+                    )
+            else:
+                log.debug('Found a regular text post')
+                if args.testmode:
+                    log.verbose(
+                        f'TESTMODE: Would post this link: {feed_link}',
+                        color='yellow'
+                    )
+                else:
+                    await discord_commands.post_to_channel(
+                        CHANNEL, feed_link
+                    )
 
 
 if __name__ == "__main__":

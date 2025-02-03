@@ -241,21 +241,19 @@ async def replace_post(replace_content, replace_with, channel_in):
     `channel_in` and replace it with `replace_with.`
     #autodoc skip#
     '''
-    server_channels = get_text_channel_list()
-    channel_out = config.bot.get_channel(server_channels[channel_in])
-    if channel_in in server_channels:
-        async for msg in channel_out.history(limit=30):
-            if str(msg.author.id) == config.BOT_ID and\
-                    replace_content == msg.content:
-                await msg.edit(content=replace_with)
-                return
-    else:
-        log.error(
-            envs.CHANNEL_DOES_NOT_EXIST.format(
-                channel_out
-            )
-        )
-        return
+    _guild = get_guild()
+    channel_out = _guild.get_channel(int(channel_in))
+    async for msg in channel_out.history(limit=30):
+        if str(msg.author.id) == config.BOT_ID:
+            if isinstance(replace_content, str):
+                if replace_content in msg.content:
+                    await msg.edit(content=replace_with)
+                    return
+            elif isinstance(replace_content, list):
+                if any(_cont in msg.content for _cont in replace_content):
+                    await msg.edit(content=replace_with)
+                    return
+    return
 
 
 async def remove_stats_post(stats_channel):
