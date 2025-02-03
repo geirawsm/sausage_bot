@@ -283,7 +283,9 @@ async def get_feed_links(feed_type, feed_info):
     # Get the url and make it parseable
     if feed_type in ['rss', 'youtube']:
         req = await net_io.get_link(URL)
-        if req is not None:
+        if isinstance(req, int):
+            return req
+        if req is not None or not isinstance(req, int):
             filters_db = await db_helper.get_output(
                 template_info=feed_db_filter,
                 select=('allow_or_deny', 'filter'),
@@ -301,8 +303,6 @@ async def get_feed_links(feed_type, feed_info):
                 len(links_out) if links_out is not None else 0
             ))
             return links_out
-        elif isinstance(req, int):
-            return req
         else:
             return
 
@@ -432,8 +432,10 @@ async def get_feed_list(
         log.verbose('Got `feeds_filter`', pretty=feeds_filter)
         feeds_out = []
         for feed in feeds_db:
-            filter_uuid = [filter_item for filter_item in feeds_filter
-                           if filter_item['uuid'] == feed['uuid']]
+            filter_uuid = [
+                filter_item for filter_item in feeds_filter
+                if filter_item['uuid'] == feed['uuid']
+            ]
             log.debug(f'`filter_uuid` is {filter_uuid}')
             filter_allow = [
                 filter_item['filter'] for filter_item in filter_uuid
@@ -472,24 +474,20 @@ async def get_feed_list(
     return await split_lengthy_list(table_out)
 
 
-async def link_is_in_log(link, log_in, channel, uuid):
+async def link_is_in_log(link, log_in, log_env, channel, uuid):
     '''
     Check if a link already is in the log. Replace and repost if it is
     similar to a logged link.
     '''
-    async def log_and_replace(link, log_in, link_hash, channel, uuid):
+    async def replace_post(link, log_in, link_hash, channel, uuid):
         # Replace link on discord and add link to log
         list_of_old_links = []
         for item in log_in:
-            if item['post_hash'] == link_hash:
+            if item['hash'] == link_hash:
                 list_of_old_links.append(item['url'])
         log.debug('Replacing link in discord message')
         await discord_commands.replace_post(
             list_of_old_links, link, channel
-        )
-        log.debug('Adding link to log')
-        await log_link(
-            envs.rss_db_log_schema, uuid, link, link_hash
         )
 
     if log_in is None:
@@ -498,35 +496,48 @@ async def link_is_in_log(link, log_in, channel, uuid):
     try:
         link_in_log = None
         hash_in_log = None
-        link_hash = await get_page_hash(link)
-        log.verbose(f'Link hash is `{link_hash}`')
+        link_hash = None
+        if 'hash' in log_in[0]:
+            link_hash = await get_page_hash(link)
+            log.verbose(f'Link hash is `{link_hash}`')
         if link in [log_url['url'] for log_url in log_in]:
             log.debug('Link in log')
             link_in_log = True
         else:
             link_in_log = False
-        if link_hash in [log_url['post_hash'] for log_url in log_in]:
-            log.verbose('Hash in log')
-            hash_in_log = True
-        else:
-            hash_in_log = False
-        print('----')
-        print(f'link_in_log: {link_in_log}')
-        print(f'hash_in_log: {hash_in_log}')
-        print('----')
+        if 'hash' in log_in[0]:
+            if link_hash in [log_url['hash'] for log_url in log_in]:
+                log.verbose('Hash in log')
+                hash_in_log = True
+            else:
+                hash_in_log = False
         if link_in_log and hash_in_log:
+            log.debug('Link is in log, returning True')
+            return True
+        elif link_in_log and hash_in_log is None:
             log.debug('Link is in log, returning True')
             return True
         if link_in_log and not hash_in_log:
             log.debug('Link is in log, but hash has changed. Replacing...')
+            await replace_post(link, log_in, link_hash, channel)
+            log.debug('Adding link to log')
+            await log_link(
+                log_env, uuid, link, link_hash
+            )
             return True
         if not link_in_log and hash_in_log:
             log.debug(
                 'Hash in log, but link is not. '
                 'Adding to log and replacing post'
             )
-            await log_and_replace(link, log_in, link_hash, channel, uuid)
+            await replace_post(link, log_in, link_hash, channel, uuid)
             return True
+        elif not link_in_log and hash_in_log is None:
+            log.debug('Link is not in log, logging it and returning False')
+            await log_link(
+                log_env, uuid, link, link_hash
+            )
+            return False
     except Exception as e:
         log.error(
             f'Error: {e}:', pretty=log_in)
@@ -534,18 +545,24 @@ async def link_is_in_log(link, log_in, channel, uuid):
 
 
 async def log_link(template_info, uuid, feed_link, page_hash):
+    print(
+        f'Got these vars: template_info: {template_info}, uuid: {uuid}, '
+        f'feed_link: {feed_link}, page_hash: {page_hash}'
+    )
+    inserts = [
+        uuid, feed_link, str(
+            datetime_handling.get_dt(
+                format='ISO8601'
+            )
+        )
+    ]
+    log.debug('Adding this to log:', pretty=inserts)
+    if page_hash is not None:
+        inserts.append(page_hash)
+
     await db_helper.insert_many_all(
         template_info=template_info,
-        inserts=[
-            (
-                uuid, feed_link, str(
-                    datetime_handling.get_dt(
-                        format='ISO8601'
-                    )
-                ),
-                page_hash
-            )
-        ]
+        inserts=[inserts]
     )
 
 
@@ -584,14 +601,11 @@ async def process_links_for_posting_or_editing(
     if FEED_POSTS is None:
         log.debug('`FEED_POSTS` is None')
         return None
-    log.debug(
-        f'Got {len(FEED_POSTS)} items in '
-        f'`FEED_POSTS`'
-    )
+    log.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`')
     if feed_type == 'rss':
         FEED_LOG = await db_helper.get_output(
             template_info=feed_db_log,
-            select=('url', 'post_hash'),
+            select=('url', 'hash'),
             where=[('uuid', uuid)]
         )
     else:
@@ -609,8 +623,9 @@ async def process_links_for_posting_or_editing(
         elif isinstance(item, dict):
             feed_link = item['link']
         # Check if the link is in the log
+        log.verbose(f'Checking if link `{feed_link}` is in log')
         link_in_log = await link_is_in_log(
-            feed_link, FEED_LOG, CHANNEL, uuid
+            feed_link, FEED_LOG, feed_db_log, CHANNEL, uuid
         )
         if link_in_log:
             log.verbose(f'Link `{feed_link}` already logged. Skipping.')
@@ -618,10 +633,13 @@ async def process_links_for_posting_or_editing(
         elif not link_in_log:
             # Add link to log
             _page_hash = await get_page_hash(feed_link)
-            if _page_hash is not None:
-                log.debug(
-                    f'Link {feed_link} got hash {_page_hash}'
-                )
+            log.debug(
+                f'Link {feed_link} got hash {_page_hash}'
+            )
+            await log_link(
+                template_info=feed_db_log, uuid=uuid,
+                feed_link=feed_link, page_hash=_page_hash
+            )
             # Consider this a whole new post and post link to channel
             log.verbose(f'Posting link `{feed_link}`')
             if isinstance(item, dict) and item['type'] == 'spotify':
@@ -661,7 +679,7 @@ async def process_links_for_posting_or_editing(
                         CHANNEL, embed_in=embed
                     )
             else:
-                log.debug('Found a regular text post')
+                log.debug('Found a regular post')
                 if args.testmode:
                     log.verbose(
                         f'TESTMODE: Would post this link: {feed_link}',

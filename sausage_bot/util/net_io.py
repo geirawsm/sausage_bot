@@ -48,7 +48,7 @@ async def get_link(url):
             url_status = resp.status
             log.debug(f'Got status: {url_status}')
             content_out = await resp.text()
-            log.debug(f'Got content_out: {content_out[0:500]}...')
+            log.verbose(f'Got content_out: {content_out[0:500]}...')
         await session.close()
     except Exception as e:
         log.error(f'Error when getting `url`:({url_status}) {e}')

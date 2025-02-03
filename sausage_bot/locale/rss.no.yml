@@ -83,4 +83,4 @@ no:
       value_in_input_invalid: 'Ugyldig inndata for `value_in`: %{error}'
       msg_confirm: Innstilling oppdatert
   tasks:
-    feed_posts_is_none: 'Feeden `%{feed_name}` returnerer NoneType'
+    feed_posts_is_none: 'Feeden `%{feed_name}` returnerer `%{return_value}`'

@@ -338,9 +338,6 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
     # Replace channel names with channel id in list
     reactions_copy = reactions_msgs.copy()
     for reaction_msg in reactions_msgs:
-        log.debug(f'--- Checking {reaction_msg}')
-        print(reaction_msg['channel'], type(reaction_msg['channel']))
-        print(re.match(r'(\d+)', reaction_msg['channel']))
         if not re.match(r'(\d+)', reaction_msg['channel']):
             # Try to search for channel ID
             log.debug('channel is not an id, searching for name...')
@@ -728,7 +725,7 @@ async def insert_many_all(
             log.db('Done and commited!')
             return True
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            log.error(e)
             return False
 
 

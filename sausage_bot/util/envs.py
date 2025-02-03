@@ -321,7 +321,7 @@ rss_db_log_schema = {
         ['uuid', 'TEXT NOT NULL'],
         ['url', 'TEXT'],
         ['date', 'TEXT'],
-        ['post_hash', 'TEXT']
+        ['hash', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False

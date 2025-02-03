@@ -27,7 +27,7 @@ en:
         feed_link: Link to the RSS-/XML-feed
         channel: The channel to post from the feed
       msg_feed_failed: The url is not a RSS/XML feed
-      msg_feed_confirm: '%{feed_name} was added to #%{channel_name}' 
+      msg_feed_confirm: '%{feed_name} was added to #%{channel_name}'
       log_feed_confirm: '%{user_name} added the feed %{feed_name} til #%{channel_name}'
     remove:
       cmd: Remove a RSS feed
@@ -83,4 +83,4 @@ en:
       value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
       msg_confirm: Setting updated
   tasks:
-    feed_posts_is_none: 'Feed `%{feed_name}` returned NoneType'
+    feed_posts_is_none: 'Feed `%{feed_name}` returned `%{return_value}`'

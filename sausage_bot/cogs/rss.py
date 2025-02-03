@@ -676,20 +676,23 @@ class RSSfeed(commands.Cog):
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='rss', feed_info=feed
             )
-            log.debug(
-                f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
-                '{}'.format(
-                    ', '.join(
-                        [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+            if FEED_POSTS is None or isinstance(FEED_POSTS, int):
+                log.log(f'Feed {FEED_NAME} returned {FEED_POSTS}')
+                await discord_commands.log_to_bot_channel(
+                    I18N.t(
+                        'rss.tasks.feed_posts_is_none',
+                        feed_name=FEED_NAME, return_value=FEED_POSTS
                     )
                 )
-            )
-            if FEED_POSTS is None:
-                log.log(f'Feed {FEED_NAME} returned NoneType')
-                await discord_commands.log_to_bot_channel(
-                    I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
-                )
             else:
+                log.debug(
+                    f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
+                    '{}'.format(
+                        ', '.join(
+                            [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+                        )
+                    )
+                )
                 await feeds_core.process_links_for_posting_or_editing(
                     'rss', UUID, FEED_POSTS, CHANNEL
                 )
@@ -815,10 +818,11 @@ async def setup(bot):
         if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
             missing_tbl_cols_text = ''
             for _tbl in missing_tbl_cols:
-                missing_tbl_cols_text += '{}:\n'.format(
-                    _tbl
-                )
-                missing_tbl_cols_text += '\n- '.join(missing_tbl_cols[_tbl])
+                missing_tbl_cols_text += '{}:'.format(_tbl)
+                for col in missing_tbl_cols[_tbl]:
+                    missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
+                if _tbl != list(missing_tbl_cols.keys())[-1]:
+                    missing_tbl_cols_text += '\n\n'
             await discord_commands.log_to_bot_channel(
                 'Missing columns in rss db: {}\n'
                 'Make sure to populate missing information'.format(

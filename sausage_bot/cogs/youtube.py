@@ -545,14 +545,18 @@ async def setup(bot):
         missing_tbl_cols = await db_helper.add_missing_db_setup(
             envs.youtube_db_filter_schema, missing_tbl_cols
         )
+        missing_tbl_cols = await db_helper.add_missing_db_setup(
+            envs.youtube_db_log_schema, missing_tbl_cols
+        )
         log.debug(f'`missing_tbl_cols` is {missing_tbl_cols}')
         if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
             missing_tbl_cols_text = ''
             for _tbl in missing_tbl_cols:
-                missing_tbl_cols_text += '{}:\n'.format(
-                    _tbl
-                )
-                missing_tbl_cols_text += '\n- '.join(missing_tbl_cols[_tbl])
+                missing_tbl_cols_text += '{}:'.format(_tbl)
+                for col in missing_tbl_cols[_tbl]:
+                    missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
+                if _tbl != list(missing_tbl_cols.keys())[-1]:
+                    missing_tbl_cols_text += '\n\n'
             await discord_commands.log_to_bot_channel(
                 'Missing columns in rss db: {}\n'
                 'Make sure to populate missing information'.format(
