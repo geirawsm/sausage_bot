@@ -33,6 +33,13 @@ no:
       cmd: Legg til reaksjonsmelding på serveren
     reaction_remove:
       cmd: Fjern reaksjonsmelding på serveren
+    reaction_move_role:
+      cmd: Flytt en reaksjonsrolle mellom reaksjonsmeldinger
+      desc:
+        reaction_role_from: Reaksjonsmeldingen det flyttes fra
+        reaction_message_to: Reaksjonsmeldingen det flyttes til
+        cannot_move_last_reaction: Kan ikke flytte siste reaksjon fra melding, meldingen må slettes
+      msg_confirm: "Flyttet rollen %{emoji} `%{role}` fra `%{old_msg}` til `%{new_msg}`"
     settings:
       cmd: Kontroller innstillinger på serveren
     info:
@@ -100,7 +107,7 @@ no:
     add_reaction_msg:
       cmd: Legg til reaksjonsmelding
       desc:
-        msg_name: Navn på reaksjonsmelding
+        msg_info: Reaksjonsmelding
         msg_text: Reaksjonsmeldingens tekst
         channel: Kanalen å poste reaksjonsmelding på
         order: Gi reaksjonsmeldingen en rekkefølge

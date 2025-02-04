@@ -267,7 +267,7 @@ async def sync_reaction_message_from_settings(
         }
     if sorting:
         reactions_out = dict(sorted(reactions_out.items()))
-    log.verbose(f'reactions_out: {reactions_out}')
+    log.debug('reactions_out', pretty=reactions_out)
     # Recreate the embed
     new_embed_desc = ''
     new_embed_content = ''
@@ -532,7 +532,7 @@ async def reaction_msgs_autocomplete(
 ) -> list[discord.app_commands.Choice[str]]:
     db_reactions = await db_helper.get_output(
         template_info=envs.roles_db_msgs_schema,
-        select=('name', 'msg_id'),
+        select=('name', 'msg_id', 'channel'),
         order_by=[
             ('name', 'ASC')
         ]
@@ -540,7 +540,12 @@ async def reaction_msgs_autocomplete(
     log.debug(f'db_reactions: {db_reactions}')
     return [
         discord.app_commands.Choice(
-            name=str(reaction['name']), value=str(reaction['msg_id'])
+            name=str(reaction['name']),
+            value='{}-{}-{}'.format(
+                str(reaction['msg_id']),
+                str(reaction['name']),
+                str(reaction['channel'])
+            )
         )
         for reaction in db_reactions if current.lower() in '{}-{}'.format(
             reaction['name'], reaction['msg_id']
@@ -564,23 +569,26 @@ async def reaction_msgs_roles_autocomplete(
             'emoji'
         ]
     )
+    _guild = discord_commands.get_guild()
     log.debug('db_reactions', pretty=db_reactions)
     return [
         discord.app_commands.Choice(
             name='{}: #{} - {}'.format(
                 reaction['name'].lower(),
-                reaction['channel'].lower(),
+                _guild.get_channel(int(reaction['channel'])).name.lower(),
                 str(
                     get(
                         discord_commands.get_guild().roles,
                         id=int(reaction['role'])
                     )
                 ).lower()),
-            # A dirty little hack here, returning msg_id and role as a
-            # combined string
-            value='{}-{}'.format(
+            # A dirty little hack here, returning msg_id, role and emoji as
+            # a combined string
+            value='{}-{}-{}-{}'.format(
                 reaction['msg_id'],
-                reaction['role']
+                reaction['role'],
+                reaction['emoji'],
+                reaction['name']
             )
         ) for reaction in db_reactions if current.lower() in '{}-{}'.format(
             reaction['name'], reaction['msg_id']
@@ -670,6 +678,14 @@ class Autoroles(commands.Cog):
     roles_reaction_remove_group = discord.app_commands.Group(
         name="reaction_remove",
         description=locale_str(I18N.t('roles.commands.reaction_remove.cmd')),
+        parent=roles_group
+    )
+
+    roles_reaction_move_group = discord.app_commands.Group(
+        name="reaction_move",
+        description=locale_str(
+            I18N.t('roles.commands.reaction_move_role.cmd')
+        ),
         parent=roles_group
     )
 
@@ -1077,6 +1093,8 @@ class Autoroles(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         if reaction_msg:
+            reaction_msg = reaction_msg.split('-')
+            msg_id = reaction_msg[0]
             db_reactions = await db_helper.get_combined_output(
                 envs.roles_db_msgs_schema,
                 envs.roles_db_roles_schema,
@@ -1090,7 +1108,7 @@ class Autoroles(commands.Cog):
                     'emoji'
                 ],
                 where=[
-                    ('A.msg_id', reaction_msg)
+                    ('A.msg_id', msg_id)
                 ]
             )
             log.verbose('db_reactions: ', pretty=db_reactions)
@@ -1098,7 +1116,7 @@ class Autoroles(commands.Cog):
                 await interaction.followup.send(
                     I18N.t(
                         'roles.commands.react_list.msg_error',
-                        reaction_msg=reaction_msg
+                        reaction_msg=msg_id
                     )
                 )
                 return
@@ -1145,7 +1163,7 @@ class Autoroles(commands.Cog):
                     '\n'.join(tabulated_reactions)
                 )
             )
-        elif not reaction_msg:
+        elif not msg_id:
             tabulate_dict = {
                 'name': [],
                 'channel': [],
@@ -1357,26 +1375,28 @@ class Autoroles(commands.Cog):
         ))
     )
     @describe(
-        msg_name=I18N.t('roles.commands.add_reaction_role.desc.msg_name'),
+        msg_info=I18N.t('roles.commands.add_reaction_role.desc.msg_info'),
         roles=I18N.t('roles.splits.roles'),
         emojis=I18N.t('roles.splits.emojis')
     )
     @discord.app_commands.autocomplete(
-        msg_name=reaction_msgs_autocomplete
+        msg_info=reaction_msgs_autocomplete
     )
     async def add_reaction_role(
-        self, interaction: discord.Interaction, msg_name: str,
+        self, interaction: discord.Interaction, msg_info: str,
         roles: str, emojis: str
     ):
         '''
         Add reaction roles to an existing message
         '''
         await interaction.response.defer(ephemeral=True)
-        msg_info = await get_msg_id_and_name(msg_name)
+        msg_info = msg_info.split('-')
+        msg_id = msg_info[0]
+        msg_name = msg_info[1]
         reactions_db_in = await db_helper.get_output(
             template_info=envs.roles_db_roles_schema,
             where=(
-                ('msg_id', msg_info['id'])
+                ('msg_id', msg_id)
             ),
             select=('role', 'emoji')
         )
@@ -1389,7 +1409,7 @@ class Autoroles(commands.Cog):
             if item[0] in [item['role'] for item in reactions_db_in]:
                 duplicates.append(item)
                 continue
-            temp_item = [msg_info['id']]
+            temp_item = [msg_id]
             for unit in item:
                 temp_item.append(unit)
             new_inserts.append(temp_item)
@@ -1398,7 +1418,7 @@ class Autoroles(commands.Cog):
                 envs.roles_db_roles_schema,
                 inserts=new_inserts
             )
-            await sync_reaction_message_from_settings(msg_name)
+            await sync_reaction_message_from_settings(msg_id)
             await interaction.followup.send(
                 I18N.t('roles.commands.add_reaction_role.msg_confirm'),
                 ephemeral=True
@@ -1406,7 +1426,7 @@ class Autoroles(commands.Cog):
         if len(duplicates) > 0:
             dupl_msg = I18N.t(
                 'roles.commands.add_reaction_role.msg_duplicate',
-                msg_name=msg_info['name']
+                msg_name=msg_name
             )
             dupl_msg += ':'
             _guild = discord_commands.get_guild()
@@ -1444,7 +1464,9 @@ class Autoroles(commands.Cog):
         Synchronize a reaction message with the database
         '''
         await interaction.response.defer(ephemeral=True)
-        sync_errors = await sync_reaction_message_from_settings(reaction_msg)
+        reaction_msg = reaction_msg.split('-')
+        msg_id = reaction_msg[0]
+        sync_errors = await sync_reaction_message_from_settings(msg_id)
         if sync_errors:
             await interaction.followup.send(
                 sync_errors, ephemeral=True
@@ -1473,9 +1495,11 @@ class Autoroles(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         # Get message object
-        msg_info = await get_msg_id_and_name(reaction_msg)
+        reaction_msg = reaction_msg.split('-')
+        msg_id = reaction_msg[0]
+        msg_channel = reaction_msg[2]
         _msg = await discord_commands.get_message_obj(
-            msg_info['id'], msg_info['channel']
+            msg_id, msg_channel
         )
         if _msg is None:
             await interaction.followup.send(
@@ -1486,7 +1510,7 @@ class Autoroles(commands.Cog):
             )
             return
         sync_errors = await sync_reaction_message_from_settings(
-            reaction_msg, sorting=True
+            reaction_msg[0], sorting=True
         )
         if sync_errors:
             await interaction.followup.send(
@@ -1520,9 +1544,11 @@ class Autoroles(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         # Get message object
-        msg_info = await get_msg_id_and_name(reaction_msg)
+        reaction_msg = reaction_msg.split('-')
+        msg_id = reaction_msg[0]
+        msg_channel = reaction_msg[2]
         _msg = await discord_commands.get_message_obj(
-            msg_info['id'], msg_info['channel']
+            msg_id, msg_channel
         )
         if _msg is None:
             await interaction.followup.send(
@@ -1536,7 +1562,7 @@ class Autoroles(commands.Cog):
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_msgs_schema,
             where=[
-                ('msg_id', msg_info['id'])
+                ('msg_id', msg_id)
             ]
         )
         # Remove message from guild
@@ -1590,6 +1616,91 @@ class Autoroles(commands.Cog):
             I18N.t(
                 'roles.commands.remove_role.msg_confirm',
                 rolename=_role_name
+            ),
+            ephemeral=True
+        )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(manage_roles=True)
+    )
+    @roles_reaction_move_group.command(
+        name='role',
+        description=locale_str(
+            I18N.t(
+                'roles.commands.reaction_move_role.cmd'
+            )
+        )
+    )
+    @describe(
+        reaction_role_from=I18N.t(
+            'roles.commands.reaction_move_role.desc.reaction_role_from'
+        ),
+        reaction_message_to=I18N.t(
+            'roles.commands.reaction_move_role.desc.reaction_message_to'
+        )
+    )
+    @discord.app_commands.autocomplete(
+        reaction_role_from=reaction_msgs_roles_autocomplete,
+        reaction_message_to=reaction_msgs_autocomplete
+    )
+    async def move_reaction_role(
+        self, interaction: discord.Interaction,
+        reaction_role_from: str, reaction_message_to: str
+    ):
+        '''
+        Move a reaction from one reaction message to another
+        '''
+        await interaction.response.defer(ephemeral=True)
+        reaction_role_from = reaction_role_from.split('-')
+        reaction_message_to = reaction_message_to.split('-')
+        old_msg_id = reaction_role_from[0]
+        role_id = reaction_role_from[1]
+        emoji_id = reaction_role_from[2]
+        old_msg_name = reaction_role_from[3]
+        new_msg_id = reaction_message_to[0]
+        new_msg_name = reaction_message_to[1]
+        num_reaction_roles = await db_helper.get_output(
+            template_info=envs.roles_db_roles_schema,
+            where=('msg_id', old_msg_id),
+            select=('role')
+        )
+        if len(num_reaction_roles) == 1:
+            await interaction.followup.send(
+                I18N.t(
+                    'roles.commands.reaction_move_role.'
+                    'cannot_move_last_reaction'
+                ),
+                ephemeral=True
+            )
+            return
+        _guild = discord_commands.get_guild()
+        role_obj = _guild.get_role(int(role_id))
+        emoji_obj = _guild.get_emoji(int(emoji_id))
+        # Add reaction to new message in db
+        await db_helper.insert_many_all(
+            envs.roles_db_roles_schema,
+            inserts=[
+                (new_msg_id, role_id, emoji_id)
+            ]
+        )
+        # Delete reaction from old message in db
+        await db_helper.del_row_by_AND_filter(
+            template_info=envs.roles_db_roles_schema,
+            where=[
+                ('msg_id', str(old_msg_id)),
+                ('role', str(role_id))
+            ]
+        )
+        # Sync settings
+        await sync_reaction_message_from_settings(old_msg_id)
+        await sync_reaction_message_from_settings(new_msg_id)
+        await interaction.followup.send(
+            I18N.t(
+                'roles.commands.reaction_move_role.msg_confirm',
+                emoji=emoji_obj, role=role_obj,
+                old_msg=old_msg_name, new_msg=new_msg_name
             ),
             ephemeral=True
         )

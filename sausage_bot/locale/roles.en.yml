@@ -33,6 +33,13 @@ en:
       cmd: Add reaction message to the server
     reaction_remove:
       cmd: Remove reaction message from the server
+    reaction_move_role:
+      cmd: Move a reaction role between reaction messages
+      desc:
+        reaction_role_from: The reaction message to move from
+        reaction_message_to: The reaction message to move to
+        cannot_move_last_reaction: Cannot move last reaction from message, message needs to be deleted
+      msg_confirm: "Moved role %{emoji} `%{role}` from `%{old_msg}` to `%{new_msg}`"
     settings_group:
       cmd: Control settings on the server
     info:
@@ -100,7 +107,7 @@ en:
     add_reaction_msg:
       cmd: Add reaction message
       desc:
-        msg_name: Name of the message for the reaction roles
+        msg_info: The reaction message
         msg_text: The text for the message
         channel: Channel to post reaction message to
         order: Set order for the message in the channel
