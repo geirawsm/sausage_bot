@@ -74,8 +74,8 @@ class Cogs(commands.Cog):
                     log.log('Loading cog: {}'.format(testing_cog))
                     await Cogs.load_cog_internal(testing_cog)
             log.debug(
-                'Loading selected cogs for testing purposes:\n- {}'.format(
-                    '\n- '.join(args.selected_cogs)
+                'Loading selected cogs for testing purposes: ({})'.format(
+                    ', '.join(args.selected_cogs)
                 )
             )
         else:

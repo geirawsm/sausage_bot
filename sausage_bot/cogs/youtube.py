@@ -26,7 +26,7 @@ async def feed_name_autocomplete(
     return [
         discord.app_commands.Choice(name=feed_name, value=feed_name)
         for feed_name in feed_names if current.lower() in feed_name.lower()
-    ]
+    ][:25]
 
 
 async def youtube_filter_autocomplete(
@@ -57,7 +57,7 @@ async def youtube_filter_autocomplete(
             value=str(filter['filter'])
         )
         for filter in filters if current.lower() in filter['filter'].lower()
-    ]
+    ][:25]
 
 
 class Youtube(commands.Cog):

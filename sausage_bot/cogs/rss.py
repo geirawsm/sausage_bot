@@ -670,8 +670,10 @@ class RSSfeed(commands.Cog):
             UUID = feed['uuid']
             FEED_NAME = feed['feed_name']
             CHANNEL = feed['channel']
+            _guild = discord_commands.get_guild()
+            channel_obj = _guild.get_channel(int(CHANNEL))
             log.debug(
-                f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
+                f'Found channel `{channel_obj.name}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='rss', feed_info=feed
