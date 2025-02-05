@@ -18,7 +18,6 @@ no:
     restart:
       command: Restart posting
       log_restarted: Restartet oppgave
-      confirm_restarted: Restartet posting av stats
     list:
       command: Hent tilgjengelige innstillinger
       headers:

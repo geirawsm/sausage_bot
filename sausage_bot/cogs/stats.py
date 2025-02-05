@@ -564,26 +564,6 @@ class Stats(commands.Cog):
         Stats.task_update_stats.restart()
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
-    @stats_group.command(
-        name='restart',
-        description=locale_str(I18N.t('stats.commands.restart.command'))
-    )
-    async def stats_restart(
-        self, interaction: discord.Interaction
-    ):
-        '''Restart the stats task'''
-        await interaction.response.defer(ephemeral=True)
-        Stats.task_update_stats.restart()
-        await interaction.followup.send(
-            content=I18N.t('stats.commands.restart.msg.confirm_restarted'),
-            ephemeral=True
-        )
-        return
-
     # Tasks
     @tasks.loop(
         minutes=config.env.int('STATS_LOOP', default=5)

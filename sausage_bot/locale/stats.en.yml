@@ -18,7 +18,6 @@ en:
     restart:
       command: Restart posting
       log_restarted: Task restarted
-      confirm_restarted: Stats posting restarted
     list:
       command: Get available settings
       headers:
