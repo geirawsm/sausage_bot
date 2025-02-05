@@ -10,6 +10,9 @@ no:
     stop:
       cmd: Stop posting
       msg_confirm: Youtube posting stoppet
+    restart:
+      cmd: Restart posting
+      msg_confirm: Youtube posting restartet
     add:
       cmd: Legg til en YouTube-feed
       desc:

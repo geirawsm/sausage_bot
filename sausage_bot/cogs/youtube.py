@@ -133,6 +133,21 @@ class Youtube(commands.Cog):
             I18N.t('youtube.commands.stop.msg_confirm')
         )
 
+    @youtube_posting_group.command(
+        name='restart', description=locale_str(
+            I18N.t('youtube.commands.restart.cmd')
+        )
+    )
+    async def youtube_posting_restart(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        log.log('Task restarted')
+        Youtube.post_videos.restart()
+        await interaction.followup.send(
+            I18N.t('youtube.commands.restart.msg_confirm')
+        )
+
     @commands.check_any(
         commands.is_owner(),
         commands.has_permissions(administrator=True)

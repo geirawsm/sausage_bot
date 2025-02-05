@@ -10,6 +10,9 @@ en:
     stop:
       cmd: Stop posting
       msg_confirm: Youtube posting stopped
+    restart:
+      cmd: Restart posting
+      msg_confirm: Youtube posting restarted
     add:
       cmd: Add a YouTube-feed
       desc:
