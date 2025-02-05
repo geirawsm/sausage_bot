@@ -35,7 +35,7 @@ async def settings_db_autocomplete(
         for setting in settings_db if current.lower() in '{}-{}'.format(
             setting['setting'], setting['value']
         ).lower()
-    ]
+    ][:25]
 
 
 async def env_settings_autocomplete(
@@ -52,7 +52,7 @@ async def env_settings_autocomplete(
         )
         for settings_info in settings_info if current.lower()
         in settings_info[0].lower()
-    ]
+    ][:25]
 
 
 async def hidden_roles_autocomplete(
@@ -85,7 +85,7 @@ async def hidden_roles_autocomplete(
         in '{}-{}'.format(
             hidden_role, temp_hidden_roles[hidden_role]['name']
         ).lower()
-    ]
+    ][:25]
 
 
 def get_role_numbers(settings_in):

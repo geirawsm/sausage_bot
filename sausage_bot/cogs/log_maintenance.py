@@ -32,7 +32,7 @@ async def name_of_settings_autocomplete(
         )
         for setting in settings if current.lower() in
         setting['setting'].lower()
-    ]
+    ][:25]
 
 
 class LogMaintenance(commands.Cog):

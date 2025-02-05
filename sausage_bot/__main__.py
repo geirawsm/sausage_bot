@@ -133,7 +133,7 @@ async def locales_autocomplete(
             name=locale, value=locale
         )
         for locale in locales if current.lower() in locale.lower()
-    ]
+    ][:25]
 
 
 @config.bot.event

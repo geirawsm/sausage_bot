@@ -145,7 +145,7 @@ async def settings_autocomplete(
             setting['rowid'], setting['setting'], setting['name'],
             setting['value']
         ).lower()
-    ]
+    ][:25]
 
 
 async def get_msg_id_and_name(msg_id_or_name):
@@ -550,7 +550,7 @@ async def reaction_msgs_autocomplete(
         for reaction in db_reactions if current.lower() in '{}-{}'.format(
             reaction['name'], reaction['msg_id']
         ).lower()
-    ]
+    ][:25]
 
 
 async def reaction_msgs_roles_autocomplete(
@@ -593,7 +593,7 @@ async def reaction_msgs_roles_autocomplete(
         ) for reaction in db_reactions if current.lower() in '{}-{}'.format(
             reaction['name'], reaction['msg_id']
         ).lower()
-    ]
+    ][:25]
 
 
 async def emojis_autocomplete(
@@ -616,7 +616,7 @@ async def emojis_autocomplete(
             value=str(emoji[1])
         )
         for emoji in _emojis_list if current.lower() in emoji[0].lower()
-    ]
+    ][:25]
 
 
 async def combine_roles_and_emojis(roles_in, emojis_in):

@@ -41,7 +41,7 @@ async def feed_name_autocomplete(
         for feed in feeds if current.lower() in '{}-{}-{}-{}'.format(
             feed['uuid'], feed['feed_name'], feed['url'], feed['channel']
         ).lower()
-    ]
+    ][:25]
 
 
 async def rss_filter_autocomplete(
@@ -72,7 +72,7 @@ async def rss_filter_autocomplete(
             value=str(filter['filter'])
         )
         for filter in filters if current.lower() in filter['filter'].lower()
-    ]
+    ][:25]
 
 
 async def rss_settings_autocomplete(
@@ -92,7 +92,7 @@ async def rss_settings_autocomplete(
             value=str(setting[0])
         )
         for setting in settings_in_db if current.lower() in setting[0].lower()
-    ]
+    ][:25]
 
 
 async def control_posting(feed_type, action):

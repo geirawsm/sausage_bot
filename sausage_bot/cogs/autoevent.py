@@ -41,7 +41,7 @@ async def event_names_autocomplete(
     return [
         discord.app_commands.Choice(name=str(event[0]), value=str(event[1]))
         for event in events if current.lower() in event[0].lower()
-    ]
+    ][:25]
 
 
 class AutoEvent(commands.Cog):
