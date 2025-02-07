@@ -295,11 +295,12 @@ class Quotes(commands.Cog):
         quote_in=I18N.t('quote.commands.post.desc.number')
     )
     async def post(
-            self, interaction: discord.Interaction,
-            quote_in: str = None, public: typing.Literal[
-                I18N.t('common.literal_yes_no.yes'),
-                I18N.t('common.literal_yes_no.no')
-            ] = I18N.t('common.literal_yes_no.no')
+        self, interaction: discord.Interaction,
+        quote_in: str = None,
+        public: typing.Literal[
+            I18N.t('common.literal_yes_no.yes'),
+            I18N.t('common.literal_yes_no.no')
+        ] = None
     ):
         '''
         Post quotes
@@ -350,7 +351,8 @@ class Quotes(commands.Cog):
 
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no'):
+        elif public == I18N.t('common.literal_yes_no.no') or\
+                public is None:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
@@ -370,7 +372,9 @@ class Quotes(commands.Cog):
             )
             _quote = prettify(quote_number, quote_text, quote_date)
             log.verbose(f'Posting this quote:\n{_quote}')
-            quote_post = await interaction.followup.send(_quote)
+            quote_post = await interaction.followup.send(
+                _quote, ephemeral=_ephemeral
+            )
             await db_helper.insert_many_some(
                 envs.quote_db_log_schema,
                 ('uuid', 'msg_id'),
@@ -392,7 +396,9 @@ class Quotes(commands.Cog):
                     dt=quote_out[0][3]
                 )
                 _quote = prettify(quote_in, quote_text, quote_date)
-                await interaction.followup.send(_quote)
+                await interaction.followup.send(
+                    _quote, ephemeral=_ephemeral
+                )
                 return
             else:
                 await interaction.followup.send(

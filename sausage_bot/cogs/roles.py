@@ -713,8 +713,7 @@ class Autoroles(commands.Cog):
         public: typing.Literal[
             I18N.t('common.literal_yes_no.yes'),
             I18N.t('common.literal_yes_no.no')
-        ],
-        role_in: discord.Role
+        ] = None
     ):
         '''
         Get info about a specific role (`role_in`)
@@ -726,7 +725,8 @@ class Autoroles(commands.Cog):
         '''
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no'):
+        elif public == I18N.t('common.literal_yes_no.no') or\
+                public is None:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         embed = discord.Embed(color=role_in.color)
@@ -801,7 +801,11 @@ class Autoroles(commands.Cog):
         sort: typing.Literal[
             I18N.t('roles.commands.list.literal.sort.name'),
             I18N.t('roles.commands.list.literal.sort.id')
-        ]
+        ],
+        public: typing.Literal[
+            I18N.t('common.literal_yes_no.yes'),
+            I18N.t('common.literal_yes_no.no')
+        ] = None,
     ):
         async def roles_list_roles():
             _guild = discord_commands.get_guild()
@@ -881,7 +885,8 @@ class Autoroles(commands.Cog):
 
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no'):
+        elif public == I18N.t('common.literal_yes_no.no') or\
+                public is None:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         if type == I18N.t('roles.commands.list.literal.type.roles'):
@@ -904,18 +909,23 @@ class Autoroles(commands.Cog):
         name='add', description=locale_str(I18N.t('roles.commands.add.cmd'))
     )
     @describe(
-        role_name=I18N.t('roles.commands.add.desc.role_name'),
-        hoist=I18N.t('roles.commands.add.desc.hoist'),
-        mentionable=I18N.t('roles.commands.add.desc.mentionable'),
-        color=I18N.t('roles.commands.add.desc.color'),
-        display_icon=I18N.t('roles.commands.add.desc.display_icon')
+        public=I18N.t('roles.commands.info.desc.public')
     )
     async def add_role(
         self, interaction: discord.Interaction, role_name: str,
         hoist: bool, mentionable: bool, color: str = None,
-        display_icon: discord.Attachment = None
+        display_icon: discord.Attachment = None,
+        public: typing.Literal[
+            I18N.t('common.literal_yes_no.yes'),
+            I18N.t('common.literal_yes_no.no')
+        ] = None
     ):
-        await interaction.response.defer(ephemeral=True)
+        if public == I18N.t('common.literal_yes_no.yes'):
+            _ephemeral = False
+        elif public == I18N.t('common.literal_yes_no.no') or\
+                public is None:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         if not color:
             color = discord.Color.random()
         else:
@@ -944,16 +954,19 @@ class Autoroles(commands.Cog):
                 display_icon=display_icon
             )
             await interaction.followup.send(
-                I18N.t('roles.commands.add.msg_confirm')
+                I18N.t('roles.commands.add.msg_confirm'),
+                ephemeral=_ephemeral
             )
         except discord.errors.Forbidden as e:
             await interaction.followup.send(
-                I18N.t('roles.commands.add.msg_error', _error=e.text)
+                I18N.t('roles.commands.add.msg_error', _error=e.text),
+                ephemeral=_ephemeral
             )
             return
         except ValueError as e:
             await interaction.followup.send(
-                I18N.t('roles.commands.add.msg_error', _error=e)
+                I18N.t('roles.commands.add.msg_error', _error=e),
+                ephemeral=_ephemeral
             )
             return
         return
