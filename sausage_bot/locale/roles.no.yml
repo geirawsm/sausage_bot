@@ -24,16 +24,24 @@ no:
   splits:
     roles: 'Roller blir splittet på en eller fler av følgende tegn: " .,;-_\\/"'
     emojis: 'Emojier blir splittet på en eller fler av følgende tegn: " .,;-_\\/"'
+  changelist:
+    name: Navn
+    color: Farge
+    hoist: Spesielt synlig
+    perms_added: Tillatelser lagt til
+    perms_removed: Tillatelser fjernet
+    roles: Roller
+    reason: Årsak
   commands:
     roles:
       cmd: Kontroller roller på serveren
     reaction:
       cmd: Kontroller reaksjonsmeldinger på serveren
-    reaction_add:
+    add_reaction:
       cmd: Legg til reaksjonsmelding på serveren
-    reaction_remove:
+    remove_reaction:
       cmd: Fjern reaksjonsmelding på serveren
-    reaction_move_role:
+    move_reaction_role:
       cmd: Flytt en reaksjonsrolle mellom reaksjonsmeldinger
       desc:
         reaction_role_from: Reaksjonsmeldingen det flyttes fra
@@ -60,7 +68,7 @@ no:
         sort:
           name: Etter navn
           id: Etter ID
-    add:
+    add_role:
       cmd: Legg til en rolle
       desc:
         role_name: Navn på rollen som skal legges til
@@ -71,12 +79,12 @@ no:
       set_perms: Angi tillatelser
       msg_confirm: Rolle er opprettet
       msg_error: 'Feil ved opprettelse av rolle: %{_error}'
-    remove:
+    remove_role:
       cmd: Fjern en rolle fra serveren
       desc:
         role_name: Navn på rollen som skal fjernes
       msg_confirm: 'Rollen `%{rolename}` har blitt fjernet'
-    edit:
+    edit_role:
       cmd: Rediger en rolle på serveren
       desc:
         role_name: Navn på rollen som skal redigeres
@@ -84,11 +92,6 @@ no:
         color: 'Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
         hoist: Angir om rollen skal skilles ut i brukerliste eller ikke
         permissions: Angir om tillatelser skal redigeres også
-      changelist_name: Navn
-      changelist_color: Farge 
-      changelist_hoist: Spesielt synlig
-      changelist_perms_added: Tillatelser lagt til
-      changelist_perms_removed: Tillatelser fjernet
       changes_out: 'Utførte følgende endringer på rollen `%{role_name}`'
       change_perms: Endre tillatelser
       msg_confirm: 'Rollen `%{role_name}` har blitt redigert'
@@ -140,7 +143,7 @@ no:
         reaction_msg: Meldingen fra databasen
       msg_confirm: Reaksjonsmelding fjernet
       msg_error: Klarte ikke finne reaksjonsmeldingen
-    remove_role:
+    remove_msg_role:
       cmd: Fjern en reaksjon fra en reaksjonsmelding
       desc:
         reaction_msg: Meldingen fra databasen
@@ -152,7 +155,7 @@ no:
         channel: Kanal å sjekke
       msg_confirm: Reaksjonsmeldinger sortert
       msg_already_sorted: Reaksjonsmeldinger er allerede i riktig rekkefølge
-    settings_add:
+    add_settings:
       cmd: Legg til en innstilling for roller
       desc:
         setting: Innstillingen som skal legges til
@@ -163,23 +166,32 @@ no:
           not_include_in_total: Ikke inkluder i totalen
       role_already_set: Rollen er allerede satt
       msg_confirm: Innstilling lagt til
-    settings_remove:
+    remove_settings:
       cmd: Fjern ern innstilling for roller
       desc:
         setting: Innstillingen som skal fjernes
       msg_confirm: Innstilling `%{setting}` er fjernet
-    settings_list:
+    list_settings:
       cmd: List opp innstillinger for roller
       headers:
         setting: Innstilling
         role: Rolle
         value: Verdi
-    settings_edit:
+    edit_settings:
       cmd: Rediger en innstilling for roller
       desc:
         setting: Innstillingen som skal redigeres
         role_in: Rollen som skal legges til innstillingen
       confirm_msg: 'Redigerte innstillingen (%{setting} = %{role_in})'
+    emojis:
+      cmd: Administrer emojier
+    add_emoji:
+      cmd: Legg til en emoji på serveren
+      desc:
+        emoji_name: Navn på emojien
+        image: Bilde for emojien
+      error_msg: 'Feil ved opprettelse av emoji: `%{error}`'
+      confirm_msg: 'Emoji `%{emoji_name}` har blitt opprettet'
     on_raw_reaction_add:
       channel_log_confirm: Lagt til i henhold til reaksjonsmeldinger
     on_raw_reaction_remove:

@@ -24,16 +24,24 @@ en:
   splits:
     roles: 'Roles will be split on one or more of the following characers: " .,;-_\\/"'
     emojis: 'Emojis will be split on one or more of the following characers: " .,;-_\\/"'
+  changelist:
+    name: Name
+    color: Color
+    hoist: Hoist
+    perms_added: Permissions added
+    perms_removed: Permissions removed
+    roles: Roles
+    reason: Reason
   commands:
     roles:
       cmd: Control roles on the server
     reaction:
       cmd: Control reaction messages on the server
-    reaction_add:
+    add_reaction:
       cmd: Add reaction message to the server
-    reaction_remove:
+    remove_reaction:
       cmd: Remove reaction message from the server
-    reaction_move_role:
+    move_reaction_role:
       cmd: Move a reaction role between reaction messages
       desc:
         reaction_role_from: The reaction message to move from
@@ -60,7 +68,7 @@ en:
         sort:
           name: By name
           id: By ID
-    add:
+    add_role:
       cmd: Add a role
       desc:
         role_name: Name of the role to add
@@ -71,12 +79,12 @@ en:
       set_perms: Set permissions
       msg_confirm: Role is created
       msg_error: 'Error when creating role: %{_error}'
-    remove:
+    remove_role:
       cmd: Remove a role from the server
       desc:
         role_name: Name of the role to remove
       msg_confirm: 'Role `%{rolename}` has been removed'
-    edit:
+    edit_role:
       cmd: Edit a role on the server
       desc:
         role_name: Name of the role to edit
@@ -84,11 +92,6 @@ en:
         color: 'Color for the role. Accepts 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
         hoist: Indicates if the role will be displayed separately from other members.
         permissions: Indicate if the permissions also should be edited
-      changelist_name: Name
-      changelist_color: Color
-      changelist_hoist: Hoist
-      changelist_perms_added: Permissions added
-      changelist_perms_removed: Permissions removed
       changes_out: 'Did following changes on role `%{role_name}`'
       change_perms: Change permissions
       msg_confirm: 'Role `%{role_name}` has been edited'
@@ -140,7 +143,7 @@ en:
         reaction_msg: The message ID from Discord or name in the database
       msg_confirm: Reaction message removed
       msg_error: 'Could not find reaction message'
-    remove_role:
+    remove_msg_role:
       cmd: Remove a reaction from reaction message
       desc:
         reaction_msg: The message ID from database
@@ -152,7 +155,7 @@ en:
         channel: What channel to check
       msg_confirm: Reaction messages reordered
       msg_already_sorted: Messages are already in correct order
-    settings_add:
+    add_settings:
       cmd: Add a setting for roles on the server
       desc:
         setting: The setting to add
@@ -163,23 +166,45 @@ en:
           not_include_in_total: Not include in total
       role_already_set: Role is already set
       msg_confirm: Added setting
-    settings_remove:
+    remove_settings:
       cmd: Remove a setting for roles on the server
       desc:
         setting: The setting to remove
       msg_confirm: 'Setting `%{setting}` has been removed'
-    settings_list:
+    list_settings:
       cmd: List settings for roles on the server
       headers:
         setting: Setting
         role: Role
         value: Value
-    settings_edit:
+    edit_settings:
       cmd: Edit a setting for roles on the server
       desc:
         setting: The setting to edit
         role_in: The role to add to the setting
       confirm_msg: 'Edited setting (%{setting} = %{role_in})'
+    emojis:
+      cmd: Administer emojis
+    add_emoji:
+      cmd: Add an emoji to the server
+      desc:
+        emoji_name: Name for the emoji
+        image: The image for the emoji
+      error_msg: 'Error when creating emoji: `%{error}`'
+      confirm_msg: 'Emoji `%{emoji_name}` has been created'
+    remove_emoji:
+      cmd: Remove an emoji from the server
+      desc:
+        emoji_name: Name of the emoji to remove
+      error_msg: 'Error when removing emoji: `%{error}`'
+      confirm_msg: 'Emoji `%{emoji_name}` has been removed'
+    edit_emoji:
+      cmd: Edit an emoji on the server
+      desc:
+        emoji_name: Name for the emoji
+        new_name: New name for the emoji
+        roles: 'A list of roles that can use this emoji. (Default: All)'
+        reason: The reason for editing this emoji. Shows up on the audit log.
     on_raw_reaction_add:
       channel_log_confirm: Added in accordance with reaction messages
     on_raw_reaction_remove:

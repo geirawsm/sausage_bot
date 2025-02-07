@@ -670,28 +670,30 @@ class Autoroles(commands.Cog):
 
     roles_reaction_add_group = discord.app_commands.Group(
         name="reaction_add", description=locale_str(I18N.t(
-            'roles.commands.reaction_add.cmd'
+            'roles.commands.add_reaction.cmd'
         )),
         parent=roles_group
     )
 
     roles_reaction_remove_group = discord.app_commands.Group(
         name="reaction_remove",
-        description=locale_str(I18N.t('roles.commands.reaction_remove.cmd')),
+        description=locale_str(I18N.t(
+            'roles.commands.remove_reaction.cmd'
+        )),
         parent=roles_group
     )
 
     roles_reaction_move_group = discord.app_commands.Group(
         name="reaction_move",
         description=locale_str(
-            I18N.t('roles.commands.reaction_move_role.cmd')
+            I18N.t('roles.commands.move_reaction_role.cmd')
         ),
         parent=roles_group
     )
 
     roles_settings_group = discord.app_commands.Group(
         name="settings", description=locale_str(I18N.t(
-            'roles.commands.settings_group'
+            'roles.commands.settings'
         )),
         parent=roles_group
     )
@@ -906,9 +908,16 @@ class Autoroles(commands.Cog):
         commands.has_permissions(manage_roles=True)
     )
     @roles_group.command(
-        name='add', description=locale_str(I18N.t('roles.commands.add.cmd'))
+        name='add', description=locale_str(
+            I18N.t('roles.commands.add_role.cmd')
+        )
     )
     @describe(
+        role_name=I18N.t('roles.commands.add_role.desc.role_name'),
+        hoist=I18N.t('roles.commands.add_role.desc.hoist'),
+        mentionable=I18N.t('roles.commands.add_role.desc.mentionable'),
+        color=I18N.t('roles.commands.add_role.desc.color'),
+        display_icon=I18N.t('roles.commands.add_role.desc.display_icon'),
         public=I18N.t('roles.commands.info.desc.public')
     )
     async def add_role(
@@ -981,7 +990,7 @@ class Autoroles(commands.Cog):
         ))
     )
     @describe(
-        role_name=I18N.t('roles.commands.remove.desc.role_name')
+        role_name=I18N.t('roles.commands.remove_role.desc.role_name')
     )
     async def remove_role(
         self, interaction: discord.Interaction, role_name: discord.Role
@@ -991,7 +1000,7 @@ class Autoroles(commands.Cog):
         rolename = role_name.name
         await _guild.get_role(int(role_name.id)).delete()
         await interaction.followup.send(
-            I18N.t('roles.commands.remove.msg_confirm', rolename=rolename)
+            I18N.t('roles.commands.remove_role.msg_confirm', rolename=rolename)
         )
         return
 
@@ -1000,14 +1009,14 @@ class Autoroles(commands.Cog):
         commands.has_permissions(manage_roles=True)
     )
     @roles_group.command(
-        name='edit', description=locale_str(I18N.t('roles.commands.edit.cmd'))
+        name='edit', description=locale_str(I18N.t('roles.commands.edit_role.cmd'))
     )
     @describe(
-        role_name=I18N.t('roles.commands.edit.desc.role_name'),
-        new_name=I18N.t('roles.commands.edit.desc.new_name'),
-        color=I18N.t('roles.commands.edit.desc.color'),
-        hoist=I18N.t('roles.commands.edit.desc.hoist'),
-        permissions=I18N.t('roles.commands.edit.desc.permissions')
+        role_name=I18N.t('roles.commands.edit_role.desc.role_name'),
+        new_name=I18N.t('roles.commands.edit_role.desc.new_name'),
+        color=I18N.t('roles.commands.edit_role.desc.color'),
+        hoist=I18N.t('roles.commands.edit_role.desc.hoist'),
+        permissions=I18N.t('roles.commands.edit_role.desc.permissions')
     )
     async def edit_role(
         self, interaction: discord.Interaction, role_name: discord.Role,
@@ -1018,14 +1027,14 @@ class Autoroles(commands.Cog):
         changes = []
         if new_name:
             log.debug('Changed name')
-            i18n_name = I18N.t('roles.commands.edit.changelist_name')
+            i18n_name = I18N.t('roles.changelist.name')
             changes.append(f'\n- {i18n_name}: `{role_name}` -> `{new_name}`')
             await role_name.edit(
                 name=new_name
             )
         if color:
             log.debug('Changed color')
-            i18n_color = I18N.t('roles.commands.edit.changelist_color')
+            i18n_color = I18N.t('roles.changelist.color')
             changes.append(
                 f'\n- {i18n_color}: `{role_name.color}` -> `{color}`'
             )
@@ -1034,7 +1043,7 @@ class Autoroles(commands.Cog):
             )
         if hoist:
             log.debug('Changed hoist setting')
-            i18n_hoist = I18N.t('roles.commands.edit.changelist_hoist')
+            i18n_hoist = I18N.t('roles.changelist.hoist')
             changes.append(
                 f'\n- {i18n_hoist}: `{role_name.hoist}` -> `{hoist}`'
             )
@@ -1052,7 +1061,7 @@ class Autoroles(commands.Cog):
                 permissions_in=perms_in
             )
             await interaction.followup.send(
-                I18N.t("roles.commands.edit.change_perms"), view=perm_view
+                I18N.t("roles.commands.edit_role.change_perms"), view=perm_view
             )
             await perm_view.wait()
             perms_out = perm_view.permissions_out
@@ -1069,14 +1078,14 @@ class Autoroles(commands.Cog):
             log.debug('Changed permissions')
             perms_in_text = ', '.join(perm for perm in perms_in)
             perms_out_text = ', '.join(perm for perm in perms_out)
-            i18n_perms = I18N.t('roles.commands.edit.change_perms')
+            i18n_perms = I18N.t('roles.commands.edit_role.change_perms')
             changes.append(
                 f'\n- {i18n_perms}: `{perms_in_text}` -> `{perms_out_text}`'
             )
         if len(changes) > 0:
             changes_out = '{}:'.format(
                 I18N.t(
-                    'roles.commands.edit.changes_out',
+                    'roles.commands.edit_role.changes_out',
                     role_name=role_name.name
                 )
             )
@@ -1653,16 +1662,16 @@ class Autoroles(commands.Cog):
         name='role',
         description=locale_str(
             I18N.t(
-                'roles.commands.reaction_move_role.cmd'
+                'roles.commands.move_reaction_role.cmd'
             )
         )
     )
     @describe(
         reaction_role_from=I18N.t(
-            'roles.commands.reaction_move_role.desc.reaction_role_from'
+            'roles.commands.move_reaction_role.desc.reaction_role_from'
         ),
         reaction_message_to=I18N.t(
-            'roles.commands.reaction_move_role.desc.reaction_message_to'
+            'roles.commands.move_reaction_role.desc.reaction_message_to'
         )
     )
     @discord.app_commands.autocomplete(
@@ -1693,7 +1702,7 @@ class Autoroles(commands.Cog):
         if len(num_reaction_roles) == 1:
             await interaction.followup.send(
                 I18N.t(
-                    'roles.commands.reaction_move_role.'
+                    'roles.commands.move_reaction_role.'
                     'cannot_move_last_reaction'
                 ),
                 ephemeral=True
@@ -1722,7 +1731,7 @@ class Autoroles(commands.Cog):
         await sync_reaction_message_from_settings(new_msg_id)
         await interaction.followup.send(
             I18N.t(
-                'roles.commands.reaction_move_role.msg_confirm',
+                'roles.commands.move_reaction_role.msg_confirm',
                 emoji=emoji_obj, role=role_obj,
                 old_msg=old_msg_name, new_msg=new_msg_name
             ),
@@ -1847,21 +1856,21 @@ class Autoroles(commands.Cog):
     )
     @roles_settings_group.command(
         name='add', description=locale_str(I18N.t(
-            'roles.commands.settings_add.cmd'
+            'roles.commands.add_settings.cmd'
         ))
     )
     @describe(
-        setting=I18N.t('roles.commands.settings_add.desc.setting'),
-        role_in=I18N.t('roles.commands.settings_add.desc.role_in')
+        setting=I18N.t('roles.commands.add_settings.desc.setting'),
+        role_in=I18N.t('roles.commands.add_settings.desc.role_in')
     )
     async def add_settings(
         self, interaction: discord.Interaction,
         setting: typing.Literal[
             I18N.t(
-                'roles.commands.settings_add.literal.setting.unique'
+                'roles.commands.add_settings.literal.setting.unique'
             ),
             I18N.t(
-                'roles.commands.settings_add.literal.setting'
+                'roles.commands.add_settings.literal.setting'
                 '.not_include_in_total'
             )
         ],
@@ -1872,7 +1881,7 @@ class Autoroles(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         if setting == I18N.t(
-            'roles.commands.settings_add.literal.setting.unique'
+            'roles.commands.add_settings.literal.setting.unique'
         ):
             _setting = 'unique'
             unique = await db_helper.get_output(
@@ -1883,11 +1892,11 @@ class Autoroles(commands.Cog):
             )
             if unique['value']:
                 await interaction.followup.send(
-                    I18N.t('roles.commands.settings_add.role_already_set')
+                    I18N.t('roles.commands.add_settings.role_already_set')
                 )
                 return
         elif setting == I18N.t(
-            'roles.commands.settings_add.literal.setting.not_include_in_total'
+            'roles.commands.add_settings.literal.setting.not_include_in_total'
         ):
             _setting = 'not_include_in_total'
         await db_helper.insert_many_all(
@@ -1897,7 +1906,7 @@ class Autoroles(commands.Cog):
             ]
         )
         await interaction.followup.send(
-            I18N.t('roles.commands.settings_add.msg_confirm')
+            I18N.t('roles.commands.add_settings.msg_confirm')
         )
         return
 
@@ -1908,11 +1917,11 @@ class Autoroles(commands.Cog):
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name='remove', description=locale_str(I18N.t(
-            'roles.commands.settings_remove.cmd'
+            'roles.commands.remove_settings.cmd'
         ))
     )
     @describe(
-        setting=I18N.t('roles.commands.settings_remove.desc.setting')
+        setting=I18N.t('roles.commands.remove_settings.desc.setting')
     )
     async def remove_settings(
         self, interaction: discord.Interaction,
@@ -1928,7 +1937,7 @@ class Autoroles(commands.Cog):
             numbers=setting
         )
         await interaction.followup.send(
-            I18N.t('roles.commands.settings_remove.msg_confirm'),
+            I18N.t('roles.commands.remove_settings.msg_confirm'),
         )
         return
 
@@ -1938,7 +1947,7 @@ class Autoroles(commands.Cog):
     )
     @roles_settings_group.command(
         name='list', description=locale_str(I18N.t(
-            'roles.commands.settings_list.cmd'
+            'roles.commands.list_settings.cmd'
         ))
     )
     async def list_settings(
@@ -1964,10 +1973,10 @@ class Autoroles(commands.Cog):
         _settings = tabulate(
             temp_settings_db, headers={
                 'setting': I18N.t(
-                    'roles.commands.settings_list.headers.setting'
+                    'roles.commands.list_settings.headers.setting'
                 ),
-                'role': I18N.t('roles.commands.settings_list.headers.role'),
-                'value': I18N.t('roles.commands.settings_list.headers.value')
+                'role': I18N.t('roles.commands.list_settings.headers.role'),
+                'value': I18N.t('roles.commands.list_settings.headers.value')
             }
         )
         await interaction.followup.send(f'```{_settings}```')
@@ -1980,12 +1989,12 @@ class Autoroles(commands.Cog):
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name='edit', description=locale_str(I18N.t(
-            'roles.commands.settings_edit.cmd'
+            'roles.commands.edit_settings.cmd'
         ))
     )
     @describe(
-        setting=I18N.t('roles.commands.settings_edit.desc.setting'),
-        role_in=I18N.t('roles.commands.settings_edit.desc.role_in')
+        setting=I18N.t('roles.commands.edit_settings.desc.setting'),
+        role_in=I18N.t('roles.commands.edit_settings.desc.role_in')
     )
     async def edit_settings(
         self, interaction: discord.Interaction,
@@ -2002,7 +2011,7 @@ class Autoroles(commands.Cog):
         )
         await interaction.followup.send(
             I18N.t(
-                'roles.commands.settings_edit.confirm_msg',
+                'roles.commands.edit_settings.confirm_msg',
                 setting=setting, role_in=role_in.id
             )
         )
