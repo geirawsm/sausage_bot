@@ -19,3 +19,5 @@ en:
   roles: Roles
   emojis: Emojis
   header: Header
+  none: None
+  color: Color

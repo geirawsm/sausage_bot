@@ -19,3 +19,5 @@ no:
   roles: Roller
   emojis: Emojier
   header: Overskrift
+  none: None
+  color: Farge

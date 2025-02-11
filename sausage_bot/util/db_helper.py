@@ -364,7 +364,7 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
                 reactions_copy.pop(reactions_copy.index(reaction_msg))
         elif re.match(r'(\d+)', reaction_msg['channel']):
             log.debug(
-                'Channel `{}` is an id, removing...'.format(
+                'Channel `{}` is an id and is ok'.format(
                     reaction_msg['channel']
                 )
             )

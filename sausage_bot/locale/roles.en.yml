@@ -50,21 +50,18 @@ en:
       msg_confirm: "Moved role %{emoji} `%{role}` from `%{old_msg}` to `%{new_msg}`"
     settings_group:
       cmd: Control settings on the server
-    info:
+    role_info:
       cmd: Get info about a specific role
       desc:
         public: Make the reply public
         role_in: Role to get info about
     list:
-      cmd:
+      cmd: List roles or emojis
       desc:
         public: Make the reply public
         type: Type of list
         sort: Sorting method
       literal:
-        type:
-          roles: Roles
-          emojis: Emojis
         sort:
           name: By name
           id: By ID
@@ -181,8 +178,8 @@ en:
       cmd: Edit a setting for roles on the server
       desc:
         setting: The setting to edit
-        role_in: The role to add to the setting
-      confirm_msg: 'Edited setting (%{setting} = %{role_in})'
+        role: The role to add to the setting
+      confirm_msg: 'Edited setting (%{setting} = %{role})'
     emojis:
       cmd: Administer emojis
     add_emoji:
@@ -190,7 +187,7 @@ en:
       desc:
         emoji_name: Name for the emoji
         image: The image for the emoji
-      error_msg: 'Error when creating emoji: `%{error}`'
+      msg_error: 'Error when creating emoji: `%{error}`'
       confirm_msg: 'Emoji `%{emoji_name}` has been created'
     remove_emoji:
       cmd: Remove an emoji from the server
@@ -205,7 +202,26 @@ en:
         new_name: New name for the emoji
         roles: 'A list of roles that can use this emoji. (Default: All)'
         reason: The reason for editing this emoji. Shows up on the audit log.
+      changes_out: 'Did following changes on emoji `%{emoji_name}`'
+      no_changes: 'Did no changes on emoji `%{emoji_name}`'
+    emoji_info:
+      cmd: Get info about a specific emoji
+      desc:
+        public: Make the reply to this command public
+        emoji: Emoji to get info about
+      embed:
+        name: Name
     on_raw_reaction_add:
       channel_log_confirm: Added in accordance with reaction messages
     on_raw_reaction_remove:
       channel_log_confirm: Removed in accordance with reaction message
+  embed:
+    auto_managed:
+      name: Auto-managed?
+      value_confirm: "Yes, by %{name}"
+    hoist:
+      name: Hoisted?
+    members: Members with the role
+    permissions: Permissions
+    roles_attached: Roles attached
+    created: Created

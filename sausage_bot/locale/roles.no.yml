@@ -50,21 +50,18 @@ no:
       msg_confirm: "Flyttet rollen %{emoji} `%{role}` fra `%{old_msg}` til `%{new_msg}`"
     settings:
       cmd: Kontroller innstillinger på serveren
-    info:
+    role_info:
       cmd: Hent informasjon om en spesifikk rolle
       desc:
         public: Gjør svaret offentlig
         role_in: Rolle å hente informasjon om
     list:
-      cmd:
+      cmd: List opp roller eller emojier
       desc:
         public: Gjør svaret offentlig
         type: Listetype
         sort: Sorteringsmetode
       literal:
-        type:
-          roles: Roller
-          emojis: Emojier
         sort:
           name: Etter navn
           id: Etter ID
@@ -181,8 +178,8 @@ no:
       cmd: Rediger en innstilling for roller
       desc:
         setting: Innstillingen som skal redigeres
-        role_in: Rollen som skal legges til innstillingen
-      confirm_msg: 'Redigerte innstillingen (%{setting} = %{role_in})'
+        role: Rollen som skal legges til innstillingen
+      confirm_msg: 'Redigerte innstillingen (%{setting} = %{role})'
     emojis:
       cmd: Administrer emojier
     add_emoji:
@@ -190,9 +187,41 @@ no:
       desc:
         emoji_name: Navn på emojien
         image: Bilde for emojien
-      error_msg: 'Feil ved opprettelse av emoji: `%{error}`'
+      msg_error: 'Feil ved opprettelse av emoji: `%{error}`'
       confirm_msg: 'Emoji `%{emoji_name}` har blitt opprettet'
+    remove_emoji:
+      cmd: Fjern en emoji fra serveren
+      desc:
+        emoji_name: Navn på emojien som skal fjernes
+      error_msg: 'Feil ved fjerning av emojien: `%{error}`'
+      confirm_msg: 'Emojien `%{emoji_name}` er fjernet'
+    edit_emoji:
+      cmd: Rediger en emoji på serveren
+      desc:
+        emoji_name: Navn på emojien
+        new_name: Nytt navn på emojien
+        roles: 'En liste med roller som kan bruke denne emojien. (Standard: Alle)'
+        reason: Årsaken til endring av denne emojien. Blir synlig i revisjonsloggen.
+      changes_out: 'Gjorde følgende endringer på emojien `%{emoji_name}`'
+      no_changes: 'Gjorde ingen edits på emojien `%{emoji_name}`'
+    emoji_info:
+      cmd: Hent informasjon om en spesifikk emoji
+      desc:
+        public: Gjør svaret offentlig
+        emoji: Emoji å hente informasjon om
+      embed:
+        name: Navn
     on_raw_reaction_add:
       channel_log_confirm: Lagt til i henhold til reaksjonsmeldinger
     on_raw_reaction_remove:
       channel_log_confirm: Fjernet i henhold til reaksjonsmelding
+  embed:
+    auto_managed:
+      name: Autohåndtert?
+      value_confirm: "Ja, av %{name}"
+    hoist:
+      name: Spesielt synlig?
+    members: Medlemmer med rollen
+    permissions: Tillatelser
+    roles_attached: Tilknyttede roller
+    created: Laget
