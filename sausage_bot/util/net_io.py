@@ -55,6 +55,15 @@ async def get_link(url):
         return None
     if 399 < int(url_status) < 600:
         log.error(f'Got error code {url_status}')
+        file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
+        await file_io.write_file(
+            envs.TEMP_DIR / 'HTTP_errors' / '{}.log'.format(
+                datetime_handling.get_dt(
+                    format='revdatetimefull',
+                    sep='-'
+                )
+            ),
+        )
         return int(url_status)
     if content_out is None:
         return None
