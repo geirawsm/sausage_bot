@@ -5,6 +5,7 @@ import requests
 from discord.ext import commands, tasks
 import discord
 from sausage_bot.util import config, envs, feeds_core, db_helper
+from sausage_bot.util import discord_commands
 from sausage_bot.util.log import log
 
 team_channel_defaults = {
@@ -116,18 +117,17 @@ class scrape_and_post(commands.Cog):
                                 link = news_item['href']
                                 if link[0:4] == '/en/':
                                     link = f'{root_url}{link}'
-                                try:
-                                    links[team].append(link)
-                                except Exception as e:
-                                    log.error(f'Kom over en feil: {e}')
+                                if team not in links:
                                     links[team] = []
-                                    links[team].append(link)
+                                links[team].append(link)
                                 index_items += 1
                         elif index_items >= max_items:
                             break
             return links
 
         feed = 'FCB news'
+        guild_channels = discord_commands.get_text_channel_list()
+        _guild = discord_commands.get_guild()
         FEED_POSTS = barca_news_links()
         if FEED_POSTS is None:
             return
@@ -140,9 +140,13 @@ class scrape_and_post(commands.Cog):
                 f'### {FEED_POSTS} ###'
             )
             for team in FEED_POSTS:
-                CHANNEL = config.env(
+                channel_name = config.env(
                     'FCB_{}'.format(team.upper()),
-                    default=team_channel_defaults[team.upper()])
+                    default=team_channel_defaults[team.upper()]
+                )
+                CHANNEL = _guild.get_channel(
+                    guild_channels[channel_name]
+                ).id
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
                         'rss', 'BARCA', FEED_POSTS[team], CHANNEL
@@ -170,7 +174,7 @@ async def setup(bot):
     await bot.add_cog(scrape_and_post(bot))
     task_list = await get_tasks()
     log.debug(f'Got `task_list`: {task_list}')
-    if task_list is None:
+    if task_list is None or len(task_list) <= 0:
         await db_helper.insert_many_all(
             template_info=envs.tasks_db_schema,
             inserts=(
@@ -179,7 +183,7 @@ async def setup(bot):
         )
         task_list = await get_tasks()
     for task in task_list:
-        log.debug(f'checking task: {task}')
+        log.debug(f'Checking task: {task}')
         if task['task'] == 'post_news':
             if task['status'] == 'started':
                 log.debug(
@@ -197,5 +201,5 @@ async def setup(bot):
                 scrape_and_post.post_fcb_news.cancel()
 
 
-async def teardown(bot):
+def teardown(bot):
     scrape_and_post.post_fcb_news.cancel()

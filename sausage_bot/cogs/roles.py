@@ -209,7 +209,7 @@ async def strip_role_or_emoji(input):
 
 
 async def sync_reaction_message_from_settings(
-        msg_id_or_name, sorting: bool = False
+        msg_id_or_name, sort: bool = False
 ):
     # Assert that the reaction message exist on discord
     msg_info = await get_msg_id_and_name(msg_id_or_name)
@@ -293,7 +293,7 @@ async def sync_reaction_message_from_settings(
             log.error(f'Could not find role with id {react["role"]}: {e}')
             roles_errors.append(react['role'])
             role_name = None
-    if sorting:
+    if sort:
         reactions_out = dict(sorted(reactions_out.items()))
     log.debug('reactions_out', pretty=reactions_out)
     # Recreate the embed
@@ -1712,7 +1712,7 @@ class Autoroles(commands.Cog):
     )
     async def add_reaction_role(
         self, interaction: discord.Interaction, msg_info: str,
-        roles: str, emojis: str, sorting: bool = False
+        roles: str, emojis: str, sort: bool = False
     ):
         '''
         Add reaction roles to an existing message
@@ -1748,7 +1748,7 @@ class Autoroles(commands.Cog):
             )
             await sync_reaction_message_from_settings(
                 msg_id_or_name=msg_id,
-                sorting=sorting
+                sort=sort
             )
             await interaction.followup.send(
                 I18N.t('roles.commands.add_reaction_role.msg_confirm'),
@@ -1790,7 +1790,7 @@ class Autoroles(commands.Cog):
     )
     async def sync_reaction_items(
         self, interaction: discord.Interaction, reaction_msg: str,
-        sorting: bool = False
+        sort: bool = False
     ):
         '''
         Synchronize a reaction message with the database
@@ -1800,7 +1800,7 @@ class Autoroles(commands.Cog):
         msg_id = reaction_msg[0]
         sync_errors = await sync_reaction_message_from_settings(
             msg_id_or_name=msg_id,
-            sorting=sorting
+            sort=sort
         )
         if sync_errors:
             await interaction.followup.send(
@@ -1845,7 +1845,7 @@ class Autoroles(commands.Cog):
             )
             return
         sync_errors = await sync_reaction_message_from_settings(
-            reaction_msg[0], sorting=True
+            reaction_msg[0], sort=True
         )
         if sync_errors:
             await interaction.followup.send(
@@ -1925,7 +1925,7 @@ class Autoroles(commands.Cog):
     )
     async def remove_reaction_role(
         self, interaction: discord.Interaction, reaction_role: str,
-        sorting: bool = False
+        sort: bool = False
     ):
         '''
         Remove a reaction from reaction message
@@ -1946,7 +1946,7 @@ class Autoroles(commands.Cog):
         # Sync settings
         await sync_reaction_message_from_settings(
             msg_id_or_name=msg_id,
-            sorting=sorting
+            sort=sort
         )
         _role_name = get(
             discord_commands.get_guild().roles, id=int(role_id)
@@ -1986,7 +1986,8 @@ class Autoroles(commands.Cog):
     )
     async def move_reaction_role(
         self, interaction: discord.Interaction,
-        reaction_role_from: str, reaction_message_to: str
+        reaction_role_from: str, reaction_message_to: str,
+        sort: bool = False
     ):
         '''
         Move a reaction from one reaction message to another
@@ -2033,8 +2034,12 @@ class Autoroles(commands.Cog):
             ]
         )
         # Sync settings
-        await sync_reaction_message_from_settings(old_msg_id)
-        await sync_reaction_message_from_settings(new_msg_id)
+        await sync_reaction_message_from_settings(
+            old_msg_id, sort=sort
+        )
+        await sync_reaction_message_from_settings(
+            new_msg_id, sort=sort
+        )
         await interaction.followup.send(
             I18N.t(
                 'roles.commands.move_reaction_role.msg_confirm',
@@ -2060,7 +2065,7 @@ class Autoroles(commands.Cog):
     async def reorder_reaction_messages(
         self, interaction: discord.Interaction,
         channel: discord.TextChannel,
-        sorting: bool = False
+        sort: bool = False
     ):
         '''
         Check reaction messages order in a discord channel and recreate them
@@ -2145,7 +2150,7 @@ class Autoroles(commands.Cog):
                 # Recreate reactions by syncing settings
                 await sync_reaction_message_from_settings(
                     msg_id_or_name=new_reaction_msg.id,
-                    sorting=sorting
+                    sort=sort
                 )
             await interaction.followup.send(
                 I18N.t('roles.commands.reorder.msg_confirm')
