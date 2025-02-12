@@ -140,10 +140,13 @@ class scrape_and_post(commands.Cog):
                 f'### {FEED_POSTS} ###'
             )
             for team in FEED_POSTS:
-                channel_name = config.env(
-                    'FCB_{}'.format(team.upper()),
-                    default=team_channel_defaults[team.upper()]
-                )
+                channel_name = team_channel_defaults[team.upper()]
+                if channel_name not in guild_channels:
+                    error_msg = f'Could not find channel `{channel_name}` in guild'
+                    log.error(error_msg)
+                    # TODO i18n
+                    await discord_commands.log_to_bot_channel(error_msg)
+                    return
                 CHANNEL = _guild.get_channel(
                     guild_channels[channel_name]
                 ).id
