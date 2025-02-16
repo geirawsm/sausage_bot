@@ -82,13 +82,8 @@ async def get_items_from_rss(
     try:
         soup = BeautifulSoup(req, features='xml')
         rss_status = False
-        if soup.find('feed'):
-            rss_status = True
-        elif soup.find('rss'):
-            rss_status = True
-        elif soup.find(
-            'link', attrs={'type': 'application/rss+xml'}
-        ):
+        if soup.find('feed') or soup.find('rss') or\
+                soup.find('link', attrs={'type': 'application/rss+xml'}):
             rss_status = True
         if rss_status is False:
             log.error(f'No rss feed found in {url}')

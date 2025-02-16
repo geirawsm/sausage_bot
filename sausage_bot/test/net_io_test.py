@@ -7,7 +7,7 @@ from pendulum.datetime import DateTime
 from sausage_bot.util import net_io
 
 
-async def test_make_event_start_stop():
+def test_make_event_start_stop():
     date_yes, time_yes = ('17.05.2022', '21:00')
     date_yes, time_no = ('17.05.2022', '671:00')
 
