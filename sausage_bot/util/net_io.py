@@ -49,23 +49,23 @@ async def get_link(url):
             log.debug(f'Got status: {url_status}')
             content_out = await resp.text()
             log.verbose(f'Got content_out: {content_out[0:500]}...')
+            if 399 < int(url_status) < 600:
+                log.error(f'Got error code {url_status}')
+                file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
+                await file_io.write_file(
+                    envs.TEMP_DIR / 'HTTP_errors' / '{}.log'.format(
+                        datetime_handling.get_dt(
+                            format='revdatetimefull',
+                            sep='-'
+                        )
+                    ),
+                    str(content_out)
+                )
+                return int(url_status)
         await session.close()
     except Exception as e:
         log.error(f'Error when getting `url`:({url_status}) {e}')
         return None
-    if 399 < int(url_status) < 600:
-        log.error(f'Got error code {url_status}')
-        file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
-        await file_io.write_file(
-            envs.TEMP_DIR / 'HTTP_errors' / '{}.log'.format(
-                datetime_handling.get_dt(
-                    format='revdatetimefull',
-                    sep='-'
-                )
-            ),
-            str(content_out)
-        )
-        return int(url_status)
     if content_out is None:
         return None
     else:
