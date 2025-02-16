@@ -62,11 +62,13 @@ async def get_link(url):
                     str(content_out)
                 )
         await session.close()
-        return int(url_status)
+        return content_out
     except Exception as e:
         log.error(f'Error when getting `url`:({url_status}) {e}')
         return None
-    if content_out is None:
+        return int(url_status)
+
+
         return None
     else:
         return content_out
