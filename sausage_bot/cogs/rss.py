@@ -130,7 +130,7 @@ async def control_posting(feed_type, action):
                 log.error('Error when {}ing feed `{}`: {}'.format(
                     actions[action]['status_update'], feed_type, e
                 ))
-                failed_list.append(feed_type['feed_type'])
+                failed_list.append(feed_type)
     # Update status in db
     if len(feed_statuses) > 0:
         for feed_type in feed_statuses:
