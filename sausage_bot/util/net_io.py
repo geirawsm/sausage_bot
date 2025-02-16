@@ -63,7 +63,7 @@ async def get_link(url):
                     sep='-'
                 )
             ),
-            content_out
+            str(content_out)
         )
         return int(url_status)
     if content_out is None:
