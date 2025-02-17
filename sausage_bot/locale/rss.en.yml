@@ -83,4 +83,4 @@ en:
       value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
       msg_confirm: Setting updated
   tasks:
-    feed_posts_is_none: 'Feed `%{feed_name}` returned `%{return_value}`'
+    feed_posts_is_none: 'Feed `%{feed_name}` returned `%{return_value}`. Deactivated the feed for now, check logs.'

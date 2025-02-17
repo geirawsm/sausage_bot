@@ -141,7 +141,7 @@ async def get_items_from_rss(
         elif len(soup.find_all('entry')) > 0:
             article_method = 'entry'
         else:
-            log.error('Klarte ikke finne ut av feed?')
+            log.error('Could not find any articles')
             return None
         if isinstance(num_items, int) and num_items > 0:
             all_items = soup.find_all(article_method)[0:num_items]
