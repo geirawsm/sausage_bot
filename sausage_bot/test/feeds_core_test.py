@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pytest
-from sausage_bot.util import file_io, feeds_core, envs, db_helper
+from sausage_bot.util import file_io, feeds_core, envs
 from sausage_bot.util.net_io import get_link
 
 
@@ -50,7 +50,7 @@ async def test_get_items_from_rss():
 
 
 async def test_get_feed_links():
-    feeds = [
+    mock_data = [
         {
             'uuid': '388cfab2-a1b6-4738-aee0-5368fe97a2c6',
             'feed_name': 'good_feed',
@@ -79,7 +79,7 @@ async def test_get_feed_links():
         }
     ]
 
-    for feed in feeds:
+    for feed in mock_data:
         if feed['feed_name'] == 'good_feed':
             good_out = await feeds_core.get_feed_links(
                 'rss', feed
