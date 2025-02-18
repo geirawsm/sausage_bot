@@ -426,6 +426,7 @@ AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'
 roles_ensure_separator = ('><', '> <')
+scrapeops_url = 'http://headers.scrapeops.io/v1/browser-headers?api_key={}&num_results=100'
 
 
 ### DISCORD PERMISSIONS ###

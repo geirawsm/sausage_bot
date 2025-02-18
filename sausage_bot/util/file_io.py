@@ -3,8 +3,10 @@
 import os
 import stat
 import json
+import re
 from pathlib import Path
 from difflib import SequenceMatcher
+import pendulum
 from ..util.log import log
 
 
@@ -76,6 +78,20 @@ def read_json(json_file):
         return None
 
 
+def read_file(file_in):
+    ensure_file(file_in)
+    try:
+        with open(file_in, encoding='utf-8') as f:
+            log.verbose('Loaded file')
+            return f.read()
+#    except json.JSONDecodeError as e:
+#        log.error(f"Error when reading json from {file_in}:\n{e}")
+#        return None
+    except OSError as e:
+        log.error(f"File can't be read {file_in}:\n{e}")
+        return None
+
+
 def write_json(json_file, json_out):
     'Write `json_out` to `json file`'
     with open(json_file, 'w') as write_file:
@@ -134,6 +150,28 @@ def file_exist(filename):
         return True
     except FileNotFoundError:
         return False
+
+
+def file_age(filename):
+    '''
+    Checks the age of a file (today's date - last modified). If it can't find the file it will
+    return False
+    '''
+    if not file_size(filename):
+        return False
+    else:
+        m_time = os.path.getmtime(filename)
+        now = float(pendulum.now().int_timestamp)
+        log.debug(f'`now` is {now}')
+        age_in_seconds = int(round(now - m_time, 0))
+        log.debug(f'`age_in_seconds` is {age_in_seconds}')
+        age = pendulum.duration(seconds=age_in_seconds)
+        log.debug(
+            'Fil-alder: {}'.format(
+                age.in_words(locale="nb", separator=', ')
+            )
+        )
+        return int(age_in_seconds)
 
 
 def ensure_folder(folder_path: str):

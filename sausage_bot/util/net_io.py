@@ -4,6 +4,8 @@ import discord
 import re
 import aiohttp
 import aiofiles
+from random import choice
+import requests
 from datetime import datetime
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
@@ -29,11 +31,32 @@ except (SpotifyOauthError, ConnectionError) as _error:
     log.error(f'Error when connecting to Spotify: {_error}')
 
 
+async def fetch_random_user_agent():
+    # Check if API key is set
+    if config.SCRAPEOPS_API_KEY is None:
+        log.error('SCRAPEOPS_API_KEY is not set')
+        return
+    # Get new headers if the file is older than 6 hours or does not exist
+    if file_io.file_age(envs.TEMP_DIR / 'headers.json') > 60 * 60 * 6 or\
+            file_io.file_exist(envs.TEMP_DIR / 'headers.json') is False:
+        log.debug('Headers file is older than an hour or does not exist')
+        response = requests.get(
+            envs.scrapeops_url.format(config.SCRAPEOPS_API_KEY)
+        )
+        file_io.write_json(envs.TEMP_DIR / 'headers.json', response.json())
+
+
 async def get_link(url):
     'Get contents of requests object from a `url`'
+    def get_random_user_agent():
+        headers_file = envs.TEMP_DIR / 'headers.json'
+        return choice(
+            file_io.read_json(headers_file)['result']
+        )['user-agent']
+
     content_out = None
     url_status = 0
-    if type(url) is not str:
+    if type(url) is not str or url == '':
         log.error('Input `{url}`is not a proper URL. Check spelling.')
         return None
     if re.search(r'^http(s)?\:', url):
@@ -44,7 +67,9 @@ async def get_link(url):
     try:
         log.debug(f'Trying `url`: {url}')
         session = aiohttp.ClientSession()
-        async with session.get(url) as resp:
+        # Get random user agent
+        headers = {'user-agent': get_random_user_agent()}
+        async with session.get(url, headers=headers) as resp:
             url_status = resp.status
             log.debug(f'Got status: {url_status}')
             content_out = await resp.text()
@@ -52,7 +77,7 @@ async def get_link(url):
             if 399 < int(url_status) < 600:
                 log.error(f'Got error code {url_status}')
                 file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
-                await file_io.write_file(
+                file_io.write_file(
                     envs.LOG_DIR / 'HTTP_errors' / '{}.log'.format(
                         datetime_handling.get_dt(
                             format='revdatetimefull',
@@ -65,8 +90,10 @@ async def get_link(url):
         return content_out
     except Exception as e:
         log.error(f'Error when getting `url`:({url_status}) {e}')
-        return None
-        return int(url_status)
+        if isinstance(url_status, int):
+            return int(url_status)
+        else:
+            return None
 
 
         return None
