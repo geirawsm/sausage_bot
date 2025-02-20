@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 import pytest
 import pytest_asyncio
+from bs4 import BeautifulSoup
+from lxml import etree
 from unittest import mock
+
 from sausage_bot.util import file_io, envs
 
 
@@ -14,6 +17,44 @@ def test_write_file_input():
         # Correct path, turn ints to str
         assert file_io.write_file(
             'sausage_bot/test/out/testfile', 1234) is True
+
+
+def test_read_file_manual_mock_OK():
+    mock_file = envs.test_xml_good
+    file_in = file_io.read_file(mock_file)
+    assert type(file_in) is str
+
+
+def test_read_json_manual_mock_OK():
+    mock_file = envs.test_nifs_json_good
+    file_in = file_io.read_file(mock_file)
+    assert type(file_in) is dict
+
+
+def test_read_file_manual_mock_FAIL():
+    mock_file = envs.TESTPARSE_DIR / '1234.txt'
+    file_in = file_io.read_file(mock_file)
+    assert file_in is None
+
+
+def test_read_xml_manual_mock_OK():
+    mock_file = envs.test_xml_good
+    file_in = file_io.read_file(mock_file)
+    xml_in = BeautifulSoup(file_in, features='xml')
+    assert type(xml_in) is BeautifulSoup
+    items = xml_in.find_all('item')
+    # The items in good file is 10
+    assert len(items) == 10
+
+
+def test_read_xml_manual_mock_FAIL():
+    mock_file = envs.test_xml_bad
+    file_in = file_io.read_file(mock_file)
+    xml_in = BeautifulSoup(file_in, features='xml')
+    assert type(xml_in) is BeautifulSoup
+    items = xml_in.find_all('item')
+    # The items in good file is 5
+    assert len(items) == 5
 
 
 def test_file_size():

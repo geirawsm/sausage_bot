@@ -79,17 +79,17 @@ def read_json(json_file):
 
 
 def read_file(file_in):
-    ensure_file(file_in)
-    try:
-        with open(file_in, encoding='utf-8') as f:
-            log.verbose('Loaded file')
-            return f.read()
-#    except json.JSONDecodeError as e:
-#        log.error(f"Error when reading json from {file_in}:\n{e}")
-#        return None
-    except OSError as e:
-        log.error(f"File can't be read {file_in}:\n{e}")
-        return None
+    if str(file_in).split('.')[-1] == 'json':
+        log.debug('Got a json file')
+        return read_json(file_in)
+    else:
+        try:
+            with open(file_in, encoding='utf-8') as f:
+                log.verbose('Loaded file')
+                return f.read()
+        except OSError as e:
+            log.error(f"File can't be read {file_in}:\n{e}")
+            return None
 
 
 def write_json(json_file, json_out):
