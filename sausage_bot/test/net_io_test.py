@@ -4,7 +4,7 @@ import pytest
 from pendulum.datetime import DateTime
 
 from sausage_bot.util import net_io, file_io, envs
-from sausage_bot.testing.utils import dl_parse_file
+from sausage_bot.util import dl_parse_file
 
 
 def test_make_event_start_stop():
