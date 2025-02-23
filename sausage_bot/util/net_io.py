@@ -55,6 +55,7 @@ async def get_link(url=None, mock_file=None):
         )['user-agent']
 
     if mock_file:
+        log.debug('Found mock file, returning it')
         return file_io.read_file(mock_file)
     content_out = None
     url_status = 0
@@ -70,7 +71,9 @@ async def get_link(url=None, mock_file=None):
         log.debug(f'Trying `url`: {url}')
         session = aiohttp.ClientSession()
         # Get random user agent
-        headers = {'user-agent': get_random_user_agent()}
+        rand_user_agent = get_random_user_agent()
+        log.debug(f'Using user-agent: {rand_user_agent}')
+        headers = {'user-agent': rand_user_agent}
         async with session.get(url, headers=headers) as resp:
             url_status = resp.status
             log.debug(f'Got status: {url_status}')
