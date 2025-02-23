@@ -1,0 +1,73 @@
+{
+    "broadcast": {
+        "airTime": "2024-06-23T14:50:00Z",
+        "assetId": "1938992",
+        "channelLogo": {
+            "live": false,
+            "play": true,
+            "sp1": false
+        },
+        "channelName": "TV 2 Play",
+        "isLive": false,
+        "isNRK": false,
+        "isTV2": true,
+        "url": "https://play.tv2.no/sport/fotball/obos-ligaen/vaalerenga-sandnes-ulf-1938992.html"
+    },
+    "competition": {
+        "group": "OBOS-ligaen 2024",
+        "id": "b6e08d0b-e98d-4a51-9171-f30c21acc3c4",
+        "name": "OBOS-ligaen",
+        "round": "14. runde",
+        "season": "2024",
+        "seasonId": "3d7519e1-5d22-4607-90b6-15b24fb9998a"
+    },
+    "id": "0cfb246c-215f-475a-846c-070109bbbe42",
+    "name": "V\u00e5lerenga vs. Sandnes Ulf",
+    "penaltyShootout": [],
+    "round": "14",
+    "startTime": "2024-06-23T15:00:00Z",
+    "status": "Slutt",
+    "statusType": "FINISHED",
+    "teams": [
+        {
+            "gender": "MALE",
+            "id": "06ccab20-7c1e-4e21-a2c8-21b9e3b0a0aa",
+            "isNationalTeam": false,
+            "logos": [
+                {
+                    "darkMode": false,
+                    "imageUrl": "https://static-content.aws42.tv2.no/prod/rs-admin-gui/0f8fe978-0651-46eb-8630-71d935af236b/39979d16-7608-4613-8fcb-9c53dfae244f_512x512.png"
+                }
+            ],
+            "name": "V\u00e5lerenga",
+            "score": {
+                "ordinaryTime": null,
+                "pause": "3",
+                "result": "8",
+                "total": "8"
+            },
+            "shortName": "V\u00e5lerenga",
+            "tla": "VIF"
+        },
+        {
+            "gender": "MALE",
+            "id": "e1f5d11e-804c-42f2-9619-2f11c1e8fad6",
+            "isNationalTeam": false,
+            "logos": [
+                {
+                    "darkMode": false,
+                    "imageUrl": "https://static-content.aws42.tv2.no/prod/rs-admin-gui/30883184-645e-4553-a9d8-efc75f45a53d/665caa62-e43a-43cc-b7a3-f299c7f8f96b_512x512.png"
+                }
+            ],
+            "name": "Sandnes Ulf",
+            "score": {
+                "ordinaryTime": null,
+                "pause": "0",
+                "result": "0",
+                "total": "0"
+            },
+            "shortName": "Sandnes Ulf",
+            "tla": "ULF"
+        }
+    ]
+}
