@@ -26,28 +26,30 @@ async def check_if_feed_name_exist(feed_name):
     return feed_name not in feeds
 
 
-async def check_feed_validity(URL):
-    'Make sure that `URL` is a valid link with feed items'
+async def check_feed_validity(url_in, mock_file=None):
+    'Make sure that `url_in` is a valid link with feed items'
     if args.rss_skip_url_validation:
         log.verbose('Skipping url validation')
         return True
     sample_item = None
-    log.verbose(f'Checking `URL`: {URL}')
-    req = await net_io.get_link(URL)
+    log.verbose(f'Checking `url_in`: {url_in}')
+    req = await net_io.get_link(url_in, mock_file=mock_file)
     log.debug(f'req is ({type(req)})')
     if req is None:
         log.verbose('Returned None')
         return None
     elif isinstance(req, int):
         return req
-    if 'open.spotify.com/show/' in URL:
+    if 'open.spotify.com/show/' in url_in:
         log.verbose('Discovered Spotify branded link')
-        sample_item = await net_io.check_spotify_podcast(URL)
+        sample_item = await net_io.check_spotify_podcast(
+            url=url_in, mock_file=mock_file
+        )
     else:
         log.verbose('Discovered normal link')
         _items = await get_items_from_rss(
             req=req,
-            url=URL,
+            url=url_in,
             num_items=1
         )
         if isinstance(_items, list):
@@ -57,7 +59,6 @@ async def check_feed_validity(URL):
         return False
     try:
         log.verbose(f'`req` is a {type(req)}')
-        # etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
         BeautifulSoup(req, features='xml')
         return True
     except (etree.XMLSyntaxError) as e:

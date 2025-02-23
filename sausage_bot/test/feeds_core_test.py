@@ -16,17 +16,17 @@ def test_check_similarity_return_number_or_none():
 
 
 async def test_check_feed_validity_url():
-    good_url1 = 'https://www.metalsucks.net/category/shit-that-comes-out-today/feed/'
-    good_url2 = 'http://feeds.bbci.co.uk/news/rss.xml'
-    bad_url1 = 'https://www.youtube.com'
-    bad_url2 = ''
+    good_url = 'https://www.metalsucks.net/category/shit-that-comes-out-today/feed/'
+    good_mock = envs.test_xml_good
+    bad_url = 'https://www.bbc.co.uk'
+    bad_mock = envs.test_xml_bad2
 
-    out_good1 = await feeds_core.check_feed_validity(good_url1)
-    out_good2 = await feeds_core.check_feed_validity(good_url2)
-    out_bad1 = await feeds_core.check_feed_validity(bad_url1)
-    out_bad2 = await feeds_core.check_feed_validity(bad_url2)
+    out_good = await feeds_core.check_feed_validity(
+        good_url, mock_file=good_mock
+    )
+    out_bad = await feeds_core.check_feed_validity(
+        bad_url, mock_file=bad_mock
+    )
 
-    assert out_good1 is True
-    assert out_good2 is True
-    assert out_bad1 is False
-    assert out_bad2 is None
+    assert out_good is True
+    assert out_bad is False
