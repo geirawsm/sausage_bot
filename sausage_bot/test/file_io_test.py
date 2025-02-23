@@ -48,7 +48,7 @@ def test_read_xml_manual_mock_OK():
 
 
 def test_read_xml_manual_mock_FAIL():
-    mock_file = envs.test_xml_bad
+    mock_file = envs.test_xml_bad1
     file_in = file_io.read_file(mock_file)
     xml_in = BeautifulSoup(file_in, features='xml')
     assert type(xml_in) is BeautifulSoup

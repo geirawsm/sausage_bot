@@ -30,7 +30,8 @@ COGS_REL_DIR = 'sausage_bot.cogs'
 
 # Testfiles
 test_xml_good = TESTPARSE_DIR / 'feed_good_angrymetalguy.xml'
-test_xml_bad = TESTPARSE_DIR / 'feed_bad_angrymetalguy.xml'
+test_xml_bad1 = TESTPARSE_DIR / 'feed_bad_angrymetalguy.xml'
+test_xml_bad2 = TESTPARSE_DIR / 'feed_bad_bbc.html'
 test_nifs_json_good = TESTPARSE_DIR / 'nifs.json'
 test_vglive_json_good = TESTPARSE_DIR / 'vglive.json'
 test_vglive_tv_json_good = TESTPARSE_DIR / 'vglive_tv.json'
