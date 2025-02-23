@@ -51,7 +51,7 @@ async def get_link(url=None, mock_file=None):
     def get_random_user_agent():
         headers_file = envs.TEMP_DIR / 'headers.json'
         return choice(
-            file_io.read_json(headers_file)['result']
+            dict(file_io.read_json(headers_file))['result']
         )['user-agent']
 
     if mock_file:
