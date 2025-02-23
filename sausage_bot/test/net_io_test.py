@@ -20,7 +20,7 @@ async def test_parse_nifs_OK():
     Getting this link from file:
     https://www.nifs.no/kampfakta.php?matchId=2372733&land=1&t=6&u=694962
     '''
-  parse_out = await net_io.parse_nifs(mock_in=envs.test_nifs_json_good)
+    parse_out = await net_io.parse_nifs(mock_in=envs.test_nifs_json_good)
     assert parse_out['teams']['home'] == 'Vålerenga'
     assert type(parse_out['datetime']['end_dt']) is DateTime
     assert type(parse_out['datetime']['start_dt']) is DateTime
