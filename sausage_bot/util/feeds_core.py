@@ -115,9 +115,15 @@ async def get_items_from_rss(
         for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'podcast'
-            temp_info['title'] = item.find('title').text
-            temp_info['description'] = item.find('description').text
-            temp_info['link'] = item.find('link').text
+            temp_info['title'] = item.find('title').text if\
+                hasattr(item.find('title'), 'text') else\
+                item.find('title')
+            temp_info['description'] = item.find('description').text if\
+                hasattr(item.find('description'), 'text') else\
+                item.find('description')
+            temp_info['link'] = item.find('link').text if\
+                hasattr(item.find('link'), 'text') else\
+                item.find('link')
             items_out['items'].append(temp_info)
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
@@ -129,8 +135,12 @@ async def get_items_from_rss(
         for item in all_entries:
             temp_info = items_info.copy()
             temp_info['type'] = 'youtube'
-            temp_info['title'] = item.find('title').text
-            temp_info['description'] = item.find('media:description').text
+            temp_info['title'] = item.find('title').text if\
+                hasattr(item.find('title'), 'text') else\
+                item.find('title')
+            temp_info['description'] = item.find('media:description').text if\
+                hasattr(item.find('media:description'), 'text') else\
+                item.find('media:description')
             temp_info['link'] = item.find('link')['href']
             items_out['items'].append(temp_info)
     # Gets plain articles
@@ -151,13 +161,18 @@ async def get_items_from_rss(
         for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'rss'
-            if article_method == 'item':
-                temp_info['title'] = item.find('title').text
+            temp_info['title'] = item.find('title').text
+            if item.find('description'):
+                temp_info['description'] = item.find('description').text
+            elif item.find('media:keywords'):
                 temp_info['description'] = item.find('media:keywords')
+            elif item.find('content'):
+                temp_info['description'] = item.find('content').text
+            else:
+                temp_info['description'] = None
+            if article_method == 'item':
                 temp_info['link'] = item.find('link').text
             elif article_method == 'entry':
-                temp_info['title'] = item.find('title').text
-                temp_info['description'] = item.find('content').text
                 temp_info['link'] = item.find('link')['href']
             log.debug(f'Got `temp_info`: {temp_info}')
             items_out['items'].append(temp_info)
