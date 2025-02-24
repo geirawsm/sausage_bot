@@ -375,7 +375,8 @@ youtube_db_log_schema = {
     'items': [
         ['uuid', ' TEXT NOT NULL'],
         ['url', ' TEXT'],
-        ['date', ' TEXT']
+        ['date', ' TEXT'],
+        ['hash', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False
