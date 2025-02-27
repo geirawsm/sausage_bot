@@ -114,9 +114,6 @@ async def control_posting(feed_type, action):
     for feed_type in feed_type_in:
         if action in actions:
             try:
-                log.debug('RSSfeed.post_{}.{}()'.format(
-                    feed_type, action
-                ))
                 eval('RSSfeed.post_{}.{}()'.format(
                     feed_type, action
                 ))
@@ -130,7 +127,7 @@ async def control_posting(feed_type, action):
                 log.error('Error when {}ing feed `{}`: {}'.format(
                     actions[action]['status_update'], feed_type, e
                 ))
-                failed_list.append(feed_type['feed_type'])
+                failed_list.append(feed_type)
     # Update status in db
     if len(feed_statuses) > 0:
         for feed_type in feed_statuses:
@@ -680,6 +677,11 @@ class RSSfeed(commands.Cog):
             )
             if FEED_POSTS is None or isinstance(FEED_POSTS, int):
                 log.log(f'Feed {FEED_NAME} returned {FEED_POSTS}')
+                await db_helper.update_fields(
+                    template_info=envs.rss_db_schema,
+                    where=('uuid', UUID),
+                    updates=('status_url', envs.CHANNEL_STATUS_ERROR)
+                )
                 await discord_commands.log_to_bot_channel(
                     I18N.t(
                         'rss.tasks.feed_posts_is_none',
@@ -888,6 +890,7 @@ async def setup(bot):
             )
         )
     for task in task_list:
+        log.debug(f'Checking task: {task}')
         if task['task'] == 'post_feeds':
             if task['status'] == 'started':
                 log.debug(

@@ -26,28 +26,30 @@ async def check_if_feed_name_exist(feed_name):
     return feed_name not in feeds
 
 
-async def check_feed_validity(URL):
-    'Make sure that `URL` is a valid link with feed items'
+async def check_feed_validity(url_in, mock_file=None):
+    'Make sure that `url_in` is a valid link with feed items'
     if args.rss_skip_url_validation:
         log.verbose('Skipping url validation')
         return True
     sample_item = None
-    log.verbose(f'Checking `URL`: {URL}')
-    req = await net_io.get_link(URL)
+    log.verbose(f'Checking `url_in`: {url_in}')
+    req = await net_io.get_link(url_in, mock_file=mock_file)
     log.debug(f'req is ({type(req)})')
     if req is None:
         log.verbose('Returned None')
         return None
     elif isinstance(req, int):
         return req
-    if 'open.spotify.com/show/' in URL:
+    if 'open.spotify.com/show/' in url_in:
         log.verbose('Discovered Spotify branded link')
-        sample_item = await net_io.check_spotify_podcast(URL)
+        sample_item = await net_io.check_spotify_podcast(
+            url=url_in, mock_file=mock_file
+        )
     else:
         log.verbose('Discovered normal link')
         _items = await get_items_from_rss(
             req=req,
-            url=URL,
+            url=url_in,
             num_items=1
         )
         if isinstance(_items, list):
@@ -57,7 +59,6 @@ async def check_feed_validity(URL):
         return False
     try:
         log.verbose(f'`req` is a {type(req)}')
-        # etree.fromstring(req, parser=etree.XMLParser(encoding='utf-8'))
         BeautifulSoup(req, features='xml')
         return True
     except (etree.XMLSyntaxError) as e:
@@ -82,13 +83,8 @@ async def get_items_from_rss(
     try:
         soup = BeautifulSoup(req, features='xml')
         rss_status = False
-        if soup.find('feed'):
-            rss_status = True
-        elif soup.find('rss'):
-            rss_status = True
-        elif soup.find(
-            'link', attrs={'type': 'application/rss+xml'}
-        ):
+        if soup.find('feed') or soup.find('rss') or\
+                soup.find('link', attrs={'type': 'application/rss+xml'}):
             rss_status = True
         if rss_status is False:
             log.error(f'No rss feed found in {url}')
@@ -119,9 +115,15 @@ async def get_items_from_rss(
         for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'podcast'
-            temp_info['title'] = item.find('title').text
-            temp_info['description'] = item.find('description').text
-            temp_info['link'] = item.find('link').text
+            temp_info['title'] = item.find('title').text if\
+                hasattr(item.find('title'), 'text') else\
+                item.find('title')
+            temp_info['description'] = item.find('description').text if\
+                hasattr(item.find('description'), 'text') else\
+                item.find('description')
+            temp_info['link'] = item.find('link').text if\
+                hasattr(item.find('link'), 'text') else\
+                item.find('link')
             items_out['items'].append(temp_info)
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
@@ -133,8 +135,12 @@ async def get_items_from_rss(
         for item in all_entries:
             temp_info = items_info.copy()
             temp_info['type'] = 'youtube'
-            temp_info['title'] = item.find('title').text
-            temp_info['description'] = item.find('media:description').text
+            temp_info['title'] = item.find('title').text if\
+                hasattr(item.find('title'), 'text') else\
+                item.find('title')
+            temp_info['description'] = item.find('media:description').text if\
+                hasattr(item.find('media:description'), 'text') else\
+                item.find('media:description')
             temp_info['link'] = item.find('link')['href']
             items_out['items'].append(temp_info)
     # Gets plain articles
@@ -146,7 +152,7 @@ async def get_items_from_rss(
         elif len(soup.find_all('entry')) > 0:
             article_method = 'entry'
         else:
-            log.error('Klarte ikke finne ut av feed?')
+            log.error('Could not find any articles')
             return None
         if isinstance(num_items, int) and num_items > 0:
             all_items = soup.find_all(article_method)[0:num_items]
@@ -155,13 +161,18 @@ async def get_items_from_rss(
         for item in all_items:
             temp_info = items_info.copy()
             temp_info['type'] = 'rss'
-            if article_method == 'item':
-                temp_info['title'] = item.find('title').text
+            temp_info['title'] = item.find('title').text
+            if item.find('description'):
+                temp_info['description'] = item.find('description').text
+            elif item.find('media:keywords'):
                 temp_info['description'] = item.find('media:keywords')
+            elif item.find('content'):
+                temp_info['description'] = item.find('content').text
+            else:
+                temp_info['description'] = None
+            if article_method == 'item':
                 temp_info['link'] = item.find('link').text
             elif article_method == 'entry':
-                temp_info['title'] = item.find('title').text
-                temp_info['description'] = item.find('content').text
                 temp_info['link'] = item.find('link')['href']
             log.debug(f'Got `temp_info`: {temp_info}')
             items_out['items'].append(temp_info)

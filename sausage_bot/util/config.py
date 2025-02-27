@@ -72,6 +72,7 @@ try:
     ROLE_CHANNEL = env('ROLE_CHANNEL', default='roles')
     SPOTIFY_ID = env('SPOTIFY_ID', default=None)
     SPOTIFY_SECRET = env('SPOTIFY_SECRET', default=None)
+    SCRAPEOPS_API_KEY = env('SCRAPEOPS_API_KEY', default=None)
     if any(envvar is None for envvar in [
         DISCORD_TOKEN, DISCORD_GUILD, BOT_ID
     ]):

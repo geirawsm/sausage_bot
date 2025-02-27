@@ -2,18 +2,24 @@
 # -*- coding: UTF-8 -*-
 "Set's up the bot, have a few generic commands and controls cogs"
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
 import typing
 
-
 from sausage_bot.util.args import args
-from sausage_bot.util import config, envs, file_io, cogs, db_helper
+from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.i18n import I18N, available_languages, set_language
 from sausage_bot.util.i18n import MyTranslator
 from sausage_bot.util.log import log
+
+
+@tasks.loop(
+    hours=1
+)
+async def get_random_user_agent():
+    await net_io.fetch_random_user_agent()
 
 
 class SayTextInput(discord.ui.TextInput):

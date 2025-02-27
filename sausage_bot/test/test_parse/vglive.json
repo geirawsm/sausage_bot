@@ -1,0 +1,511 @@
+{
+    "countries": {
+        "nor": {
+            "code": "nor",
+            "images": {
+                "flagCircle": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/a0/a00fd6df-4471-43de-8801-7eb3a434d985"
+            },
+            "iso2": "no",
+            "iso3": "nor",
+            "name": "Norge"
+        }
+    },
+    "event": {
+        "availableData": {
+            "articles": true,
+            "cupTree": false,
+            "lineups": true,
+            "liveblog": false,
+            "report": true,
+            "standings": true,
+            "statistics": true
+        },
+        "coverageInfo": {
+            "assets": {
+                "articlesCount": 2,
+                "tvChannelsCount": 0,
+                "videosCount": 1
+            },
+            "author": {
+                "avatarUrl": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/7d/7dba596d-b8ed-4d22-8302-90f497e7559a",
+                "name": "NTB"
+            },
+            "event": {
+                "expected": true,
+                "live": true,
+                "mode": "automatic"
+            }
+        },
+        "details": {
+            "attendance": 7462,
+            "refereeId": "151946",
+            "venue": {
+                "cityName": "Oslo",
+                "id": 626,
+                "name": "Intility Arena"
+            }
+        },
+        "eventHeaderHighlights": [
+            {
+                "currentScores": {
+                    "22987": 1,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 18
+                },
+                "hashedId": "a70bd468",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2600820",
+                "participants": {
+                    "assistantId": "23272",
+                    "goalScorerId": "227069",
+                    "teamId": "22987"
+                },
+                "sortOrder": 2017000000029,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 2,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 25
+                },
+                "hashedId": "637f07ab",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2600878",
+                "participants": {
+                    "assistantId": "24260",
+                    "goalScorerId": "149513",
+                    "teamId": "22987"
+                },
+                "sortOrder": 2024000000036,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 3,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 27
+                },
+                "hashedId": "192288e4",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2600894",
+                "participants": {
+                    "assistantId": "1062",
+                    "goalScorerId": "227069",
+                    "teamId": "22987"
+                },
+                "sortOrder": 2026000000037,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 4,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 55
+                },
+                "hashedId": "b921c0a8",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2601213",
+                "participants": {
+                    "assistantId": "24260",
+                    "goalScorerId": "227069",
+                    "teamId": "22987"
+                },
+                "sortOrder": 4054000000068,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 5,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 63
+                },
+                "hashedId": "06161af1",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2601276",
+                "participants": {
+                    "assistantId": "23272",
+                    "goalScorerId": "149513",
+                    "teamId": "22987"
+                },
+                "sortOrder": 4062000000075,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 6,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 69
+                },
+                "hashedId": "db476ffe",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2601324",
+                "participants": {
+                    "assistantId": "23275",
+                    "goalScorerId": "340316",
+                    "teamId": "22987"
+                },
+                "sortOrder": 4068000000083,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 7,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 77
+                },
+                "hashedId": "d11e45c2",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2601387",
+                "participants": {
+                    "assistantId": "23275",
+                    "goalScorerId": "177121",
+                    "teamId": "22987"
+                },
+                "sortOrder": 4076000000093,
+                "subtype": "goal",
+                "type": "scoreChange"
+            },
+            {
+                "currentScores": {
+                    "22987": 8,
+                    "23354": 0
+                },
+                "elapsed": {
+                    "minutes": 90
+                },
+                "hashedId": "bda09e27",
+                "iconUrl": "https://assets.vglive.no/icons/report-items/goal-football.svg",
+                "id": "ntb-2601496",
+                "participants": {
+                    "assistantId": "23275",
+                    "goalScorerId": "227069",
+                    "teamId": "22987"
+                },
+                "sortOrder": 4089000000112,
+                "subtype": "goal",
+                "type": "scoreChange"
+            }
+        ],
+        "id": 633696,
+        "participantIds": [
+            "22987",
+            "23354"
+        ],
+        "results": {
+            "22987": {
+                "period1Score": 3,
+                "period2Score": 5,
+                "runningScore": 8
+            },
+            "23354": {
+                "period1Score": 0,
+                "period2Score": 0,
+                "runningScore": 0
+            }
+        },
+        "slugName": "v\u00e5lerenga-sandnes-ulf",
+        "sport": "football",
+        "startDate": "2024-06-23T15:00:00Z",
+        "status": {
+            "period": {},
+            "subtype": "finished",
+            "type": "finished"
+        },
+        "teamSupporters": {
+            "enabled": true,
+            "votingEnabled": false
+        },
+        "tournament": {
+            "id": 40,
+            "phase": "group",
+            "phaseType": "group",
+            "round": "14",
+            "seasonId": 7526,
+            "stageName": "1. divisjon 2024"
+        },
+        "winners": {
+            "winnerId": "22987"
+        }
+    },
+    "participants": {
+        "1062": {
+            "countryCode": "nor",
+            "firstname": "Vegar",
+            "gender": "male",
+            "id": "1062",
+            "images": {
+                "avatar": {
+                    "id": "06/06524408-322f-4792-9cb2-21d4a4efec20",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/06/06524408-322f-4792-9cb2-21d4a4efec20"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Hedenstad",
+            "name": "Vegar Hedenstad",
+            "slugName": "vegar-hedenstad",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "149513": {
+            "countryCode": "fin",
+            "firstname": "Daniel",
+            "gender": "male",
+            "id": "149513",
+            "images": {
+                "avatar": {
+                    "id": "7f/7ff44265-6d08-4459-b55e-6a0cc538f41c",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/7f/7ff44265-6d08-4459-b55e-6a0cc538f41c"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "H\u00e5kans",
+            "name": "Daniel H\u00e5kans",
+            "slugName": "daniel-h\u00e5kans",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "151946": {
+            "countryCode": "nor",
+            "firstname": "Harald Rovig",
+            "gender": "male",
+            "id": "151946",
+            "images": {},
+            "isVirtual": false,
+            "lastname": "Sletner",
+            "name": "Harald Rovig Sletner",
+            "slugName": "harald-rovig-sletner",
+            "sport": "football",
+            "subtype": "referee",
+            "type": "person"
+        },
+        "177121": {
+            "countryCode": "nor",
+            "firstname": "Aaron Kiil",
+            "gender": "male",
+            "id": "177121",
+            "images": {
+                "avatar": {
+                    "id": "d4/d42cc77d-8a2a-41e1-b564-6706ffb554d4",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/d4/d42cc77d-8a2a-41e1-b564-6706ffb554d4"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Olsen",
+            "name": "Aaron Kiil Olsen",
+            "slugName": "aaron-kiil-olsen",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "227069": {
+            "countryCode": "nld",
+            "firstname": "Mees",
+            "gender": "male",
+            "id": "227069",
+            "images": {
+                "avatar": {
+                    "id": "89/89b49573-6075-4864-9c9b-26410245c293",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/89/89b49573-6075-4864-9c9b-26410245c293"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Rijks",
+            "name": "Mees Rijks",
+            "slugName": "mees-rijks",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "22987": {
+            "countryCode": "nor",
+            "gender": "male",
+            "id": "22987",
+            "images": {
+                "clubLogo": {
+                    "id": "43/436a3b30-f72e-400a-a542-1e6fd680a675",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/43/436a3b30-f72e-400a-a542-1e6fd680a675"
+                }
+            },
+            "isVirtual": false,
+            "name": "V\u00e5lerenga",
+            "schibstedTags": {
+                "nor": "02c22f47-1dc2-4970-ace5-002b39a3314f"
+            },
+            "shortName": "VIF",
+            "slugName": "v\u00e5lerenga",
+            "sport": "football",
+            "subtype": "club",
+            "type": "team"
+        },
+        "23272": {
+            "countryCode": "nor",
+            "firstname": "Christian",
+            "gender": "male",
+            "id": "23272",
+            "images": {
+                "avatar": {
+                    "id": "8a/8a23b716-01a6-45ae-95a6-db9cae0d1796",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/8a/8a23b716-01a6-45ae-95a6-db9cae0d1796"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Borchgrevink",
+            "name": "Christian Borchgrevink",
+            "slugName": "christian-borchgrevink",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "23275": {
+            "countryCode": "nor",
+            "firstname": "Simen",
+            "gender": "male",
+            "id": "23275",
+            "images": {
+                "avatar": {
+                    "id": "cf/cf2edacf-741b-45ab-9efe-85227022c8dc",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/cf/cf2edacf-741b-45ab-9efe-85227022c8dc"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Jukler\u00f8d",
+            "name": "Simen Jukler\u00f8d",
+            "slugName": "simen-jukler\u00f8d",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "23354": {
+            "countryCode": "nor",
+            "gender": "male",
+            "id": "23354",
+            "images": {
+                "clubLogo": {
+                    "id": "e9/e9c18748-5013-4fc7-a296-4db45634de81",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/e9/e9c18748-5013-4fc7-a296-4db45634de81"
+                }
+            },
+            "isVirtual": false,
+            "name": "Sandnes Ulf",
+            "schibstedTags": {
+                "nor": "877486b0-0d03-409a-adb5-194d9da2a180"
+            },
+            "shortName": "",
+            "slugName": "sandnes-ulf",
+            "sport": "football",
+            "subtype": "club",
+            "type": "team"
+        },
+        "24260": {
+            "countryCode": "nor",
+            "firstname": "Henrik",
+            "gender": "male",
+            "id": "24260",
+            "images": {
+                "avatar": {
+                    "id": "dd/dd26df6c-b48e-4386-919d-e827a109e33c",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/dd/dd26df6c-b48e-4386-919d-e827a109e33c"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Bj\u00f8rdal",
+            "name": "Henrik Bj\u00f8rdal",
+            "slugName": "henrik-bj\u00f8rdal",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        },
+        "340316": {
+            "countryCode": "nor",
+            "firstname": "Filip",
+            "gender": "male",
+            "id": "340316",
+            "images": {
+                "avatar": {
+                    "id": "af/af001ecb-37bb-4229-87c5-93c47384b8fe",
+                    "source": "yams",
+                    "url": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/af/af001ecb-37bb-4229-87c5-93c47384b8fe"
+                }
+            },
+            "isVirtual": false,
+            "lastname": "Thorvaldsen",
+            "name": "Filip Thorvaldsen",
+            "slugName": "filip-thorvaldsen",
+            "sport": "football",
+            "subtype": "athlete",
+            "type": "person"
+        }
+    },
+    "tournament": {
+        "countryCode": "nor",
+        "currentSeasonId": 8025,
+        "gender": "male",
+        "id": 40,
+        "images": {
+            "tournamentLogo": "https://cdn.sportsnext.schibsted.io/api/v1/sports-pro/images/ba/ba76602e-cd6c-4aed-bb4f-475b8c657ade"
+        },
+        "name": "OBOS-ligaen",
+        "schibstedTags": {
+            "nor": "0cfc50de-47bc-409d-a29a-633a1324933f"
+        },
+        "slugName": "obos-ligaen",
+        "sport": "football"
+    },
+    "tournamentSeason": {
+        "availableData": {
+            "cupTree": false,
+            "rankingTypes": [
+                "goals",
+                "assists",
+                "goals-assists",
+                "red-cards",
+                "yellow-cards",
+                "own-goals"
+            ],
+            "rankings": true,
+            "ratings": false,
+            "schedule": true,
+            "standings": true
+        },
+        "endDate": "2024-11-09",
+        "id": 7526,
+        "name": "1. divisjon 2024",
+        "seasonType": "group",
+        "slugName": "1-divisjon-2024",
+        "startDate": "2024-04-01",
+        "tournamentId": 40,
+        "year": "2024"
+    }
+}

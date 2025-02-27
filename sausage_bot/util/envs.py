@@ -23,9 +23,19 @@ STATIC_DIR = DATA_DIR / 'static'
 TEMP_DIR = ROOT_DIR / 'tempfiles'
 MERMAID_DIR = ROOT_DIR / 'docs' / 'mermaid_charts'
 LOCALE_DIR = ROOT_DIR / 'locale'
+TESTPARSE_DIR = ROOT_DIR / 'test/test_parse'
 
 # Relative paths
 COGS_REL_DIR = 'sausage_bot.cogs'
+
+# Testfiles
+test_xml_good = TESTPARSE_DIR / 'feed_good_angrymetalguy.xml'
+test_xml_bad1 = TESTPARSE_DIR / 'feed_bad_angrymetalguy.xml'
+test_xml_bad2 = TESTPARSE_DIR / 'feed_bad_bbc.html'
+test_nifs_json_good = TESTPARSE_DIR / 'nifs.json'
+test_vglive_json_good = TESTPARSE_DIR / 'vglive.json'
+test_vglive_tv_json_good = TESTPARSE_DIR / 'vglive_tv.json'
+test_tv2livesport_json_good = TESTPARSE_DIR / 'tv2livesport.json'
 
 # Files
 version_file = ROOT_DIR / 'version.json'
@@ -365,7 +375,8 @@ youtube_db_log_schema = {
     'items': [
         ['uuid', ' TEXT NOT NULL'],
         ['url', ' TEXT'],
-        ['date', ' TEXT']
+        ['date', ' TEXT'],
+        ['hash', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False
@@ -426,6 +437,7 @@ AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'
 roles_ensure_separator = ('><', '> <')
+scrapeops_url = 'http://headers.scrapeops.io/v1/browser-headers?api_key={}&num_results=100'
 
 
 ### DISCORD PERMISSIONS ###

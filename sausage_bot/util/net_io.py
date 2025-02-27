@@ -4,6 +4,8 @@ import discord
 import re
 import aiohttp
 import aiofiles
+from random import choice
+import requests
 from datetime import datetime
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
@@ -29,11 +31,35 @@ except (SpotifyOauthError, ConnectionError) as _error:
     log.error(f'Error when connecting to Spotify: {_error}')
 
 
-async def get_link(url):
+async def fetch_random_user_agent():
+    # Check if API key is set
+    if config.SCRAPEOPS_API_KEY is None:
+        log.error('SCRAPEOPS_API_KEY is not set')
+        return
+    # Get new headers if the file is older than 6 hours or does not exist
+    if file_io.file_age(envs.TEMP_DIR / 'headers.json') > 60 * 60 * 6 or\
+            file_io.file_exist(envs.TEMP_DIR / 'headers.json') is False:
+        log.debug('Headers file is older than an hour or does not exist')
+        response = requests.get(
+            envs.scrapeops_url.format(config.SCRAPEOPS_API_KEY)
+        )
+        file_io.write_json(envs.TEMP_DIR / 'headers.json', response.json())
+
+
+async def get_link(url=None, mock_file=None):
     'Get contents of requests object from a `url`'
+    def get_random_user_agent():
+        headers_file = envs.TEMP_DIR / 'headers.json'
+        return choice(
+            dict(file_io.read_json(headers_file))['result']
+        )['user-agent']
+
+    if mock_file:
+        log.debug('Found mock file, returning it')
+        return file_io.read_file(mock_file)
     content_out = None
     url_status = 0
-    if type(url) is not str:
+    if type(url) is not str or url == '':
         log.error('Input `{url}`is not a proper URL. Check spelling.')
         return None
     if re.search(r'^http(s)?\:', url):
@@ -44,28 +70,38 @@ async def get_link(url):
     try:
         log.debug(f'Trying `url`: {url}')
         session = aiohttp.ClientSession()
+        # Get random user agent
+#        rand_user_agent = get_random_user_agent()
+#        log.debug(f'Using user-agent: {rand_user_agent}')
+#        headers = {'user-agent': rand_user_agent}
+#        async with session.get(url, headers=headers) as resp:
         async with session.get(url) as resp:
             url_status = resp.status
             log.debug(f'Got status: {url_status}')
             content_out = await resp.text()
             log.verbose(f'Got content_out: {content_out[0:500]}...')
+            if 399 < int(url_status) < 600:
+                log.error(f'Got error code {url_status}')
+                file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
+                file_io.write_file(
+                    envs.LOG_DIR / 'HTTP_errors' / '{}.log'.format(
+                        datetime_handling.get_dt(
+                            format='revdatetimefull',
+                            sep='-'
+                        )
+                    ),
+                    str(content_out)
+                )
         await session.close()
+        return content_out
     except Exception as e:
         log.error(f'Error when getting `url`:({url_status}) {e}')
-        return None
-    if 399 < int(url_status) < 600:
-        log.error(f'Got error code {url_status}')
-        file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
-        await file_io.write_file(
-            envs.TEMP_DIR / 'HTTP_errors' / '{}.log'.format(
-                datetime_handling.get_dt(
-                    format='revdatetimefull',
-                    sep='-'
-                )
-            ),
-        )
-        return int(url_status)
-    if content_out is None:
+        if isinstance(url_status, int):
+            return int(url_status)
+        else:
+            return None
+
+
         return None
     else:
         return content_out
@@ -435,18 +471,23 @@ async def parse(url: str = None):
         return None
 
 
-async def parse_nifs(url_in):
+async def parse_nifs(url_in=None, mock_in=None):
     '''
     Parse match ID from matchpage from nifs.no, then use that in an
     api call
     '''
     base_url = 'https://api.nifs.no/matches/{}'
-
-    _id = re.match(r'.*matchId=(\d+)\b', url_in).group(1)
-    json_link_in = await get_link(base_url.format(_id))
-
     # Get info relevant for the event
-    match_json = json.loads(json_link_in)
+    if url_in:
+        _id = re.match(r'.*matchId=(\d+)\b', url_in).group(1)
+        match_json = await get_link(
+            url_in=base_url.format(_id)
+        )
+        match_json = json.loads(match_json)
+    elif mock_in:
+        match_json = await get_link(
+            mock_file=mock_in
+        )
     date_in = match_json['timestamp']
     _date_obj = datetime_handling.make_dt(date_in)
     dt_in = make_event_start_stop(_date_obj)
@@ -477,7 +518,7 @@ async def parse_nifs(url_in):
     }
 
 
-async def parse_vglive(url_in):
+async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
     '''
     Parse match ID from matchpage from vglive.no, then use that in an
     api call
@@ -485,19 +526,30 @@ async def parse_vglive(url_in):
     base_url = 'https://vglive.vg.no/bff/vg/events/{}'
     tv_url = 'https://vglive.vg.no/bff/vg/events/tv-channels?eventIds={}'
 
-    _id = re.match(r'.*/kamp/.*/(\d+)/.*', url_in).group(1)
-    _match_info = await get_link(base_url.format(_id))
-    if isinstance(_match_info, int):
+    # Get info relevant for the event
+    if url_in:
+        _id = re.match(r'.*/kamp/.*/(\d+)/.*', url_in).group(1)
+        _match_info = await get_link(base_url.format(_id))
+        match_json = json.loads(_match_info)
+    elif mock_in:
+        match_json = await get_link(
+            mock_file=mock_in
+        )
+        _id = match_json['event']['id']
+    if isinstance(match_json, int):
         # TODO i18n
-        error_msg = 'Link received HTTP status code {}'.format(_match_info)
+        error_msg = 'Link received HTTP status code {}'.format(match_json)
         log.error(error_msg)
         await discord_commands.log_to_bot_channel(error_msg)
         return None
-    # Get info relevant for the event
-    match_json = json.loads(_match_info)
     log.verbose('Got `match_json`: ', pretty=match_json)
-    _tv_info = await get_link(tv_url.format(_id))
-    tv_json = json.loads(_tv_info)
+    if mock_in and mock_in_tv:
+        tv_json = await get_link(
+            mock_file=mock_in_tv
+        )
+    else:
+        _tv_info = await get_link(tv_url.format(_id))
+        tv_json = json.loads(_tv_info)
     log.verbose('Got `tv_json`: ', pretty=tv_json)
     teams = match_json['event']['participantIds']
     if 'venue' in match_json['event']['details']:
@@ -541,20 +593,24 @@ async def parse_vglive(url_in):
     }
 
 
-async def parse_tv2livesport(url_in):
+async def parse_tv2livesport(url_in=None, mock_in=None):
     '''
     Parse match ID from matchpage from tv2.no/livesport, then use that
     in an API call
     '''
     base_url = 'https://livesport-api.alpha.tv2.no/v3/football/'\
         'matches/{}/result'
-    _id = re.match(
-        r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url_in
-    ).group(1)
-    match_info = await get_link(base_url.format(_id))
-
-    match_json = json.loads(match_info)
     # Get info relevant for the event
+    if url_in:
+        _id = re.match(
+            r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', url_in
+        ).group(1)
+        match_info = await get_link(base_url.format(_id))
+        match_json = json.loads(match_info)
+    elif mock_in:
+        match_json = await get_link(
+            mock_file=mock_in
+        )
     home = match_json['teams'][0]['name']
     away = match_json['teams'][1]['name']
     if 'venue' in match_json:
