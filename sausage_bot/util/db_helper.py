@@ -211,14 +211,17 @@ async def db_fix_old_hide_roles_status():
     )
     if len(old_hide_roles) > 0:
         log.verbose('Moving hide_roles from settings tale to hide_roles')
+        await prep_table(
+            table_in=envs.stats_db_hide_roles_schema
+        )
         old_hide_roles = await get_output(
             template_info=envs.stats_db_settings_schema,
             get_row_ids=True,
             where=('setting', 'hide_roles'),
             select=('value')
         )
-        row_ids = [rowid[0] for rowid in old_hide_roles]
-        values = [[rowid[1]] for rowid in old_hide_roles]
+        row_ids = [rowid['rowid'] for rowid in old_hide_roles]
+        values = [[rowid['value']] for rowid in old_hide_roles]
         await insert_many_all(
             template_info=envs.stats_db_hide_roles_schema,
             inserts=values
