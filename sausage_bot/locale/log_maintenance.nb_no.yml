@@ -1,4 +1,4 @@
-no:
+nb_no:
   commands:
     log:
       cmd: Administrer logging

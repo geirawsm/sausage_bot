@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 '''
-This cog can take links to soccer games on predefined sites, and make them
+autoevent: This cog can take links to soccer games on predefined sites, and make them
 into an event for the server.
 '''
 import discord
@@ -361,7 +361,7 @@ class AutoEvent(commands.Cog):
             )
             await interaction.followup.send(
                 I18N.t(
-                    'commands.announce.msg_error',
+                    'autoevent.commands.announce.msg_error',
                     error=_error
                 ),
                 ephemeral=True

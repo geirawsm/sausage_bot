@@ -1,10 +1,11 @@
-no:
+nb_no:
   setting_log: Feil input for `value_in` ({e})
   setting_input_reply: Input `value_in` må være `True` eller `False`
   commands:
     groups:
       stats: Administrer stats på serveren
       posting: Poster stats
+      settings: Administrer innstillinger
     start:
       command: Start posting
       log_started: Oppgave startet

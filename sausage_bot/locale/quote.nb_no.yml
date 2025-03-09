@@ -1,4 +1,4 @@
-no:
+nb_no:
   tab_headers:
     quote_num: Sitat nr
     quote: Sitat
@@ -32,6 +32,7 @@ no:
       msg_confirm: 'Jeg har for øyeblikket %{num_quotes} sitater i databasen'
     list:
       cmd: Vis sitater
+      msg_nonexisting_quote: Quote does not exist
   modals:
     quote_num: Sitat nummer
     quote_text: Sitat tekst
@@ -44,4 +45,5 @@ no:
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
+      msg_no_change: Ingen endringer gjort
     error: 'Fikk følgende feil: %{error}'

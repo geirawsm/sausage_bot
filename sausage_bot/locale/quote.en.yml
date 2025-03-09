@@ -32,6 +32,7 @@ en:
       msg_confirm: 'I currently have %{num_quotes} quotes in my database'
     list:
       cmd: List quotes
+      msg_nonexisting_quote: Sitatet eksisterer ikke
   modals:
     quote_num: Quote number
     quote_text: Quote text
@@ -44,4 +45,5 @@ en:
     edit:
       modal_title: Edit quote
       msg_confirm: Quote edited
+      msg_no_change: No changes made
     error: 'Got error: %{error}'

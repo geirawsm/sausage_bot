@@ -1,4 +1,4 @@
-no:
+nb_no:
   owner_only: Kun for eier
   msg:
     failed_bot_start: Kunne ikke starte boten (%{error})

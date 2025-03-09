@@ -1,4 +1,4 @@
-no:
+nb_no:
   groups:
     rss: Administrer RSS-feeder
     filter: Administrer RSS filters
@@ -56,9 +56,9 @@ no:
       desc:
         feed_name: Navnet på feeden som skal legges til
         allow_deny: Tillat eller nekt
-        filter: 'Hva feeden skal filtreres etter. Separer flere med noen av følgende tegn: " .,;-_\\/"'
-        msg_confirm: 'Lagt til filtre som `%{allow_deny}`:'
-        msg_error: 'Feil ved legging av filter, sjekk loggfilene'
+        filters: 'Hva feeden skal filtreres etter. Separer flere med noen av følgende tegn: " .,;-_\\/"'
+      msg_confirm: 'Lagt til filtre som `%{allow_deny}`:'
+      msg_error: 'Feil ved legging av filter, sjekk loggfilene'
     filter_remove:
       cmd: Fjern et filter fra en RSS-feed
       desc:

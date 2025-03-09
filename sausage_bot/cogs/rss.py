@@ -413,13 +413,13 @@ class RSSfeed(commands.Cog):
     @describe(
         feed_name=I18N.t('rss.commands.filter_add.desc.feed_name'),
         allow_deny=I18N.t('rss.commands.filter_add.desc.allow_deny'),
-        filters_in=I18N.t('rss.commands.filter_add.desc.filters_in')
+        filters_in=I18N.t('rss.commands.filter_add.desc.filters')
     )
     async def rss_filter_add(
         self, interaction: discord.Interaction, feed_name: str,
         allow_deny: typing.Literal[
-            I18N.t('rss.commands.filter_add.desc.allow_deny.allow'),
-            I18N.t('rss.commands.filter_add.desc.allow_deny.deny')
+            I18N.t('common.literal_allow_deny.allow'),
+            I18N.t('common.literal_allow_deny.deny')
         ], filters_in: str
     ):
         '''
@@ -550,7 +550,7 @@ class RSSfeed(commands.Cog):
                         log.error(f'Invalid input for `value_in`: {_error}')
                         await interaction.followup.send(
                             I18N.t(
-                                'rss.commands.setting.input_invalid',
+                                'rss.commands.setting.value_in_input_invalid',
                                 error=_error
                             )
                         )

@@ -158,7 +158,11 @@ async def on_ready():
         template_info=envs.locale_db_schema,
         single=True
     )
-    log.debug(f'Setting locale to `{locale_db}`')
+    log.debug(
+        'Setting locale to `{}`'.format(
+            locale_db['locale']
+        )
+    )
     I18N.set('locale', locale_db['locale'])
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:

@@ -288,8 +288,8 @@ class Youtube(commands.Cog):
     async def youtube_filter_add(
         self, interaction: discord.Interaction, feed_name: str,
         allow_deny: typing.Literal[
-            I18N.t('youtube.commands.filter_add.literal.allow'),
-            I18N.t('youtube.commands.filter_add.literal.deny')
+            I18N.t('common.literal_allow_deny.allow'),
+            I18N.t('common.literal_allow_deny.deny')
         ], filters_in: str
     ):
         '''

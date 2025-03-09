@@ -492,7 +492,7 @@ class Quotes(commands.Cog):
         else:
             log.error('No changes discovered in quote')
             await interaction.followup.send(
-                I18N.t('quote.modals.edit.no_change'),
+                I18N.t('quote.modals.edit.msg_no_change'),
                 ephemeral=True
             )
             return
@@ -527,7 +527,7 @@ class Quotes(commands.Cog):
         )
     )
     @describe(
-        quote_number=I18N.t('quote.commands.delete.desc.quote_in')
+        quote_number=I18N.t('quote.commands.delete.desc.quote_number')
     )
     async def quote_delete(
             self, interaction: discord.Interaction,

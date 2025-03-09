@@ -1,8 +1,8 @@
 en:
   too_few_arguments: Too few arguments given to command
   literal_yes_no:
-    yes: Yes
-    no: No
+    "yes": "Yes"
+    "no": "No"
   literal_allow_deny:
     allow: Allow
     deny: Deny
@@ -19,5 +19,5 @@ en:
   roles: Roles
   emojis: Emojis
   header: Header
-  none: None
+  none: "None"
   color: Color

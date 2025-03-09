@@ -1,4 +1,4 @@
-no:
+nb_no:
   commands:
     autoevent:
       cmd: Administrer kamp-hendelser på serveren basert på en link fra en støttet nettside

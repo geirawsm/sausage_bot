@@ -1,8 +1,8 @@
-no:
+nb_no:
   too_few_arguments: Du har gitt for få argumenter til kommandoen
   literal_yes_no:
-    yes: Ja
-    no: Nei
+    "yes": "Ja"
+    "no": Nei
   literal_allow_deny:
     allow: Tillat
     deny: Nekt

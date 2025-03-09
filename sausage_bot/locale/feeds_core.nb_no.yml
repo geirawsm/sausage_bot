@@ -1,4 +1,4 @@
-no:
+nb_no:
   commands:
     review_feeds_status:
       failed_feeds: "Følgende feeds hadde feil ved henting av linker:\n%{feeds}"
