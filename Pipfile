@@ -36,6 +36,7 @@ autopep8 = "*"
 vulture = "*"
 flake8 = "*"
 flake8-async = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3"
