@@ -830,7 +830,7 @@ class Autoroles(commands.Cog):
         commands.has_permissions(manage_roles=True)
     )
     @roles_group.command(
-        name='list', description=I18N.t('roles.commands.list.cmd')
+        name='list', description=locale_str(I18N.t('roles.commands.list.cmd'))
     )
     @describe(
         public=I18N.t('roles.commands.list.desc.public'),

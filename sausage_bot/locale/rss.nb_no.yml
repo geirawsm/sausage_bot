@@ -82,5 +82,9 @@ nb_no:
         value_in: Verdi som skal settes
       value_in_input_invalid: 'Ugyldig inndata for `value_in`: %{error}'
       msg_confirm: Innstilling oppdatert
+    test:
+      cmd: Test en RSS-feed
+      desc:
+        feed_name: Navnet på feeden som skal testes
   tasks:
     feed_posts_is_none: 'Feeden `%{feed_name}` returnerer `%{return_value}`. Har deaktivert feed, sjekk loggfilene.'
