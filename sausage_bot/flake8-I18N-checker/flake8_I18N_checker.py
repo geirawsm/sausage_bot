@@ -262,9 +262,6 @@ class I18NVisitor(ast.NodeVisitor):
         DiscordCommandsShouldHaveLocale_str.check(node, self.errors)
         self.generic_visit(node)  # continue visiting child nodes
 
-    def visit_Assign(self, node):
-        self.generic_visit(node)  # continue visiting child nodes
-
     def visit_Name(self, node):
         GroupsShouldHaveLocale_str.check(node, self.errors)
         DescribeShouldBeI18N.check(node, self.errors)
