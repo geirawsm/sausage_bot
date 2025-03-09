@@ -1,5 +1,4 @@
 import ast
-import astpretty
 import glob
 from collections.abc import Iterator
 from typing import NamedTuple
