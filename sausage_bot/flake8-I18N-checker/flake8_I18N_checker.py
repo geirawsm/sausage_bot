@@ -106,6 +106,8 @@ class I18NStringIsNotFound:
             if not hasattr(child, 'id'):
                 continue
             if child.id == 'I18N':
+                if not hasattr(child, 'parent'):
+                    continue
                 if not hasattr(child.parent, 'attr'):
                     continue
                 if child.parent.attr != 't':
