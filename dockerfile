@@ -17,7 +17,7 @@ ARG LAST_COMMIT_MSG="testcommit message"
 ARG LAST_COMMIT="testcommit"
 ARG LAST_RUN_NUMBER="testrun"
 
-RUN echo -e \
+RUN echo \
     "{\"BRANCH\": \"${BRANCH}\","\
     "\"LAST_COMMIT_MSG\": \"${LAST_COMMIT_MSG}\","\
     "\"LAST_COMMIT\": \"${LAST_COMMIT}\","\
