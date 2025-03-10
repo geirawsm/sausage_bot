@@ -64,6 +64,8 @@ class DescribeShouldBeI18N:
                 continue
             if child.id != 'describe':
                 continue
+            if not hasattr(child, 'parent'):
+                continue
             for kw in child.parent.keywords:
                 if not hasattr(kw, 'value'):
                     continue
