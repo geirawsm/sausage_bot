@@ -788,57 +788,55 @@ async def setup(bot):
     # Prep of DBs with json inserts should only be done if the
     # db files does not exist
     missing_tbl_cols = {}
-    if not file_io.file_exist(envs.rss_db_schema['db_file']):
-        log.verbose('RSS db does not exist')
-        rss_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.rss_db_schema,
-            inserts=rss_inserts['feeds'] if rss_inserts is not None
-            else rss_inserts
-        )
-        rss_filter_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.rss_db_filter_schema,
-            inserts=rss_inserts['filter'] if rss_inserts is not None
-            else rss_inserts
-        )
-        rss_settings_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.rss_db_settings_schema,
-            inserts=envs.rss_db_settings_schema['inserts']
-        )
-        log.verbose(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
-        log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
-        log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
-    else:
-        log.verbose('rss db exist, checking columns!')
-        await db_helper.add_missing_db_setup(
-            envs.rss_db_schema, missing_tbl_cols
-        )
-        await db_helper.add_missing_db_setup(
-            envs.rss_db_settings_schema, missing_tbl_cols
-        )
-        await db_helper.add_missing_db_setup(
-            envs.rss_db_log_schema, missing_tbl_cols
-        )
-        log.debug(f'rss db: `missing_tbl_cols` is {missing_tbl_cols}')
-        if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
-            missing_tbl_cols_text = ''
-            for _tbl in missing_tbl_cols:
-                missing_tbl_cols_text += '{}:'.format(_tbl)
-                for col in missing_tbl_cols[_tbl]:
-                    missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
-                if _tbl != list(missing_tbl_cols.keys())[-1]:
-                    missing_tbl_cols_text += '\n\n'
-            await discord_commands.log_to_bot_channel(
-                'Missing columns in rss db: {}\n'
-                'Make sure to populate missing information'.format(
-                    missing_tbl_cols_text
-                )
-            )
-        # Change channel name to id
-        await db_helper.db_channel_name_to_id(
-            template_info=envs.rss_db_schema,
-            id_col='uuid', channel_col='channel'
+    log.verbose('RSS db does not exist')
+    rss_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_schema,
+        inserts=rss_inserts['feeds'] if rss_inserts is not None
+        else rss_inserts
+    )
+    rss_filter_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_filter_schema,
+        inserts=rss_inserts['filter'] if rss_inserts is not None
+        else rss_inserts
+    )
+    rss_settings_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_settings_schema,
+        inserts=envs.rss_db_settings_schema['inserts']
+    )
+    log.verbose(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
+    log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
+    log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
 
+    log.verbose('Checking columns in db')
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_schema, missing_tbl_cols
+    )
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_settings_schema, missing_tbl_cols
+    )
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_log_schema, missing_tbl_cols
+    )
+    log.debug(f'rss db: `missing_tbl_cols` is {missing_tbl_cols}')
+    if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
+        missing_tbl_cols_text = ''
+        for _tbl in missing_tbl_cols:
+            missing_tbl_cols_text += '{}:'.format(_tbl)
+            for col in missing_tbl_cols[_tbl]:
+                missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
+            if _tbl != list(missing_tbl_cols.keys())[-1]:
+                missing_tbl_cols_text += '\n\n'
+        await discord_commands.log_to_bot_channel(
+            'Missing columns in rss db: {}\n'
+            'Make sure to populate missing information'.format(
+                missing_tbl_cols_text
+            )
         )
+    # Change channel name to id
+    await db_helper.db_channel_name_to_id(
+        template_info=envs.rss_db_schema,
+        id_col='uuid', channel_col='channel'
+    )
     rss_log_prep_is_ok = await db_helper.prep_table(
         table_in=envs.rss_db_log_schema,
         inserts=rss_inserts['logs'] if rss_inserts is not None
