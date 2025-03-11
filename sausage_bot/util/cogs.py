@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'cogs: Manage cogs'
 import os
 from discord.ext import commands
 from contextlib import suppress

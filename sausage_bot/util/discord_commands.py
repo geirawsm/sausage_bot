@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'discord_commands: Helper functions for discord commands'
 import discord
 from tabulate import tabulate
 

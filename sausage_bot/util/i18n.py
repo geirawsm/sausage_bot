@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'i18n: Internationalization functions'
 import os
 import re
 import discord

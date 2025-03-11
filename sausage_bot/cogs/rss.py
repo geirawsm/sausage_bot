@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'rss: Administer RSS-feeds that will autopost to a given channel when published'
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'quote: Administer or post quotes'
 import discord
 from discord.ext import commands
 from discord.app_commands import locale_str, describe

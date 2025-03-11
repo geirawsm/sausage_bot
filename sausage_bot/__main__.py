@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-"Set's up the bot, have a few generic commands and controls cogs"
+'__main__: Set up the bot, have a few generic commands and controls cogs'
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str

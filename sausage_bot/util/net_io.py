@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'net_io: Networking functions'
 import discord
 import re
 import aiohttp

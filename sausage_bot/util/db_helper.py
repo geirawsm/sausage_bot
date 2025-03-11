@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'db_helper: Helper functions for database handling'
 import aiosqlite
 from uuid import uuid4
 import re

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'roles: Administer roles and reaction roles on the server'
 import discord
 from discord.ext import commands
 from discord.utils import get

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'Set variables for the module like folder, files and botlines'
+'envs: Set variables for the module like folder, files and botlines'
 
 from pathlib import Path
 

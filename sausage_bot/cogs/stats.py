@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'stats: Get interesting stats for the discord server and post them to a channel'
 import os
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe

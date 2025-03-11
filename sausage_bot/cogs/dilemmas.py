@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'dilemmas: Post a random dilemma'
 import discord
 from discord.ext import commands
 from discord.app_commands import locale_str, describe

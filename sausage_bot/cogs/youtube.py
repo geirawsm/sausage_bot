@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'youtube: Autopost new videos from given Youtube channels'
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe

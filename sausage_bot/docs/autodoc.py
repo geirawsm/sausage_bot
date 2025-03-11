@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'''
-Auto-document all relevant files in the module
+'autodoc: Auto-document all relevant files in the module'
 
+'''
 Open the terminal, get into `pipenv shell` and run `python -m sausage_bot
 .docs.autodoc`. This will create `documentation.md` in the docs folder,
 containing all the functions in a markdown format which makes it easier

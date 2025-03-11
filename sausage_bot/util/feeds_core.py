@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'feeds_core: Core functions for RSS and Youtube feeds'
 from bs4 import BeautifulSoup
 from lxml import etree
 from tabulate import tabulate

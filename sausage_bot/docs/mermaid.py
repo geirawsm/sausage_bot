@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'mermaid: converting mermaid charts to images'
 import base64
 import os
 import requests

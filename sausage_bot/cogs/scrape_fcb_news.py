@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'scrape_fcb_news: A hardcoded cog - get newsposts from https://www.fcbarcelona.com and post them to specific team channels'
 from bs4 import BeautifulSoup
 import requests
 from discord.ext import commands, tasks

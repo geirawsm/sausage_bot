@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'log_maintenance: Administer log maintenance tasks'
 import os
 import discord
 from discord.ext import commands, tasks
