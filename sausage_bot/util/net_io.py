@@ -441,12 +441,11 @@ async def parse(url: str = None):
             parse = await parse_nifs(url)
             return parse
         except Exception as e:
-            error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
+            error_msg = f'Could not parse {url} - got the following error:\n{e}'
             log.error(error_msg)
             return None
     elif PARSER == 'vglive':
         if '/kamp/' not in url:
-            # todo var msg
             log.error('The vglive url is not from a match page')
             return None
         try:
@@ -456,7 +455,7 @@ async def parse(url: str = None):
             else:
                 return parse
         except Exception as e:
-            error_msg = envs.AUTOEVENT_PARSE_ERROR.format(url, e)
+            error_msg = f'Could not parse {url} - got the following error:\n{e}'
             log.error(error_msg)
             return None
     elif PARSER == 'tv2livesport':

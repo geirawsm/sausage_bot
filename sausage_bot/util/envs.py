@@ -431,9 +431,6 @@ CHANNEL_STATUS_SUCCESS = 'OK'
 # COG - YOUTUBE
 YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
 
-# COG - AUTOEVENT
-AUTOEVENT_PARSE_ERROR = 'Klarte ikke parsing av {} - fikk følgende feil:\n{}'
-
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'
 roles_ensure_separator = ('><', '> <')
