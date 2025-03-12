@@ -16,3 +16,4 @@ sausage_bot/tempfiles/*
 sausage_bot/version.json
 .cache
 .flake8
+sausage_bot/test/test_parse/*

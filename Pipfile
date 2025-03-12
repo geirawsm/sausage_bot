@@ -27,6 +27,7 @@ tabulated = "*"
 pip = "*"
 pytest-mock = "*"
 pyyaml = "*"
+tabulate = "*"
 
 [dev-packages]
 pytest = "*"
@@ -37,6 +38,8 @@ vulture = "*"
 flake8 = "*"
 flake8-async = "*"
 pyyaml = "*"
+astpretty = "*"
+tabulate = "*"
 
 [requires]
 python_version = "3"

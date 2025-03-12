@@ -2,6 +2,8 @@
 ignore = E266, B008
 exclude =
     ./sausage_bot/flake8-I18N-checker,
+    ./sausage_bot/test
+    ./sausage_bot/testing
     ./sausage_bot/util/i18n.py
 
 [flake8:local-plugins]

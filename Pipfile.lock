@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "17ed569912bd2c74d38564fc2e187c0c3ee11cf5582f9b6e62b79d554101e8a8"
+            "sha256": "4604a116071d8b501a7295bacda1c81f76f21a372cb1e2c1bc554c61d342ea16"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -26,11 +26,11 @@
         },
         "aiohappyeyeballs": {
             "hashes": [
-                "sha256:0850b580748c7071db98bffff6d4c94028d0d3035acc20fd721a0ce7e8cac35d",
-                "sha256:18fde6204a76deeabc97c48bdd01d5801cfda5d6b9c8bbeb1aaaee9d648ca191"
+                "sha256:c3f9d0113123803ccadfdf3f0faa505bc78e6a72d1cc4806cbd719826e943558",
+                "sha256:f349ba8f4b75cb25c99c5c2d84e997e485204d2902a9597802b0371f09331fb8"
             ],
             "markers": "python_version >= '3.9'",
-            "version": "==2.5.0"
+            "version": "==2.6.1"
         },
         "aiohttp": {
             "hashes": [
@@ -1137,6 +1137,14 @@
             "index": "pypi",
             "version": "==2.25.1"
         },
+        "tabulate": {
+            "hashes": [
+                "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c",
+                "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"
+            ],
+            "index": "pypi",
+            "version": "==0.9.0"
+        },
         "tabulated": {
             "hashes": [
                 "sha256:1495121781af712307b2add3304b0f73c791b6d822a3eaa620bf958b82883117",
@@ -1344,6 +1352,14 @@
         }
     },
     "develop": {
+        "astpretty": {
+            "hashes": [
+                "sha256:15bfd47593667169485a1fa7938b8de9445b11057d6f2b6e214b2f70667f94b6",
+                "sha256:b08c95f32e5994454ea99882ff3c4a0afc8254c38998a0ed4b479dba448dc581"
+            ],
+            "index": "pypi",
+            "version": "==3.0.0"
+        },
         "autopep8": {
             "hashes": [
                 "sha256:89440a4f969197b69a995e4ce0661b031f455a9f776d2c5ba3dbd83466931758",
@@ -1540,6 +1556,14 @@
             ],
             "index": "pypi",
             "version": "==6.0.2"
+        },
+        "tabulate": {
+            "hashes": [
+                "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c",
+                "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"
+            ],
+            "index": "pypi",
+            "version": "==0.9.0"
         },
         "vulture": {
             "hashes": [
