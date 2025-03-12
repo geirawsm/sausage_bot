@@ -15,14 +15,23 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Set up Python 3.12
+      id: setup-python
       uses: actions/setup-python@v4
       with:
         python-version: "3.12"
 
+    - uses: actions/cache@v4
+      with:
+        path: ~/.local/share/virtualenvs
+        key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install --upgrade flake8 pipenv pyyaml
+        python -m pip install --upgrade flake8 pipenv pyyaml tabulate astpretty
+
+    - name: Check locale files
+      run: python -m sausage_bot.util.check_locale_files
 
     - name: Lint with flake8
       run: |

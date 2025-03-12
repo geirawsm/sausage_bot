@@ -27,9 +27,9 @@ en:
       desc:
         feed_name: Name of Youtube feed to manage
       msg_remove_non_existing_feed: The youtube feed `%{feed_name}` does not exist
-      msg_feed_removed: 'Removed Youtube feed `{feed_name}` from channel `{channel_name}`'
+      msg_feed_removed: 'Removed Youtube feed `%{feed_name}` from channel `%{channel_name}`'
       log_feed_removed: 'Youtube feed `%{feed_name}` removed by %{user_name}'
-      msg_feed_remove_failed: 'The Youtube feed `{feed_name}` could not be removed'
+      msg_feed_remove_failed: 'The Youtube feed `%{feed_name}` could not be removed'
       log_feed_remove_failed: 'User %{user_name} tried to remove the Youtube feed `%{feed_name}`, but it failed'
     filter_add:
       cmd: Add filters on an Youtube feed
@@ -45,7 +45,7 @@ en:
         feed_name: Name of feed
         filter_in: What filter to look for
       msg_confirm: 'Removed filter `%{filter_in}`'
-      msg_error: Error when removing filter `{filter_in}`, check logs
+      msg_error: Error when removing filter `%{filter_in}`, check logs
     list:
       cmd: List all active YouTube feeds
       desc:

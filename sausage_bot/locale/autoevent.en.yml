@@ -30,7 +30,7 @@ en:
       cmd: List all the planned events
       msg_no_events: No events are currently planned
     sync:
-      cmd: Create a timer for an 
+      cmd: Create a timer for an event
       desc:
         sync_time: The time you want to sync to
         countdown: How many seconds should it count down before hitting the `sync_time`
