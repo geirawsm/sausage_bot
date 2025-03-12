@@ -107,32 +107,37 @@ async def add_missing_db_setup(
     db_file = template_info['db_file']
     table_name = template_info['name']
     inserts = template_info['inserts'] if 'inserts' in template_info else None
-    log.debug(f'Checking `{table_name}` in `{db_file}`')
+    log.debug(f'Checking `{table_name}` in `{db_file}`: {dict_in}')
     if not dict_in:
         dict_in = {}
     if table_name not in dict_in:
         dict_in[table_name] = []
+        await prep_table(template_info)
+    log.debug(f'dict_in is: {dict_in}')
     wanted_cols = template_info['items']
     table_info = f'PRAGMA table_info({table_name})'
     async with aiosqlite.connect(db_file) as db:
         db_out = await db.execute(table_info)
         existing_cols = await db_out.fetchall()
+        _existing_cols = [col[1] for col in existing_cols]
+        log.debug(f'_existing_cols: {_existing_cols}')
+    async with aiosqlite.connect(db_file) as db:
         row_ids = await db.execute(
             f'SELECT rowid FROM {table_name}'
         )
         row_ids = await row_ids.fetchall()
     _existing_cols = [col[1] for col in existing_cols]
-    log.debug(f'_existing_cols: {_existing_cols}')
-    for col_in in wanted_cols:
-        if col_in[0] not in _existing_cols:
-            log.debug(f'Adding {col_in[0]}')
-            dict_in[table_name].append(col_in)
-    async with aiosqlite.connect(db_file) as db:
-        for col in dict_in[table_name]:
-            log.debug(f'col: {col}')
-            _cmd = f'ALTER TABLE {table_name} ADD COLUMN {col[0]};'
-            log.db(f'Using this query: {_cmd}')
-            await db.execute(_cmd)
+    if len(_existing_cols) > 0:
+        for col_in in wanted_cols:
+            if col_in[0] not in _existing_cols:
+                log.debug(f'Adding {col_in[0]}')
+                dict_in[table_name].append(col_in)
+        async with aiosqlite.connect(db_file) as db:
+            for col in dict_in[table_name]:
+                log.debug(f'col: {col}')
+                _cmd = f'ALTER TABLE {table_name} ADD COLUMN {col[0]};'
+                log.db(f'Using this query: {_cmd}')
+                await db.execute(_cmd)
     # Add existing inserts in columns where they don't exist yet
     temp_inserts = []
     if inserts is not None and len(inserts) > 0:
