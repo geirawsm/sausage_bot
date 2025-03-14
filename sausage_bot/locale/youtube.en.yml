@@ -49,11 +49,15 @@ en:
     list:
       cmd: List all active YouTube feeds
       desc:
-        list_type: 'Specify type of list'
+        list_type: Specify type of list
+        link_type: Specify type of link
       msg_error: No feeds added
-      literal_type:
+      literal_list_type:
         normal: Normal
         added: Added
         filter: Filter
+      literal_link_type:
+        channel: Channel
+        playlist: Playlist
   tasks:
     log_error: '%{feed_name} returned NoneType'

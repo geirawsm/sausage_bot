@@ -351,7 +351,8 @@ youtube_db_schema = {
         ['status_url', 'TEXT'],
         ['status_url_counter', 'INTEGER'],
         ['status_channel', 'TEXT'],
-        ['youtube_id', 'TEXT']
+        ['youtube_id', 'TEXT'],
+        ['playlist_id', 'TEXT']
     ],
     'primary': 'uuid',
     'autoincrement': False
@@ -430,6 +431,7 @@ CHANNEL_STATUS_SUCCESS = 'OK'
 
 # COG - YOUTUBE
 YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
+YOUTUBE_PLAYLIST_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?playlist_id={}'
 
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'

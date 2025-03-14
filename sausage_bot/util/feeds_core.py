@@ -6,7 +6,8 @@ from lxml import etree
 from tabulate import tabulate
 from uuid import uuid4
 import discord
-from re import match
+import re
+import json
 from hashlib import md5
 
 
@@ -73,9 +74,25 @@ async def get_page_hash(url):
     if req is None:
         log.error('Could not get link')
         return None
-    soup = BeautifulSoup(req, features='xml')
-    desc = soup.find('meta', attrs={'name': 'description'})
-    return md5(str(desc).encode('utf-8')).hexdigest()
+    desc = None
+    try:
+        soup = BeautifulSoup(req, features='xml')
+        desc = soup.find('meta', attrs={'name': 'description'})
+    except Exception as e:
+        log.error(f'Error when trying to hash RSS-desc {url}: {e}')
+    try:
+        soup = BeautifulSoup(req, features='html.parser')
+        _scripts = soup.find_all('script')
+        for _script in _scripts:
+            if 'var ytInitialData =' in _script.text:
+                _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
+                _script = json.loads(_script)
+                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
+    except Exception as e:
+        log.error(f'Error when trying to hash YT-desc {url}: {e}')
+    if desc is not None:
+        desc = md5(str(desc).encode('utf-8')).hexdigest()
+    return desc
 
 
 async def get_items_from_rss(
@@ -183,7 +200,7 @@ async def get_items_from_rss(
 
 async def add_to_feed_db(
     feed_type, name, feed_link=None, channel=None, user_add=None,
-    yt_id=None
+    yt_id=None, playlist_id=None
 ):
     '''
     Add a an item to the feeds table in db
@@ -194,6 +211,7 @@ async def add_to_feed_db(
     `channel`:      The discord channel to post the feed to
     `user_add`:     The user who added the feed
     `yt_id`:        yt-id
+    ``playlist_id`: id of playlist
     '''
 
     if feed_type not in ['rss', 'youtube', 'spotify']:
@@ -233,13 +251,13 @@ async def add_to_feed_db(
             rows=(
                 'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
                 'status_url', 'status_url_counter', 'status_channel',
-                'youtube_id'
+                'youtube_id', 'playlist_id'
             ),
             inserts=(
                 (
                     str(uuid4()), name, feed_link, channel, date_now,
                     user_add, envs.FEEDS_URL_SUCCESS, 0,
-                    envs.CHANNEL_STATUS_SUCCESS, yt_id
+                    envs.CHANNEL_STATUS_SUCCESS, yt_id, playlist_id
                 )
             )
         )
@@ -287,7 +305,12 @@ async def get_feed_links(feed_type, feed_info):
         feed_db_filter = envs.rss_db_filter_schema
         feed_db_log = envs.rss_db_log_schema
     elif feed_type == 'youtube':
-        URL = envs.YOUTUBE_RSS_LINK.format(feed_info['youtube_id'])
+        if feed_info['playlist_id'] is not None:
+            URL = envs.YOUTUBE_PLAYLIST_RSS_LINK.format(
+                feed_info['playlist_id']
+            )
+        else:
+            URL = envs.YOUTUBE_RSS_LINK.format(feed_info['youtube_id'])
         feed_db_filter = envs.youtube_db_filter_schema
         feed_db_log = envs.youtube_db_log_schema
     else:
@@ -320,7 +343,8 @@ async def get_feed_links(feed_type, feed_info):
 
 
 async def get_feed_list(
-    db_in: str = None, db_filter_in: str = None, list_type: str = None
+    db_in: str = None, db_filter_in: str = None, list_type: str = None,
+    link_type: str = None
 ):
     '''
     Get a prettified list of feeds.
@@ -333,6 +357,8 @@ async def get_feed_list(
         Database with the filters (default: None)
     list_type: str
         If specified, should show that specific list_type
+    link_type: str
+        If specified, should show that specific link_type
     '''
 
     async def split_lengthy_list(table_in):
@@ -365,12 +391,23 @@ async def get_feed_list(
         return paginated
 
     _guild = discord_commands.get_guild()
+    if link_type == I18N.t(
+        'youtube.commands.list.literal_link_type.channel'
+    ):
+        wheres_in = [('playlist_id', 'IS', 'None')]
+    elif link_type == I18N.t(
+        'youtube.commands.list.literal_link_type.playlist'
+    ):
+        wheres_in = [('playlist_id', 'IS NOT', 'None')]
+    else:
+        wheres_in = None
     if list_type is None:
         feeds_out = await db_helper.get_output(
             template_info=db_in,
             select=(
-                'feed_name', 'url', 'channel'
+                'feed_name', 'url', 'channel', 'playlist_id'
             ),
+            where=wheres_in,
             order_by=[
                 ('feed_name', 'ASC')
             ]
@@ -379,6 +416,14 @@ async def get_feed_list(
             feed['channel'] = _guild.get_channel(
                 int(feed['channel'])
             ).name
+            if feed['playlist_id'] is None:
+                feed['playlist_id'] = I18N.t(
+                    'common.channel'
+                )
+            else:
+                feed['playlist_id'] = I18N.t(
+                    'common.playlist'
+                )
         log.debug(f'`feeds_out` is {feeds_out}')
         # Return None if empty db
         if feeds_out is None:
@@ -387,15 +432,17 @@ async def get_feed_list(
         headers = {
             'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
             'url': I18N.t('feeds_core.list_headers.url'),
-            'channel': I18N.t('feeds_core.list_headers.channel')
+            'channel': I18N.t('feeds_core.list_headers.channel'),
+            'playlist_id': I18N.t('feeds_core.list_headers.link_type')
         }
-        maxcolwidths = [None, None, None]
+        maxcolwidths = [None, None, None, None]
     elif list_type == 'added':
         feeds_out = await db_helper.get_output(
             template_info=db_in,
             select=(
-                'feed_name', 'url', 'channel', 'added', 'added_by'
+                'feed_name', 'url', 'channel', 'added', 'added_by', 'playlist_id'
             ),
+            where=wheres_in,
             order_by=[
                 ('feed_name', 'ASC')
             ]
@@ -404,10 +451,18 @@ async def get_feed_list(
             feed['channel'] = _guild.get_channel(
                 int(feed['channel'])
             ).name
-            if match(r'(\d+)', feed['added_by']):
+            if re.match(r'(\d+)', feed['added_by']):
                 feed['added_by'] = _guild.get_member(
                     int(feed['added_by'])
                 ).name
+            if feed['playlist_id'] is None:
+                feed['playlist_id'] = I18N.t(
+                    'common.channel'
+                )
+            else:
+                feed['playlist_id'] = I18N.t(
+                    'common.playlist'
+                )
         # Return None if empty db
         if len(feeds_out) <= 0:
             log.log('No feeds in database')
@@ -417,9 +472,10 @@ async def get_feed_list(
             'url': I18N.t('feeds_core.list_headers.url'),
             'channel': I18N.t('feeds_core.list_headers.channel'),
             'added': I18N.t('feeds_core.list_headers.added'),
-            'added_by': I18N.t('feeds_core.list_headers.added_by')
+            'added_by': I18N.t('feeds_core.list_headers.added_by'),
+            'playlist_id': I18N.t('feeds_core.list_headers.link_type')
         }
-        maxcolwidths = [None, None, None, None, None]
+        maxcolwidths = [None, None, None, None, None, None]
     elif list_type == 'filter':
         if db_filter_in is None:
             log.error('`db_filter_in` is not specified')
@@ -427,8 +483,9 @@ async def get_feed_list(
         feeds_db = await db_helper.get_output(
             template_info=db_in,
             select=(
-                'uuid', 'feed_name', 'channel'
+                'uuid', 'feed_name', 'channel', 'playlist_id'
             ),
+            where=wheres_in,
             order_by=[
                 ('feed_name', 'ASC')
             ]
@@ -502,58 +559,54 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
             list_of_old_links, link, channel
         )
 
+    link_in_log = None
+    hash_in_log = None
+    link_hash = None
     if log_in is None:
         log.verbose('Log is empty')
         return False
-    try:
-        link_in_log = None
-        hash_in_log = None
-        link_hash = None
-        if 'hash' in log_in[0]:
-            link_hash = await get_page_hash(link)
-            log.verbose(f'Link hash is `{link_hash}`')
-        if link in [log_url['url'] for log_url in log_in]:
-            log.debug('Link in log')
-            link_in_log = True
-        else:
-            link_in_log = False
+    log.debug(f'log_in is {log_in}')
+    link_hash = await get_page_hash(link)
+    log.verbose(f'Link hash is `{link_hash}`')
+    if link in [log_url['url'] for log_url in log_in]:
+        log.debug('Link in log')
+        link_in_log = True
+    else:
+        link_in_log = False
+    if len(log_in) > 0:
         if 'hash' in log_in[0]:
             if link_hash in [log_url['hash'] for log_url in log_in]:
                 log.verbose('Hash in log')
                 hash_in_log = True
             else:
                 hash_in_log = False
-        if link_in_log and hash_in_log:
-            log.debug('Link is in log, returning True')
-            return True
-        elif link_in_log and hash_in_log is None:
-            log.debug('Link is in log, returning True')
-            return True
-        if link_in_log and not hash_in_log:
-            log.debug('Link is in log, but hash has changed. Replacing...')
-            await replace_post(link, log_in, link_hash, channel)
-            log.debug('Adding link to log')
-            await log_link(
-                log_env, uuid, link, link_hash
-            )
-            return True
-        if not link_in_log and hash_in_log:
-            log.debug(
-                'Hash in log, but link is not. '
-                'Adding to log and replacing post'
-            )
-            await replace_post(link, log_in, link_hash, channel, uuid)
-            return True
-        elif not link_in_log and hash_in_log is None:
-            log.debug('Link is not in log, logging it and returning False')
-            await log_link(
-                log_env, uuid, link, link_hash
-            )
-            return False
-    except Exception as e:
-        log.error(
-            f'Error: {e}:', pretty=log_in)
-        return None
+    else:
+        hash_in_log = False
+    if ((link_in_log and hash_in_log)
+            or (link_in_log and hash_in_log is None)):
+        log.debug('Link is in log, returning True')
+        return True
+    if link_in_log and not hash_in_log:
+        log.debug('Link is in log, but hash has changed. Replacing...')
+        await replace_post(link, log_in, link_hash, channel)
+        log.debug('Adding link to log')
+        await log_link(
+            log_env, uuid, link, link_hash
+        )
+        return True
+    elif not link_in_log and hash_in_log:
+        log.debug(
+            'Hash in log, but link is not. '
+            'Adding to log and replacing post'
+        )
+        await replace_post(link, log_in, link_hash, channel, uuid)
+        return True
+    elif not link_in_log and hash_in_log is None:
+        log.debug('Link is not in log, logging it and returning False')
+        await log_link(
+            log_env, uuid, link, link_hash
+        )
+        return False
 
 
 async def log_link(template_info, uuid, feed_link, page_hash):

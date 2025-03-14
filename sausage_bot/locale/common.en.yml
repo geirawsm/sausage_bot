@@ -21,3 +21,5 @@ en:
   header: Header
   none: "None"
   color: Color
+  channel: Channel
+  playlist: Playlist

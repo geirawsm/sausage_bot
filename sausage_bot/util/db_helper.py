@@ -953,8 +953,14 @@ async def get_output(
     ------------
     template_info: dict
         dict info about the table from envs file
-    where: tuple
+    where: list/tuple
         Single or multiple things to look for to identify correct rows
+        Could be a single tuple or a list of tuples
+        Tuple can be:
+            (`col name`, `value`)
+                or
+            (`col name`, `operator`, `value`)
+        If no operator is given, it will always use `==`
     like: tuple
         Single or multiple keywords to search for in a row
     not_like: tuple
@@ -970,6 +976,24 @@ async def get_output(
     single: bool
         Only return one single result
     '''
+    def parse_wheres(where):
+        if not isinstance(where, tuple):
+            return None
+        # If length of where is 3, then it contains an operator
+        if len(where) == 3:
+            print(where[2].lower())
+            if where[2].lower() in ['none', 'null', '0', 'false']:
+                cmd = f" {where[0]} {where[1]} NULL"
+            else:
+                cmd = f" LOWER({where[0]}) {where[1]} LOWER('{where[2]}')"
+        # If length of where is 2, then it contains only col name and value
+        elif len(where) == 2:
+            cmd = f" LOWER({where[0]}) = LOWER('{where[1]}')"
+        else:
+            log.error('Error with input, returning None')
+            return None
+        return cmd
+
     db_file = template_info['db_file']
     log.db(f'Opening `{db_file}`')
     table_name = template_info['name']
@@ -994,12 +1018,12 @@ async def get_output(
             _cmd += ' AND'
         if isinstance(where, tuple):
             log.verbose(f'`where` is tuple: {where}')
-            _cmd += f" LOWER({where[0]}) = LOWER('{where[1]}')"
+            _cmd += parse_wheres(where)
         elif isinstance(where, list) and isinstance(where[0], tuple):
             log.verbose(f'`where` is tuple inside a list: {where}')
-            for id in where:
-                _cmd += f" LOWER({id[0]}) = LOWER('{id[1]}')"
-                if id != where[-1]:
+            for _where in where:
+                _cmd += parse_wheres(_where)
+                if _where[0] != where[-1][0]:
                     _cmd += ' AND'
     if like is not None:
         if 'where' not in _cmd.lower():

@@ -21,3 +21,5 @@ nb_no:
   header: Overskrift
   none: None
   color: Farge
+  channel: Kanal
+  playlist: Spilleliste

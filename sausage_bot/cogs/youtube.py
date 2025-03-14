@@ -169,7 +169,7 @@ class Youtube(commands.Cog):
         youtube_link: str, channel: discord.TextChannel
     ):
         '''
-        Add a Youtube feed
+        Add a Youtube feed or playlist
         '''
         await interaction.response.defer()
         AUTHOR = interaction.user.name
@@ -183,10 +183,18 @@ class Youtube(commands.Cog):
                 ),
             )
             return
-        await feeds_core.add_to_feed_db(
-            'youtube', str(feed_name), str(youtube_link), channel.id,
-            AUTHOR, youtube_info['channel_id']
-        )
+        if '&list=' in youtube_link:
+            await feeds_core.add_to_feed_db(
+                'youtube', str(feed_name), str(youtube_link), channel.id,
+                AUTHOR, youtube_info['channel_id'],
+                youtube_info['id']
+            )
+        else:
+            await feeds_core.add_to_feed_db(
+                'youtube', str(feed_name), str(youtube_link), channel.id,
+                AUTHOR, youtube_info['channel_id'],
+                None
+            )
         await discord_commands.log_to_bot_channel(
             I18N.t(
                 'youtube.commands.add.log_feed_confirm',
@@ -384,34 +392,46 @@ class Youtube(commands.Cog):
         )
     )
     @describe(
-        list_type=I18N.t('youtube.commands.list.desc.list_type')
+        list_type=I18N.t('youtube.commands.list.desc.list_type'),
+        link_type=I18N.t('youtube.commands.list.desc.link_type')
     )
     async def youtube_list(
         self, interaction: discord.Interaction,
         list_type: typing.Literal[
-            I18N.t('youtube.commands.list.literal_type.normal'),
-            I18N.t('youtube.commands.list.literal_type.added'),
-            I18N.t('youtube.commands.list.literal_type.filter')
-        ]
+            I18N.t('youtube.commands.list.literal_list_type.normal'),
+            I18N.t('youtube.commands.list.literal_list_type.added'),
+            I18N.t('youtube.commands.list.literal_list_type.filter')
+        ],
+        link_type: typing.Literal[
+            I18N.t('youtube.commands.list.literal_link_type.channel'),
+            I18N.t('youtube.commands.list.literal_link_type.playlist'),
+        ] = None
     ):
         '''
         List all active Youtube feeds
         '''
         await interaction.response.defer()
-        if list_type == I18N.t('youtube.commands.list.literal_type.added'):
+        if list_type == I18N.t(
+            'youtube.commands.list.literal_list_type.added'
+        ):
             formatted_list = await feeds_core.get_feed_list(
                 db_in=envs.youtube_db_schema,
-                list_type=list_type.lower()
+                list_type=list_type.lower(),
+                link_type=link_type
             )
-        elif list_type == I18N.t('youtube.commands.list.literal_type.filter'):
+        elif list_type == I18N.t(
+            'youtube.commands.list.literal_list_type.filter'
+        ):
             formatted_list = await feeds_core.get_feed_list(
                 db_in=envs.youtube_db_schema,
                 db_filter_in=envs.youtube_db_filter_schema,
-                list_type=list_type.lower()
+                list_type=list_type.lower(),
+                link_type=link_type
             )
         else:
             formatted_list = await feeds_core.get_feed_list(
-                envs.youtube_db_schema
+                envs.youtube_db_schema,
+                link_type=link_type
             )
         if formatted_list is not None:
             page_counter = 0

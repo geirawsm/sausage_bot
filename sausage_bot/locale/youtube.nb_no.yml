@@ -50,10 +50,14 @@ nb_no:
       cmd: List alle active YouTube-feeder
       desc:
         list_type: Velg type liste
+        link_type: Velg type link
       msg_error: Ingen feeder lagt til
-      literal_type:
+      literal_list_type:
         normal: Normal
         added: Lagt til
         filter: Filter
+      literal_link_type:
+        channel: Kanal
+        playlist: Spilleliste
   tasks:
     log_error: '%{feed_name} returnerte NoneType'
