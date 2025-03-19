@@ -90,8 +90,25 @@ async def get_page_hash(url):
                 desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
     except Exception as e:
         log.error(f'Error when trying to hash YT-desc {url}: {e}')
+        soup = BeautifulSoup(req, features='html.parser')
+        _scripts = soup.find_all('script')
+        for _script in _scripts:
+            if 'var ytInitialData =' in _script.text:
+                _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
+                _script = json.loads(_script)
+                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']['runs'][0]['text']
+        _file_date = datetime_handling.get_dt(
+            format='revdatetimefull', sep='_'
+        )
+        error_out = f'{url}: {e}\n\n'
+        error_out += str(_scripts)
+        file_io.write_file(
+            envs.LOG_DIR / 'YT_ERRORS' / f'{_file_date}.html',
+            error_out
+        )
     if desc is not None:
         desc = md5(str(desc).encode('utf-8')).hexdigest()
+    log.debug(f'Got `desc`: {desc}')
     return desc
 
 
