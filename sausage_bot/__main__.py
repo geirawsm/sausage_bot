@@ -4,8 +4,10 @@
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str
+from discord.utils import get
 from tabulate import tabulate
 import typing
+import re
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
@@ -109,12 +111,94 @@ class EditModal(discord.ui.Modal):
 
         self.add_item(comment_text)
 
+    @classmethod
+    def check_discord_username(
+        cls, username_in
+    ):
+        if isinstance(username_in, re.Match):
+            username_in = username_in.group(0)
+        log.debug(f'Got username_in: {username_in}')
+        _user_in = username_in.strip().replace('@', '')\
+            .replace('"', '')
+        log.debug(f'Stripped and fixed _user_in: {_user_in}')
+        user_obj = get(
+            discord_commands.get_guild().members,
+            name=_user_in
+        )
+        log.debug(f'Got user_obj: {user_obj}')
+        return user_obj
+
+    @classmethod
+    def check_similar_discord_usernames(
+        cls, username_in, similar_floor=None, similar_roof=None
+    ):
+        _members = [
+            (member.name, member.id) for member in
+            discord_commands.get_guild().members
+        ]
+        log.debug(f'Comparing {username_in} with {_members}')
+        similars = file_io.check_similarity(
+            username_in, _members,
+            ratio_floor=similar_floor,
+            ratio_roof=similar_roof
+        )
+        return similars
+
     async def on_submit(self, interaction: discord.Interaction):
         self.comment_out = self.children[0].value
-        await interaction.response.send_message(
-            I18N.t('main.context_menu.edit_msg.edit_confirm'),
-            ephemeral=True
-        )
+        if self.comment_out is not None:
+            # Check for @-s
+            _users = re.finditer(
+                r'\"@([\w\-_\' ]+)\"|[^(?!<)]@[\w\-_\']+',
+                self.comment_out
+            )
+            username_errors = []
+            for _user in _users:
+                log.debug(f'`_user`: {_user.group(0)}')
+                # Check if username exist on discord server
+                user_obj = EditModal.check_discord_username(_user)
+                # If it is not found, add to `username_errors`
+                if user_obj is None:
+                    log.verbose('Appending to username_errors')
+                    # Add username to error list
+                    username_errors.append(_user)
+                else:
+                    log.debug(f'Got this text:\n{self.comment_out}')
+                    log.debug(f'Want to replace `{str(_user)}`')
+                    self.comment_out = self.comment_out.replace(
+                        str(_user.group(0)).strip(),
+                        '<@{}>'.format(user_obj.id)
+                    )
+            log.debug(f'username_errors: {username_errors}')
+            if len(username_errors) > 0:
+                for _user in enumerate(username_errors):
+                    log.debug(f'Checking {_user[1].group(0)} ({_user})')
+                    user_check = _user[1].group(0).strip()\
+                        .replace('@', '').replace('"', '')
+                    similars = EditModal.check_similar_discord_usernames(
+                        username_in=user_check,
+                        similar_floor=0.7,
+                        similar_roof=0.95
+                    )
+                    log.debug(f'similars: {similars}')
+                    if similars is not False:
+                        user_obj = EditModal.check_discord_username(similars)
+                        log.debug(f'Want to replace `{str(similars)}`')
+                        self.comment_out = self.comment_out.replace(
+                            str(_user[1].group(0)).strip(),
+                            '<@{}>'.format(user_obj.id)
+                        )
+                        username_errors.pop(_user[0])
+            msg_out = I18N.t('main.context_menu.edit_msg.edit_confirm')
+            if len(username_errors) > 0:
+                msg_out += I18N.t(
+                    'main.context_menu.edit_msg.edit_confirm_with_errors',
+                    errors=', '.join(username_errors)
+                )
+            await interaction.response.send_message(
+                msg_out, ephemeral=True
+            )
+            return
 
     async def on_error(self, interaction: discord.Interaction, error):
         log.error(f'Error when editing message: {error}')
@@ -128,7 +212,7 @@ class EditModal(discord.ui.Modal):
         )
 
 
-async def locales_autocomplete(
+def locales_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
@@ -382,8 +466,8 @@ async def clear_locals(ctx):
     log.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            # I18N.t('main.commands.synclocal.msg_confirm')
             'Local commands deleted'
+            # I18N.t('main.commands.synclocal.msg_confirm')
         )
     )
 
@@ -659,8 +743,7 @@ async def edit_bot_say_msg(
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
-    if modal_in.comment_out is not None:
-        await message.edit(content=modal_in.comment_out)
+    await message.edit(content=modal_in.comment_out)
     return
 
 

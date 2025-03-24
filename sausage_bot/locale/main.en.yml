@@ -48,4 +48,5 @@ en:
       name: Edit bot message
       not_bot: Message was not written by the bot
       edit_confirm: Message was edited
+      edit_confirm_with_errors: ', but some tagging failed: %{errors}'
       edit_error: 'Error when editing, check logs'

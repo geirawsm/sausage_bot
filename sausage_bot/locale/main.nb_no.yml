@@ -48,4 +48,5 @@ nb_no:
       name: Rediger bot melding
       not_bot: Meldingen ble ikke skrevet av boten
       edit_confirm: Meldingen ble endret
+      edit_confirm_with_errors: ', men noen nevninger fungerte ikke: %{errors}'
       edit_error: 'Feil ved endring av melding, sjekk loggen'
