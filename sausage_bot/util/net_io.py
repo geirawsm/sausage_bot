@@ -47,7 +47,7 @@ async def fetch_random_user_agent():
         file_io.write_json(envs.TEMP_DIR / 'headers.json', response.json())
 
 
-async def get_link(url=None, mock_file=None):
+async def get_link(url=None, mock_file=None, status_out=None):
     'Get contents of requests object from a `url`'
     def get_random_user_agent():
         headers_file = envs.TEMP_DIR / 'headers.json'
@@ -94,7 +94,10 @@ async def get_link(url=None, mock_file=None):
                     str(content_out)
                 )
         await session.close()
-        return content_out
+        if status_out:
+            return {'status': url_status, 'content': content_out}
+        else:
+            return content_out
     except Exception as e:
         log.error(f'Error when getting `url`:({url_status}) {e}')
         if isinstance(url_status, int):

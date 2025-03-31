@@ -45,6 +45,37 @@ async def feed_name_autocomplete(
     ][:25]
 
 
+async def feed_uuid_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[discord.app_commands.Choice[str]]:
+    db_feeds = await db_helper.get_output(
+        template_info=envs.rss_db_schema,
+        select=('uuid', 'feed_name', 'url', 'channel'),
+        order_by=[
+            ('feed_name', 'ASC')
+        ]
+    )
+    log.verbose('db_feeds:', pretty=db_feeds)
+    feeds = db_feeds.copy()
+    for feed in feeds:
+        _counter = 87
+        _counter -= len(str(feed['feed_name']))
+        _counter -= len(str(feed['channel']))
+        feed['length_counter'] = _counter
+    return [
+        discord.app_commands.Choice(
+            name='{feed_name}: #{channel} ({url})'.format(
+                feed_name=feed['feed_name'], channel=feed['channel'],
+                url=str(feed['url'])
+            )[0:feed['length_counter']], value=str(feed['uuid'])
+        )
+        for feed in feeds if current.lower() in '{}-{}-{}-{}'.format(
+            feed['uuid'], feed['feed_name'], feed['url'], feed['channel']
+        ).lower()
+    ][:25]
+
+
 async def rss_filter_autocomplete(
     interaction: discord.Interaction,
     current: str
@@ -635,6 +666,124 @@ class RSSfeed(commands.Cog):
                 I18N.t('rss.commands.list.msg_error'),
                 ephemeral=True
             )
+        return
+
+    @commands.check_any(
+        commands.is_owner(),
+        commands.has_permissions(administrator=True)
+    )
+    @discord.app_commands.autocomplete(feed_name=feed_uuid_autocomplete)
+    @rss_group.command(
+        name='test_feed', description=locale_str(
+            I18N.t('rss.commands.test.cmd')
+        )
+    )
+    @describe(
+        feed_name=I18N.t('rss.commands.test.desc.feed_name'),
+    )
+    async def rss_test_feed(
+        self, interaction: discord.Interaction, feed_name: str,
+        public: typing.Literal[
+            I18N.t('common.literal_yes_no.yes'),
+            I18N.t('common.literal_yes_no.no')
+        ] = None
+    ):
+        '''
+        Test an added feed manually. Creates a report that is posted
+        after the test is done.
+        '''
+        def enclose_status_out(status_out):
+            return '```{}```'.format(status_out)
+
+        if public == I18N.t('common.literal_yes_no.yes'):
+            _ephemeral = False
+        elif public == I18N.t('common.literal_yes_no.no') or\
+                public is None:
+            _ephemeral = True
+        status_out = ''
+        await interaction.response.defer(ephemeral=_ephemeral)
+        feed = await db_helper.get_output(
+            template_info=envs.rss_db_schema,
+            order_by=[
+                ('feed_name', 'DESC')
+            ],
+            where=[
+                ('uuid', feed_name)
+            ],
+            not_like=[
+                ('feed_type', 'spotify')
+            ],
+            single=True
+        )
+        status_out += '💭 Checking URL: {}'.format(feed['url'])
+        status_msg = await interaction.followup.send(
+            enclose_status_out(status_out), ephemeral=_ephemeral
+        )
+        # Reading url, what code?
+        req = await net_io.get_link(feed['url'], status_out=True)
+        log.debug('Got this response from url:', pretty=req)
+        if req['status'] != 200:
+            status_out += '\n❌ Got http status {}'.format(req['status'])
+            if req['content']:
+                status_out += ':\n\t{}'.format(req['content'])
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+            return
+        else:
+            status_out += '\n✅ Got HTTP status {}'.format(req['status'])
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+        rss_items = await feeds_core.get_items_from_rss(
+            req=req['content'],
+            url=feed['url'],
+        )
+        if rss_items is None or len(rss_items) <= 0:
+            status_out += '\n❌ Unable to get feed items'
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+            return
+        else:
+            rss_items[0].pop('type')
+            status_out += '\n✅ Got {} feed items:'.format(len(rss_items))
+            for item in rss_items[0]:
+                status_out += '\n\t- {}: {}'.format(
+                    item, rss_items[0][item]
+                )
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+        # Get link hash
+        _hash = await feeds_core.get_page_hash(rss_items[0]['link'])
+        if _hash is None:
+            status_out += f'\n❌ Could not make hash, got "{_hash}"'
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+            return
+        # Get log
+        _FEED_DB = await db_helper.get_output(
+            template_info=envs.rss_db_log_schema,
+            select=('url', 'hash')
+        )
+        FEED_HASH = [item['hash'] for item in _FEED_DB]
+        if _hash in FEED_HASH:
+            status_out += f'\n✅ Found hash in log ({_hash})'
+        else:
+            status_out += f'\n❌ Did not find hash in log ({_hash})'
+        status_msg = await interaction.followup.edit_message(
+            message_id=status_msg.id, content=enclose_status_out(status_out)
+        )
+        FEED_LOG = [item['url'] for item in _FEED_DB]
+        if feed['url'] in FEED_LOG:
+            status_out += '\n✅ Found link in log'
+        else:
+            status_out += '\n❌ Did not find link in log'
+        status_msg = await interaction.followup.edit_message(
+            message_id=status_msg.id, content=enclose_status_out(status_out)
+        )
         return
 
     # Tasks
