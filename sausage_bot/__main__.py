@@ -40,24 +40,17 @@ class SayTextInput(discord.ui.TextInput):
 
 class SayModal(discord.ui.Modal):
     def __init__(
-        self, title_in=None, channel=None, mention=None
+        self, title_in=None, channel=None
     ):
         super().__init__(
             title=title_in, timeout=120
         )
         self.comment_out = None
         self.channel = channel
-        self.mention = mention
         self.error_out = None
 
         # Create elements
-        if self.mention:
-            label_in = I18N.t(
-                'main.commands.say.modal.reply', member=self.mention.name
-            )
-        else:
-            label_in = I18N.t('main.commands.say.modal.comment')
-        self.mention
+        label_in = I18N.t('main.commands.say.modal.comment')
         comment_text = SayTextInput(
             style_in=discord.TextStyle.paragraph,
             label_in=label_in,
@@ -69,12 +62,94 @@ class SayModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         self.comment_out = self.children[0].value
+        if self.comment_out is not None:
+            # Check for @-s
+            _users = re.finditer(
+                r'\"@([\w\-_\' ]+)\"|@[\w\-_\']+',
+                self.comment_out
+            )
+            username_errors = []
+            _channels = re.finditer(
+                r'#[\w\-_\d『』︰┃・「」┇《》【】╏〚〛〘〙〈〉]+',
+                self.comment_out
+            )
+            channel_errors = []
+            for _user in _users:
+                log.debug(f'`_user`: {_user.group(0)}')
+                # Check if username exist on discord server
+                user_obj = check_discord_username(_user)
+                # If it is not found, add to `username_errors`
+                if user_obj is None:
+                    log.verbose('Appending to username_errors')
+                    # Add username to error list
+                    username_errors.append(_user)
+                else:
+                    log.debug(f'Got this text:\n{self.comment_out}')
+                    log.debug(f'Want to replace `{str(_user)}`')
+                    self.comment_out = self.comment_out.replace(
+                        str(_user.group(0)).strip(),
+                        '<@{}>'.format(user_obj.id)
+                    )
+            for _channel in _channels:
+                log.debug(f'`_channel`: {_channel.group(0)}')
+                # Check if channel exist on discord server
+                channel_obj = check_discord_channel(_channel)
+                # If it is not found, add to `channel_errors`
+                if channel_obj is None:
+                    log.verbose('Appending to channel_errors')
+                    # Add username to error list
+                    channel_errors.append(_channel)
+                else:
+                    log.debug(f'Got this text:\n{self.comment_out}')
+                    log.debug(f'Want to replace `{str(_channel)}`')
+                    self.comment_out = self.comment_out.replace(
+                        str(_channel.group(0)).strip(),
+                        '<#{}>'.format(channel_obj.id)
+                    )
+            log.debug(f'username_errors: {username_errors}')
+            if len(username_errors) > 0:
+                for _user in enumerate(username_errors):
+                    log.debug(f'Checking {_user[1].group(0)} ({_user})')
+                    user_check = _user[1].group(0).strip()\
+                        .replace('@', '').replace('"', '')
+                    similars = check_similar_discord_usernames(
+                        username_in=user_check,
+                        similar_floor=0.7,
+                        similar_roof=0.95
+                    )
+                    log.debug(f'similars: {similars}')
+                    if similars is not False:
+                        user_obj = EditModal.check_discord_username(similars)
+                        log.debug(f'Want to replace `{str(similars)}`')
+                        self.comment_out = self.comment_out.replace(
+                            str(_user[1].group(0)).strip(),
+                            '<@{}>'.format(user_obj.id)
+                        )
+                        username_errors.pop(_user[0])
+            msg_out = I18N.t('main.context_menu.edit_msg.edit_confirm')
+            if len(username_errors) > 0:
+                msg_out += I18N.t(
+                    'main.context_menu.edit_msg.edit_confirm_with_errors',
+                    errors=', '.join(username_errors)
+                )
+            if len(channel_errors) > 0:
+                if len(msg_out) == 0:
+                    msg_out += I18N.t(
+                        'main.context_menu.edit_msg.edit_confirm_with_errors',
+                        errors=', '.join(channel_errors)
+                    )
+                else:
+                    # TODO i18n
+                    msg_out += '\nChannels: {}'.format(
+                        ', '.join(channel_errors)
+                    )
         await interaction.response.send_message(
             I18N.t(
                 'main.commands.say.modal.confirm', channel=self.channel.name
             ),
             ephemeral=True
         )
+        return msg_out
 
     async def on_error(self, interaction: discord.Interaction, error):
         log.error(f'Error when editing message: {error}')
@@ -86,6 +161,50 @@ class SayModal(discord.ui.Modal):
             ),
             ephemeral=True
         )
+
+def check_discord_username(username_in):
+    if isinstance(username_in, re.Match):
+        username_in = username_in.group(0)
+    log.debug(f'Got username_in: {username_in}')
+    _user_in = username_in.strip().replace('@', '')\
+        .replace('"', '')
+    log.debug(f'Stripped and fixed _user_in: {_user_in}')
+    user_obj = get(
+        discord_commands.get_guild().members,
+        name=_user_in
+    )
+    log.debug(f'Got user_obj: {user_obj}')
+    return user_obj
+
+
+def check_similar_discord_usernames(
+    username_in, similar_floor=None, similar_roof=None
+):
+    _members = [
+        (member.name, member.id) for member in
+        discord_commands.get_guild().members
+    ]
+    log.debug(f'Comparing {username_in} with {_members}')
+    similars = file_io.check_similarity(
+        username_in, _members,
+        ratio_floor=similar_floor,
+        ratio_roof=similar_roof
+    )
+    return similars
+
+
+def check_discord_channel(channel_in):
+    if isinstance(channel_in, re.Match):
+        channel_in = channel_in.group(0)
+    log.debug(f'Got channel_in: {channel_in}')
+    _channel_in = channel_in.strip().replace('#', '')
+    log.debug(f'Stripped and fixed _channel_in: {_channel_in}')
+    channel_obj = get(
+        discord_commands.get_guild().channels,
+        name=_channel_in
+    )
+    log.debug(f'Got channel_obj: {channel_obj}')
+    return channel_obj
 
 
 class EditModal(discord.ui.Modal):
@@ -111,52 +230,24 @@ class EditModal(discord.ui.Modal):
 
         self.add_item(comment_text)
 
-    @classmethod
-    def check_discord_username(
-        cls, username_in
-    ):
-        if isinstance(username_in, re.Match):
-            username_in = username_in.group(0)
-        log.debug(f'Got username_in: {username_in}')
-        _user_in = username_in.strip().replace('@', '')\
-            .replace('"', '')
-        log.debug(f'Stripped and fixed _user_in: {_user_in}')
-        user_obj = get(
-            discord_commands.get_guild().members,
-            name=_user_in
-        )
-        log.debug(f'Got user_obj: {user_obj}')
-        return user_obj
-
-    @classmethod
-    def check_similar_discord_usernames(
-        cls, username_in, similar_floor=None, similar_roof=None
-    ):
-        _members = [
-            (member.name, member.id) for member in
-            discord_commands.get_guild().members
-        ]
-        log.debug(f'Comparing {username_in} with {_members}')
-        similars = file_io.check_similarity(
-            username_in, _members,
-            ratio_floor=similar_floor,
-            ratio_roof=similar_roof
-        )
-        return similars
-
     async def on_submit(self, interaction: discord.Interaction):
         self.comment_out = self.children[0].value
         if self.comment_out is not None:
             # Check for @-s
             _users = re.finditer(
-                r'\"@([\w\-_\' ]+)\"|[^(?!<)]@[\w\-_\']+',
+                r'\"@([\w\-_\' ]+)\"|@[\w\-_\']+',
                 self.comment_out
             )
             username_errors = []
+            _channels = re.finditer(
+                r'#[\w\-_\d『』︰┃・「」┇《》【】╏〚〛〘〙〈〉]+',
+                self.comment_out
+            )
+            channel_errors = []
             for _user in _users:
                 log.debug(f'`_user`: {_user.group(0)}')
                 # Check if username exist on discord server
-                user_obj = EditModal.check_discord_username(_user)
+                user_obj = check_discord_username(_user)
                 # If it is not found, add to `username_errors`
                 if user_obj is None:
                     log.verbose('Appending to username_errors')
@@ -169,32 +260,60 @@ class EditModal(discord.ui.Modal):
                         str(_user.group(0)).strip(),
                         '<@{}>'.format(user_obj.id)
                     )
+            for _channel in _channels:
+                log.debug(f'`_channel`: {_channel.group(0)}')
+                # Check if channel exist on discord server
+                channel_obj = check_discord_channel(_channel)
+                # If it is not found, add to `channel_errors`
+                if channel_obj is None:
+                    log.verbose('Appending to channel_errors')
+                    # Add username to error list
+                    channel_errors.append(_channel)
+                else:
+                    log.debug(f'Got this text:\n{self.comment_out}')
+                    log.debug(f'Want to replace `{str(_channel)}`')
+                    self.comment_out = self.comment_out.replace(
+                        str(_channel.group(0)).strip(),
+                        '<#{}>'.format(channel_obj.id)
+                    )
             log.debug(f'username_errors: {username_errors}')
             if len(username_errors) > 0:
                 for _user in enumerate(username_errors):
                     log.debug(f'Checking {_user[1].group(0)} ({_user})')
                     user_check = _user[1].group(0).strip()\
                         .replace('@', '').replace('"', '')
-                    similars = EditModal.check_similar_discord_usernames(
+                    similars = check_similar_discord_usernames(
                         username_in=user_check,
                         similar_floor=0.7,
                         similar_roof=0.95
                     )
                     log.debug(f'similars: {similars}')
                     if similars is not False:
-                        user_obj = EditModal.check_discord_username(similars)
+                        user_obj = check_discord_username(similars)
                         log.debug(f'Want to replace `{str(similars)}`')
                         self.comment_out = self.comment_out.replace(
                             str(_user[1].group(0)).strip(),
                             '<@{}>'.format(user_obj.id)
                         )
                         username_errors.pop(_user[0])
+            log.debug(f'channel_errors: {channel_errors}')
             msg_out = I18N.t('main.context_menu.edit_msg.edit_confirm')
             if len(username_errors) > 0:
                 msg_out += I18N.t(
                     'main.context_menu.edit_msg.edit_confirm_with_errors',
                     errors=', '.join(username_errors)
                 )
+            if len(channel_errors) > 0:
+                if len(msg_out) == 0:
+                    msg_out += I18N.t(
+                        'main.context_menu.edit_msg.edit_confirm_with_errors',
+                        errors=', '.join(channel_errors)
+                    )
+                else:
+                    # TODO i18n
+                    msg_out += '\nChannels: {}'.format(
+                        ', '.join(channel_errors)
+                    )
             await interaction.response.send_message(
                 msg_out, ephemeral=True
             )
@@ -212,7 +331,7 @@ class EditModal(discord.ui.Modal):
         )
 
 
-def locales_autocomplete(
+async def locales_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
@@ -625,19 +744,10 @@ async def ban(
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
-    message_id: str = None, mention: typing.Union[
-        discord.Member, discord.Role
-    ] = None
+    message_id: str = None
 ):
     reply_msg = None
     log.debug(f'`channel` is {channel} ({type(channel)})')
-    if message_id and mention:
-        log.error('Can\'t use `message_id` and `mention` at the same time')
-        await interaction.response.send_message(
-            I18N.t('main.commands.say.modal.error_both_args'),
-            ephemeral=True
-        )
-        return
     if message_id:
         reply_msg = await discord_commands.get_message_obj(
             msg_id=message_id, channel_name_or_id=channel.name
@@ -645,19 +755,14 @@ async def say(
         log.debug(f'Got `reply_msg`: {reply_msg}')
     modal_in = SayModal(
         title_in=I18N.t('main.commands.say.modal.title'),
-        channel=channel,
-        mention=mention
+        channel=channel
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
     if reply_msg:
         await reply_msg.reply(modal_in.comment_out)
     elif channel:
-        msg_out = ''
-        if mention:
-            msg_out = mention.mention
-        msg_out += modal_in.comment_out
-        await channel.send(msg_out)
+        await channel.send(modal_in.comment_out)
     return
 
 
