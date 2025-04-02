@@ -60,8 +60,10 @@ class PermissionsView(discord.ui.View):
         def prep_dropdown(perm_name, permissions_in: dict = None):
             list_out = []
             for perm in envs.SELECT_PERMISSIONS[perm_name]:
-                _desc = envs.SELECT_PERMISSIONS[perm_name][perm]
-                if len(_desc) >= 100:
+                _desc = I18N.t(
+                    str(f'discord_permissions.{perm_name}.{perm}')
+                )
+                if len(str(_desc)) >= 100:
                     _desc = f'{str(_desc):.90}...'
                 if isinstance(permissions_in, (dict, list)) and\
                         perm in permissions_in:
