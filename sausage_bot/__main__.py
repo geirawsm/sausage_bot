@@ -6,7 +6,6 @@ from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from discord.utils import get
 from tabulate import tabulate
-import typing
 import re
 
 from sausage_bot.util.args import args
@@ -161,6 +160,7 @@ class SayModal(discord.ui.Modal):
             ),
             ephemeral=True
         )
+
 
 def check_discord_username(username_in):
     if isinstance(username_in, re.Match):
@@ -318,6 +318,13 @@ class EditModal(discord.ui.Modal):
                 msg_out, ephemeral=True
             )
             return
+        else:
+            await interaction.response.send_message(
+                I18N.t(
+                    'main.context_menu.edit_msg.edit_error', ephemeral=True
+                )
+            )
+            return
 
     async def on_error(self, interaction: discord.Interaction, error):
         log.error(f'Error when editing message: {error}')
@@ -331,7 +338,7 @@ class EditModal(discord.ui.Modal):
         )
 
 
-async def locales_autocomplete(
+def locales_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
@@ -555,8 +562,7 @@ async def clear_globals(ctx):
     log.debug('Deleting global commands...')
     _reply = await ctx.reply(
         '💭 {}'.format(
-            'Deleting global commands...'
-            # I18N.t('main.commands.synclocal.msg_starting')
+            I18N.t('main.commands.clearglobals.msg_starting')
         )
     )
     config.bot.tree.clear_commands(guild=None)
@@ -564,8 +570,7 @@ async def clear_globals(ctx):
     log.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            # I18N.t('main.commands.synclocal.msg_confirm')
-            'Global commands deleted'
+            I18N.t('main.commands.clearglobals.msg_confirm')
         )
     )
 
@@ -576,8 +581,7 @@ async def clear_locals(ctx):
     log.debug('Deleting local commands...')
     _reply = await ctx.reply(
         '💭 {}'.format(
-            'Deleting local commands...'
-            # I18N.t('main.commands.synclocal.msg_starting')
+            I18N.t('main.commands.clearlocals.msg_starting')
         )
     )
     config.bot.tree.clear_commands(guild=ctx.guild)
@@ -585,8 +589,7 @@ async def clear_locals(ctx):
     log.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            'Local commands deleted'
-            # I18N.t('main.commands.synclocal.msg_confirm')
+            I18N.t('main.commands.clearlocals.msg_confirm')
         )
     )
 

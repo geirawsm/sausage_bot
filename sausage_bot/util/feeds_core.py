@@ -12,7 +12,7 @@ from hashlib import md5
 
 
 from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
-from sausage_bot.util import net_io, db_helper
+from sausage_bot.util import net_io, db_helper, file_io
 from sausage_bot.util.args import args
 from sausage_bot.util.i18n import I18N
 from .log import log
@@ -349,7 +349,7 @@ async def get_feed_links(feed_type, feed_info):
             )
             links_out = await get_items_from_rss(
                 req=req, url=URL, filters_in=filters_db,
-                log_in=log_db
+                log_in=log_db, num_items=5
             )
             log.debug('Got {} items from `get_items_from_rss`'.format(
                 len(links_out) if links_out is not None else 0
@@ -599,8 +599,8 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
                 hash_in_log = False
     else:
         hash_in_log = False
-    if ((link_in_log and hash_in_log)
-            or (link_in_log and hash_in_log is None)):
+    if ((link_in_log and hash_in_log) or
+            (link_in_log and hash_in_log is None)):
         log.debug('Link is in log, returning True')
         return True
     if link_in_log and not hash_in_log:

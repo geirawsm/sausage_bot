@@ -42,7 +42,13 @@ nb_no:
       msg_confirm: Lokale kommandoer ble synkronisert med globale kommandoer
     syncglobal:
       msg_starting: Starter synkronisering av globale kommandoer...
-      msg_confirm: Kommandoer synkronisert
+      msg_confirm: Globale kommandoer synkronisert
+    clearglobals:
+      msg_starting: Sletter globale kommandoer...
+      msg_confirm: Globale kommandoer slettet
+    clearlocals:
+      msg_starting: Sletter lokale kommandoer...
+      msg_confirm: Lokale kommandoer slettet
   context_menu:
     edit_msg:
       name: Rediger bot melding
