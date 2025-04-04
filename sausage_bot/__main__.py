@@ -338,7 +338,7 @@ class EditModal(discord.ui.Modal):
         )
 
 
-def locales_autocomplete(
+async def locales_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
