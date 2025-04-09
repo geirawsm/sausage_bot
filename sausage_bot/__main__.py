@@ -657,88 +657,88 @@ async def delete(interaction: discord.Interaction, amount: int):
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(kick_members=True)
-)
-@config.bot.tree.command(
-    name='kick',
-    description=locale_str(I18N.t('main.commands.kick.command'))
-)
-async def kick(
-    interaction: discord.Interaction, member: discord.Member = None,
-    *, reason: str = None
-):
-    '''
-    Kick a member from the server
+#@commands.check_any(
+#    commands.is_owner(),
+#    commands.has_permissions(kick_members=True)
+#)
+#@config.bot.tree.command(
+#    name='kick',
+#    description=locale_str(I18N.t('main.commands.kick.command'))
+#)
+#async def kick(
+#    interaction: discord.Interaction, member: discord.Member = None,
+#    *, reason: str = None
+#):
+#    '''
+#    Kick a member from the server
+#
+#    Parameters
+#    ------------
+#    member: discord.Member
+#        Name of Discord user you want to kick (default: None)
+#    reason: str
+#        Reason for kicking user (default: None)
+#    '''
+#    await interaction.response.defer(ephemeral=True)
+#    try:
+#        await member.kick(reason=reason)
+#        await interaction.followup.send(
+#            I18N.t(
+#                'main.commands.kick.msg_confirm',
+#                member=member
+#            ),
+#            ephemeral=True
+#        )
+#    except Exception as _error:
+#        await interaction.followup.send(
+#            I18N.t(
+#                'main.commands.kick.msg_failed',
+#                error=_error
+#            ),
+#            ephemeral=True
+#        )
 
-    Parameters
-    ------------
-    member: discord.Member
-        Name of Discord user you want to kick (default: None)
-    reason: str
-        Reason for kicking user (default: None)
-    '''
-    await interaction.response.defer(ephemeral=True)
-    try:
-        await member.kick(reason=reason)
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.kick.msg_confirm',
-                member=member
-            ),
-            ephemeral=True
-        )
-    except Exception as _error:
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.kick.msg_failed',
-                error=_error
-            ),
-            ephemeral=True
-        )
 
-
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(ban_members=True)
-)
-@config.bot.tree.command(
-    name='ban',
-    description=locale_str(I18N.t('main.commands.ban.command'))
-)
-async def ban(
-    interaction: discord.Interaction, member: discord.Member = None,
-    *, reason: str = None
-):
-    '''
-    Ban a member from the server
-
-    Parameters
-    ------------
-    member: discord.Member
-        Name of Discord user you want to ban (default: None)
-    reason: str
-        Reason for banning user (default: None)
-    '''
-    await interaction.response.defer(ephemeral=True)
-    try:
-        await member.ban(reason=reason)
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.ban.msg_confirm',
-                member=member,
-            ),
-            ephemeral=True
-        )
-    except Exception as _error:
-        await interaction.followup.send(
-            I18N.t(
-                'main.commands.ban.msg_failed',
-                error=_error
-            ),
-            ephemeral=True
-        )
+#@commands.check_any(
+#    commands.is_owner(),
+#    commands.has_permissions(ban_members=True)
+#)
+#@config.bot.tree.command(
+#    name='ban',
+#    description=locale_str(I18N.t('main.commands.ban.command'))
+#)
+#async def ban(
+#    interaction: discord.Interaction, member: discord.Member = None,
+#    *, reason: str = None
+#):
+#    '''
+#    Ban a member from the server
+#
+#    Parameters
+#    ------------
+#    member: discord.Member
+#        Name of Discord user you want to ban (default: None)
+#    reason: str
+#        Reason for banning user (default: None)
+#    '''
+#    await interaction.response.defer(ephemeral=True)
+#    try:
+#        await member.ban(reason=reason)
+#        await interaction.followup.send(
+#            I18N.t(
+#                'main.commands.ban.msg_confirm',
+#                member=member,
+#            ),
+#            ephemeral=True
+#        )
+#    except Exception as _error:
+#        await interaction.followup.send(
+#            I18N.t(
+#                'main.commands.ban.msg_failed',
+#                error=_error
+#            ),
+#            ephemeral=True
+#        )
 
 
 @commands.check_any(commands.is_owner())
