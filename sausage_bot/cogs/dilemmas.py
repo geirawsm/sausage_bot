@@ -76,10 +76,7 @@ class Dilemmas(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="add", description=locale_str(
             I18N.t('dilemmas.commands.add.cmd')

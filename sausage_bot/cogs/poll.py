@@ -24,10 +24,7 @@ class MakePoll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_messages=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.command(
         name="poll",
         description=locale_str(I18N.t('poll.commands.poll.cmd'))

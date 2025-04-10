@@ -264,10 +264,7 @@ class RSSfeed(commands.Cog):
         msg = await control_posting(feed_type, 'restart')
         await interaction.followup.send(msg)
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_group.command(
         name='add', description=locale_str(I18N.t('rss.commands.add.cmd'))
@@ -316,10 +313,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_group.command(
         name='remove', description=locale_str(I18N.t(
@@ -368,10 +362,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_group.command(
         name='edit', description=locale_str(I18N.t(
@@ -432,10 +423,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_filter_group.command(
         name='add', description=locale_str(
@@ -490,10 +478,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=rss_filter_autocomplete)
     @rss_filter_group.command(
@@ -543,10 +528,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(
         name_of_setting=rss_settings_autocomplete
     )
@@ -614,10 +596,7 @@ class RSSfeed(commands.Cog):
                 break
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @rss_group.command(
         name='list', description=locale_str(I18N.t('rss.commands.list.cmd'))
     )
@@ -668,10 +647,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_uuid_autocomplete)
     @rss_group.command(
         name='test_feed', description=locale_str(

@@ -411,10 +411,7 @@ class Quotes(commands.Cog):
                 )
                 return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="add", description=locale_str(I18N.t('quote.commands.add.cmd'))
     )
@@ -461,10 +458,7 @@ class Quotes(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="edit", description=locale_str(I18N.t('quote.commands.edit.cmd'))
     )
@@ -518,10 +512,7 @@ class Quotes(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="delete", description=locale_str(
             I18N.t('quote.commands.delete.cmd')
@@ -598,10 +589,7 @@ class Quotes(commands.Cog):
             )
             return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="count", description=locale_str(
             I18N.t('quote.commands.count.cmd')
@@ -623,10 +611,7 @@ class Quotes(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="list", description=locale_str(
             I18N.t('quote.commands.list.cmd')

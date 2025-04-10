@@ -210,10 +210,7 @@ class Youtube(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_group.command(
         name='remove', description=locale_str(
@@ -279,10 +276,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_filter_group.command(
         name='add', description=locale_str(
@@ -333,10 +327,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=youtube_filter_autocomplete)
     @youtube_filter_group.command(

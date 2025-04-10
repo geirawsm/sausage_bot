@@ -219,10 +219,7 @@ class Stats(commands.Cog):
             I18N.t('stats.commands.restart.log_restarted')
         )
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @stats_settings_group.command(
         name='list',
         description=locale_str(I18N.t('stats.commands.list.command'))
@@ -275,10 +272,7 @@ class Stats(commands.Cog):
             )
         await interaction.followup.send(content=out, ephemeral=True)
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(
         name_of_setting=settings_db_autocomplete
     )
@@ -345,10 +339,7 @@ class Stats(commands.Cog):
             break
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(
         setting_in=env_settings_autocomplete
     )
@@ -427,10 +418,7 @@ class Stats(commands.Cog):
             )
             return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(
         setting_in=settings_db_autocomplete
     )
@@ -466,10 +454,7 @@ class Stats(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @stats_group.command(
         name='hide_roles_add',
         description=locale_str(
@@ -525,10 +510,7 @@ class Stats(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(
         hidden_roles=hidden_roles_autocomplete
     )

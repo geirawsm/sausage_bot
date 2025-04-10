@@ -57,10 +57,7 @@ class AutoEvent(commands.Cog):
         )
     )
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_events=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="add", description=locale_str(
             I18N.t('autoevent.commands.add.cmd')
@@ -168,10 +165,7 @@ class AutoEvent(commands.Cog):
                     )
                     return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_events=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(event=event_names_autocomplete)
     @group.command(
         name="remove", description=locale_str(
@@ -231,10 +225,7 @@ class AutoEvent(commands.Cog):
 
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_events=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="list", description=locale_str(
             I18N.t('autoevent.commands.list.cmd')
@@ -254,10 +245,7 @@ class AutoEvent(commands.Cog):
             msg_out
         )
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_events=True)
-    )
+    @commands.is_owner()
     @group.command(
         name="sync", description=locale_str(
             I18N.t('autoevent.commands.sync.cmd')
@@ -298,10 +286,7 @@ class AutoEvent(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_events=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(event=event_names_autocomplete)
     @group.command(
         name="announce", description=locale_str(

@@ -733,6 +733,7 @@ async def ban(
         )
 
 
+@commands.is_owner()
 @config.bot.tree.command(
     name='say', description=locale_str(I18N.t('main.commands.say.command'))
 )
@@ -760,10 +761,7 @@ async def say(
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(administrator=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name="tasks", description=locale_str(I18N.t('main.commands.tasks.command'))
 )
@@ -793,7 +791,7 @@ async def get_tasks_list(interaction: discord.Interaction):
     return
 
 
-@commands.check_any(commands.is_owner())
+@commands.is_owner()
 @config.bot.tree.command(
     name='language', description=locale_str(I18N.t('main.owner_only'))
 )
@@ -815,10 +813,7 @@ async def language(
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(administrator=True)
-)
+@commands.is_owner()
 @config.bot.tree.context_menu(
     name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
 )
