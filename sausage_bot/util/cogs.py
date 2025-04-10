@@ -69,16 +69,19 @@ class Cogs(commands.Cog):
         #autodoc skip#
         '''
         if args.selected_cogs:
-            cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
-            for testing_cog in args.selected_cogs:
-                if testing_cog in cog_files:
-                    log.log('Loading cog: {}'.format(testing_cog))
-                    await Cogs.load_cog_internal(testing_cog)
-            log.debug(
-                'Loading selected cogs for testing purposes: ({})'.format(
-                    ', '.join(args.selected_cogs)
+            if 'none' in [item.lower() for item in args.selected_cogs]:
+                log.debug('Not Loading cogs')
+            else:
+                cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
+                for testing_cog in args.selected_cogs:
+                    if testing_cog in cog_files:
+                        log.info('Loading cog: {}'.format(testing_cog))
+                        await Cogs.load_cog_internal(testing_cog)
+                log.debug(
+                    'Loading selected cogs for testing purposes: ({})'.format(
+                        ', '.join(args.selected_cogs)
+                    )
                 )
-            )
         else:
             log.debug(
                 f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
