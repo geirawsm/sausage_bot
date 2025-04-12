@@ -8,8 +8,9 @@ import re
 from pathlib import Path
 from difflib import SequenceMatcher
 import pendulum
-from ..util.log import log
+from ..util import config
 
+logger = config.logger
 
 def remove_file(filename):
     os.remove(filename)
@@ -45,7 +46,7 @@ def import_file_as_list(file_in):
             list_out = eval(str(f.read()))
         return list_out
     except Exception as e:
-        log.error(f"Couldn't open file `{file_in}` ({e})")
+        logger.error(f"Couldn't open file `{file_in}` ({e})")
         return None
 
 
@@ -69,27 +70,27 @@ def read_json(json_file):
     ensure_file(json_file, {})
     try:
         with open(json_file, encoding='utf-8') as f:
-            log.verbose('Loaded json file')
+            logger.debug('Loaded json file')
             return dict(json.load(f))
     except json.JSONDecodeError as e:
-        log.error(f"Error when reading json from {json_file}:\n{e}")
+        logger.error(f"Error when reading json from {json_file}:\n{e}")
         return None
     except OSError as e:
-        log.error(f"File can't be read {json_file}:\n{e}")
+        logger.error(f"File can't be read {json_file}:\n{e}")
         return None
 
 
 def read_file(file_in):
     if str(file_in).split('.')[-1] == 'json':
-        log.debug('Got a json file')
+        logger.debug('Got a json file')
         return read_json(file_in)
     else:
         try:
             with open(file_in, encoding='utf-8') as f:
-                log.verbose('Loaded file')
+                logger.debug('Loaded file')
                 return f.read()
         except OSError as e:
-            log.error(f"File can't be read {file_in}:\n{e}")
+            logger.error(f"File can't be read {file_in}:\n{e}")
             return None
 
 
@@ -117,10 +118,10 @@ def folder_size(path_to_folder, human=False):
     return False
     '''
     # Check if path exist
-    log.debug(f'Checking `path_to_folder`: {path_to_folder}')
+    logger.debug(f'Checking `path_to_folder`: {path_to_folder}')
     if file_exist(str(path_to_folder)):
         path_files = os.listdir(path_to_folder)
-        log.debug(f'Got files: {path_files}')
+        logger.debug(f'Got files: {path_files}')
         temp_size = 0
         for _file in path_files:
             _size = os.stat(
@@ -163,11 +164,11 @@ def file_age(filename):
     else:
         m_time = os.path.getmtime(filename)
         now = float(pendulum.now().int_timestamp)
-        log.debug(f'`now` is {now}')
+        logger.debug(f'`now` is {now}')
         age_in_seconds = int(round(now - m_time, 0))
-        log.debug(f'`age_in_seconds` is {age_in_seconds}')
+        logger.debug(f'`age_in_seconds` is {age_in_seconds}')
         age = pendulum.duration(seconds=age_in_seconds)
-        log.debug(
+        logger.debug(
             'Fil-alder: {}'.format(
                 age.in_words(locale="nb", separator=', ')
             )
@@ -202,10 +203,10 @@ def ensure_file(file_path_in: str, file_template=False):
     if not os.path.exists(file_path_in):
         ensure_folder(folder_path)
     # Ooooh, this is a scary one. Don't overwrite the file unless it's empty
-    log.debug('{} size: {}'.format(file_name, file_size(file_path_in)))
+    logger.debug('{} size: {}'.format(file_name, file_size(file_path_in)))
     # Create the file if it doesn't exist
     if not file_size(file_path_in):
-        log.verbose('File not found, creating: {}'.format(file_path_in))
+        logger.debug('File not found, creating: {}'.format(file_path_in))
         if file_name.split('.')[-1] == 'json':
             if file_template:
                 write_json(file_path_in, file_template)
@@ -255,13 +256,13 @@ def check_similarity(
         if ratio_roof is None:
             ratio_roof = 0.99999999999999999999999999995
         if ratio_floor <= ratio <= ratio_roof:
-            log.debug(
+            logger.debug(
                 f'These inputs seem similiar (ratio: {ratio}):\n'
                 f'`{input1}` vs `{input2}`'
             )
             return input2
         else:
-            log.verbose(
+            logger.debug(
                 f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
                 f'`{input1}` vs `{input2}`'
             )
@@ -269,14 +270,14 @@ def check_similarity(
 
     # Stop function if not correct input
     if type(input1) is not str:
-        log.error('`input1` is not string')
+        logger.error('`input1` is not string')
         return None
     elif input2 is None or not isinstance(input2, (str, list)):
-        log.error(f'Incorrect input given to `input2`: {input2}')
+        logger.error(f'Incorrect input given to `input2`: {input2}')
         return None
     elif isinstance(input2, list):
         for list_item in input2:
-            log.debug(list_item)
+            logger.debug(list_item)
             _check = similarity_helper(
                 input1, list_item, ratio_floor, ratio_roof
             )
@@ -289,7 +290,7 @@ def check_similarity(
 
 def create_necessary_files(file_list):
     'Get `file_list` (list) and create necessary files before running code'
-    log.verbose('Creating necessary files')
+    logger.debug('Creating necessary files')
     for file in file_list:
         if isinstance(file, tuple):
             ensure_file(file[0], file_template=file[1])
@@ -307,7 +308,7 @@ def make_db_output_to_json(cols, db_output):
     'Make `db_output` into a json file'
     # Length check
     if len(cols) != len(db_output[0]):
-        log.error('Length of `cols` and `db_output` does not match')
+        logger.error('Length of `cols` and `db_output` does not match')
         return None
     json_out = {}
     for item in db_output:

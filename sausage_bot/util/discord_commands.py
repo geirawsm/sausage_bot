@@ -7,8 +7,8 @@ from tabulate import tabulate
 from sausage_bot.util import config, envs
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
-from .log import log
 
+logger = config.logger
 
 async def get_message_obj(
         msg_id: int, channel_id: int
@@ -25,13 +25,13 @@ async def get_message_obj(
     '''
 
     _guild = get_guild()
-    log.debug(f'Getting channel with id `{channel_id}` ({type(channel_id)})')
+    logger.debug(f'Getting channel with id `{channel_id}` ({type(channel_id)})')
     _channel = _guild.get_channel(int(channel_id))
-    log.debug(f'Got channel `{_channel}`')
+    logger.debug(f'Got channel `{_channel}`')
     try:
-        log.debug(f'Getting message with id `{msg_id}` ({type(msg_id)})')
+        logger.debug(f'Getting message with id `{msg_id}` ({type(msg_id)})')
         msg_out = await _channel.fetch_message(int(msg_id))
-        log.debug(f'Got msg_out `{msg_out}`')
+        logger.debug(f'Got msg_out `{msg_out}`')
     except discord.errors.NotFound:
         msg_out = None
     return msg_out
@@ -44,10 +44,10 @@ def get_guild():
     '''
     for guild in config.bot.guilds:
         if str(guild.name).lower() == config.DISCORD_GUILD.lower():
-            log.debug(f'Got guild {guild} ({type(guild)})')
+            logger.debug(f'Got guild {guild} ({type(guild)})')
             return guild
         else:
-            log.error(envs.GUILD_NOT_FOUND.format(
+            logger.error(envs.GUILD_NOT_FOUND.format(
                 str(config.DISCORD_GUILD)
             ))
             return None
@@ -98,13 +98,13 @@ def get_scheduled_events():
     guild = get_guild()
     event_dict = {}
     if guild.scheduled_events is None:
-        log.log(envs.AUTOEVENT_NO_EVENTS_LISTED)
+        logger.info(envs.AUTOEVENT_NO_EVENTS_LISTED)
         return None
-    log.debug(f'`guild.scheduled_events`: {guild.scheduled_events}')
+    logger.debug(f'`guild.scheduled_events`: {guild.scheduled_events}')
     _epochs = {}
     for event in guild.scheduled_events:
         _event = guild.get_scheduled_event(event.id)
-        log.debug(f'`_event`: {_event}')
+        logger.debug(f'`_event`: {_event}')
         _dt = _event.start_time.astimezone()
         _dt_pend = get_dt(format='datetimetextday', dt=_dt)
         epoch = int(_event.start_time.astimezone().timestamp())
@@ -113,7 +113,7 @@ def get_scheduled_events():
         elif epoch in _epochs:
             _epochs[epoch] += 1
         epoch_id = '{}-{}'.format(epoch, _epochs[epoch])
-        log.debug(f'`epoch_id`: {epoch_id}')
+        logger.debug(f'`epoch_id`: {epoch_id}')
         event_dict[epoch_id] = {
             'name': _event.name,
             'epoch': epoch,
@@ -131,15 +131,15 @@ def get_sorted_scheduled_events():
     '''
     # Sort the dict based on epoch
     events_in = get_scheduled_events()
-    log.debug(f'`events_in`: {events_in}')
+    logger.debug(f'`events_in`: {events_in}')
     if len(events_in) == 0:
         return None
     try:
         event_dict = dict(sorted(events_in.items()))
-        log.debug(f'`event_dict` is sorted: {event_dict}')
+        logger.debug(f'`event_dict` is sorted: {event_dict}')
     except Exception as e:
         # events_in/get_scheduled_events() already describes the error
-        log.error(str(e))
+        logger.error(str(e))
         return None
     sched_dict = {
         'match': [],
@@ -183,9 +183,9 @@ def get_roles(
     '''
     hide_empties = eval(hide_empties)
     filter_bots = eval(filter_bots)
-    log.debug(f'hide_empties: {hide_empties} {type(hide_empties)}')
-    log.debug(f'filter_bots: {filter_bots} {type(filter_bots)}')
-    log.debug(f'hide_roles: {hide_roles} {type(hide_roles)}')
+    logger.debug(f'hide_empties: {hide_empties} {type(hide_empties)}')
+    logger.debug(f'filter_bots: {filter_bots} {type(filter_bots)}')
+    logger.debug(f'hide_roles: {hide_roles} {type(hide_roles)}')
     # Get all roles and their IDs
     roles_dict = {}
     for role in get_guild().roles:
@@ -203,7 +203,7 @@ def get_roles(
             'is_default': role.is_default(),
             'bot_managed': role.is_bot_managed()
         }
-    log.verbose(
+    logger.debug(
         'Got these roles: {}'.format(
             ', '.join(name for name in roles_dict)
         )
@@ -229,7 +229,7 @@ async def post_to_channel(
         )
         return msg_out
     except discord.errors.HTTPException as e:
-        log.error(
+        logger.error(
             f'{e} - this is the offending message:\n'
             f'`content`: {content_in}\n`embed`: {embed_in}'
         )
@@ -264,27 +264,27 @@ async def remove_stats_post(stats_channel):
     '''
     server_channels = get_text_channel_list()
     if stats_channel in server_channels:
-        log.debug(f'Found stats channel {stats_channel}')
+        logger.debug(f'Found stats channel {stats_channel}')
         channel_out = config.bot.get_channel(server_channels[stats_channel])
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
-            log.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
+            logger.debug(f'Got msg: ({msg.author.id}) {msg.content[0:50]}...')
             if str(msg.author.id) == config.BOT_ID and\
                     'Serverstats sist' in str(msg.content):
-                log.debug(
+                logger.debug(
                     'Found post with `Serverstats sist`, removing...'
                 )
                 await msg.delete()
                 found_stats_msg = True
                 return
         if found_stats_msg is False:
-            log.debug('No stats post found')
+            logger.debug('No stats post found')
 
 
 async def log_to_bot_channel(content_in=None):
     'Messages you want to send directly to a specific channel'
     log_channel = config.BOT_CHANNEL
-    log.debug(f'`log_channel` er {log_channel}')
+    logger.debug(f'`log_channel` er {log_channel}')
     guild = get_guild()
     channel_out = guild.get_channel(int(get_text_channel_list()[log_channel]))
     msg_out = await channel_out.send(

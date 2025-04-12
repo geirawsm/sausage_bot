@@ -9,12 +9,13 @@ from discord.utils import get
 from tabulate import tabulate
 import typing
 import re
+from pprint import pformat
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
 
+logger = config.logger
 
 async def settings_db_autocomplete(
     interaction: discord.Interaction,
@@ -64,7 +65,7 @@ async def hidden_roles_autocomplete(
         template_info=envs.stats_db_hide_roles_schema,
         get_row_ids=True
     )
-    log.debug('hidden_roles_from_db', pretty=hidden_roles_in_db)
+    logger.debug(f'hidden_roles_from_db:\n{pformat(hidden_roles_in_db)}')
     temp_hidden_roles = {}
     for i in hidden_roles_in_db:
         temp_hidden_roles[i['role_id']] = {
@@ -74,7 +75,7 @@ async def hidden_roles_autocomplete(
                 id=int(i['role_id'])
             ).name
         }
-    log.debug('temp_hidden_roles', pretty=temp_hidden_roles)
+    logger.debug('temp_hidden_roles:\n{pformat(temp_hidden_roles)}')
     return [
         discord.app_commands.Choice(
             name="{} ({})".format(
@@ -91,9 +92,9 @@ async def hidden_roles_autocomplete(
 
 def get_role_numbers(settings_in):
     'Get roles and number of members'
-    log.verbose(f'settings_in: {settings_in}')
-    log.debug('hide_empty_roles: {}'.format(settings_in['hide_empty_roles']))
-    log.debug('hide_bot_roles: {}'.format(settings_in['hide_bot_roles']))
+    logger.debug(f'settings_in: {settings_in}')
+    logger.debug('hide_empty_roles: {}'.format(settings_in['hide_empty_roles']))
+    logger.debug('hide_bot_roles: {}'.format(settings_in['hide_bot_roles']))
     roles_info = discord_commands.get_roles(
         hide_empties=settings_in['hide_empty_roles'],
         filter_bots=settings_in['hide_bot_roles']
@@ -153,7 +154,7 @@ class Stats(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log(I18N.t('stats.commands.start.log_started'))
+        logger.info(I18N.t('stats.commands.start.log_started'))
         Stats.task_update_stats.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -179,7 +180,7 @@ class Stats(commands.Cog):
         remove_post: typing.Literal['Yes', 'No']
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log(I18N.t('stats.commands.stop.log_stopped'))
+        logger.info(I18N.t('stats.commands.stop.log_stopped'))
         Stats.task_update_stats.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -213,7 +214,7 @@ class Stats(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Stats posting restarted')
+        logger.info('Stats posting restarted')
         Stats.task_update_stats.restart()
         await interaction.followup.send(
             I18N.t('stats.commands.restart.log_restarted')
@@ -250,7 +251,7 @@ class Stats(commands.Cog):
         if hidden_roles_in_db is not None:
             for role in hidden_roles_in_db:
                 hidden_roles_in_db.append(role[0])
-        log.debug(f'`hidden_roles_in_db` is {hidden_roles_in_db}')
+        logger.debug(f'`hidden_roles_in_db` is {hidden_roles_in_db}')
         if len(hidden_roles_in_db) > 0:
             headers_hidden_roles = [
                 I18N.t('stats.commands.list.headers.hidden_roles.hidden_name'),
@@ -308,20 +309,20 @@ class Stats(commands.Cog):
         settings_from_db = {}
         for setting in settings_in_db:
             settings_from_db[setting['setting']] = setting['value']
-        log.debug('settings_from_db:', pretty=settings_from_db)
+        logger.debug(f'settings_from_db:\n{pformat(settings_from_db)}')
         settings_type = envs.stats_db_settings_schema['type_checking']
         for setting in settings_from_db:
             if settings_type[setting] == 'bool':
                 try:
                     value_in = eval(str(value_in).capitalize())
                 except NameError as _error:
-                    log.error(f'Invalid input for `value_in`: {_error}')
+                    logger.error(f'Invalid input for `value_in`: {_error}')
                     await interaction.followup.send(I18N.t(
                         'stats.setting_input_reply'
                     ))
                     return
-            log.debug(f'`value_in` is {value_in} ({type(value_in)})')
-            log.debug(
+            logger.debug(f'`value_in` is {value_in} ({type(value_in)})')
+            logger.debug(
                 f'`settings_type` is {settings_type[setting]} '
                 f'({type(settings_type[setting])})'
             )
@@ -368,13 +369,13 @@ class Stats(commands.Cog):
             settings_in_db
         )
         settings_types = envs.stats_db_settings_schema['type_checking']
-        log.debug('settings_db_json is `{}`'.format(settings_db_json))
+        logger.debug('settings_db_json is `{}`'.format(settings_db_json))
         if value_in.lower() in ['true', 'false']:
             value_in = value_in.capitalize()
             value_in_check = eval('{}({})'.format(
                 settings_types[setting_in], value_in
             ))
-        log.debug(
+        logger.debug(
             'Value is {} ({}) and setting type is {}'.format(
                 value_in, type(value_in_check),
                 eval(settings_types[setting_in])
@@ -411,7 +412,7 @@ class Stats(commands.Cog):
                 Stats.task_update_stats.restart()
                 return
         else:
-            log.error('Something went wrong')
+            logger.error('Something went wrong')
             await interaction.followup.send(
                 content=I18N.t('stats.commands.add.msg.add_failed'),
                 ephemeral=True
@@ -447,7 +448,7 @@ class Stats(commands.Cog):
             )
             Stats.task_update_stats.restart()
         except Exception as error:
-            log.error(f'Error when removing setting: {error}')
+            logger.error(f'Error when removing setting: {error}')
             await interaction.followup.send(
                 content=I18N.t('stats.commands.remove.msg.remove_failed'),
                 ephemeral=True
@@ -563,11 +564,11 @@ class Stats(commands.Cog):
                 template_info=envs.stats_db_settings_schema,
                 select=('setting', 'value')
             )
-            log.debug(f'`stats_settings_db` is {stats_settings_db}')
+            logger.debug(f'`stats_settings_db` is {stats_settings_db}')
             stats_settings = {}
             for setting in stats_settings_db:
                 stats_settings[setting['setting']] = setting['value']
-            log.debug(f'`stats_settings` is {stats_settings}')
+            logger.debug(f'`stats_settings` is {stats_settings}')
             return stats_settings
 
         async def get_db_hide_roles():
@@ -594,7 +595,7 @@ class Stats(commands.Cog):
                 single=True
             )
             if date_exist is not None:
-                log.verbose(f'`date_exist`: {date_exist}')
+                logger.debug(f'`date_exist`: {date_exist}')
                 date_exist = date_exist['datetime']
             log_stats = False
             if date_exist:
@@ -605,7 +606,7 @@ class Stats(commands.Cog):
                 if date_now > date_exist:
                     log_stats = True
                 else:
-                    log.verbose('Today has already been logged, skipping...')
+                    logger.debug('Today has already been logged, skipping...')
             elif date_exist is None:
                 log_stats = True
             if log_stats:
@@ -629,7 +630,7 @@ class Stats(commands.Cog):
         ):
             text_out = ''
             if isinstance(dict_in, dict):
-                log.debug(
+                logger.debug(
                     'Checking `sort_abc` ({}) and `sort_321` ({})'.format(
                         eval(stats_settings['sort_roles_abc']),
                         eval(stats_settings['sort_roles_321'])
@@ -637,7 +638,7 @@ class Stats(commands.Cog):
                 )
                 if not eval(stats_settings['sort_roles_abc']) and\
                         not eval(stats_settings['sort_roles_321']):
-                    log.debug(
+                    logger.debug(
                         'Could not decide whether sorting by `abc` or `123`. '
                         'Defaulting to `abc`.'
                     )
@@ -646,7 +647,7 @@ class Stats(commands.Cog):
                     dict_in = dict(sorted(
                         dict_in.items(), key=lambda x: x[1]['name'].lower()
                     ))
-                    log.debug(
+                    logger.debug(
                         f'Sorting roles alphabetically: {list(dict_in)[0:4]}'
                     )
                 elif eval(stats_settings['sort_roles_321']):
@@ -654,7 +655,7 @@ class Stats(commands.Cog):
                         dict_in.items(), key=lambda x: x[1]['members'],
                         reverse=True
                     ))
-                    log.debug(
+                    logger.debug(
                         f'Sorting roles by number of members: '
                         f'{list(dict_in)[0:4]}'
                     )
@@ -691,10 +692,10 @@ class Stats(commands.Cog):
                         dict_out, headers=headers, numalign='center'
                     )
                 )
-                log.debug(f'Returning: {text_out[0:200]}...')
+                logger.debug(f'Returning: {text_out[0:200]}...')
                 return text_out
             else:
-                log.more('`dict_in` is not a dict. Check the input.')
+                logger.error('`dict_in` is not a dict. Check the input.')
 
         async def check_and_post_to_stats_msg_id(
                 stats_settings, stats_info
@@ -704,7 +705,7 @@ class Stats(commands.Cog):
                 _guild.channels,
                 name=stats_settings.get('channel', 'stats')
             )
-            log.verbose(
+            logger.debug(
                 f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
             )
             # If `stats_msg_id` is not in db, check if `stats_msg` is in db
@@ -723,14 +724,14 @@ class Stats(commands.Cog):
                         updates=('setting', 'stats_msg_id')
                     )
                 else:
-                    log.error('Noe rart har skjedd?!')
+                    logger.error('Noe rart har skjedd?!')
             elif 'stats_msg_id' in stats_settings:
                 stats_msg_id = stats_settings.get('stats_msg_id')
             # Now we should have `stats_msg_id`, check it's value and
             # decide what to do
             post_new = False
             if stats_msg_id == '' or stats_msg_id is None:
-                log.verbose(
+                logger.debug(
                     '`stats_msg_id` is empty, is there already a stats msg?'
                 )
                 # Look for a stats message
@@ -744,9 +745,9 @@ class Stats(commands.Cog):
                         'stats.tasks.update_stats.stats_msg.code_last_updated'
                     )
                     if last_update_text in str(_msg.content):
-                        log.verbose(f'Found stats message: {_msg.id}')
+                        logger.debug(f'Found stats message: {_msg.id}')
                         stats_msg_id = _msg.id
-                        log.verbose('Updating db')
+                        logger.debug('Updating db')
                         await db_helper.update_fields(
                             template_info=envs.stats_db_settings_schema,
                             where=('setting', 'stats_msg_id'),
@@ -754,7 +755,7 @@ class Stats(commands.Cog):
                         )
                         break
                 if not re.match(r'^\d{19}$', str(stats_msg_id)):
-                    log.verbose(
+                    logger.debug(
                         'Did not find a stats message, posting a new one'
                     )
                     post_new = True
@@ -765,12 +766,12 @@ class Stats(commands.Cog):
                     await stats_msg.edit(content=stats_info)
                     return
                 except discord.errors.NotFound:
-                    log.error(
+                    logger.error(
                         'Could not find msg id `{stats_msg_id}` in channel '
                         '`{stats_channel}`'
                     )
                     post_new = True
-                    log.debug('Creating new stats message')
+                    logger.debug('Creating new stats message')
             if post_new:
                 # Post it
                 stats_msg = await stats_channel.send(stats_info)
@@ -790,23 +791,23 @@ class Stats(commands.Cog):
                         )
                     )
             else:
-                log.error('Could not find stats_msg_id')
+                logger.error('Could not find stats_msg_id')
             return
 
         upd_mins = config.env.int('STATS_LOOP', default=5)
-        log.log(f'Starting `update_stats`, updating each {upd_mins} minute')
+        logger.info(f'Starting `update_stats`, updating each {upd_mins} minute')
         stats_settings = await get_db_settings()
         # Get stats about the code
         _codebase = get_stats_codebase()
         lines_in_codebase = _codebase['total_lines']
         files_in_codebase = _codebase['total_files']
         stats_hide_roles = await get_db_hide_roles()
-        log.debug(f'`stats_hide_roles` is {stats_hide_roles}')
+        logger.debug(f'`stats_hide_roles` is {stats_hide_roles}')
         # Get server members
         members = get_role_numbers(stats_settings)
-        log.debug(f'Got {len(members)} members')
+        logger.debug(f'Got {len(members)} members')
         # Update log database if not already this day
-        log.debug('Logging stats')
+        logger.debug('Logging stats')
         log_stats = await log_stats()
         # Update the stats-msg
         if eval(stats_settings['show_role_stats']):
@@ -815,10 +816,10 @@ class Stats(commands.Cog):
                 dict_in=members['roles'], headers=['Rolle', 'Brukere'],
                 hide_roles=stats_hide_roles
             )
-            log.debug(f'`roles_members`:\n{roles_members}')
+            logger.debug(f'`roles_members`:\n{roles_members}')
         dt_log = datetime_handling.get_dt('datetimefull')
         stats_info = ''
-        log.debug('`show_role_stats` is {}'.format(
+        logger.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
         ))
         if eval(stats_settings['show_role_stats']):
@@ -829,7 +830,7 @@ class Stats(commands.Cog):
             stats_info += f'### {members_sub}\n```'\
                 f'{members_num}: {total_members}\n\n'\
                 f'{roles_members}```\n'
-        log.debug('`show_code_stats` is {}'.format(
+        logger.debug('`show_code_stats` is {}'.format(
             stats_settings['show_code_stats']
         ))
         if eval(stats_settings['show_code_stats']):
@@ -844,7 +845,7 @@ class Stats(commands.Cog):
         code_last_updated = I18N.t(
             'stats.tasks.update_stats.stats_msg.code_last_updated')
         stats_info += f'```{code_last_updated} {dt_log}```\n'
-        log.verbose(
+        logger.debug(
             f'Trying to post stats to `stats_channel`:\n'
             f'{stats_info[0:100]}'
         )
@@ -857,15 +858,15 @@ class Stats(commands.Cog):
     @task_update_stats.before_loop
     async def before_update_stats():
         '#autodoc skip#'
-        log.verbose('`update_stats` waiting for bot to be ready...')
+        logger.debug('`update_stats` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
 
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'stats'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
 
     # Convert json to sqlite db-files if exists
     # Define inserts
@@ -873,18 +874,18 @@ async def setup(bot):
     stats_log_inserts = None
     stats_hide_roles_inserts = None
     stats_settings_inserts = envs.stats_db_settings_schema['inserts']
-    log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+    logger.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
     stats_settings_prep_is_ok = False
     stats_log_prep_is_ok = False
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.stats_file) or\
             file_io.file_exist(envs.stats_logs_file):
-        log.verbose('Found old json files')
+        logger.debug('Found old json files')
         stats_file_inserts = await db_helper.json_to_db_inserts(cog_name)
         stats_settings_inserts = stats_file_inserts['stats_inserts']
         stats_log_inserts = stats_file_inserts['stats_logs_inserts']
-    log.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
-    log.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
+    logger.debug(f'`stats_file_inserts` is \n{stats_file_inserts}')
+    logger.debug(f'`stats_settings_inserts` is {stats_settings_inserts}')
     # Cleaning DB if irregularities from previous instances of database
     if file_io.file_exist(envs.stats_db_settings_schema['db_file']):
         await db_helper.add_missing_db_setup(
@@ -903,12 +904,12 @@ async def setup(bot):
         table_in=envs.stats_db_settings_schema,
         inserts=stats_settings_inserts
     )
-    log.verbose(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
+    logger.debug(f'`stats_prep_is_ok` is {stats_settings_prep_is_ok}')
     stats_hide_roles_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_hide_roles_schema,
         inserts=stats_hide_roles_inserts
     )
-    log.verbose(
+    logger.debug(
         f'`stats_hide_roles_prep_is_ok` is {stats_hide_roles_prep_is_ok}'
     )
     stats_log_prep_is_ok = await db_helper.prep_table(
@@ -919,7 +920,7 @@ async def setup(bot):
         file_io.remove_file(envs.stats_file)
     if stats_log_prep_is_ok and file_io.file_exist(envs.stats_logs_file):
         file_io.remove_file(envs.stats_logs_file)
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(Stats(bot))
 
     task_list = await db_helper.get_output(
@@ -937,14 +938,14 @@ async def setup(bot):
     for task in task_list:
         if task['task'] == 'post_stats':
             if task['status'] == 'started':
-                log.debug(
+                logger.debug(
                     '`{}` is set as `{}`, starting...'.format(
                         task['task'], task['status']
                     )
                 )
                 Stats.task_update_stats.start()
             elif task['status'] == 'stopped':
-                log.debug(
+                logger.debug(
                     '`{}` is set as `{}`'.format(
                         task['task'], task['status']
                     )

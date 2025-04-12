@@ -6,11 +6,14 @@ from uuid import uuid4
 import re
 from pathlib import Path
 from discord.utils import get
+from pprint import pformat
+from pprint import pformat
 
-from sausage_bot.util import envs, file_io, discord_commands
+from sausage_bot.util import envs, config, file_io, discord_commands
 from sausage_bot.util.args import args
-from sausage_bot.util.log import log
 from .datetime_handling import get_dt
+
+logger = config.logger
 
 
 def db_exist(db_file_in):
@@ -20,13 +23,13 @@ def db_exist(db_file_in):
         file_io.file_exist(db_path)
         return True
     except Exception as e:
-        log.error(f'Could not find database {db_path}: {e}')
+        logger.error(f'Could not find database {db_path}: {e}')
         return False
 
 
 async def table_exist(template_info):
     db_file = template_info['db_file']
-    log.log(f'Opening `{db_file}`')
+    logger.info(f'Opening `{db_file}`')
     table_name = template_info['name']
     async with aiosqlite.connect(db_file) as db:
         out = await db.execute(f'PRAGMA table_info({table_name})')
@@ -37,7 +40,7 @@ async def table_exist(template_info):
 async def prep_table(
     table_in, inserts: list = None
 ):
-    log.verbose(f'Got `table_in`: {table_in}')
+    logger.debug(f'Got `table_in`: {table_in}')
     db_file = table_in['db_file']
     file_io.ensure_folder(Path(db_file).parent)
     table_name = table_in['name']
@@ -50,7 +53,7 @@ async def prep_table(
             ) for item in item_list
         )
     except IndexError as e:
-        log.error(
+        logger.error(
             f'Error when creating table `{table_name}` in {db_file}: {e}'
         )
         return None
@@ -64,22 +67,22 @@ async def prep_table(
             _cmd += ' AUTOINCREMENT'
         _cmd += ')'
     _cmd += ');'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
-                log.db(f'Changed {db.total_changes} rows')
+                logger.debug(f'Changed {db.total_changes} rows')
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None
     delete_json_ok = False
     if inserts:
         db_len = len(await get_row_ids(table_in))
         if db_len <= 0:
-            log.verbose(f'Inserting old info into db file ({table_name})')
+            logger.debug(f'Inserting old info into db file ({table_name})')
             # Make the returned status from `insert_many_all` decide
             # whether the json file can be deleted or not
             delete_json_ok = await insert_many_all(
@@ -87,7 +90,7 @@ async def prep_table(
                 inserts=inserts
             )
         elif db_len == len(inserts):
-            log.log(
+            logger.info(
                 'Length of table and inserts are the same '
                 '({} vs {}), will not import to {}'.format(
                     db_len, len(inserts), table_name
@@ -103,24 +106,24 @@ async def prep_table(
 async def add_missing_db_setup(
         template_info, dict_in: dict = None
 ):
-    log.verbose('Received `template_info`', pretty=template_info)
+    logger.debug(f'Received `template_info`:\n{pformat(template_info)}')
     db_file = template_info['db_file']
     table_name = template_info['name']
     inserts = template_info['inserts'] if 'inserts' in template_info else None
-    log.debug(f'Checking `{table_name}` in `{db_file}`: {dict_in}')
+    logger.debug(f'Checking `{table_name}` in `{db_file}`: {dict_in}')
     if not dict_in:
         dict_in = {}
     if table_name not in dict_in:
         dict_in[table_name] = []
         await prep_table(template_info)
-    log.debug(f'dict_in is: {dict_in}')
+    logger.debug(f'dict_in is: {dict_in}')
     wanted_cols = template_info['items']
     table_info = f'PRAGMA table_info({table_name})'
     async with aiosqlite.connect(db_file) as db:
         db_out = await db.execute(table_info)
         existing_cols = await db_out.fetchall()
         _existing_cols = [col[1] for col in existing_cols]
-        log.debug(f'_existing_cols: {_existing_cols}')
+        logger.debug(f'_existing_cols: {_existing_cols}')
     async with aiosqlite.connect(db_file) as db:
         row_ids = await db.execute(
             f'SELECT rowid FROM {table_name}'
@@ -130,25 +133,25 @@ async def add_missing_db_setup(
     if len(_existing_cols) > 0:
         for col_in in wanted_cols:
             if col_in[0] not in _existing_cols:
-                log.debug(f'Adding {col_in[0]}')
+                logger.debug(f'Adding {col_in[0]}')
                 dict_in[table_name].append(col_in)
         async with aiosqlite.connect(db_file) as db:
             for col in dict_in[table_name]:
-                log.debug(f'col: {col}')
+                logger.debug(f'col: {col}')
                 _cmd = f'ALTER TABLE {table_name} ADD COLUMN {col[0]};'
-                log.db(f'Using this query: {_cmd}')
+                logger.debug(f'Using this query: {_cmd}')
                 await db.execute(_cmd)
     # Add existing inserts in columns where they don't exist yet
     temp_inserts = []
     if inserts is not None and len(inserts) > 0:
-        log.debug('`inserts` has length')
+        logger.debug('`inserts` has length')
         db_out = await get_output(
             template_info=template_info,
             select=('setting', 'value')
         )
         db_out_cols = [col['setting'] for col in db_out]
-        log.verbose(f'Got `inserts`: {inserts}')
-        log.verbose(f'Got `db_out`: {db_out}')
+        logger.debug(f'Got `inserts`: {inserts}')
+        logger.debug(f'Got `db_out`: {db_out}')
         for insert in inserts:
             add_to_temp = None
             if (insert[0] not in db_out_cols) or insert[0] in db_out and\
@@ -156,7 +159,7 @@ async def add_missing_db_setup(
                 add_to_temp = True
             if add_to_temp:
                 temp_inserts.append(tuple(insert))
-        log.debug(f'temp_inserts: {temp_inserts}')
+        logger.debug(f'temp_inserts: {temp_inserts}')
     if len(temp_inserts) > 0:
         await insert_many_some(
             template_info=template_info,
@@ -171,8 +174,8 @@ async def find_cols(
 ):
     db_file = template_info['db_file']
     table_name = template_info['name']
-    log.verbose(f'Got `db_file`: {db_file}')
-    log.verbose(f'Got `table_name`: {table_name}')
+    logger.debug(f'Got `db_file`: {db_file}')
+    logger.debug(f'Got `table_name`: {table_name}')
     table_info = f'PRAGMA table_info({table_name})'
     async with aiosqlite.connect(db_file) as db:
         db_out = await db.execute(table_info)
@@ -190,21 +193,21 @@ async def remove_cols(
 ):
     db_file = template_info['db_file']
     table_name = template_info['name']
-    log.verbose(f'Got `db_file`: {db_file}')
-    log.verbose(f'Got `table_name`: {table_name}')
+    logger.debug(f'Got `db_file`: {db_file}')
+    logger.debug(f'Got `table_name`: {table_name}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     else:
         _cmd = 'ALTER TABLE {} DROP COLUMN {};'
         try:
             async with aiosqlite.connect(db_file) as db:
                 for col_in in cols_remove:
                     __cmd = _cmd.format(table_name, col_in)
-                    log.db(f'Using this query: {__cmd}')
+                    logger.debug(f'Using this query: {__cmd}')
                     await db.execute(__cmd)
                 await db.commit()
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return
     return
 
@@ -216,7 +219,7 @@ async def db_fix_old_hide_roles_status():
         where=('setting', 'hide_roles')
     )
     if len(old_hide_roles) > 0:
-        log.verbose('Moving hide_roles from settings tale to hide_roles')
+        logger.debug('Moving hide_roles from settings tale to hide_roles')
         old_hide_roles = await get_output(
             template_info=envs.stats_db_settings_schema,
             get_row_ids=True,
@@ -241,7 +244,7 @@ async def db_fix_old_stats_msg_name_status():
         where=('setting', 'stats_msg')
     )
     if len(old_stats_msg_name_status) > 0:
-        log.verbose('Renaming stats_msg to stats_msg_id')
+        logger.debug('Renaming stats_msg to stats_msg_id')
         await update_fields(
             template_info=envs.stats_db_settings_schema,
             where=('setting', 'stats_msg'),
@@ -255,7 +258,7 @@ async def db_fix_old_value_check_or_help():
         cols_find=('value_check', 'value_help')
     )
     if len(old_value_check_or_help) > 0:
-        log.verbose('Removing columns: {}'.format(
+        logger.debug('Removing columns: {}'.format(
             ', '.join(old_value_check_or_help)
         ))
         await remove_cols(
@@ -266,7 +269,7 @@ async def db_fix_old_value_check_or_help():
 
 async def db_replace_numeral_bool_with_bool(template_info):
     old_value_numeral_instead_of_bool = await get_output(template_info)
-    log.verbose(
+    logger.debug(
         'old_value_numeral_instead_of_bool: '
         f'{old_value_numeral_instead_of_bool}'
     )
@@ -305,9 +308,8 @@ async def db_replace_numeral_bool_with_bool(template_info):
                     remove_status = True
             if remove_status:
                 db_new_bool_status.pop(db_new_bool_status.index(setting))
-    log.verbose(
-        '`db_new_bool_status` after checking is ',
-        pretty=db_new_bool_status
+    logger.debug(
+        f'`db_new_bool_status` after checking:\n{pformat(db_new_bool_status)}',
     )
     for setting in db_new_bool_status:
         setting_in = list(setting.values())
@@ -319,7 +321,7 @@ async def db_replace_numeral_bool_with_bool(template_info):
         else:
             db_new_bool_status.pop(db_new_bool_status.index(setting))
     if len(db_new_bool_status) > 0:
-        log.verbose(
+        logger.debug(
             'Length of `db_new_bool_status` is more than 0. Converting old '
             'value numeral to bool'
         )
@@ -346,13 +348,13 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
     for reaction_msg in reactions_msgs:
         if not re.match(r'(\d+)', reaction_msg['channel']):
             # Try to search for channel ID
-            log.debug('channel is not an id, searching for name...')
+            logger.debug('channel is not an id, searching for name...')
             try:
                 channel_id = get(
                     discord_commands.get_guild().text_channels,
                     name=reaction_msg['channel']
                 ).id
-                log.debug(f'Found channel id: {channel_id}')
+                logger.debug(f'Found channel id: {channel_id}')
                 reaction_msg['channel_new'] = channel_id
             except AttributeError as e:
                 # TODO i18n
@@ -363,20 +365,20 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
                         template_info['db_file'],
                         e
                     )
-                log.error(error_msg)
+                logger.error(error_msg)
                 await discord_commands.log_to_bot_channel(
                     f'`db_channel_name_to_id`: {error_msg}'
                 )
                 reactions_copy.pop(reactions_copy.index(reaction_msg))
         elif re.match(r'(\d+)', reaction_msg['channel']):
-            log.debug(
+            logger.debug(
                 'Channel `{}` is an id and is ok'.format(
                     reaction_msg['channel']
                 )
             )
             reactions_copy.pop(reactions_copy.index(reaction_msg))
         else:
-            log.error('Unexpected error')
+            logger.error('Unexpected error')
             reactions_copy.pop(reactions_copy.index(reaction_msg))
     changes = {channel_col: []}
     for reaction in reactions_copy:
@@ -403,15 +405,15 @@ async def db_remove_old_cols(template_info):
     async def list_cols(template_info):
         db_file = template_info['db_file']
         table_name = template_info['name']
-        log.verbose(f'Got `db_file`: {db_file}')
-        log.verbose(f'Got `table_name`: {table_name}')
+        logger.debug(f'Got `db_file`: {db_file}')
+        logger.debug(f'Got `table_name`: {table_name}')
         table_info = f'PRAGMA table_info({table_name})'
         async with aiosqlite.connect(db_file) as db:
             db_out = await db.execute(table_info)
             list_out = await db_out.fetchall()
         return [col[1] for col in list_out] if list_out is not None else None
 
-    log.verbose('Received `template_info`', pretty=template_info)
+    logger.debug(f'Received `template_info`:\n{pformat(template_info)}')
     cols = template_info['items']
     cols_to_remove = []
     # Check existing columns in db
@@ -428,8 +430,8 @@ async def json_to_db_inserts(cog_name):
     files to sqlite files
     #autodoc skip#
     '''
-    log.log('Converting json to db')
-    log.log(f'Processing `{cog_name}`')
+    logger.info('Converting json to db')
+    logger.info(f'Processing `{cog_name}`')
     if cog_name == 'roles':
         settings_file = file_io.read_json(envs.roles_settings_file)
         settings_inserts = []
@@ -437,7 +439,7 @@ async def json_to_db_inserts(cog_name):
         reactions_inserts = []
         if len(settings_file) > 0:
             if 'unique_role' in settings_file:
-                log.verbose('Found unique role-settings')
+                logger.debug('Found unique role-settings')
                 if settings_file['unique_role']['role'] is not None:
                     settings_inserts.append(
                         ('unique', str(settings_file['unique_role']['role']))
@@ -448,7 +450,7 @@ async def json_to_db_inserts(cog_name):
                         settings_inserts.append(
                             ('not_include_in_total', str(no_total[list_item]))
                         )
-                log.verbose(
+                logger.debug(
                     f'Got this for `settings_inserts`:\n{settings_inserts}'
                 )
             for _msg in settings_file['reaction_messages']:
@@ -479,7 +481,7 @@ async def json_to_db_inserts(cog_name):
             dilemmas_inserts.append(
                 (str(uuid4()), dilemmas_file[dilemma])
             )
-        log.verbose(f'Got this for `dilemmas_inserts`:\n{dilemmas_inserts}')
+        logger.debug(f'Got this for `dilemmas_inserts`:\n{dilemmas_inserts}')
         return dilemmas_inserts
     elif cog_name == 'quote':
         quote_file = file_io.read_json(envs.quote_file)
@@ -496,7 +498,7 @@ async def json_to_db_inserts(cog_name):
                     )
                 )
             )
-        log.verbose(f'Got this for `quotes_inserts`:\n{quotes_inserts}')
+        logger.debug(f'Got this for `quotes_inserts`:\n{quotes_inserts}')
         return quotes_inserts
     elif cog_name == 'stats':
         # Check stats file
@@ -526,7 +528,7 @@ async def json_to_db_inserts(cog_name):
                             insert[3]
                         )
                     )
-            log.verbose(f'Got this for `stats_inserts`:\n{stats_inserts}')
+            logger.debug(f'Got this for `stats_inserts`:\n{stats_inserts}')
         stats_hide_roles_inserts = envs.stats_db_hide_roles_schema['inserts']
         # Check stats log file
         stats_logs_inserts = []
@@ -559,9 +561,9 @@ async def json_to_db_inserts(cog_name):
         }
     elif cog_name == 'rss':
         rss_file = file_io.read_json(envs.rss_feeds_file)
-        log.debug('Got `rss_file`: {}'.format(str(rss_file)[0:100]))
+        logger.debug('Got `rss_file`: {}'.format(str(rss_file)[0:100]))
         rss_logs_file = file_io.read_json(envs.rss_feeds_logs_file)
-        log.debug('Got `rss_logs_file`: {}'.format(str(rss_logs_file)[0:100]))
+        logger.debug('Got `rss_logs_file`: {}'.format(str(rss_logs_file)[0:100]))
         rss_inserts = []
         rss_filter_inserts = []
         rss_logs_inserts = []
@@ -667,7 +669,7 @@ async def json_to_db_inserts(cog_name):
             'filter': yt_filter_inserts,
             'logs': yt_logs_inserts
         }
-    log.log('Converting done!')
+    logger.info('Converting done!')
 
 
 async def insert_many_all(
@@ -692,9 +694,9 @@ async def insert_many_all(
     '''
     db_file = template_info['db_file']
     table_name = template_info['name']
-    log.verbose(f'Got `db_file`: {db_file}')
-    log.verbose(f'Got `table_name`: {table_name}')
-    log.verbose(
+    logger.debug(f'Got `db_file`: {db_file}')
+    logger.debug(f'Got `table_name`: {table_name}')
+    logger.debug(
         'Got `inserts`: {}'.format(
             str(inserts)[0:200] + '...' if len(str(inserts)) > 200 else inserts
         )
@@ -702,19 +704,19 @@ async def insert_many_all(
     input_singles = False
     input_multiples = False
     _cmd = f'INSERT INTO {table_name} VALUES('
-    log.debug(f'Got {len(inserts)} `inserts`')
+    logger.debug(f'Got {len(inserts)} `inserts`')
     if isinstance(inserts[0], (list, tuple)):
-        log.debug('Got multiple inserts')
+        logger.debug('Got multiple inserts')
         _cmd += ', '.join('?' * len(inserts[0]))
         input_multiples = True
     else:
-        log.debug('Got single insert')
+        logger.debug('Got single insert')
         _cmd += ', '.join('?' * len(inserts))
         input_singles = True
     _cmd += ')'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
@@ -723,15 +725,15 @@ async def insert_many_all(
                 elif input_multiples:
                     await db.executemany(_cmd, inserts)
                 await db.commit()
-                log.db(
+                logger.debug(
                     'Changed {} rows'.format(
                         db.total_changes
                     )
                 )
-            log.db('Done and commited!')
+            logger.debug('Done and commited!')
             return True
         except aiosqlite.OperationalError as e:
-            log.error(e)
+            logger.error(e)
             return False
 
 
@@ -755,16 +757,16 @@ async def insert_many_some(
     db_file = template_info['db_file']
     table_name = template_info['name']
     if db_file is None:
-        log.error('`db_file` is None')
+        logger.error('`db_file` is None')
         return None
     if table_name is None:
-        log.error('`table_name` is None')
+        logger.error('`table_name` is None')
         return None
-    log.verbose(f'Got `db_file`: {db_file}')
-    log.verbose(f'Got `table_name`: {table_name}')
-    log.verbose(f'Got `rows`: {rows}')
-    log.verbose(
-        f'Got `inserts`: {type(inserts)} {len(inserts)}', pretty=inserts
+    logger.debug(f'Got `db_file`: {db_file}')
+    logger.debug(f'Got `table_name`: {table_name}')
+    logger.debug(f'Got `rows`: {rows}')
+    logger.debug(
+        f'Got `inserts`: {type(inserts)} {len(inserts)}:\n{pformat(inserts)}'
     )
     input_singles = False
     input_multiples = False
@@ -780,9 +782,9 @@ async def insert_many_some(
     elif input_multiples:
         _cmd += ', '.join('?' * len(inserts[0]))
     _cmd += ')'
-    log.db(f'Using this query: {_cmd} {inserts}')
+    logger.debug(f'Using this query: {_cmd} {inserts}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         if input_singles:
             inserts = [inserts]
@@ -790,13 +792,13 @@ async def insert_many_some(
             async with aiosqlite.connect(db_file) as db:
                 await db.executemany(_cmd, inserts)
                 await db.commit()
-                log.debug(
+                logger.debug(
                     'Changed {} rows'.format(
                         db.total_changes
                     )
                 )
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None
 
 
@@ -820,31 +822,31 @@ async def insert_single(
     db_file = template_info['db_file']
     table_name = template_info['name']
     if db_file is None:
-        log.error('`db_file` is None')
+        logger.error('`db_file` is None')
         return None
     if table_name is None:
-        log.error('`table_name` is None')
+        logger.error('`table_name` is None')
         return None
     _cmd = f'''INSERT INTO {table_name} ({field_name})
                VALUES(?)'''
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd, insert)
                 await db.commit()
-                log.debug(
+                logger.debug(
                     'Changed {} rows'.format(
                         db.total_changes
                     )
                 )
                 last_row = db.lastinsertrow
-            log.db('Done and commited!')
+            logger.debug('Done and commited!')
             return last_row
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None
 
 
@@ -890,16 +892,16 @@ async def update_fields(
     db_file = template_info['db_file']
     table_name = template_info['name']
     if table_name is None:
-        log.error('Missing table_name')
+        logger.error('Missing table_name')
         return
     if updates is None:
-        log.error('Missing updates')
+        logger.error('Missing updates')
         return
     _cmd = f'UPDATE {table_name} SET '
     if isinstance(updates, dict):
-        log.debug('`updates` is dict')
+        logger.debug('`updates` is dict')
         for update in updates:
-            log.verbose(f'Got `update`: {update}')
+            logger.debug(f'Got `update`: {update}')
             _cmd += "{} = CASE".format(update)
             for _item in updates[update]:
                 _cmd += " WHEN {} = '{}' THEN '{}'".format(
@@ -909,7 +911,7 @@ async def update_fields(
             if update != list(updates)[-1]:
                 _cmd += ', '
     elif isinstance(updates, (list, tuple)):
-        log.debug('`updates` is list or tuple')
+        logger.debug('`updates` is list or tuple')
         if isinstance(updates[0], (str, int)):
             _cmd += "{} = '{}'".format(updates[0], updates[1])
         elif isinstance(updates[0], (list, tuple)):
@@ -925,17 +927,17 @@ async def update_fields(
                 _cmd += f"{id[0]} = '{id[1]}'"
                 if id != where[-1]:
                     _cmd += ' AND '
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            log.db('Done and commited!')
+            logger.debug('Done and commited!')
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None
 
 
@@ -990,12 +992,12 @@ async def get_output(
         elif len(where) == 2:
             cmd = f" LOWER({where[0]}) = LOWER('{where[1]}')"
         else:
-            log.error('Error with input, returning None')
+            logger.error('Error with input, returning None')
             return None
         return cmd
 
     db_file = template_info['db_file']
-    log.db(f'Opening `{db_file}`')
+    logger.debug(f'Opening `{db_file}`')
     table_name = template_info['name']
     _cmd = 'SELECT '
     if get_row_ids:
@@ -1008,19 +1010,19 @@ async def get_output(
     elif isinstance(select, str):
         _cmd += select
     _cmd += f' FROM {table_name}'
-    log.debug(f'where: {where}')
-    log.debug(f'like: {like}')
-    log.debug(f'not_like: {not_like}')
+    logger.debug(f'where: {where}')
+    logger.debug(f'like: {like}')
+    logger.debug(f'not_like: {not_like}')
     if where is not None:
         if 'where' not in _cmd.lower():
             _cmd += " WHERE"
         else:
             _cmd += ' AND'
         if isinstance(where, tuple):
-            log.verbose(f'`where` is tuple: {where}')
+            logger.debug(f'`where` is tuple: {where}')
             _cmd += parse_wheres(where)
         elif isinstance(where, list) and isinstance(where[0], tuple):
-            log.verbose(f'`where` is tuple inside a list: {where}')
+            logger.debug(f'`where` is tuple inside a list: {where}')
             for _where in where:
                 _cmd += parse_wheres(_where)
                 if _where[0] != where[-1][0]:
@@ -1031,10 +1033,10 @@ async def get_output(
         else:
             _cmd += ' AND'
         if isinstance(like, tuple):
-            log.verbose(f'`like` is tuple: {like}')
+            logger.debug(f'`like` is tuple: {like}')
             _cmd += f" {like[0]} LIKE '%{like[1]}%'"
         elif isinstance(like, list) and isinstance(like[0], tuple):
-            log.verbose(f'`like` is tuple inside a list: {like}')
+            logger.debug(f'`like` is tuple inside a list: {like}')
             for id in like:
                 _cmd += f" {id[0]} LIKE '%{id[1]}%'"
                 if id != like[-1]:
@@ -1045,10 +1047,10 @@ async def get_output(
         else:
             _cmd += ' AND'
         if isinstance(not_like, tuple):
-            log.verbose(f'`not_like` is tuple: {not_like}')
+            logger.debug(f'`not_like` is tuple: {not_like}')
             _cmd += f" {not_like[0]} NOT LIKE '%{not_like[1]}%'"
         elif isinstance(not_like, list) and isinstance(not_like[0], tuple):
-            log.verbose(f'`not_like` is tuple inside a list: {not_like}')
+            logger.debug(f'`not_like` is tuple inside a list: {not_like}')
             for id in not_like:
                 _cmd += f" {id[0]} NOT LIKE '%{id[1]}%'"
                 if id != not_like[-1]:
@@ -1061,7 +1063,7 @@ async def get_output(
             _cmd += ' ORDER BY rowid'
         if order_by is not None:
             _cmd += ', rowid'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             db.row_factory = aiosqlite.Row
@@ -1074,10 +1076,10 @@ async def get_output(
                     return dict(out)
             else:
                 out = [dict(row) for row in await out.fetchall()]
-            log.verbose(f'Returning {len(out)} items from from db')
+            logger.debug(f'Returning {len(out)} items from from db')
             return out
     except aiosqlite.OperationalError as e:
-        log.error(f'Error: {e}')
+        logger.error(f'Error: {e}')
         return None
 
 
@@ -1120,7 +1122,7 @@ async def get_random_left_exclude_output(
     _cmd += f' WHERE B.{key} IS NULL'
     _cmd += ' ORDER BY RANDOM()'
     _cmd += ' LIMIT 1'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             out = await db.execute(_cmd)
@@ -1149,7 +1151,7 @@ async def get_combined_output(
     db_file = template_info_1['db_file']
     table_name1 = template_info_1['name']
     table_name2 = template_info_2['name']
-    log.debug('Getting combined info from `{}` and `{}`'.format(
+    logger.debug('Getting combined info from `{}` and `{}`'.format(
         table_name1, table_name2
     ))
     _cmd = 'SELECT '
@@ -1179,7 +1181,7 @@ async def get_combined_output(
     if order_by:
         _cmd += ' ORDER BY '
         _cmd += ', ' .join(f'{order[0]} {order[1]}' for order in order_by)
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             db.row_factory = aiosqlite.Row
@@ -1194,22 +1196,22 @@ async def empty_table(template_info):
     db_file = template_info['db_file']
     table_name = template_info['name']
     _cmd = f'DELETE FROM {table_name};'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 out = await db.execute(_cmd)
                 await db.commit()
-                log.debug(
+                logger.debug(
                     'Changed {} rows'.format(
                         db.total_changes
                     )
                 )
                 return out
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None
 
 
@@ -1237,7 +1239,7 @@ async def get_one_random_output(
     _cmd += f' FROM {table_name1} A'
     _cmd += ' ORDER BY RANDOM()'
     _cmd += ' LIMIT 1'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             out = await db.execute(_cmd)
@@ -1270,7 +1272,7 @@ async def get_output_by_rowid(
     _cmd += f' FROM {table_name}'
     _cmd += f" WHERE rowid = {rowid}"
     _cmd += " ORDER BY rowid"
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             db.row_factory = aiosqlite.Row
@@ -1287,7 +1289,7 @@ async def get_row_ids(template_info, sort=False):
     _cmd = f'SELECT rowid FROM {table_name}'
     if sort:
         _cmd += ' ORDER BY rowid'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     try:
         async with aiosqlite.connect(db_file) as db:
             out = await db.execute(_cmd)
@@ -1309,11 +1311,11 @@ async def del_row_id(template_info, numbers):
     elif isinstance(numbers, (int, str)):
         _cmd += f'= {numbers}'
     else:
-        log.error(f'Could not find rowid for {numbers}')
+        logger.error(f'Could not find rowid for {numbers}')
         return None
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
@@ -1329,9 +1331,9 @@ async def del_row_ids(template_info, numbers=None):
     _cmd = f'DELETE FROM {table_name} WHERE rowid IN ('
     _cmd += ', '.join(str(number) for number in numbers)
     _cmd += ')'
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
@@ -1363,17 +1365,17 @@ async def del_row_by_OR_filters(
             _cmd += f"{id[0]} = '{id[1]}'"
             if id != where[-1]:
                 _cmd += ' OR '
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            log.db('Done and commited!')
+            logger.debug('Done and commited!')
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None
 
 
@@ -1397,22 +1399,22 @@ async def del_row_by_AND_filter(
     elif isinstance(where, (list, tuple)):
         _cmd += " WHERE "
         for id in where:
-            log.debug(
+            logger.debug(
                 f'`id` is {type(id)}: {id}'
             )
             _cmd += f"{id[0]} = '{id[1]}'"
             if id != where[-1]:
                 _cmd += ' AND '
-    log.db(f'Using this query: {_cmd}')
+    logger.debug(f'Using this query: {_cmd}')
     if args.not_write_database:
-        log.verbose('`not_write_database` activated')
+        logger.debug('`not_write_database` activated')
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            log.db('Done and commited!')
+            logger.debug('Done and commited!')
             return True
         except aiosqlite.OperationalError as e:
-            log.error(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return None

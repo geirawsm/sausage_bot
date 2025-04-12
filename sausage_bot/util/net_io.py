@@ -8,13 +8,16 @@ import aiofiles
 from random import choice
 import requests
 from datetime import datetime
+import json
+import colorgram
+from pprint import pformat
+
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
 from sausage_bot.util.args import args
-from .log import log
 
-import json
-import colorgram
+logger = config.logger
+
 
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
@@ -29,18 +32,18 @@ try:
     )
 except (SpotifyOauthError, ConnectionError) as _error:
     _spotipy = None
-    log.error(f'Error when connecting to Spotify: {_error}')
+    logger.error(f'Error when connecting to Spotify: {_error}')
 
 
 async def fetch_random_user_agent():
     # Check if API key is set
     if config.SCRAPEOPS_API_KEY is None:
-        log.error('SCRAPEOPS_API_KEY is not set')
+        logger.error('SCRAPEOPS_API_KEY is not set')
         return
     # Get new headers if the file is older than 6 hours or does not exist
     if file_io.file_age(envs.TEMP_DIR / 'headers.json') > 60 * 60 * 6 or\
             file_io.file_exist(envs.TEMP_DIR / 'headers.json') is False:
-        log.debug('Headers file is older than an hour or does not exist')
+        logger.debug('Headers file is older than an hour or does not exist')
         response = requests.get(
             envs.scrapeops_url.format(config.SCRAPEOPS_API_KEY)
         )
@@ -56,33 +59,33 @@ async def get_link(url=None, mock_file=None, status_out=None):
         )['user-agent']
 
     if mock_file:
-        log.debug('Found mock file, returning it')
+        logger.debug('Found mock file, returning it')
         return file_io.read_file(mock_file)
     content_out = None
     url_status = 0
     if type(url) is not str or url == '':
-        log.error('Input `{url}`is not a proper URL. Check spelling.')
+        logger.error('Input `{url}`is not a proper URL. Check spelling.')
         return None
     if re.search(r'^http(s)?\:', url):
-        log.debug('Found scheme in url')
+        logger.debug('Found scheme in url')
     elif re.match(r'^((http\:\/\/|^https\:\/\/))?((www\.))?', url) is not None:
-        log.debug('Did not found scheme, adding')
+        logger.debug('Did not found scheme, adding')
         url = f'https://{url}'
     try:
-        log.debug(f'Trying `url`: {url}')
+        logger.debug(f'Trying `url`: {url}')
         session = aiohttp.ClientSession()
         # Get random user agent
 #        rand_user_agent = get_random_user_agent()
-#        log.debug(f'Using user-agent: {rand_user_agent}')
+#        logger.debug(f'Using user-agent: {rand_user_agent}')
 #        headers = {'user-agent': rand_user_agent}
 #        async with session.get(url, headers=headers) as resp:
         async with session.get(url) as resp:
             url_status = resp.status
-            log.debug(f'Got status: {url_status}')
+            logger.debug(f'Got status: {url_status}')
             content_out = await resp.text()
-            log.verbose(f'Got content_out: {content_out[0:500]}...')
+            logger.debug(f'Got content_out: {content_out[0:500]}...')
             if 399 < int(url_status) < 600:
-                log.error(f'Got error code {url_status}')
+                logger.error(f'Got error code {url_status}')
                 file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
                 file_io.write_file(
                     envs.LOG_DIR / 'HTTP_errors' / '{}.log'.format(
@@ -99,7 +102,7 @@ async def get_link(url=None, mock_file=None, status_out=None):
         else:
             return content_out
     except Exception as e:
-        log.error(f'Error when getting `url`:({url_status}) {e}')
+        logger.error(f'Error when getting `url`:({url_status}) {e}')
         if isinstance(url_status, int):
             return int(url_status)
         else:
@@ -112,26 +115,26 @@ async def get_link(url=None, mock_file=None, status_out=None):
 
 
 async def check_spotify_podcast(url):
-    log.verbose('Checking podcast...')
+    logger.debug('Checking podcast...')
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
-        log.error(_spotipy_error)
+        logger.error(_spotipy_error)
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
     try:
-        log.verbose(f'Looking up show ({url})...')
+        logger.debug(f'Looking up show ({url})...')
         _show = _spotipy.show(url)
         return _show['total_episodes']
     except Exception as e:
-        log.error(f'ERROR: {e}')
+        logger.error(f'ERROR: {e}')
         return False
 
 
 async def check_spotify_podcast_episodes():
-    log.verbose('Getting num of episodes...')
+    logger.debug('Getting num of episodes...')
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
-        log.error(_spotipy_error)
+        logger.error(_spotipy_error)
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
     spotify_feeds = await db_helper.get_output(
@@ -162,9 +165,9 @@ async def check_spotify_podcast_episodes():
     try:
         show_ids = [feed for feed in checklist]
         _shows = _spotipy.shows(show_ids)['shows']
-        log.verbose(f'Got ({len(_shows)}) shows')
+        logger.debug(f'Got ({len(_shows)}) shows')
     except Exception as e:
-        log.error(f'ERROR: {e}')
+        logger.error(f'ERROR: {e}')
         return False
     for show in _shows:
         checklist[show['id']]['num_episodes_new'] = show['total_episodes']
@@ -180,18 +183,18 @@ async def check_spotify_podcast_episodes():
 async def get_spotify_podcast_links(pod_id=str, uuid=str):
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
-        log.log(_spotipy_error)
+        logger.info(_spotipy_error)
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
-    log.verbose('Getting show info...')
+    logger.debug('Getting show info...')
     _show = _spotipy.show(pod_id)
-    log.verbose('Getting DB filters')
+    logger.debug('Getting DB filters')
     filters_db = await db_helper.get_output(
         template_info=envs.rss_db_filter_schema,
         select=('allow_or_deny', 'filter'),
         where=[('uuid', uuid)]
     )
-    log.verbose('Getting DB log')
+    logger.debug('Getting DB log')
     log_db = await db_helper.get_output(
         template_info=envs.rss_db_log_schema,
         where=[('uuid', uuid)]
@@ -214,7 +217,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         'duration': '',
         'type': 'spotify',
     }
-    log.verbose('Processing episodes')
+    logger.debug('Processing episodes')
     try:
         for ep in episodes:
             if ep is None:
@@ -226,7 +229,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
             temp_info['img'] = ep['images'][0]['url']
             temp_info['id'] = ep['id']
             temp_info['duration'] = ep['duration_ms'] * 1000
-            log.verbose('Populated `temp_info`: ', pretty=temp_info)
+            logger.debug(f'Populated `temp_info`:\n{pformat(temp_info)}')
             items_out['items'].append(temp_info)
         items_out = filter_links(items_out)
         return items_out
@@ -234,7 +237,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         _msg = 'Error processing episodes from {}: {}'.format(
             items_info['pod_name'], e
         )
-        log.error(_msg)
+        logger.error(_msg)
         await discord_commands.log_to_bot_channel(_msg)
 
 
@@ -254,35 +257,35 @@ def filter_links(items):
         filter_priority = eval(config.env(
             'RSS_FILTER_PRIORITY', default='deny'))
         for filter_out in filter_priority:
-            log.verbose(f'Using filter: {filter_out}')
+            logger.debug(f'Using filter: {filter_out}')
             try:
                 if item['title'] is not None:
-                    log.verbose(
+                    logger.debug(
                         'Checking filter against title `{}`'.format(
                             item['title'].lower()
                         )
                     )
                     if filter_out.lower() in str(item['title']).lower():
-                        log.debug(
+                        logger.debug(
                             f'Found filter `{filter_out}` in '
                             'title ({}) - not posting!'.format(item['title'])
                         )
                         return False
             except TypeError:
-                log.error(
+                logger.error(
                     'Title is not correct type: {} ({})'.format(
                         item['title'], type(item['title'])
                     )
                 )
             try:
                 if item['description']:
-                    log.debug(
+                    logger.debug(
                         'Checking filter against description`{}`'.format(
                             item['description'].lower()
                         )
                     )
                     if filter_out.lower() in str(item['description']).lower():
-                        log.debug(
+                        logger.debug(
                             f'Found filter `{filter_out}` in '
                             'description ({}) - not posting!'.format(
                                 item['description']
@@ -290,17 +293,17 @@ def filter_links(items):
                         )
                         return False
             except TypeError:
-                log.error(
+                logger.error(
                     'Description is not correct type: {} ({})'.format(
                         item['description'], type(item['description'])
                     )
                 )
-            log.debug(
+            logger.debug(
                 'Fant ikke noe filter i tittel eller beskrivelse'
             )
             return True
 
-    log.debug(
+    logger.debug(
         'Got {} `items` (sample): {}'.format(
             len(items['items']),
             items['items'][0]['title']
@@ -308,27 +311,27 @@ def filter_links(items):
     )
     links_out = []
     for item in items['items']:
-        log.verbose('Checking item: {}'.format(
+        logger.debug('Checking item: {}'.format(
             item['title']
         ))
         if item['type'] == 'youtube':
-            log.verbose('Checking Youtube item')
+            logger.debug('Checking Youtube item')
             if not config.env('YT_INCLUDE_SHORTS', default='true'):
                 shorts_keywords = ['#shorts', '(shorts)']
                 if any(kw in str(item['title']).lower()
                         for kw in shorts_keywords) or\
                         any(kw in str(item['description']).lower()
                             for kw in shorts_keywords):
-                    log.verbose(
+                    logger.debug(
                         'Skipped {} because of `#Shorts` '
                         'or `(shorts)`'.format(
                             item['title']
                         )
                     )
                     continue
-        log.verbose('Filters: {}'.format(items['filters']))
+        logger.debug('Filters: {}'.format(items['filters']))
         if items['filters'] is not None and len(items['filters']) > 0:
-            log.verbose('Found active filters, checking...')
+            logger.debug('Found active filters, checking...')
             link_filter = post_based_on_filter(item, items['filters'])
             if link_filter:
                 links_out.append(item)
@@ -346,36 +349,36 @@ def make_event_start_stop(date, time=None):
     `date`: The match date or a datetime-object
     `time`: The match start time (optional)
     '''
-    log.debug(f'Got `date`: {date}')
+    logger.debug(f'Got `date`: {date}')
     try:
         # Make the original startdate an object
         if time is None:
             start_dt = datetime_handling.make_dt(date)
         else:
             start_dt = datetime_handling.make_dt(f'{date} {time}')
-        log.debug(f'`start_dt` is {start_dt}')
+        logger.debug(f'`start_dt` is {start_dt}')
     except Exception as e:
-        log.error(f'Got an error: {e}')
+        logger.error(f'Got an error: {e}')
         return None
     try:
         start_date = datetime_handling.get_dt('date', dt=start_dt)
-        log.debug(f'Making `start_date` {start_date}')
+        logger.debug(f'Making `start_date` {start_date}')
         start_time = datetime_handling.get_dt(
             'time', sep=':', dt=start_dt
         )
-        log.debug(f'Making `start_time` {start_time}')
+        logger.debug(f'Making `start_time` {start_time}')
         # Make a startdate for the event that starts 30 minutes before
         # the match
         start_event = datetime_handling.change_dt(
             start_dt, 'remove', 30, 'minutes'
         )
-        log.debug(f'`start_event` is {start_event}')
+        logger.debug(f'`start_event` is {start_event}')
         # Make an enddate for the event that should stop approximately
         # 30 minutes after the match is over
         end_dt = datetime_handling.change_dt(
             start_dt, 'add', 2.5, 'hours'
         )
-        log.debug(f'`end_dt` is {end_dt}')
+        logger.debug(f'`end_dt` is {end_dt}')
         # Make the epochs that the event will use
         event_start_epoch = datetime_handling.get_dt(dt=start_event)
         event_end_epoch = datetime_handling.get_dt(dt=end_dt)
@@ -402,7 +405,7 @@ def make_event_start_stop(date, time=None):
             'end_dt': end_dt,
         }
     except Exception as e:
-        log.error('Error: {}'.format(e))
+        logger.error('Error: {}'.format(e))
         return None
 
 
@@ -424,7 +427,7 @@ async def parse(url: str = None):
     dict with info about the match
     '''
     if url is None:
-        log.error('Got None as url')
+        logger.error('Got None as url')
         return None
     PARSER = None
     if 'nifs.no' in url:
@@ -435,22 +438,22 @@ async def parse(url: str = None):
         PARSER = 'tv2livesport'
     elif args.force_parser:
         PARSER = args.force_parser
-    log.verbose(f'Got parser `{PARSER}`')
+    logger.debug(f'Got parser `{PARSER}`')
     if PARSER == 'nifs':
         if 'matchId=' not in url:
             # todo var msg
-            log.error('The NIFS url is not from a match page')
+            logger.error('The NIFS url is not from a match page')
             return None
         try:
             parse = await parse_nifs(url)
             return parse
         except Exception as e:
             error_msg = f'Could not parse {url} - got the following error:\n{e}'
-            log.error(error_msg)
+            logger.error(error_msg)
             return None
     elif PARSER == 'vglive':
         if '/kamp/' not in url:
-            log.error('The vglive url is not from a match page')
+            logger.error('The vglive url is not from a match page')
             return None
         try:
             parse = await parse_vglive(url)
@@ -460,17 +463,17 @@ async def parse(url: str = None):
                 return parse
         except Exception as e:
             error_msg = f'Could not parse {url} - got the following error:\n{e}'
-            log.error(error_msg)
+            logger.error(error_msg)
             return None
     elif PARSER == 'tv2livesport':
         if '/kamper/' not in url:
             # todo var msg
-            log.error('The tv2 url is not from a match page')
+            logger.error('The tv2 url is not from a match page')
             return None
         parse = await parse_tv2livesport(url)
         return parse
     else:
-        log.error('Linken er ikke kjent')
+        logger.error('Linken er ikke kjent')
         return None
 
 
@@ -542,10 +545,10 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
     if isinstance(match_json, int):
         # TODO i18n
         error_msg = 'Link received HTTP status code {}'.format(match_json)
-        log.error(error_msg)
+        logger.error(error_msg)
         await discord_commands.log_to_bot_channel(error_msg)
         return None
-    log.verbose('Got `match_json`: ', pretty=match_json)
+    logger.debug(f'Got `match_json`:\n{pformat(match_json)}')
     if mock_in and mock_in_tv:
         tv_json = await get_link(
             mock_file=mock_in_tv
@@ -553,14 +556,14 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
     else:
         _tv_info = await get_link(tv_url.format(_id))
         tv_json = json.loads(_tv_info)
-    log.verbose('Got `tv_json`: ', pretty=tv_json)
+    logger.debug(f'Got `tv_json`:\n{pformat(tv_json)}')
     teams = match_json['event']['participantIds']
     if 'venue' in match_json['event']['details']:
         stadium = match_json['event']['details']['venue']['name']
     else:
         stadium = None
-    log.debug(f'Got `stadium`: {stadium}')
-    log.debug('Channels ({}): {}'.format(
+    logger.debug(f'Got `stadium`: {stadium}')
+    logger.debug('Channels ({}): {}'.format(
         len(tv_json['tvChannels']),
         tv_json['tvChannels']
     ))
@@ -568,12 +571,12 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
         tv = tv_json['tvChannels'][_id][0]['name']
     else:
         tv = None
-    log.debug(f'Got `tv`: {tv}')
+    logger.debug(f'Got `tv`: {tv}')
     date_in = match_json['event']['startDate']
     _date_obj = datetime_handling.make_dt(date_in)
     dt_in = make_event_start_stop(_date_obj)
     if dt_in is None:
-        log.error('`dt_in` is None')
+        logger.error('`dt_in` is None')
         return None
     return {
         'teams': {
@@ -628,7 +631,7 @@ async def parse_tv2livesport(url_in=None, mock_in=None):
     _date_obj = datetime_handling.make_dt(date_in)
     dt_in = make_event_start_stop(_date_obj)
     if dt_in is None:
-        log.error('Error with `dt_in`')
+        logger.error('Error with `dt_in`')
         return None
     return {
         'teams': {
@@ -676,13 +679,13 @@ async def extract_color_from_image_url(image_url):
                 )
         return str('{0:02X}{1:02X}{2:02X}'.format(value1, value2, value3))
 
-    log.verbose(f'Downloading image: {image_url}')
+    logger.debug(f'Downloading image: {image_url}')
     await download_pod_image(image_url)
-    log.verbose('Extracting color')
+    logger.debug('Extracting color')
     color = colorgram.extract(f'{envs.TEMP_DIR}/temp_img.png', 1)[0]
-    log.verbose('Converting color to hex')
+    logger.debug('Converting color to hex')
     color_out = rgb_to_hex(color.rgb.r, color.rgb.g, color.rgb.b)
-    log.verbose(f'Returning: {color_out}')
+    logger.debug(f'Returning: {color_out}')
     return color_out
 
 if __name__ == "__main__":

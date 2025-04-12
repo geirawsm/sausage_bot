@@ -16,8 +16,8 @@ from contextlib import suppress
 from sausage_bot.util import envs, config, datetime_handling, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
 
+logger = config.logger
 
 # Create necessary folders before starting
 check_and_create_folders = [
@@ -33,11 +33,11 @@ async def event_names_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     _guild = discord_commands.get_guild()
-    log.debug(f'_guild: {_guild}')
+    logger.debug(f'_guild: {_guild}')
     events = []
     for event in _guild.scheduled_events:
         events.append((event.name, event.id))
-    log.debug(f'events: {events}')
+    logger.debug(f'events: {events}')
     return [
         discord.app_commands.Choice(name=str(event[0]), value=str(event[1]))
         for event in events if current.lower() in event[0].lower()
@@ -87,9 +87,9 @@ class AutoEvent(commands.Cog):
         else:
             scraped_info = await net_io.parse(url)
             if scraped_info is None:
-                log.debug('scrape is NOT ok')
+                logger.debug('scrape is NOT ok')
             else:
-                log.debug('scrape is ok, this is the output:\n{}'.format(
+                logger.debug('scrape is ok, this is the output:\n{}'.format(
                     scraped_info
                 ))
                 scr = scraped_info
@@ -153,7 +153,7 @@ class AutoEvent(commands.Cog):
                         ephemeral=True
                     )
                 except (discord.HTTPException) as e:
-                    log.error('Got an error when posting event: {}'.format(
+                    logger.error('Got an error when posting event: {}'.format(
                         e.text)
                     )
                     await interaction.followup.send(
@@ -195,11 +195,11 @@ class AutoEvent(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         event_dict = discord_commands.get_scheduled_events()
-        log.debug(f'Got `event_dict`: {event_dict}')
+        logger.debug(f'Got `event_dict`: {event_dict}')
         _guild = discord_commands.get_guild()
         # Delete all events
         if remove_all == I18N.t('common.literal_yes_no.yes'):
-            log.verbose('Got `remove_all`: {}'.format(
+            logger.debug('Got `remove_all`: {}'.format(
                 I18N.t('common.literal_yes_no.yes')
             ))
             for event in event_dict:
@@ -218,7 +218,7 @@ class AutoEvent(commands.Cog):
                 I18N.t('autoevent.commands.remove.msg_one_confirm')
             )
         else:
-            log.error('No event given')
+            logger.error('No event given')
             await interaction.followup.send(
                 I18N.t('autoevent.commands.remove.msg_no_event')
             )
@@ -339,7 +339,7 @@ class AutoEvent(commands.Cog):
                 ephemeral=True
             )
         except Exception as _error:
-            log.error(
+            logger.error(
                 'An error occurred when announcing event: {}'.format(
                     _error
                 )
@@ -355,6 +355,6 @@ class AutoEvent(commands.Cog):
 
 
 async def setup(bot):
-    log.log(envs.COG_STARTING.format('autoevent'))
+    logger.info(envs.COG_STARTING.format('autoevent'))
     # Starting the cog
     await bot.add_cog(AutoEvent(bot))

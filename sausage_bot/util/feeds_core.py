@@ -9,14 +9,14 @@ import discord
 import re
 import json
 from hashlib import md5
+from pprint import pformat
 
-
-from sausage_bot.util import envs, datetime_handling, file_io, discord_commands
-from sausage_bot.util import net_io, db_helper, file_io
+from sausage_bot.util import config, envs, datetime_handling, file_io
+from sausage_bot.util import discord_commands, net_io, db_helper, file_io
 from sausage_bot.util.args import args
 from sausage_bot.util.i18n import I18N
-from .log import log
 
+logger = config.logger
 
 async def check_if_feed_name_exist(feed_name):
     feeds = await db_helper.get_output(
@@ -24,31 +24,31 @@ async def check_if_feed_name_exist(feed_name):
         select='feed_name'
     )
     feeds = [feed['feed_name'] for feed in feeds]
-    log.debug(f'`feeds`: {feeds}')
+    logger.debug(f'`feeds`: {feeds}')
     return feed_name not in feeds
 
 
 async def check_feed_validity(url_in, mock_file=None):
     'Make sure that `url_in` is a valid link with feed items'
     if args.rss_skip_url_validation:
-        log.verbose('Skipping url validation')
+        logger.debug('Skipping url validation')
         return True
     sample_item = None
-    log.verbose(f'Checking `url_in`: {url_in}')
+    logger.debug(f'Checking `url_in`: {url_in}')
     req = await net_io.get_link(url_in, mock_file=mock_file)
-    log.debug(f'req is ({type(req)})')
+    logger.debug(f'req is ({type(req)})')
     if req is None:
-        log.verbose('Returned None')
+        logger.debug('Returned None')
         return None
     elif isinstance(req, int):
         return req
     if 'open.spotify.com/show/' in url_in:
-        log.verbose('Discovered Spotify branded link')
+        logger.debug('Discovered Spotify branded link')
         sample_item = await net_io.check_spotify_podcast(
             url=url_in, mock_file=mock_file
         )
     else:
-        log.verbose('Discovered normal link')
+        logger.debug('Discovered normal link')
         _items = await get_items_from_rss(
             req=req,
             url=url_in,
@@ -56,15 +56,15 @@ async def check_feed_validity(url_in, mock_file=None):
         )
         if isinstance(_items, list):
             sample_item = _items[0]
-    log.debug(f'Got `sample_item`: {sample_item}')
+    logger.debug(f'Got `sample_item`: {sample_item}')
     if sample_item is None:
         return False
     try:
-        log.verbose(f'`req` is a {type(req)}')
+        logger.debug(f'`req` is a {type(req)}')
         BeautifulSoup(req, features='xml')
         return True
     except (etree.XMLSyntaxError) as e:
-        log.error('Error: {}'.format(e))
+        logger.error('Error: {}'.format(e))
         return False
 
 
@@ -72,14 +72,14 @@ async def get_page_hash(url):
     'Get hash of page at `url`'
     req = await net_io.get_link(url)
     if req is None:
-        log.error('Could not get link')
+        logger.error('Could not get link')
         return None
     desc = None
     try:
         soup = BeautifulSoup(req, features='xml')
         desc = soup.find('meta', attrs={'name': 'description'})
     except Exception as e:
-        log.error(f'Error when trying to hash RSS-desc {url}: {e}')
+        logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
     try:
         soup = BeautifulSoup(req, features='html.parser')
         _scripts = soup.find_all('script')
@@ -89,7 +89,7 @@ async def get_page_hash(url):
                 _script = json.loads(_script)
                 desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
     except Exception as e:
-        log.error(f'Error when trying to hash YT-desc {url}: {e}')
+        logger.error(f'Error when trying to hash YT-desc {url}: {e}')
         soup = BeautifulSoup(req, features='html.parser')
         _scripts = soup.find_all('script')
         for _script in _scripts:
@@ -107,9 +107,11 @@ async def get_page_hash(url):
             error_out
         )
     if desc is not None:
-        desc = md5(str(desc).encode('utf-8')).hexdigest()
-    log.debug(f'Got `desc`: {desc}')
-    return desc
+        hash = md5(str(desc).encode('utf-8')).hexdigest()
+    else:
+        hash = desc
+    logger.debug(f'Got `hash`: {hash}')
+    return hash
 
 
 async def get_items_from_rss(
@@ -122,12 +124,12 @@ async def get_items_from_rss(
                 soup.find('link', attrs={'type': 'application/rss+xml'}):
             rss_status = True
         if rss_status is False:
-            log.error(f'No rss feed found in {url}')
+            logger.error(f'No rss feed found in {url}')
             return None
         else:
-            log.debug(f'Found rss feed in {url}')
+            logger.debug(f'Found rss feed in {url}')
     except Exception as e:
-        log.error(f'Error when reading `soup` from {url}: {e}')
+        logger.error(f'Error when reading `soup` from {url}: {e}')
         return None
     items_out = {
         'filters': filters_in,
@@ -138,11 +140,12 @@ async def get_items_from_rss(
         'type': '',
         'title': '',
         'description': '',
+        'hash': '',
         'link': ''
     }
     # Gets podcast feed
     if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
-        log.debug('Found podcast feed')
+        logger.debug('Found podcast feed')
         if isinstance(num_items, int) and num_items > 0:
             all_items = soup.find_all('item')[0:num_items]
         else:
@@ -156,13 +159,16 @@ async def get_items_from_rss(
             temp_info['description'] = item.find('description').text if\
                 hasattr(item.find('description'), 'text') else\
                 item.find('description')
+            temp_info['hash'] = md5(
+                str(temp_info['description']).encode('utf-8')
+            ).hexdigest()
             temp_info['link'] = item.find('link').text if\
                 hasattr(item.find('link'), 'text') else\
                 item.find('link')
             items_out['items'].append(temp_info)
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
-        log.debug('Found Youtube feed')
+        logger.debug('Found Youtube feed')
         if isinstance(num_items, int) and num_items > 0:
             all_entries = soup.find_all('entry')[0:num_items]
         else:
@@ -176,18 +182,21 @@ async def get_items_from_rss(
             temp_info['description'] = item.find('media:description').text if\
                 hasattr(item.find('media:description'), 'text') else\
                 item.find('media:description')
+            temp_info['hash'] = md5(
+                str(temp_info['description']).encode('utf-8')
+            ).hexdigest()
             temp_info['link'] = item.find('link')['href']
             items_out['items'].append(temp_info)
     # Gets plain articles
     else:
-        log.debug('Found normal RSS feed')
+        logger.debug('Found normal RSS feed')
         article_method = False
         if len(soup.find_all('item')) > 0:
             article_method = 'item'
         elif len(soup.find_all('entry')) > 0:
             article_method = 'entry'
         else:
-            log.error('Could not find any articles')
+            logger.error('Could not find any articles')
             return None
         if isinstance(num_items, int) and num_items > 0:
             all_items = soup.find_all(article_method)[0:num_items]
@@ -205,11 +214,17 @@ async def get_items_from_rss(
                 temp_info['description'] = item.find('content').text
             else:
                 temp_info['description'] = None
+            if temp_info['description'] is not None:
+                temp_info['hash'] = md5(
+                    str(temp_info['description']).encode('utf-8')
+                ).hexdigest()
+            else:
+                temp_info['hash'] = None
             if article_method == 'item':
                 temp_info['link'] = item.find('link').text
             elif article_method == 'entry':
                 temp_info['link'] = item.find('link')['href']
-            log.debug(f'Got `temp_info`: {temp_info}')
+            logger.debug(f'Got `temp_info`: {temp_info}')
             items_out['items'].append(temp_info)
     links_out = net_io.filter_links(items_out)
     return links_out
@@ -232,19 +247,19 @@ async def add_to_feed_db(
     '''
 
     if feed_type not in ['rss', 'youtube', 'spotify']:
-        log.error('Function requires `feed_type`')
+        logger.error('Function requires `feed_type`')
         return None
     # Test the link first
     test_link = await net_io.get_link(feed_link)
     if not args.rss_skip_url_validation:
         if test_link is None:
-            log.verbose('`test_link` is None')
+            logger.debug('`test_link` is None')
             return None
         elif isinstance(test_link, int):
-            log.verbose(f'`test_link` returns code {test_link}')
+            logger.debug(f'`test_link` returns code {test_link}')
             return test_link
     else:
-        log.verbose('Skipping url validation')
+        logger.debug('Skipping url validation')
     date_now = datetime_handling.get_dt(format='datetime')
     if feed_type in ['rss', 'spotify']:
         await db_helper.insert_many_some(
@@ -296,19 +311,19 @@ async def remove_feed_from_db(feed_type, feed_name):
         single=True
     )
     uuid_from_db = uuid_from_db['uuid']
-    log.debug(f'`uuid_from_db` is {uuid_from_db}')
+    logger.debug(f'`uuid_from_db` is {uuid_from_db}')
     removal = await db_helper.del_row_by_AND_filter(
         feed_db,
         where=('uuid', uuid_from_db)
     )
-    log.debug(f'`removal` is {removal}')
+    logger.debug(f'`removal` is {removal}')
     if not removal:
         removal_ok = False
     removal_filters = await db_helper.del_row_by_AND_filter(
         feed_db_filter,
         where=('uuid', uuid_from_db)
     )
-    log.debug(f'`removal_filters` is {removal_filters}')
+    logger.debug(f'`removal_filters` is {removal_filters}')
     if not removal_filters:
         removal_ok = False
     return removal_ok
@@ -351,7 +366,7 @@ async def get_feed_links(feed_type, feed_info):
                 req=req, url=URL, filters_in=filters_db,
                 log_in=log_db, num_items=5
             )
-            log.debug('Got {} items from `get_items_from_rss`'.format(
+            logger.debug('Got {} items from `get_items_from_rss`'.format(
                 len(links_out) if links_out is not None else 0
             ))
             return links_out
@@ -386,14 +401,14 @@ async def get_feed_list(
             for i, item in enumerate(lst):
                 chunks[i // chunk_size].append(item)
             return chunks
-        log.debug(f'length of table_in: {len(table_in)}')
+        logger.debug(f'length of table_in: {len(table_in)}')
         max_post_limit = 1900
         paginated = []
         if len(table_in) >= max_post_limit:
             line_len = len(table_in.split('\n')[1])
-            log.debug(f'Each line is {line_len} chars long')
+            logger.debug(f'Each line is {line_len} chars long')
             post_limit = int(max_post_limit / line_len)
-            log.debug(f'Each post can therefore hold {post_limit} lines')
+            logger.debug(f'Each post can therefore hold {post_limit} lines')
             splits = split_list(table_in.split('\n')[2:], post_limit - 2)
             header = table_in.split('\n')[0]
             header += '\n{}'.format(table_in.split('\n')[1])
@@ -441,10 +456,10 @@ async def get_feed_list(
                 feed['playlist_id'] = I18N.t(
                     'common.playlist'
                 )
-        log.debug(f'`feeds_out` is {feeds_out}')
+        logger.debug(f'`feeds_out` is {feeds_out}')
         # Return None if empty db
         if feeds_out is None:
-            log.log('No feeds in database')
+            logger.info('No feeds in database')
             return None
         headers = {
             'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
@@ -482,7 +497,7 @@ async def get_feed_list(
                 )
         # Return None if empty db
         if len(feeds_out) <= 0:
-            log.log('No feeds in database')
+            logger.info('No feeds in database')
             return None
         headers = {
             'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
@@ -495,7 +510,7 @@ async def get_feed_list(
         maxcolwidths = [None, None, None, None, None, None]
     elif list_type == 'filter':
         if db_filter_in is None:
-            log.error('`db_filter_in` is not specified')
+            logger.error('`db_filter_in` is not specified')
             return None
         feeds_db = await db_helper.get_output(
             template_info=db_in,
@@ -507,7 +522,7 @@ async def get_feed_list(
                 ('feed_name', 'ASC')
             ]
         )
-        log.verbose('Got `feeds_db`', pretty=feeds_db)
+        logger.debug(f'Got `feeds_db`:\n{pformat(feeds_db)}')
         feeds_filter = await db_helper.get_output(
             template_info=db_filter_in,
             order_by=[
@@ -515,24 +530,24 @@ async def get_feed_list(
                 ('filter', 'ASC')
             ]
         )
-        log.verbose('Got `feeds_filter`', pretty=feeds_filter)
+        logger.debug(f'Got `feeds_filter`:\n{pformat(feeds_filter)}')
         feeds_out = []
         for feed in feeds_db:
             filter_uuid = [
                 filter_item for filter_item in feeds_filter
                 if filter_item['uuid'] == feed['uuid']
             ]
-            log.debug(f'`filter_uuid` is {filter_uuid}')
+            logger.debug(f'`filter_uuid` is {filter_uuid}')
             filter_allow = [
                 filter_item['filter'] for filter_item in filter_uuid
                 if filter_item['allow_or_deny'].lower() == 'allow'
             ]
-            log.debug(f'`filter_allow` is {filter_allow}')
+            logger.debug(f'`filter_allow` is {filter_allow}')
             filter_deny = [
                 filter_item['filter'] for filter_item in filter_uuid
                 if filter_item['allow_or_deny'].lower() == 'deny'
             ]
-            log.debug(f'`filter_deny` is {filter_deny}')
+            logger.debug(f'`filter_deny` is {filter_deny}')
             temp_list = []
             temp_list.append(feed['feed_name'])
             temp_list.append(
@@ -547,7 +562,7 @@ async def get_feed_list(
                 ', '.join(item for item in filter_deny)
             )
             feeds_out.append(temp_list)
-            log.debug(f'`temp_list` is {temp_list}')
+            logger.debug(f'`temp_list` is {temp_list}')
         headers = ('Feed', 'Channel', 'Allow', 'Deny')
         maxcolwidths = [None, None, 30, 30]
     if len(feeds_out) <= 0:
@@ -571,7 +586,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         for item in log_in:
             if item['hash'] == link_hash:
                 list_of_old_links.append(item['url'])
-        log.debug('Replacing link in discord message')
+        logger.debug('Replacing link in discord message')
         await discord_commands.replace_post(
             list_of_old_links, link, channel
         )
@@ -580,20 +595,20 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
     hash_in_log = None
     link_hash = None
     if log_in is None:
-        log.verbose('Log is empty')
+        logger.debug('Log is empty')
         return False
-    log.debug(f'log_in is {log_in}')
+    logger.debug(f'log_in is {log_in}')
     link_hash = await get_page_hash(link)
-    log.verbose(f'Link hash is `{link_hash}`')
+    logger.debug(f'Link hash is `{link_hash}`')
     if link in [log_url['url'] for log_url in log_in]:
-        log.debug('Link in log')
+        logger.debug('Link in log')
         link_in_log = True
     else:
         link_in_log = False
     if len(log_in) > 0:
         if 'hash' in log_in[0]:
             if link_hash in [log_url['hash'] for log_url in log_in]:
-                log.verbose('Hash in log')
+                logger.debug('Hash in log')
                 hash_in_log = True
             else:
                 hash_in_log = False
@@ -601,25 +616,25 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         hash_in_log = False
     if ((link_in_log and hash_in_log) or
             (link_in_log and hash_in_log is None)):
-        log.debug('Link is in log, returning True')
+        logger.debug('Link is in log, returning True')
         return True
     if link_in_log and not hash_in_log:
-        log.debug('Link is in log, but hash has changed. Replacing...')
+        logger.debug('Link is in log, but hash has changed. Replacing...')
         await replace_post(link, log_in, link_hash, channel)
-        log.debug('Adding link to log')
+        logger.debug('Adding link to log')
         await log_link(
             log_env, uuid, link, link_hash
         )
         return True
     elif not link_in_log and hash_in_log:
-        log.debug(
+        logger.debug(
             'Hash in log, but link is not. '
             'Adding to log and replacing post'
         )
         await replace_post(link, log_in, link_hash, channel, uuid)
         return True
     elif not link_in_log and hash_in_log is None:
-        log.debug('Link is not in log, logging it and returning False')
+        logger.debug('Link is not in log, logging it and returning False')
         await log_link(
             log_env, uuid, link, link_hash
         )
@@ -638,9 +653,9 @@ async def log_link(template_info, uuid, feed_link, page_hash):
             )
         )
     ]
-    log.debug('Adding this to log:', pretty=inserts)
     if page_hash is not None:
         inserts.append(page_hash)
+    logger.debug(f'Adding this to log:\n{pformat(inserts)}')
 
     await db_helper.insert_many_all(
         template_info=template_info,
@@ -664,12 +679,11 @@ async def process_links_for_posting_or_editing(
     `FEED_POSTS`:       The newly received feed posts
     `CHANNEL`:          Discord channel to post/edit
     '''
-    log.verbose(
-        'Starting `process_links_for_posting_or_editing`',
-        sameline=True
+    logger.debug(
+        'Starting `process_links_for_posting_or_editing`'
     )
     if feed_type not in ['rss', 'youtube', 'spotify']:
-        log.error('Function requires `feed_type`')
+        logger.error('Function requires `feed_type`')
         return None
     if feed_type in ['rss', 'spotify']:
         feed_db_log = envs.rss_db_log_schema
@@ -681,9 +695,9 @@ async def process_links_for_posting_or_editing(
         feed_db_log = envs.youtube_db_log_schema
         FEED_SETTINGS = None
     if FEED_POSTS is None:
-        log.debug('`FEED_POSTS` is None')
+        logger.debug('`FEED_POSTS` is None')
         return None
-    log.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`')
+    logger.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`')
     if feed_type == 'rss':
         FEED_LOG = await db_helper.get_output(
             template_info=feed_db_log,
@@ -699,23 +713,23 @@ async def process_links_for_posting_or_editing(
     FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None\
         else FEED_SETTINGS
     for item in FEED_POSTS[0:3]:
-        log.verbose(f'Got this item:\n{item}')
+        logger.debug(f'Got this item:\n{item}')
         if isinstance(item, str):
             feed_link = item
         elif isinstance(item, dict):
             feed_link = item['link']
         # Check if the link is in the log
-        log.verbose(f'Checking if link `{feed_link}` is in log')
+        logger.debug(f'Checking if link `{feed_link}` is in log')
         link_in_log = await link_is_in_log(
             feed_link, FEED_LOG, feed_db_log, CHANNEL, uuid
         )
         if link_in_log:
-            log.verbose(f'Link `{feed_link}` already logged. Skipping.')
+            logger.debug(f'Link `{feed_link}` already logged. Skipping.')
             continue
         elif not link_in_log:
             # Add link to log
             _page_hash = await get_page_hash(feed_link)
-            log.debug(
+            logger.debug(
                 f'Link {feed_link} got hash {_page_hash}'
             )
             await log_link(
@@ -723,11 +737,11 @@ async def process_links_for_posting_or_editing(
                 feed_link=feed_link, page_hash=_page_hash
             )
             # Consider this a whole new post and post link to channel
-            log.verbose(f'Posting link `{feed_link}`')
+            logger.debug(f'Posting link `{feed_link}`')
             if isinstance(item, dict) and item['type'] == 'spotify':
-                log.debug(
-                    'Found a podcast that should be embedded:',
-                    pretty=item
+                logger.debug(
+                    'Found a podcast that should '
+                    f'be embedded:\n{pformat(item)}',
                 )
                 embed_color = await net_io.\
                     extract_color_from_image_url(
@@ -751,19 +765,19 @@ async def process_links_for_posting_or_editing(
                         and FEED_SETTINGS[desc_setting].lower()\
                         == 'true':
                     embed.set_footer(text=item['pod_description'])
-                log.debug(
-                    'Sending this embed to channel: ', pretty=embed
+                logger.debug(
+                    f'Sending this embed to channel:\n{pformat(embed)}'
                 )
                 if args.testmode:
-                    log.verbose(embed, color='yellow')
+                    logger.debug(embed, color='yellow')
                 else:
                     await discord_commands.post_to_channel(
                         CHANNEL, embed_in=embed
                     )
             else:
-                log.debug('Found a regular post')
+                logger.debug('Found a regular post')
                 if args.testmode:
-                    log.verbose(
+                    logger.debug(
                         f'TESTMODE: Would post this link: {feed_link}',
                         color='yellow'
                     )
