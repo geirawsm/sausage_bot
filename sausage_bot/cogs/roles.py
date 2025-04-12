@@ -8,11 +8,13 @@ from discord.app_commands import locale_str, describe
 from tabulate import tabulate
 import re
 import typing
+from pprint import pformat
 
 from sausage_bot.util import config, envs, file_io, discord_commands
 from sausage_bot.util import db_helper, net_io
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
+
+logger = config.logger
 
 
 class DropdownPermissions(discord.ui.Select):
@@ -135,7 +137,7 @@ async def settings_autocomplete(
             discord_commands.get_guild().roles,
             id=int(setting['value'])
         ).name
-    log.debug(f'`settings_db`: {settings_db}')
+    logger.debug(f'`settings_db`: {settings_db}')
     return [
         discord.app_commands.Choice(
             name='{}. {} = {} ({})'.format(
@@ -163,7 +165,7 @@ async def emojis_autocomplete(
         _emojis_list.append((
             emoji.name, emoji.id
         ))
-    log.debug(f'_emojis_list: {_emojis_list}')
+    logger.debug(f'_emojis_list: {_emojis_list}')
     return [
         discord.app_commands.Choice(
             name=f'{emoji[0]} ({emoji[1]})',
@@ -179,12 +181,12 @@ async def get_msg_id_and_name(msg_id_or_name):
     based on msg id or msg name
     '''
     msg_id_or_name = str(msg_id_or_name)
-    log.debug(f'Got `msg_id_or_name`: {msg_id_or_name}')
+    logger.debug(f'Got `msg_id_or_name`: {msg_id_or_name}')
     if re.match(r'^[0-9]+$', msg_id_or_name):
-        log.verbose('Got numeric input')
+        logger.debug('Got numeric input')
         where_in = 'msg_id'
     else:
-        log.verbose('Got alphanumeric input')
+        logger.debug('Got alphanumeric input')
         where_in = 'name'
     db_message = await db_helper.get_output(
         template_info=envs.roles_db_msgs_schema,
@@ -194,7 +196,7 @@ async def get_msg_id_and_name(msg_id_or_name):
         select=('msg_id', 'channel', 'name'),
         single=True
     )
-    log.verbose(f'db_message: {db_message}', color='yellow')
+    logger.debug(f'db_message: {db_message}', color='yellow')
     return {
         'id': int(db_message['msg_id']),
         'channel': int(db_message['channel']),
@@ -203,7 +205,7 @@ async def get_msg_id_and_name(msg_id_or_name):
 
 
 async def strip_role_or_emoji(input):
-    log.debug(f'Input is type {type(input)}')
+    logger.debug(f'Input is type {type(input)}')
     input_check = re.match(r'<.*\b(\d+)>', input)
     if input_check:
         return input_check.group(1)
@@ -217,19 +219,19 @@ async def sync_reaction_message_from_settings(
     # Assert that the reaction message exist on discord
     msg_info = await get_msg_id_and_name(msg_id_or_name)
     _guild = discord_commands.get_guild()
-    log.debug('msg_info', pretty=msg_info)
+    logger.debug(f'msg_info:\n{pformat(msg_info)}')
     msg_id = msg_info['id']
     msg_channel = msg_info['channel']
-    log.verbose(f'`msg_info` is {msg_info}')
+    logger.debug(f'`msg_info` is {msg_info}')
     msg_obj = await discord_commands.get_message_obj(
         msg_id=msg_id,
         channel_id=msg_channel
     )
-    log.verbose(f'`msg_obj` is {msg_obj}')
+    logger.debug(f'`msg_obj` is {msg_obj}')
     if msg_obj is None:
         # If the message has been deleted, it needs to be recreated,
         # and msg_id in databases must be updated
-        log.verbose('Creating a new message')
+        logger.debug('Creating a new message')
         db_message = await db_helper.get_output(
             template_info=envs.roles_db_msgs_schema,
             where=[
@@ -241,7 +243,7 @@ async def sync_reaction_message_from_settings(
             msg_channel, content_in='placeholder'
         )
         # Update databases with correct message ID
-        log.verbose(
+        logger.debug(
             'Replace old id ({}) with new ({})'.format(
                 str(msg_id)[-5],
                 str(msg_obj.id)[-5]
@@ -262,7 +264,7 @@ async def sync_reaction_message_from_settings(
             ],
             where=('msg_id', msg_info['id'])
         )
-        log.debug(f'`msg_obj` is {msg_obj}')
+        logger.debug(f'`msg_obj` is {msg_obj}')
 
     db_message = await db_helper.get_output(
         template_info=envs.roles_db_msgs_schema,
@@ -271,7 +273,7 @@ async def sync_reaction_message_from_settings(
         ],
         single=True
     )
-    log.verbose(f'db_message: {db_message}')
+    logger.debug(f'db_message: {db_message}')
     db_reactions = await db_helper.get_output(
         envs.roles_db_roles_schema,
         select=('role', 'emoji'),
@@ -279,11 +281,11 @@ async def sync_reaction_message_from_settings(
             ('msg_id', msg_id)
         ],
     )
-    log.verbose(f'db_reactions: {db_reactions}')
+    logger.debug(f'db_reactions: {db_reactions}')
     reactions_out = {}
     roles_errors = []
     for react in db_reactions:
-        log.debug('Processing `react`', pretty=react)
+        logger.debug(f'Processing `react`:\n{pformat(react)}')
         try:
             role_name = get(
                 _guild.roles, id=int(react['role'])
@@ -293,12 +295,12 @@ async def sync_reaction_message_from_settings(
                 'emoji': react['emoji']
             }
         except Exception as e:
-            log.error(f'Could not find role with id {react["role"]}: {e}')
+            logger.error(f'Could not find role with id {react["role"]}: {e}')
             roles_errors.append(react['role'])
             role_name = None
     if sort:
         reactions_out = dict(sorted(reactions_out.items()))
-    log.debug('reactions_out', pretty=reactions_out)
+    logger.debug(f'reactions_out:\n{pformat(reactions_out)}')
     # Recreate the embed
     new_embed_desc = ''
     new_embed_content = ''
@@ -312,7 +314,7 @@ async def sync_reaction_message_from_settings(
         _emoji_id = reactions_out[reaction]['emoji']
         print(f'_emoji_id: {_emoji_id}')
         _role_id = reactions_out[reaction]['role_id']
-        log.debug('Trying to add emoji: `{}` ({})'.format(
+        logger.debug('Trying to add emoji: `{}` ({})'.format(
             _emoji_id, type(_emoji_id)
         ))
         try:
@@ -322,7 +324,7 @@ async def sync_reaction_message_from_settings(
                 emoji_out = _emoji_id
             await msg_obj.add_reaction(emoji_out)
         except Exception as e:
-            log.error(f'Could not find or add emoji with id {_emoji_id}: {e}')
+            logger.error(f'Could not find or add emoji with id {_emoji_id}: {e}')
             emoji_errors.append(_emoji_id)
             emoji_out = None
         if emoji_out is not None:
@@ -412,7 +414,7 @@ def tabulate_emoji(dict_in):
             content['managed']['length'],
         )
         if len(temp_out) + len(line_out) > 1900:
-            log.debug('Hit 1900 mark')
+            logger.debug('Hit 1900 mark')
             paginated.append(temp_out)
             temp_out = header
             temp_out += f'\n{line_out}'
@@ -476,7 +478,7 @@ def tabulate_roles(dict_in):
             content['managed']['length'],
         )
         if len(temp_out) + len(line_out) > 1900:
-            log.debug('Hit 1900 mark')
+            logger.debug('Hit 1900 mark')
             paginated.append(temp_out)
             temp_out = header
             temp_out += f'\n{line_out}'
@@ -514,7 +516,7 @@ def tabulate_emojis_and_roles(dict_in):
         }
     }
     for dict_item in dict_in:
-        log.debug(f'Processing: {dict_item}')
+        logger.debug(f'Processing: {dict_item}')
         for item in dict_in[dict_item]:
             if len(str(item)) > content[dict_item]['length']:
                 content[dict_item]['length'] = len(str(item)) + 1
@@ -545,7 +547,7 @@ def tabulate_emojis_and_roles(dict_in):
         if len(line_out) == 0:
             line_out = temp_out
         if (len(temp_out) + len(line_out)) > 1900:
-            log.debug('Hit 1900 mark')
+            logger.debug('Hit 1900 mark')
             paginated.append(temp_out)
             temp_out = header
             temp_out += f'\n{line_out}'
@@ -557,7 +559,7 @@ def tabulate_emojis_and_roles(dict_in):
 
 
 def paginate_tabulate(tabulated):
-    log.debug(f'Length of `tabulated` is {len(tabulated)}')
+    logger.debug(f'Length of `tabulated` is {len(tabulated)}')
     paginated = []
     temp_out = ''
     if len(tabulated) >= 1900:
@@ -565,7 +567,7 @@ def paginate_tabulate(tabulated):
         temp_out += tabulated_split[0]
         for line in tabulated_split[1:]:
             if len(temp_out) + len(line) > 1900:
-                log.debug('Hit 1900 mark')
+                logger.debug('Hit 1900 mark')
                 paginated.append(temp_out)
                 temp_out = ''
                 temp_out += tabulated_split[0]
@@ -589,7 +591,7 @@ async def reaction_msgs_autocomplete(
             ('name', 'ASC')
         ]
     )
-    log.debug(f'db_reactions: {db_reactions}')
+    logger.debug(f'db_reactions: {db_reactions}')
     return [
         discord.app_commands.Choice(
             name=str(reaction['name']),
@@ -622,7 +624,7 @@ async def reaction_msgs_roles_autocomplete(
         ]
     )
     _guild = discord_commands.get_guild()
-    log.debug('db_reactions', pretty=db_reactions)
+    logger.debug(f'db_reactions:\n{pformat(db_reactions)}')
     return [
         discord.app_commands.Choice(
             name='{}: #{} - {}'.format(
@@ -650,8 +652,8 @@ async def reaction_msgs_roles_autocomplete(
 
 async def combine_roles_and_emojis(roles_in, emojis_in):
     '''Do splits of roles and emojis to make sure the lengths are identical'''
-    log.debug(f'Got `roles_in`: {roles_in}')
-    log.debug(f'Got `emojis_in`: {emojis_in}')
+    logger.debug(f'Got `roles_in`: {roles_in}')
+    logger.debug(f'Got `emojis_in`: {emojis_in}')
     emoji_split = []
     _roles = re.split(
         envs.input_split_regex, roles_in.replace(
@@ -666,14 +668,14 @@ async def combine_roles_and_emojis(roles_in, emojis_in):
     )
     emoji_split = [await strip_role_or_emoji(_emoji) for _emoji in _emojis]
     if len(_roles) != len(_emojis):
-        log.log(
+        logger.info(
             f'Number of roles ({len(_roles)}) and emojis ({len(_emojis)})'
             'are not the same'
         )
         return None
     # Process the splits
     splits = list(zip(role_split, emoji_split))
-    log.debug(f'Got `splits`: {splits}')
+    logger.debug(f'Got `splits`: {splits}')
     return splits
 
 
@@ -942,7 +944,7 @@ class Autoroles(commands.Cog):
         elif type == I18N.t('common.emojis'):
             pages = await roles_list_emojis()
         for page in pages:
-            log.verbose(f'{page}')
+            logger.debug(f'{page}')
             await interaction.followup.send(
                 f'{page}',
                 ephemeral=_ephemeral
@@ -1074,14 +1076,14 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         changes = []
         if new_name:
-            log.debug('Changed name')
+            logger.debug('Changed name')
             i18n_name = I18N.t('roles.changelist.name')
             changes.append(f'\n- {i18n_name}: `{role_name}` -> `{new_name}`')
             await role_name.edit(
                 name=new_name
             )
         if color:
-            log.debug('Changed color')
+            logger.debug('Changed color')
             i18n_color = I18N.t('roles.changelist.color')
             changes.append(
                 f'\n- {i18n_color}: `{role_name.color}` -> `{color}`'
@@ -1090,7 +1092,7 @@ class Autoroles(commands.Cog):
                 color=discord.Color.from_str(color)
             )
         if hoist:
-            log.debug('Changed hoist setting')
+            logger.debug('Changed hoist setting')
             i18n_hoist = I18N.t('roles.changelist.hoist')
             changes.append(
                 f'\n- {i18n_hoist}: `{role_name.hoist}` -> `{hoist}`'
@@ -1100,11 +1102,11 @@ class Autoroles(commands.Cog):
             )
         if permissions:
             perms_in = []
-            log.debug(f'`role_name.permissions`: {role_name.permissions}')
+            logger.debug(f'`role_name.permissions`: {role_name.permissions}')
             for perm in role_name.permissions:
                 if perm[1] is True:
                     perms_in.append(perm[0])
-            log.debug(f'`perms_in`: {perms_in}')
+            logger.debug(f'`perms_in`: {perms_in}')
             perm_view = PermissionsView(
                 permissions_in=perms_in
             )
@@ -1113,7 +1115,7 @@ class Autoroles(commands.Cog):
             )
             await perm_view.wait()
             perms_out = perm_view.permissions_out
-            log.debug(
+            logger.debug(
                 f'`perm_view.permissions_out`: {perm_view.permissions_out}'
             )
             new_perms = ''
@@ -1123,7 +1125,7 @@ class Autoroles(commands.Cog):
             await role_name.edit(
                 permissions=eval(f'discord.Permissions({new_perms})')
             )
-            log.debug('Changed permissions')
+            logger.debug('Changed permissions')
             perms_in_text = ', '.join(perm for perm in perms_in)
             perms_out_text = ', '.join(perm for perm in perms_out)
             i18n_perms = I18N.t('roles.commands.edit_role.change_perms')
@@ -1180,7 +1182,7 @@ class Autoroles(commands.Cog):
                 )
             )
         except discord.errors.Forbidden as e:
-            log.error(f'Could not add emoji - forbidden: {e}')
+            logger.error(f'Could not add emoji - forbidden: {e}')
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.add_emoji.msg_error',
@@ -1189,7 +1191,7 @@ class Autoroles(commands.Cog):
             )
             return
         except ValueError as e:
-            log.error(f'Could not add emoji - ValueError: {e}')
+            logger.error(f'Could not add emoji - ValueError: {e}')
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.add_emoji.msg_error',
@@ -1198,7 +1200,7 @@ class Autoroles(commands.Cog):
             )
             return
         except discord.errors.HTTPException as e:
-            log.error(f'Error when reading image: {e}')
+            logger.error(f'Error when reading image: {e}')
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.add_emoji.msg_error',
@@ -1235,7 +1237,7 @@ class Autoroles(commands.Cog):
             )
             return
         except discord.errors.Forbidden as e:
-            log.error(f'Could not remove emoji - forbidden: {e}')
+            logger.error(f'Could not remove emoji - forbidden: {e}')
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.remove_emoji.error_msg',
@@ -1244,7 +1246,7 @@ class Autoroles(commands.Cog):
             )
             return
         except ValueError as e:
-            log.error(f'Could not add emoji - ValueError: {e}')
+            logger.error(f'Could not add emoji - ValueError: {e}')
             await interaction.followup.send(
                 I18N.t(
                     'roles.commands.remove_emoji.error_msg',
@@ -1286,7 +1288,7 @@ class Autoroles(commands.Cog):
                 name=new_name,
                 reason=reason if not None else ''
             )
-            log.debug('Changed name')
+            logger.debug('Changed name')
         if roles:
             i18n_roles = I18N.t('roles.changelist.roles')
             changes.append(
@@ -1296,7 +1298,7 @@ class Autoroles(commands.Cog):
                 roles=roles,
                 reason=reason if not None else ''
             )
-            log.debug('Changed allowed roles')
+            logger.debug('Changed allowed roles')
 
         if len(changes) > 0:
             changes_out = '{}:'.format(
@@ -1440,7 +1442,7 @@ class Autoroles(commands.Cog):
                     ('A.msg_id', msg_id)
                 ]
             )
-            log.verbose('db_reactions: ', pretty=db_reactions)
+            logger.debug(f'db_reactions:\n{pformat(db_reactions)}')
             if len(db_reactions) <= 0 or db_reactions is None:
                 await interaction.followup.send(
                     I18N.t(
@@ -1518,7 +1520,7 @@ class Autoroles(commands.Cog):
                     ('msg_order', 'ASC')
                 ]
             )
-            log.debug(f'`sorted_reacts` is {sorted_reacts}')
+            logger.debug(f'`sorted_reacts` is {sorted_reacts}')
             if sorted_reacts is None:
                 await interaction.followup.send(
                     'Ingen meldinger i databasen'
@@ -1608,9 +1610,9 @@ class Autoroles(commands.Cog):
         desc_out = ''
         reactions = []
         merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
-        log.debug(
-            '`merged_roles_emojis` is done (role, emoji): ',
-            pretty=merged_roles_emojis
+        logger.debug(
+            '`merged_roles_emojis` is done (role, emoji)'
+            f':\n{pformat(merged_roles_emojis)}',
         )
         if merged_roles_emojis is None:
             await interaction.followup.send(
@@ -1620,9 +1622,9 @@ class Autoroles(commands.Cog):
             )
             return
         for combo in merged_roles_emojis:
-            log.debug(f'Checking combo `{combo}`')
-            log.debug(f'Combo[0] `{combo[0]}`')
-            log.debug(f'Combo[1] `{combo[1]}`')
+            logger.debug(f'Checking combo `{combo}`')
+            logger.debug(f'Combo[0] `{combo[0]}`')
+            logger.debug(f'Combo[1] `{combo[1]}`')
             role_out = get(
                 discord_commands.get_guild().roles, id=int(combo[0])
             )
@@ -1638,7 +1640,7 @@ class Autoroles(commands.Cog):
                 desc_out += ''
             desc_out += '\n{} {}'.format(emoji_out, role_out)
             reactions.append([combo[0], combo[1]])
-        log.debug(f'`reactions` is done: {reactions}')
+        logger.debug(f'`reactions` is done: {reactions}')
         if desc_out == '':
             embed_json = None
         else:
@@ -1659,20 +1661,20 @@ class Autoroles(commands.Cog):
         # Save to DB
         reactions_in = []
         for reac in reactions:
-            log.debug(f'Checking reac {reac}')
+            logger.debug(f'Checking reac {reac}')
             reactions_in.append(
                 (
                     reaction_msg.id, reac[0], reac[1]
                 )
             )
-            log.debug(f'Adding emoji {reac[1]}')
+            logger.debug(f'Adding emoji {reac[1]}')
             if re.match(r'^(\d+)$', reac[1]):
-                log.debug('Adding emoji as id')
+                logger.debug('Adding emoji as id')
                 await reaction_msg.add_reaction(
                     get(discord_commands.get_guild().emojis, id=int(reac[1]))
                 )
             else:
-                log.debug('Adding emoji as name')
+                logger.debug('Adding emoji as name')
                 await reaction_msg.add_reaction(reac[1])
         await db_helper.insert_many_all(
             envs.roles_db_roles_schema,
@@ -1729,9 +1731,9 @@ class Autoroles(commands.Cog):
             ),
             select=('role', 'emoji')
         )
-        log.verbose(f'Got `reactions_db_in:` {reactions_db_in}')
+        logger.debug(f'Got `reactions_db_in:` {reactions_db_in}')
         merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
-        log.verbose(f'Got `merged_roles_emojis`: {merged_roles_emojis}')
+        logger.debug(f'Got `merged_roles_emojis`: {merged_roles_emojis}')
         new_inserts = []
         duplicates = []
         for item in merged_roles_emojis:
@@ -1936,7 +1938,7 @@ class Autoroles(commands.Cog):
         reaction_role = reaction_role.split('-')
         msg_id = reaction_role[0]
         role_id = reaction_role[1]
-        log.debug(f'Got `msg_id` {msg_id} and `role_id` {role_id}')
+        logger.debug(f'Got `msg_id` {msg_id} and `role_id` {role_id}')
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
             where=[
@@ -2098,7 +2100,7 @@ class Autoroles(commands.Cog):
                 ('msg_order', 'ASC')
             ]
         )
-        log.debug(f'Got `react_msgs`: {react_msgs}')
+        logger.debug(f'Got `react_msgs`: {react_msgs}')
         discord_msgs = [message async for message in channel.history(
             limit=20, oldest_first=True
         )]
@@ -2106,17 +2108,17 @@ class Autoroles(commands.Cog):
 
         # Check order of messages
         if len(discord_msgs) != len(react_msgs):
-            log.log(
+            logger.info(
                 'Number of reaction messages in {} and database are not'
                 'the same nubmer ({} vs {})'.format(
                     channel, len(discord_msgs), len(react_msgs)
                 )
             )
             trigger_reordering = True
-        log.debug(f'`trigger_reordering`: {trigger_reordering}')
+        logger.debug(f'`trigger_reordering`: {trigger_reordering}')
         if not trigger_reordering:
             for idx, d_msg in enumerate(discord_msgs):
-                log.debug(
+                logger.debug(
                     '`d_msg.id` ({})  -  `react_msgs`: {}'.format(
                         d_msg.id, react_msgs[idx]['msg_id']
                     )
@@ -2124,11 +2126,11 @@ class Autoroles(commands.Cog):
                 if str(d_msg.id) != str(react_msgs[idx]['msg_id']):
                     trigger_reordering = True
                     break
-        log.debug(f'`trigger_reordering`: {trigger_reordering}')
+        logger.debug(f'`trigger_reordering`: {trigger_reordering}')
         if trigger_reordering:
             # Recreate messages and delete the old ones
             for react_msg in react_msgs:
-                log.debug('Deleting old_react_msg')
+                logger.debug('Deleting old_react_msg')
                 new_reaction_msg = await discord_commands.post_to_channel(
                     channel_id=int(react_msg['channel']),
                     content_in=react_msg['header'],
@@ -2243,7 +2245,7 @@ class Autoroles(commands.Cog):
         Remove a setting for roles on the server
         '''
         await interaction.response.defer(ephemeral=True)
-        log.debug(f'Got row_id `{setting}`')
+        logger.debug(f'Got row_id `{setting}`')
         await db_helper.del_row_id(
             template_info=envs.roles_db_settings_schema,
             numbers=setting
@@ -2274,14 +2276,14 @@ class Autoroles(commands.Cog):
             template_info=envs.roles_db_settings_schema
         )
         temp_settings_db = settings_db.copy()
-        log.verbose('temp_settings_db', pretty=temp_settings_db)
+        logger.debug(f'temp_settings_db:\n{pformat(temp_settings_db)}')
         for setting in temp_settings_db:
             _role = get(
                 discord_commands.get_guild().roles,
                 id=int(setting['value'])
             )
             setting['role'] = _role
-        log.verbose(f'temp_settings_db: {temp_settings_db}')
+        logger.debug(f'temp_settings_db: {temp_settings_db}')
         _settings = tabulate(
             temp_settings_db, headers={
                 'setting': I18N.t(
@@ -2333,8 +2335,8 @@ class Autoroles(commands.Cog):
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'roles'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
 
     # Convert json to sqlite db-files if exists
     # Define inserts
@@ -2354,29 +2356,29 @@ async def setup(bot):
     # Convert the inserts from json if file exist
     if not file_io.file_exist(envs.roles_db_roles_schema['db_file']):
         if file_io.file_exist(envs.roles_settings_file):
-            log.verbose('Found old json file')
+            logger.debug('Found old json file')
             roles_inserts = await db_helper.json_to_db_inserts(cog_name)
             roles_inserts_msg = roles_inserts['msg_inserts']
             roles_inserts_reactions = roles_inserts['reactions_inserts']
             roles_inserts_settings = roles_inserts['settings_inserts']
-        log.debug(f'`roles_inserts_msg` is {roles_inserts_msg}')
-        log.debug(f'`roles_inserts_reactions` is {roles_inserts_reactions}')
-        log.debug(f'`roles_inserts_settings` is {roles_inserts_settings}')
+        logger.debug(f'`roles_inserts_msg` is {roles_inserts_msg}')
+        logger.debug(f'`roles_inserts_reactions` is {roles_inserts_reactions}')
+        logger.debug(f'`roles_inserts_settings` is {roles_inserts_settings}')
         msgs_is_ok = await db_helper.prep_table(
             table_in=envs.roles_db_msgs_schema,
             inserts=roles_inserts_msg
         )
-        log.verbose(f'`msgs_is_ok` is {msgs_is_ok}')
+        logger.debug(f'`msgs_is_ok` is {msgs_is_ok}')
         reacts_is_ok = await db_helper.prep_table(
             table_in=envs.roles_db_roles_schema,
             inserts=roles_inserts_reactions
         )
-        log.verbose(f'`reacts_is_ok` is {reacts_is_ok}')
+        logger.debug(f'`reacts_is_ok` is {reacts_is_ok}')
         settings_is_ok = await db_helper.prep_table(
             table_in=envs.roles_db_settings_schema,
             inserts=roles_inserts_settings
         )
-        log.verbose(f'`settings_is_ok` is {settings_is_ok}')
+        logger.debug(f'`settings_is_ok` is {settings_is_ok}')
     # Delete old json files if they exist
     if msgs_is_ok and reacts_is_ok and settings_is_ok:
         file_io.remove_file(envs.roles_settings_file)
@@ -2387,7 +2389,7 @@ async def setup(bot):
             template_info=envs.roles_db_msgs_schema,
             id_col='msg_id', channel_col='channel'
         )
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(Autoroles(bot))
 
 
@@ -2396,12 +2398,12 @@ async def setup(bot):
 # Add roles to users from reactions
 @config.bot.event
 async def on_raw_reaction_add(payload):
-    log.debug('Checking added reaction role')
+    logger.debug('Checking added reaction role')
     if str(payload.user_id) == str(config.BOT_ID):
-        log.debug('Change made by bot, skip')
+        logger.debug('Change made by bot, skip')
         return
     else:
-        log.debug('Change made by user, checking it...')
+        logger.debug('Change made by user, checking it...')
     reaction_messages = await db_helper.get_output(
         envs.roles_db_msgs_schema,
         select=('msg_id')
@@ -2409,7 +2411,7 @@ async def on_raw_reaction_add(payload):
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message['msg_id']):
-            log.debug('Found message, checking add reactions...')
+            logger.debug('Found message, checking add reactions...')
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
                 envs.roles_db_msgs_schema,
@@ -2422,17 +2424,17 @@ async def on_raw_reaction_add(payload):
                     ('A.msg_id', payload.message_id)
                 ]
             )
-            log.debug(f'reactions is {reactions}')
+            logger.debug(f'reactions is {reactions}')
             if payload.emoji.id is not None:
                 incoming_emoji = str(payload.emoji.id)
             elif payload.emoji.name is not None:
                 incoming_emoji = str(payload.emoji.name)
             else:
-                log.error('Could not find emoji')
+                logger.error('Could not find emoji')
                 return
             for reaction in reactions:
-                log.debug(f'`reaction` is {reaction}')
-                log.debug(
+                logger.debug(f'`reaction` is {reaction}')
+                logger.debug(
                     'Comparing emoji from payload ({}) '
                     'with emoji from db ({})'.format(
                         incoming_emoji, reaction['emoji']
@@ -2452,28 +2454,28 @@ async def on_raw_reaction_add(payload):
                     )
                     break
             else:
-                log.error('Could not find emoji')
+                logger.error('Could not find emoji')
     return
 
 
 # Remove roles from users from reactions
 @config.bot.event
 async def on_raw_reaction_remove(payload):
-    log.debug('Checking removed reaction role')
+    logger.debug('Checking removed reaction role')
     if str(payload.user_id) == str(config.BOT_ID):
-        log.debug('Change made by bot, skip')
+        logger.debug('Change made by bot, skip')
         return
     else:
-        log.debug('Change made by user, checking it...')
+        logger.debug('Change made by user, checking it...')
     reaction_messages = await db_helper.get_output(
         envs.roles_db_msgs_schema,
         select=('msg_id')
     )
-    log.verbose(f'reaction_messages: {reaction_messages}')
+    logger.debug(f'reaction_messages: {reaction_messages}')
     _guild = discord_commands.get_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message['msg_id']):
-            log.debug('Found message, checking remove reactions...')
+            logger.debug('Found message, checking remove reactions...')
             reactions = await db_helper.get_combined_output(
                 envs.roles_db_roles_schema,
                 envs.roles_db_msgs_schema,
@@ -2486,21 +2488,21 @@ async def on_raw_reaction_remove(payload):
                     ('A.msg_id', reaction_message['msg_id'])
                 ]
             )
-            log.verbose(f'`reactions`: {reactions}')
+            logger.debug(f'`reactions`: {reactions}')
             if payload.emoji.id is not None:
                 incoming_emoji = str(payload.emoji.id)
             elif payload.emoji.name is not None:
                 incoming_emoji = str(payload.emoji.name)
             else:
-                log.error('Could not find emoji')
+                logger.error('Could not find emoji')
                 return
             for reaction in reactions:
-                log.debug(f'`reaction` is {reaction}')
+                logger.debug(f'`reaction` is {reaction}')
                 if str(payload.emoji.id) == reaction['emoji']:
                     incoming_emoji = str(payload.emoji.id)
                 elif str(payload.emoji.name) == reaction['emoji']:
                     incoming_emoji = str(payload.emoji.name)
-                log.debug(
+                logger.debug(
                     'Comparing emoji from payload ({}) '
                     'with emoji from db ({})'.format(
                         incoming_emoji, reaction['emoji']
@@ -2509,7 +2511,7 @@ async def on_raw_reaction_remove(payload):
                 if str(incoming_emoji) == str(reaction['emoji']):
                     for _role in _guild.roles:
                         if str(_role.id) in reaction['role'].lower():
-                            log.debug(
+                            logger.debug(
                                 'Removing role {} from user'.format(
                                     reaction['role']
                                 )
@@ -2543,29 +2545,29 @@ async def on_member_update(before, after):
         single=True
     )
     unique_role = unique_role['value']
-    log.debug(f'Got `unique_role`: {unique_role}')
+    logger.debug(f'Got `unique_role`: {unique_role}')
     if not unique_role or unique_role == '':
-        log.log('No unique role provided or setting is not string')
+        logger.info('No unique role provided or setting is not string')
         return
     if unique_role:
-        log.debug('Check for unique role')
+        logger.debug('Check for unique role')
         if str(before.id) == str(config.BOT_ID):
-            log.debug('Change made by bot, skip')
+            logger.debug('Change made by bot, skip')
             return
         _guild = discord_commands.get_guild()
-        log.verbose(
+        logger.debug(
             f'Before ({len(before.roles)}) vs after ({len(after.roles)})'
         )
-        log.verbose('before.roles: {}'.format(
+        logger.debug('before.roles: {}'.format(
             ', '.join(role.name for role in before.roles)
         ))
-        log.verbose('after.roles: {}'.format(
+        logger.debug('after.roles: {}'.format(
             ', '.join(role.name for role in after.roles)
         ))
         if len(after.roles) and all(
             unique_role == role.id for role in after.roles
         ):
-            log.debug('Only the unique role was added')
+            logger.debug('Only the unique role was added')
             return
         # Prepare numbers for evaluation (remove 1 for @everyone)
         _before = len(before.roles) - 1
@@ -2576,23 +2578,23 @@ async def on_member_update(before, after):
             where=('setting', 'not_include_in_total')
         )
         if len(not_include_in_total) > 0:
-            log.debug('Found roles not to include in total')
+            logger.debug('Found roles not to include in total')
             _before -= len(not_include_in_total)
             _after -= len(not_include_in_total)
         if any(str(unique_role) == role for role in before.roles):
             _before -= 1
         elif any(str(unique_role) == role for role in after.roles):
             _after -= 1
-        log.verbose('before and after, minus unique role:')
-        log.verbose(f'_before: {_before}')
-        log.verbose(f'_after: {_after}')
+        logger.debug('before and after, minus unique role:')
+        logger.debug(f'_before: {_before}')
+        logger.debug(f'_after: {_after}')
         if int(_after) <= 0:
-            log.debug('Length of _after is 0, adding unique role')
+            logger.debug('Length of _after is 0, adding unique role')
             await after.add_roles(
                 get(_guild.roles, id=int(unique_role))
             )
         elif int(_after) > 1:
-            log.debug(
+            logger.debug(
                 'Length of after.roles is more than 1, removing unique role'
             )
             await after.remove_roles(

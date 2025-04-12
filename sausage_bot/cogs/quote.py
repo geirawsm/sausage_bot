@@ -7,12 +7,13 @@ from discord.app_commands import locale_str, describe
 import uuid
 from tabulate import tabulate
 import typing
+from pprint import pformat
 
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util import envs, db_helper, file_io
+from sausage_bot.util import envs, db_helper, file_io, config
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
 
+logger = config.logger
 
 class EditButtons(discord.ui.View):
     def __init__(self, *, timeout=10):
@@ -111,7 +112,7 @@ class QuoteAddModal(discord.ui.Modal):
             title=title_in, timeout=120
         )
         self.quote_in = quote_in
-        log.verbose(f'self.quote_in: {self.quote_in}')
+        logger.debug(f'self.quote_in: {self.quote_in}')
         self.available_row_id = available_row_id
         self.quote_out = {
             'row_id': None,
@@ -124,8 +125,8 @@ class QuoteAddModal(discord.ui.Modal):
             self.public_in_text = I18N.t('common.literal_yes_no.yes')
         elif public_in is True:
             self.public_in_text = I18N.t('common.literal_yes_no.no')
-        log.verbose(f'self.public_in: {self.public_in}')
-        log.verbose(f'self.public_in_text: {self.public_in_text}')
+        logger.debug(f'self.public_in: {self.public_in}')
+        logger.debug(f'self.public_in_text: {self.public_in_text}')
 
         # Create elements
         num_label = QuoteTextInput(
@@ -219,7 +220,7 @@ class QuoteEditModal(discord.ui.Modal):
             'quote_text': None,
             'datetime': None
         }
-        log.verbose(f'self.quote_in is: {self.quote_in}')
+        logger.debug(f'self.quote_in is: {self.quote_in}')
 
         # Create elements
         quote_text = QuoteTextInput(
@@ -260,13 +261,13 @@ class QuoteEditModal(discord.ui.Modal):
 
 async def get_quote_from_db(quote_number):
     # If `number` is given, get that specific quote
-    log.debug(f'Got quote number {quote_number}')
+    logger.debug(f'Got quote number {quote_number}')
     quote_row_check = await db_helper.get_row_ids(
         envs.quote_db_schema, sort=True
     )
-    log.verbose(f'quote_row_check: {quote_row_check}')
+    logger.debug(f'quote_row_check: {quote_row_check}')
     if int(quote_number) in quote_row_check:
-        log.debug('Found quote_number in quote_row_check')
+        logger.debug('Found quote_number in quote_row_check')
         db_out = await db_helper.get_output_by_rowid(
             envs.quote_db_schema,
             rowid=quote_number
@@ -330,9 +331,9 @@ class Quotes(commands.Cog):
                 (Date and time)
                 ```
             '''
-            log.verbose(f'number: {number}')
-            log.verbose(f'text: {text}')
-            log.verbose(f'date: {date}')
+            logger.debug(f'number: {number}')
+            logger.debug(f'text: {text}')
+            logger.debug(f'date: {date}')
             out = '```\n#{}\n{}\n({})\n```'.format(
                 number, text, date
             )
@@ -358,12 +359,12 @@ class Quotes(commands.Cog):
         await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
-            log.debug('No quote number given')
+            logger.debug('No quote number given')
             random_quote = await get_random_quote()
             if len(random_quote) == 0:
                 await db_helper.empty_table(envs.quote_db_log_schema)
                 random_quote = await get_random_quote()
-            log.db(f'Got `random_quote`: {random_quote}')
+            logger.debug(f'Got `random_quote`: {random_quote}')
             # Post quote
             quote_number = random_quote[0][0]
             quote_text = random_quote[0][2]
@@ -372,7 +373,7 @@ class Quotes(commands.Cog):
                 dt=random_quote[0][3]
             )
             _quote = prettify(quote_number, quote_text, quote_date)
-            log.verbose(f'Posting this quote:\n{_quote}')
+            logger.debug(f'Posting this quote:\n{_quote}')
             quote_post = await interaction.followup.send(
                 _quote, ephemeral=_ephemeral
             )
@@ -389,7 +390,7 @@ class Quotes(commands.Cog):
             return
         elif quote_in:
             quote_out = await get_quote_from_db(quote_in)
-            log.verbose(f'quote_out: {quote_out}')
+            logger.debug(f'quote_out: {quote_out}')
             if quote_out:
                 quote_text = quote_out[0][2]
                 quote_date = get_dt(
@@ -434,7 +435,7 @@ class Quotes(commands.Cog):
         _row_ids = await db_helper.get_row_ids(
             envs.quote_db_schema, sort=True
         )
-        log.verbose(f'_row_ids: {_row_ids}')
+        logger.debug(f'_row_ids: {_row_ids}')
         if len(_row_ids) <= 0:
             last_row_id = 1
         else:
@@ -448,7 +449,7 @@ class Quotes(commands.Cog):
         await modal_in.wait()
         # Parse the quote
         quote_out = modal_in.quote_out
-        log.verbose(f'quote_out: {quote_out}')
+        logger.debug(f'quote_out: {quote_out}')
         # Add the quote
         await db_helper.insert_many_all(
             template_info=envs.quote_db_schema,
@@ -475,9 +476,9 @@ class Quotes(commands.Cog):
         self, interaction: discord.Interaction, quote_in: str,
     ):
         'Edit an existing quote'
-        log.verbose(f'quote_in: ({type(quote_in)}) {quote_in}')
+        logger.debug(f'quote_in: ({type(quote_in)}) {quote_in}')
         quote_from_db = await get_quote_from_db(quote_in)
-        log.verbose(f'quote_from_db: {quote_from_db}')
+        logger.debug(f'quote_from_db: {quote_from_db}')
         modal_in = QuoteEditModal(
             title_in=I18N.t('quote.modals.edit.modal_title'),
             quote_in=quote_from_db
@@ -491,17 +492,17 @@ class Quotes(commands.Cog):
                 str(modal_in.quote_out['datetime']):
             update_triggered = True
         else:
-            log.error('No changes discovered in quote')
+            logger.error('No changes discovered in quote')
             await interaction.followup.send(
                 I18N.t('quote.modals.edit.msg_no_change'),
                 ephemeral=True
             )
             return
         if update_triggered:
-            log.verbose(
-                'Discovered changes in quote:',
-                pretty=modal_in.quote_out
+            logger.debug(
+                'Discovered changes in quote',
             )
+            logger.debug(pformat(modal_in.quote_out))
             # Update quote
             await db_helper.update_fields(
                 template_info=envs.quote_db_schema,
@@ -537,7 +538,7 @@ class Quotes(commands.Cog):
         'Delete an existing quote'
         await interaction.response.defer(ephemeral=True)
         quote_from_db = await get_quote_from_db(quote_number)
-        log.db(f'quote_from_db is: {quote_from_db}')
+        logger.debug(f'quote_from_db is: {quote_from_db}')
         if quote_from_db is None:
             await interaction.followup.send(
                 I18N.t(
@@ -548,7 +549,7 @@ class Quotes(commands.Cog):
             )
             return
         quote = quote_from_db[0]
-        log.db(f'quote is: {quote}')
+        logger.debug(f'quote is: {quote}')
         confirm_buttons = ConfirmButtons()
         tab_quote = tabulate(
             [
@@ -571,7 +572,7 @@ class Quotes(commands.Cog):
             ephemeral=True
         )
         await confirm_buttons.wait()
-        log.debug(f'Got `confirm_buttons.value`: {confirm_buttons.value}')
+        logger.debug(f'Got `confirm_buttons.value`: {confirm_buttons.value}')
         if confirm_buttons.value is True:
             # Remove the quote
             await db_helper.del_row_id(
@@ -656,11 +657,11 @@ class Quotes(commands.Cog):
                 )
             else:
                 return None
-            log.debug('Got quotes: {}'.format(quote_in))
+            logger.debug('Got quotes: {}'.format(quote_in))
             for _q in quote_in:
                 q_no = _q['rowid']
                 if any(item is None for item in _q):
-                    log.error(
+                    logger.error(
                         f'None-values discovered in DB-file (quotes): {_q}'
                     )
                     pass
@@ -677,7 +678,7 @@ class Quotes(commands.Cog):
                             q_no, q_text, q_datetime
                         )
                     )
-            log.debug(f'Returning this as `quotes_out`: {quotes_out}')
+            logger.debug(f'Returning this as `quotes_out`: {quotes_out}')
             return quotes_out
 
         await interaction.response.defer()
@@ -698,7 +699,7 @@ class Quotes(commands.Cog):
             temp_out.append(
                 (quote[0], quote[1], get_dt(format='datetime', dt=quote[2]))
             )
-        log.debug(f'`temp_out` is {temp_out}')
+        logger.debug(f'`temp_out` is {temp_out}')
         paginated = []
         msg = ''
         for quote in temp_out:
@@ -719,35 +720,35 @@ class Quotes(commands.Cog):
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'quote'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
 
     # Convert json to sqlite db-files if exists
     # Define inserts
     quote_inserts = None
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.quote_file):
-        log.verbose('Found old json file')
+        logger.debug('Found old json file')
         quote_inserts = await db_helper.json_to_db_inserts(cog_name)
 
     # Prep of DB should only be done if the db files does not exist
     quote_prep_is_ok = False
     if not file_io.file_exist(envs.quote_db_schema['db_file']):
-        log.verbose('Quote db does not exist')
+        logger.debug('Quote db does not exist')
         quote_prep_is_ok = await db_helper.prep_table(
             envs.quote_db_schema, quote_inserts
         )
-        log.verbose(f'`quote_prep_is_ok` is {quote_prep_is_ok}')
+        logger.debug(f'`quote_prep_is_ok` is {quote_prep_is_ok}')
         await db_helper.prep_table(
             envs.quote_db_log_schema
         )
     else:
-        log.verbose('Quote db exist')
+        logger.debug('Quote db exist')
 
     # Delete old json files if they exist
     if quote_prep_is_ok and file_io.file_exist(envs.quote_file):
         file_io.remove_file(envs.quote_file)
     if quote_prep_is_ok and file_io.file_size(envs.quote_log_file):
         file_io.remove_file(envs.quote_log_file)
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(Quotes(bot))

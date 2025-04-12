@@ -6,10 +6,10 @@ from discord.ext import commands
 from discord.app_commands import locale_str, describe
 import uuid
 
-from sausage_bot.util import envs, db_helper, file_io
+from sausage_bot.util import config, envs, db_helper, file_io
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
 
+logger = config.logger
 
 class Dilemmas(commands.Cog):
     'Post a random dilemma'
@@ -127,8 +127,8 @@ class Dilemmas(commands.Cog):
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'dilemmas'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
 
     # Convert json to sqlite db-files if exists
     # Define inserts
@@ -136,14 +136,14 @@ async def setup(bot):
 
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.dilemmas_file):
-        log.verbose('Found old json file')
+        logger.debug('Found old json file')
         dilemmas_inserts = await db_helper.json_to_db_inserts(cog_name)
-        log.debug(f'`dilemmas_inserts` is {dilemmas_inserts}')
+        logger.debug(f'`dilemmas_inserts` is {dilemmas_inserts}')
 
     # Prep of DBs should only be done if the db files does not exist
     dilemmas_prep_is_ok = False
     if not file_io.file_exist(envs.dilemmas_db_schema['db_file']):
-        log.verbose('Dilemmas db does not exist')
+        logger.debug('Dilemmas db does not exist')
         dilemmas_prep_is_ok = await db_helper.prep_table(
             envs.dilemmas_db_schema, dilemmas_inserts
         )
@@ -151,11 +151,11 @@ async def setup(bot):
             envs.dilemmas_db_log_schema
         )
     else:
-        log.verbose('Dilemmas db exist!')
+        logger.debug('Dilemmas db exist!')
     # Delete old json files if they are not necessary anymore
     if dilemmas_prep_is_ok:
         file_io.remove_file(envs.dilemmas_file)
     if file_io.file_size(envs.dilemmas_log_file):
         file_io.remove_file(envs.dilemmas_log_file)
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(Dilemmas(bot))

@@ -7,7 +7,8 @@ from discord.ext import commands, tasks
 import discord
 from sausage_bot.util import config, envs, feeds_core, db_helper
 from sausage_bot.util import discord_commands
-from sausage_bot.util.log import log
+
+logger = config.logger
 
 team_channel_defaults = {
     'FIRSTTEAM': 'first-team',
@@ -38,7 +39,7 @@ class scrape_and_post(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task started')
+        logger.info('Task started')
         scrape_and_post.post_fcb_news.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -59,7 +60,7 @@ class scrape_and_post(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task stopped')
+        logger.info('Task stopped')
         scrape_and_post.post_fcb_news.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -108,7 +109,7 @@ class scrape_and_post(commands.Cog):
                         news_dev = main_dev.find_all(
                             'div', attrs={'class': 'feed__items'})
                     except (AttributeError) as e:
-                        log.error(f'Fikk feil ved henting av nyhetssaker: {e}')
+                        logger.error(f'Fikk feil ved henting av nyhetssaker: {e}')
                         return None
                     max_items = 2
                     index_items = 0
@@ -133,10 +134,10 @@ class scrape_and_post(commands.Cog):
         if FEED_POSTS is None:
             return
         if len(FEED_POSTS) < 1:
-            log.log(f'{feed}: this feed is empty')
+            logger.info(f'{feed}: this feed is empty')
             return
         else:
-            log.log(
+            logger.info(
                 f'{feed}: `FEED_POSTS` are good:\n'
                 f'### {FEED_POSTS} ###'
             )
@@ -144,7 +145,7 @@ class scrape_and_post(commands.Cog):
                 channel_name = team_channel_defaults[team.upper()]
                 if channel_name not in guild_channels:
                     error_msg = f'Could not find channel `{channel_name}` in guild'
-                    log.error(error_msg)
+                    logger.error(error_msg)
                     # TODO i18n
                     await discord_commands.log_to_bot_channel(error_msg)
                     return
@@ -156,13 +157,13 @@ class scrape_and_post(commands.Cog):
                         'rss', 'BARCA', FEED_POSTS[team], CHANNEL
                     )
                 except AttributeError as e:
-                    log.error(str(e))
+                    logger.error(str(e))
         return
 
     @post_fcb_news.before_loop
     async def before_post_fcb_news():
         '#autodoc skip#'
-        log.verbose('`post_fcb_news` waiting for bot to be ready...')
+        logger.debug('`post_fcb_news` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
 
@@ -174,10 +175,10 @@ async def setup(bot):
             where=('cog', 'barca_news')
         )
 
-    log.log(envs.COG_STARTING.format('barca_news'))
+    logger.info(envs.COG_STARTING.format('barca_news'))
     await bot.add_cog(scrape_and_post(bot))
     task_list = await get_tasks()
-    log.debug(f'Got `task_list`: {task_list}')
+    logger.debug(f'Got `task_list`: {task_list}')
     if task_list is None or len(task_list) <= 0:
         await db_helper.insert_many_all(
             template_info=envs.tasks_db_schema,
@@ -187,17 +188,17 @@ async def setup(bot):
         )
         task_list = await get_tasks()
     for task in task_list:
-        log.debug(f'Checking task: {task}')
+        logger.debug(f'Checking task: {task}')
         if task['task'] == 'post_news':
             if task['status'] == 'started':
-                log.debug(
+                logger.debug(
                     '`{}` is set as `{}`, stopping...'.format(
                         task['task'], task['status']
                     )
                 )
                 scrape_and_post.post_fcb_news.start()
             elif task['status'] == 'stopped':
-                log.debug(
+                logger.debug(
                     '`{}` is set as `{}`, starting...'.format(
                         task['task'], task['status']
                     )

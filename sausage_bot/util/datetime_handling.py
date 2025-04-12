@@ -5,9 +5,10 @@ import pendulum
 import re
 import datetime
 
-from .log import log
-
+from sausage_bot.util import config
 from sausage_bot.util.i18n import I18N
+
+logger = config.logger
 
 # Set correct timezone and locale
 tz = pendulum.timezone("Europe/Oslo")
@@ -35,7 +36,7 @@ def make_dt(date_in):
     - 1652779320
     '''
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
-        log.debug('Found a Z/T/+ in `date_in`')
+        logger.debug('Found a Z/T/+ in `date_in`')
         return pendulum.parse(str(date_in))
     elif re.match(r'\d{10}|\d{13}', str(date_in)):
         return pendulum.from_timestamp(int(date_in))
@@ -47,9 +48,9 @@ def make_dt(date_in):
         d_len = len(d_split)
         # Decide how to interpret the input
         try:
-            log.verbose('`date_in` is {}'.format(date_in))
-            log.verbose(f'Got `d_len` {d_len}')
-            log.verbose(f'd_split: {d_split}')
+            logger.debug('`date_in` is {}'.format(date_in))
+            logger.debug(f'Got `d_len` {d_len}')
+            logger.debug(f'd_split: {d_split}')
             if d_len <= 2:
                 # Expecting `HHmm` or `HH( |:|-|_|.)mm`
                 date_in = date_in.replace(' ', '')
@@ -95,7 +96,7 @@ def make_dt(date_in):
                     d = d_split
                     date_in = f'{d[0]} {d[1]} {d[2]} {d[3]}'
                     date_in = date_in.strip()
-                    log.verbose('date_in: {}'.format(date_in))
+                    logger.debug('date_in: {}'.format(date_in))
                     return pendulum.from_format(
                         date_in, 'DD MM YYYY HH mm'
                     )
@@ -137,9 +138,9 @@ def make_dt(date_in):
                     )
             else:
                 return None
-            log.verbose('-' * 10)
+            logger.debug('-' * 10)
         except ValueError:
-            log.error('-' * 10)
+            logger.error('-' * 10)
             return None
 
 
@@ -184,16 +185,16 @@ def get_dt(format='epoch', sep='.', dt=False):
     ISO8601             YYYY-MM-DD HH:MM:SS.SSS
     '''
     if isinstance(dt, datetime.datetime):
-        log.debug('Input is a datetime object')
+        logger.debug('Input is a datetime object')
         dt = make_dt(str(dt))
     if isinstance(dt, str):
-        log.debug('Input is a string')
+        logger.debug('Input is a string')
         dt = make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
             return None
     elif not dt:
-        log.debug('No input detected, getting `now()`')
+        logger.debug('No input detected, getting `now()`')
         dt = pendulum.now(tz)
     # Make sure correct timezone is used in input
     if format == 'date':
@@ -249,16 +250,16 @@ def change_dt(
     `unit`: Unit to change. Accepted units are `years`, `months`, `days`,
         `hours`, `minutes` and `seconds`'''
     if change is None or unit is None or count is None:
-        log.log(I18N.t('common.too_few_arguments'))
+        logger.info(I18N.t('common.too_few_arguments'))
         return None
     accepted_units = [
         'years', 'months', 'days', 'hours', 'minutes', 'seconds'
     ]
     if unit not in accepted_units:
-        log.log(f'Unit `{unit}` is not accepted')
+        logger.info(f'Unit `{unit}` is not accepted')
         return None
     if not isinstance(count, (int, float)):
-        log.log(f'Count `{count}` is not a number')
+        logger.info(f'Count `{count}` is not a number')
         return None
     p = pendulum_object_in  # noqa: F841
     if change == 'add':

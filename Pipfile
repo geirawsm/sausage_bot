@@ -28,6 +28,7 @@ pip = "*"
 pytest-mock = "*"
 pyyaml = "*"
 tabulate = "*"
+colorlog = "*"
 
 [dev-packages]
 pytest = "*"

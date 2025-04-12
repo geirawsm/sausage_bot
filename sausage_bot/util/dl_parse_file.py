@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 'dl_parse_file: Download and parse files for testing'
 import asyncio
-from sausage_bot.util import file_io, envs, net_io
-from sausage_bot.util.log import log
+from sausage_bot.util import config, file_io, envs, net_io
 from bs4 import BeautifulSoup
 import json
 import re
 
+logger = config.logger
 
 async def get_nifs_file():
     nifs_in = 'https://www.nifs.no/kampfakta.php?matchId=2372733&land=1&t=6&u=694962'
     base_url = 'https://api.nifs.no/matches/{}'
     # Get info relevant for the event
     _id = re.match(r'.*matchId=(\d+)\b', nifs_in).group(1)
-    log.debug(f'Getting: {base_url.format(_id)}')
+    logger.debug(f'Getting: {base_url.format(_id)}')
     match_json = await net_io.get_link(
         url=base_url.format(_id)
     )
@@ -29,7 +29,7 @@ async def get_vglive_file():
     base_url = 'https://vglive.vg.no/bff/vg/events/{}'
     # Get info relevant for the event
     _id = re.match(r'.*/kamp/.*/(\d+)/.*', vglive_in).group(1)
-    log.debug(f'Getting: {base_url.format(_id)}')
+    logger.debug(f'Getting: {base_url.format(_id)}')
     match_json = await net_io.get_link(base_url.format(_id))
     match_json = json.loads(match_json)
     file_io.write_json(
@@ -39,7 +39,7 @@ async def get_vglive_file():
     # Get tv info
     tv_url = 'https://vglive.vg.no/bff/vg/events/tv-channels?eventIds={}'
     _tv_info = await net_io.get_link(tv_url.format(_id))
-    log.debug(f'Getting: {tv_url.format(_id)}')
+    logger.debug(f'Getting: {tv_url.format(_id)}')
     tv_json = json.loads(_tv_info)
     file_io.write_json(
         envs.test_vglive_tv_json_good,
@@ -57,7 +57,7 @@ async def get_tv2livesport_file():
     _id = re.match(
         r'.*tv2.no/livesport/.*/kamper/.*/([a-f0-9\-]+)', tv2livesport_in
     ).group(1)
-    log.debug(f'Getting: {base_url.format(_id)}')
+    logger.debug(f'Getting: {base_url.format(_id)}')
     match_json = await net_io.get_link(
         url=base_url.format(_id)
     )
@@ -81,4 +81,4 @@ async def write_generic_rss_to_file(url_in, filename, force=False):
             soup
         )
     else:
-        log.debug(f'File {filename} is younger than 24 hours')
+        logger.debug(f'File {filename} is younger than 24 hours')

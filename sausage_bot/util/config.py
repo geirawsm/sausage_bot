@@ -11,7 +11,10 @@ import os
 from pathlib import Path
 
 from . import envs
+from . import logger
 
+logger.configure_logging(to_file=True)
+logger = logger.logging
 
 # Create necessary folders before starting
 check_and_create_folders = [
@@ -79,7 +82,7 @@ try:
         print('Something is wrong with the env file.')
         exit()
 except EnvError as e:
-    print(f'You need to set environment variables for the bot to work: {e}')
+    logger.error(f'You need to set environment variables for the bot to work: {e}')
     exit()
 
 try:
@@ -89,5 +92,5 @@ try:
         intents=intents
     )
 except KeyError as e:
-    print(f'Couldn\'t load basic env: {e}')
+    logger.error(f'Couldn\'t load basic env: {e}')
     exit()

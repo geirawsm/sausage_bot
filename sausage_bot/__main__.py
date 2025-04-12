@@ -13,7 +13,8 @@ from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.i18n import I18N, available_languages, set_language
 from sausage_bot.util.i18n import MyTranslator
-from sausage_bot.util.log import log
+
+logger = config.logger
 
 
 @tasks.loop(
@@ -74,41 +75,41 @@ class SayModal(discord.ui.Modal):
             )
             channel_errors = []
             for _user in _users:
-                log.debug(f'`_user`: {_user.group(0)}')
+                logger.debug(f'`_user`: {_user.group(0)}')
                 # Check if username exist on discord server
                 user_obj = check_discord_username(_user)
                 # If it is not found, add to `username_errors`
                 if user_obj is None:
-                    log.verbose('Appending to username_errors')
+                    logger.debug('Appending to username_errors')
                     # Add username to error list
                     username_errors.append(_user)
                 else:
-                    log.debug(f'Got this text:\n{self.comment_out}')
-                    log.debug(f'Want to replace `{str(_user)}`')
+                    logger.debug(f'Got this text:\n{self.comment_out}')
+                    logger.debug(f'Want to replace `{str(_user)}`')
                     self.comment_out = self.comment_out.replace(
                         str(_user.group(0)).strip(),
                         '<@{}>'.format(user_obj.id)
                     )
             for _channel in _channels:
-                log.debug(f'`_channel`: {_channel.group(0)}')
+                logger.debug(f'`_channel`: {_channel.group(0)}')
                 # Check if channel exist on discord server
                 channel_obj = check_discord_channel(_channel)
                 # If it is not found, add to `channel_errors`
                 if channel_obj is None:
-                    log.verbose('Appending to channel_errors')
+                    logger.debug('Appending to channel_errors')
                     # Add username to error list
                     channel_errors.append(_channel)
                 else:
-                    log.debug(f'Got this text:\n{self.comment_out}')
-                    log.debug(f'Want to replace `{str(_channel)}`')
+                    logger.debug(f'Got this text:\n{self.comment_out}')
+                    logger.debug(f'Want to replace `{str(_channel)}`')
                     self.comment_out = self.comment_out.replace(
                         str(_channel.group(0)).strip(),
                         '<#{}>'.format(channel_obj.id)
                     )
-            log.debug(f'username_errors: {username_errors}')
+            logger.debug(f'username_errors: {username_errors}')
             if len(username_errors) > 0:
                 for _user in enumerate(username_errors):
-                    log.debug(f'Checking {_user[1].group(0)} ({_user})')
+                    logger.debug(f'Checking {_user[1].group(0)} ({_user})')
                     user_check = _user[1].group(0).strip()\
                         .replace('@', '').replace('"', '')
                     similars = check_similar_discord_usernames(
@@ -116,10 +117,10 @@ class SayModal(discord.ui.Modal):
                         similar_floor=0.7,
                         similar_roof=0.95
                     )
-                    log.debug(f'similars: {similars}')
+                    logger.debug(f'similars: {similars}')
                     if similars is not False:
                         user_obj = EditModal.check_discord_username(similars)
-                        log.debug(f'Want to replace `{str(similars)}`')
+                        logger.debug(f'Want to replace `{str(similars)}`')
                         self.comment_out = self.comment_out.replace(
                             str(_user[1].group(0)).strip(),
                             '<@{}>'.format(user_obj.id)
@@ -151,7 +152,7 @@ class SayModal(discord.ui.Modal):
         return msg_out
 
     async def on_error(self, interaction: discord.Interaction, error):
-        log.error(f'Error when editing message: {error}')
+        logger.error(f'Error when editing message: {error}')
         await interaction.response.send_message(
             I18N.t(
                 'main.commands.say.modal.error_sending',
@@ -165,15 +166,15 @@ class SayModal(discord.ui.Modal):
 def check_discord_username(username_in):
     if isinstance(username_in, re.Match):
         username_in = username_in.group(0)
-    log.debug(f'Got username_in: {username_in}')
+    logger.debug(f'Got username_in: {username_in}')
     _user_in = username_in.strip().replace('@', '')\
         .replace('"', '')
-    log.debug(f'Stripped and fixed _user_in: {_user_in}')
+    logger.debug(f'Stripped and fixed _user_in: {_user_in}')
     user_obj = get(
         discord_commands.get_guild().members,
         name=_user_in
     )
-    log.debug(f'Got user_obj: {user_obj}')
+    logger.debug(f'Got user_obj: {user_obj}')
     return user_obj
 
 
@@ -184,7 +185,7 @@ def check_similar_discord_usernames(
         (member.name, member.id) for member in
         discord_commands.get_guild().members
     ]
-    log.debug(f'Comparing {username_in} with {_members}')
+    logger.debug(f'Comparing {username_in} with {_members}')
     similars = file_io.check_similarity(
         username_in, _members,
         ratio_floor=similar_floor,
@@ -196,14 +197,14 @@ def check_similar_discord_usernames(
 def check_discord_channel(channel_in):
     if isinstance(channel_in, re.Match):
         channel_in = channel_in.group(0)
-    log.debug(f'Got channel_in: {channel_in}')
+    logger.debug(f'Got channel_in: {channel_in}')
     _channel_in = channel_in.strip().replace('#', '')
-    log.debug(f'Stripped and fixed _channel_in: {_channel_in}')
+    logger.debug(f'Stripped and fixed _channel_in: {_channel_in}')
     channel_obj = get(
         discord_commands.get_guild().channels,
         name=_channel_in
     )
-    log.debug(f'Got channel_obj: {channel_obj}')
+    logger.debug(f'Got channel_obj: {channel_obj}')
     return channel_obj
 
 
@@ -217,7 +218,7 @@ class EditModal(discord.ui.Modal):
         self.comment_in = comment_in
         self.comment_out = None
         self.error_out = None
-        log.verbose(f'self.comment_in is: {self.comment_in}')
+        logger.debug(f'self.comment_in is: {self.comment_in}')
 
         # Create elements
         comment_text = SayTextInput(
@@ -245,41 +246,41 @@ class EditModal(discord.ui.Modal):
             )
             channel_errors = []
             for _user in _users:
-                log.debug(f'`_user`: {_user.group(0)}')
+                logger.debug(f'`_user`: {_user.group(0)}')
                 # Check if username exist on discord server
                 user_obj = check_discord_username(_user)
                 # If it is not found, add to `username_errors`
                 if user_obj is None:
-                    log.verbose('Appending to username_errors')
+                    logger.debug('Appending to username_errors')
                     # Add username to error list
                     username_errors.append(_user)
                 else:
-                    log.debug(f'Got this text:\n{self.comment_out}')
-                    log.debug(f'Want to replace `{str(_user)}`')
+                    logger.debug(f'Got this text:\n{self.comment_out}')
+                    logger.debug(f'Want to replace `{str(_user)}`')
                     self.comment_out = self.comment_out.replace(
                         str(_user.group(0)).strip(),
                         '<@{}>'.format(user_obj.id)
                     )
             for _channel in _channels:
-                log.debug(f'`_channel`: {_channel.group(0)}')
+                logger.debug(f'`_channel`: {_channel.group(0)}')
                 # Check if channel exist on discord server
                 channel_obj = check_discord_channel(_channel)
                 # If it is not found, add to `channel_errors`
                 if channel_obj is None:
-                    log.verbose('Appending to channel_errors')
+                    logger.debug('Appending to channel_errors')
                     # Add username to error list
                     channel_errors.append(_channel)
                 else:
-                    log.debug(f'Got this text:\n{self.comment_out}')
-                    log.debug(f'Want to replace `{str(_channel)}`')
+                    logger.debug(f'Got this text:\n{self.comment_out}')
+                    logger.debug(f'Want to replace `{str(_channel)}`')
                     self.comment_out = self.comment_out.replace(
                         str(_channel.group(0)).strip(),
                         '<#{}>'.format(channel_obj.id)
                     )
-            log.debug(f'username_errors: {username_errors}')
+            logger.debug(f'username_errors: {username_errors}')
             if len(username_errors) > 0:
                 for _user in enumerate(username_errors):
-                    log.debug(f'Checking {_user[1].group(0)} ({_user})')
+                    logger.debug(f'Checking {_user[1].group(0)} ({_user})')
                     user_check = _user[1].group(0).strip()\
                         .replace('@', '').replace('"', '')
                     similars = check_similar_discord_usernames(
@@ -287,16 +288,16 @@ class EditModal(discord.ui.Modal):
                         similar_floor=0.7,
                         similar_roof=0.95
                     )
-                    log.debug(f'similars: {similars}')
+                    logger.debug(f'similars: {similars}')
                     if similars is not False:
                         user_obj = check_discord_username(similars)
-                        log.debug(f'Want to replace `{str(similars)}`')
+                        logger.debug(f'Want to replace `{str(similars)}`')
                         self.comment_out = self.comment_out.replace(
                             str(_user[1].group(0)).strip(),
                             '<@{}>'.format(user_obj.id)
                         )
                         username_errors.pop(_user[0])
-            log.debug(f'channel_errors: {channel_errors}')
+            logger.debug(f'channel_errors: {channel_errors}')
             msg_out = I18N.t('main.context_menu.edit_msg.edit_confirm')
             if len(username_errors) > 0:
                 msg_out += I18N.t(
@@ -327,7 +328,7 @@ class EditModal(discord.ui.Modal):
             return
 
     async def on_error(self, interaction: discord.Interaction, error):
-        log.error(f'Error when editing message: {error}')
+        logger.error(f'Error when editing message: {error}')
         self.error_out = error
         await interaction.response.send_message(
             I18N.t(
@@ -343,7 +344,7 @@ def locales_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     locales = available_languages()
-    log.debug(f'locales: {locales}')
+    logger.debug(f'locales: {locales}')
     return [
         discord.app_commands.Choice(
             name=locale, value=locale
@@ -359,7 +360,7 @@ async def on_ready():
     #autodoc skip#
     '''
     # Create locale db if not exists
-    log.verbose('Checking locale db')
+    logger.debug('Checking locale db')
     await db_helper.prep_table(
         table_in=envs.locale_db_schema,
         inserts=['en']
@@ -368,7 +369,7 @@ async def on_ready():
         template_info=envs.locale_db_schema,
         single=True
     )
-    log.debug(
+    logger.debug(
         'Setting locale to `{}`'.format(
             locale_db['locale']
         )
@@ -377,7 +378,7 @@ async def on_ready():
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
-            log.log(
+            logger.info(
                 I18N.t('main.msg.bot_connected',
                        bot=config.bot.user,
                        server=guild.name
@@ -385,17 +386,17 @@ async def on_ready():
             )
             break
 
-    log.verbose('Checking cog tasks db')
+    logger.debug('Checking cog tasks db')
     await db_helper.prep_table(
         envs.tasks_db_schema
     )
-    log.verbose('Deleting old json files')
+    logger.debug('Deleting old json files')
     if file_io.file_size(envs.cogs_status_file):
-        log.verbose('Found old json file')
+        logger.debug('Found old json file')
         file_io.remove_file(envs.cogs_status_file)
     await cogs.Cogs.load_and_clean_cogs_internal()
     if args.maintenance:
-        log.log('Maintenance mode activated', color='RED')
+        logger.info('Maintenance mode activated', color='RED')
         await config.bot.change_presence(
             status=discord.Status.dnd
         )
@@ -412,7 +413,7 @@ async def on_ready():
     # Make sure that the BOT_CHANNEL is present
     bot_channel = config.BOT_CHANNEL
     if bot_channel not in discord_commands.get_text_channel_list():
-        log.debug(f'Bot channel `{bot_channel}` does not exist, creating...')
+        logger.debug(f'Bot channel `{bot_channel}` does not exist, creating...')
         guild = discord_commands.get_guild()
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(
@@ -438,7 +439,7 @@ sync_group = discord.app_commands.Group(
 )
 
 
-@commands.check_any(commands.is_owner())
+commands.is_owner()
 @sync_group.command(
     name='global', description=locale_str(I18N.t('main.owner_only'))
 )
@@ -478,7 +479,7 @@ async def sync_dev(interaction: discord.Interaction):
     slash_cmds = []
     text_cmds = []
     for command in config.bot.tree.get_commands():
-        log.debug(f'Checking {command.name}')
+        logger.debug(f'Checking {command.name}')
         if isinstance(command, discord.app_commands.Command):
             slash_cmds.append(command.name)
         else:
@@ -512,7 +513,7 @@ async def synclocal(ctx):
             I18N.t('main.commands.synclocal.msg_starting')
         )
     )
-    # log.debug('Clearing commands...')
+    # logger.debug('Clearing commands...')
     # config.bot.tree.clear_commands(guild=None)
     # config.bot.tree.clear_commands(guild=ctx.guild)
     await _reply.edit(
@@ -520,18 +521,18 @@ async def synclocal(ctx):
             I18N.t('main.commands.synclocal.msg_cont_copy')
         )
     )
-    log.debug('Copying global commands...')
+    logger.debug('Copying global commands...')
     config.bot.tree.copy_global_to(guild=ctx.guild)
     for command in config.bot.tree.get_commands():
-        log.debug(f'Checking {command.name}')
-    log.debug('Syncing...')
+        logger.debug(f'Checking {command.name}')
+    logger.debug('Syncing...')
     await config.bot.tree.sync(guild=ctx.guild)
     await _reply.edit(
         content='✅✅ {}'.format(
             I18N.t('main.commands.synclocal.msg_confirm')
         )
     )
-    log.debug('Done')
+    logger.debug('Done')
 
 
 @commands.is_owner()
@@ -542,24 +543,24 @@ async def syncglobal(ctx):
             I18N.t('main.commands.syncglobal.msg_starting')
         )
     )
-    log.debug('Clearing commands...')
+    logger.debug('Clearing commands...')
     config.bot.tree.clear_commands(guild=None)
     for command in config.bot.tree.get_commands():
-        log.debug(f'Checking {command.name}')
-    log.debug('Syncing...')
+        logger.debug(f'Checking {command.name}')
+    logger.debug('Syncing...')
     await config.bot.tree.sync(guild=None)
     await _reply.edit(
         content='✅✅ {}'.format(
             I18N.t('main.commands.syncglobal.msg_confirm')
         )
     )
-    log.debug('Done')
+    logger.debug('Done')
 
 
 @commands.is_owner()
 @config.bot.command(name='clearglobals')
 async def clear_globals(ctx):
-    log.debug('Deleting global commands...')
+    logger.debug('Deleting global commands...')
     _reply = await ctx.reply(
         '💭 {}'.format(
             I18N.t('main.commands.clearglobals.msg_starting')
@@ -567,7 +568,7 @@ async def clear_globals(ctx):
     )
     config.bot.tree.clear_commands(guild=None)
     await config.bot.tree.sync(guild=None)
-    log.debug('Commands deleted')
+    logger.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
             I18N.t('main.commands.clearglobals.msg_confirm')
@@ -578,7 +579,7 @@ async def clear_globals(ctx):
 @commands.is_owner()
 @config.bot.command(name='clearlocals')
 async def clear_locals(ctx):
-    log.debug('Deleting local commands...')
+    logger.debug('Deleting local commands...')
     _reply = await ctx.reply(
         '💭 {}'.format(
             I18N.t('main.commands.clearlocals.msg_starting')
@@ -586,7 +587,7 @@ async def clear_locals(ctx):
     )
     config.bot.tree.clear_commands(guild=ctx.guild)
     await config.bot.tree.sync(guild=ctx.guild)
-    log.debug('Commands deleted')
+    logger.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
             I18N.t('main.commands.clearlocals.msg_confirm')
@@ -601,7 +602,7 @@ async def clear_locals(ctx):
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     version_in = file_io.read_json(envs.version_file)
-    log.debug(f'Got `version_in`: {version_in}')
+    logger.debug(f'Got `version_in`: {version_in}')
     await interaction.followup.send(
         'Branch: {}\n'
         'Last commit message: {}\n'
@@ -630,10 +631,7 @@ async def ping(interaction: discord.Interaction):
     )
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(manage_messages=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name='delete',
     description=locale_str(I18N.t('main.commands.delete.command'))
@@ -657,10 +655,7 @@ async def delete(interaction: discord.Interaction, amount: int):
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(kick_members=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name='kick',
     description=locale_str(I18N.t('main.commands.kick.command'))
@@ -699,10 +694,7 @@ async def kick(
         )
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(ban_members=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name='ban',
     description=locale_str(I18N.t('main.commands.ban.command'))
@@ -750,12 +742,12 @@ async def say(
     message_id: str = None
 ):
     reply_msg = None
-    log.debug(f'`channel` is {channel} ({type(channel)})')
+    logger.debug(f'`channel` is {channel} ({type(channel)})')
     if message_id:
         reply_msg = await discord_commands.get_message_obj(
             msg_id=message_id, channel_name_or_id=channel.name
         )
-        log.debug(f'Got `reply_msg`: {reply_msg}')
+        logger.debug(f'Got `reply_msg`: {reply_msg}')
     modal_in = SayModal(
         title_in=I18N.t('main.commands.say.modal.title'),
         channel=channel
@@ -789,7 +781,7 @@ async def get_tasks_list(interaction: discord.Interaction):
             ('task', 'ASC')
         ]
     )
-    log.debug(f'Got this from `tasks_in_db`: {tasks_in_db}')
+    logger.debug(f'Got this from `tasks_in_db`: {tasks_in_db}')
     text_out = '```{}```'.format(
         tabulate(
             tasks_in_db, headers={
@@ -797,7 +789,7 @@ async def get_tasks_list(interaction: discord.Interaction):
             }
         )
     )
-    log.debug(f'Returning:\n{text_out}')
+    logger.debug(f'Returning:\n{text_out}')
     await interaction.followup.send(text_out, ephemeral=True)
     return
 
@@ -811,9 +803,9 @@ async def language(
     interaction: discord.Interaction, language: str
 ):
     await interaction.response.defer(ephemeral=True)
-    log.verbose(f'Setting language to {language}')
+    logger.debug(f'Setting language to {language}')
     await set_language(language)
-    log.verbose('Syncing commands')
+    logger.debug('Syncing commands')
     await config.bot.tree.sync()
     await interaction.followup.send(
         I18N.t(
@@ -834,7 +826,7 @@ async def language(
 async def edit_bot_say_msg(
     interaction: discord.Interaction, message: discord.Message
 ):
-    log.debug(
+    logger.debug(
         f'`message.author.id` {message.author.id} '
         f'({type(message.author.id)})) vs `config.bot.user.id` '
         f'{config.bot.user.id} ({type(config.bot.user.id)}))'
@@ -858,4 +850,4 @@ async def edit_bot_say_msg(
 try:
     config.bot.run(config.DISCORD_TOKEN)
 except Exception as _error:
-    log.error(f'Could not start bot: {_error}')
+    logger.error(f'Could not start bot: {_error}')
