@@ -37,6 +37,7 @@ nb_no:
     reaction: Kontroller reaksjonsmeldinger på serveren
     add_reaction: Legg til reaksjonsmelding på serveren
     remove_reaction: Fjern reaksjonsmelding på serveren
+    edit_reaction: Endre reaksjonsmelding på serveren
     move_reaction_role: Flytt en reaksjonsrolle mellom reaksjonsmeldinger
     settings: Kontroller innstillinger på serveren
     emojis: Kontroller emojier på serveren
@@ -115,6 +116,11 @@ nb_no:
       msg_reaction_already_exist: Reaksjonsmeldingen %{msg_name} finnes allerede
       msg_roles_emojis_error: Klarte ikke å finne verken roller eller emojier
       msg_confirm: Melding lagt til
+    edit_reaction_msg:
+      cmd: Edit a reaction message
+      desc:
+        reaction_msg: The message to edit
+      msg_confirm: Reaction message edited
     add_reaction_role:
       cmd: Legg til roller på en reaksjonsmelding
       desc:
@@ -224,3 +230,10 @@ nb_no:
     permissions: Tillatelser
     roles_attached: Tilknyttede roller
     created: Laget
+  modals:
+    reaction_edit:
+      modal_title: Endre reaksjonsmelding
+      reaction_text: Reaksjonstekst
+      reaction_header: Reaksjonsoverskrift
+      confirm: Endret reaksjonsmelding
+      error: Feil ved endring av reaksjonsmelding, sjekk loggene

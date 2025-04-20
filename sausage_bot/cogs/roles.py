@@ -129,7 +129,6 @@ async def settings_autocomplete(
         template_info=envs.roles_db_settings_schema,
         get_row_ids=True
     )
-    print(f'SETTINGS_DB: {settings_db}')
     temp_settings = settings_db.copy()
     for setting in temp_settings:
         list_num = settings_db.index(setting)
@@ -196,7 +195,7 @@ async def get_msg_id_and_name(msg_id_or_name):
         select=('msg_id', 'channel', 'name'),
         single=True
     )
-    logger.debug(f'db_message: {db_message}', color='yellow')
+    logger.debug(f'db_message: {db_message}')
     return {
         'id': int(db_message['msg_id']),
         'channel': int(db_message['channel']),
@@ -586,7 +585,7 @@ async def reaction_msgs_autocomplete(
 ) -> list[discord.app_commands.Choice[str]]:
     db_reactions = await db_helper.get_output(
         template_info=envs.roles_db_msgs_schema,
-        select=('name', 'msg_id', 'channel'),
+        select=('msg_id', 'name', 'channel', 'header', 'content'),
         order_by=[
             ('name', 'ASC')
         ]
@@ -595,10 +594,12 @@ async def reaction_msgs_autocomplete(
     return [
         discord.app_commands.Choice(
             name=str(reaction['name']),
-            value='{}-{}-{}'.format(
+            value='{}-{}-{}-{}'.format(
                 str(reaction['msg_id']),
                 str(reaction['name']),
-                str(reaction['channel'])
+                str(reaction['channel']),
+                str(reaction['header']),
+                str(reaction['content'])
             )
         )
         for reaction in db_reactions if current.lower() in '{}-{}'.format(
@@ -679,6 +680,68 @@ async def combine_roles_and_emojis(roles_in, emojis_in):
     return splits
 
 
+class ReactionTextInput(discord.ui.TextInput):
+    def __init__(
+            self, style_in, label_in, default_in=None, required_in=None,
+            placeholder_in=None
+    ):
+        super().__init__(
+            style=style_in,
+            label=label_in,
+            default=default_in,
+            required=required_in,
+            placeholder=placeholder_in
+        )
+
+
+class ReactionEditModal(discord.ui.Modal):
+    def __init__(
+        self, title_in=None, reaction_header_in=None, reaction_text_in=None
+    ):
+        super().__init__(
+            title=title_in, timeout=120
+        )
+        self.reaction_header_in = reaction_header_in
+        self.reaction_text_in = reaction_text_in
+        self.reaction_header_out = ''
+        self.reaction_text_out = ''
+        logger.debug(f'self.reaction_text_in is: {self.reaction_text_in}')
+
+        # Create elements
+        reaction_header = ReactionTextInput(
+            style_in=discord.TextStyle.paragraph,
+            label_in=I18N.t('roles.modals.reaction_edit.reaction_header'),
+            default_in=self.reaction_header_in if self.reaction_header_in else '',
+            required_in=True,
+            placeholder_in='Text'
+        )
+
+        reaction_text = ReactionTextInput(
+            style_in=discord.TextStyle.paragraph,
+            label_in=I18N.t('roles.modals.reaction_edit.reaction_text'),
+            default_in=self.reaction_text_in if self.reaction_text_in else '',
+            required_in=True,
+            placeholder_in='Text'
+        )
+
+        self.add_item(reaction_header)
+        self.add_item(reaction_text)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.reaction_header_out = self.children[0].value
+        self.reaction_text_out = self.children[1].value
+        await interaction.response.send_message(
+            I18N.t('roles.modals.reaction_edit.confirm'),
+            ephemeral=True
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error):
+        await interaction.response.send_message(
+            I18N.t('roles.modals.reaction_edit.error', error=error),
+            ephemeral=True
+        )
+
+
 class Autoroles(commands.Cog):
     'Manage roles and settings'
 
@@ -718,6 +781,14 @@ class Autoroles(commands.Cog):
         name="reaction_move",
         description=locale_str(
             I18N.t('roles.group.move_reaction_role')
+        ),
+        parent=roles_group
+    )
+
+    roles_reaction_edit_group = discord.app_commands.Group(
+        name="reaction_edit",
+        description=locale_str(
+            I18N.t('roles.group.edit_reaction')
         ),
         parent=roles_group
     )
@@ -1402,6 +1473,7 @@ class Autoroles(commands.Cog):
                 key='msg_id',
                 select=[
                     'name',
+                    'header',
                     'content',
                     'channel',
                     'A.msg_id',
@@ -1454,17 +1526,19 @@ class Autoroles(commands.Cog):
                 tabulate_dict['role_id'].append(role_id)
                 tabulate_dict['role_name'].append(role_name)
             tabulated_reactions = tabulate_emojis_and_roles(tabulate_dict)
+            _header = db_reactions[0]['header']
             await interaction.followup.send(
-                '{}: `{}`\n{}: `{}`\n{}: `{}`\n'
+                '{}: `{}`\n{}: `{}`\n{}: `{}`\n{}: `{}`\n'
                 '{}: `{}`\n\n{}'.format(
                     I18N.t('common.name'), db_reactions[0]['name'],
                     I18N.t('common.channel'), db_reactions[0]['channel'],
                     I18N.t('common.message_id'), db_reactions[0]['msg_id'],
+                    I18N.t('common.header'), _header if _header is not None else ' ',
                     I18N.t('common.text'), db_reactions[0]['content'],
                     '\n'.join(tabulated_reactions)
                 )
             )
-        elif not msg_id:
+        elif not reaction_msg:
             tabulate_dict = {
                 'name': [],
                 'channel': [],
@@ -1867,6 +1941,62 @@ class Autoroles(commands.Cog):
             I18N.t('roles.commands.remove_msg.msg_confirm')
         )
         return
+
+    @commands.is_owner()
+    @roles_reaction_group.command(
+        name='edit', description=locale_str(I18N.t(
+            'roles.commands.edit_reaction_msg.cmd'
+        ))
+    )
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @describe(
+        reaction_msg=I18N.t('roles.commands.sync.desc.reaction_msg')
+    )
+    async def edit_reaction_message(
+        self, interaction: discord.Interaction, reaction_msg: str
+    ):
+        '''
+        Edit a reaction message
+
+        Parameters
+        ------------
+        reaction_msg: int/str
+            The message ID from Discord or name in the database
+        '''
+        # Get message object
+        reaction_msg = reaction_msg.split('-')
+        msg_id = reaction_msg[0]
+        msg_name = reaction_msg[1]
+        msg_channel = reaction_msg[2]
+        msg_header = reaction_msg[3]
+        msg_content = reaction_msg[4]
+        _msg = await discord_commands.get_message_obj(
+            msg_id, msg_channel
+        )
+        if _msg is None:
+            await interaction.followup.send(
+                I18N.t('roles.commands.edit_reaction_msg.msg_error')
+            )
+            return
+        modal_in = ReactionEditModal(
+            title_in=I18N.t('roles.modals.reaction_edit.modal_title'),
+            reaction_header_in=msg_header,
+            reaction_text_in=msg_content
+        )
+        await interaction.response.send_modal(modal_in)
+        await modal_in.wait()
+        logger.debug(
+            f'`modal_in.reaction_out` is {modal_in.reaction_out}')
+        await db_helper.update_fields(
+            envs.roles_db_msgs_schema,
+            updates=[
+                ('content', modal_in.reaction_out)
+            ],
+            where=('name', msg_name)
+        )
+        await _msg.edit(content=modal_in.reaction_out)
+        return
+
 
     @commands.is_owner()
     @roles_reaction_remove_group.command(

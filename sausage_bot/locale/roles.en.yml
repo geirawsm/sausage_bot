@@ -37,6 +37,7 @@ en:
     reaction: Control reaction messages on the server
     add_reaction: Add reaction message to the server
     remove_reaction: Remove reaction message from the server
+    edit_reaction: Edit reaction message on the server
     move_reaction_role: Move a reaction role between reaction messages
     settings: Control settings on the server
     emojis: Control emojis on the server
@@ -115,6 +116,11 @@ en:
       msg_reaction_already_exist: Reaction message %{msg_name} already exists
       msg_roles_emojis_error: Could not find any roles or emojis
       msg_confirm: Message added
+    edit_reaction_msg:
+      cmd: Edit a reaction message
+      desc:
+        reaction_msg: The message to edit
+      msg_confirm: Reaction message edited
     add_reaction_role:
       cmd: Add roles to a reaction message
       desc:
@@ -224,3 +230,10 @@ en:
     permissions: Permissions
     roles_attached: Roles attached
     created: Created
+  modals:
+    reaction_edit:
+      modal_title: Edit reaction message
+      reaction_text: Reaction text
+      reaction_header: Reaction header
+      confirm: Reaction message edited
+      error: Error when editing reaction message, check logs

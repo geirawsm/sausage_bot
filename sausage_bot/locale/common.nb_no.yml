@@ -9,6 +9,7 @@ nb_no:
   name: Navn
   channel: Kanal
   message_id: Meldings-ID
+  header: Overskrift
   text: Tekst
   order: Rekkefølge
   id: ID

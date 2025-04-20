@@ -9,6 +9,7 @@ en:
   name: Name
   channel: Channel
   message_id: Message ID
+  header: Header
   text: Text
   order: Order
   id: ID
