@@ -1986,15 +1986,26 @@ class Autoroles(commands.Cog):
         await interaction.response.send_modal(modal_in)
         await modal_in.wait()
         logger.debug(
-            f'`modal_in.reaction_out` is {modal_in.reaction_out}')
+            f'`modal_in.reaction_header_out` is {modal_in.reaction_header_out}'
+        )
+        logger.debug(
+            f'`modal_in.reaction_text_out` is {modal_in.reaction_text_out}'
+        )
+        db_updates = [
+            ('header', modal_in.reaction_header_out),
+            ('content', modal_in.reaction_text_out)
+        ]
         await db_helper.update_fields(
             envs.roles_db_msgs_schema,
-            updates=[
-                ('content', modal_in.reaction_out)
-            ],
+            updates=db_updates,
             where=('name', msg_name)
         )
-        await _msg.edit(content=modal_in.reaction_out)
+        content = ''
+        if modal_in.reaction_header_out is not None:
+            content = f'## {modal_in.reaction_header_out}\n'
+        content += f'{modal_in.reaction_text_out}'
+        await _msg.edit(
+            content=content)
         return
 
 
