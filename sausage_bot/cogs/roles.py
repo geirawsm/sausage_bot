@@ -594,7 +594,7 @@ async def reaction_msgs_autocomplete(
     return [
         discord.app_commands.Choice(
             name=str(reaction['name']),
-            value='{}-{}-{}-{}'.format(
+            value='{}-{}-{}-{}-{}'.format(
                 str(reaction['msg_id']),
                 str(reaction['name']),
                 str(reaction['channel']),
