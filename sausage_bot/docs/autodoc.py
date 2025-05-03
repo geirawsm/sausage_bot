@@ -18,11 +18,12 @@ import glob
 from pprint import pprint
 from .modules import doc_envs
 from .modules.doc_args import doc_args
-from ..util import envs, file_io, datetime_handling
+from ..util import envs, file_io, datetime_handling, config
 # from ..util.args import args
-from ..util.log import log
 # from time import sleep
 # import re
+
+logger = config.logger
 
 
 async def dump(item):

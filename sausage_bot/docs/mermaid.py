@@ -6,8 +6,9 @@ import os
 import requests
 from tqdm import tqdm
 
-from sausage_bot.util import envs
-from sausage_bot.util.log import log
+from sausage_bot.util import envs, config
+
+logger = config.logger
 
 
 def download_file(url, file_out):
