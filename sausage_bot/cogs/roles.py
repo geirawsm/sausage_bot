@@ -608,6 +608,32 @@ async def reaction_msgs_autocomplete(
     ][:25]
 
 
+async def edit_reaction_msgs_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    db_reactions = await db_helper.get_output(
+        template_info=envs.roles_db_msgs_schema,
+        select=('msg_id', 'name'),
+        order_by=[
+            ('name', 'ASC')
+        ]
+    )
+    logger.debug(f'db_reactions: {db_reactions}')
+    return [
+        discord.app_commands.Choice(
+            name=str(reaction['name']),
+            value='{}-{}'.format(
+                str(reaction['msg_id']),
+                str(reaction['name'])
+            )
+        )
+        for reaction in db_reactions if current.lower() in '{}-{}'.format(
+            reaction['name'], reaction['msg_id']
+        ).lower()
+    ][:25]
+
+
 async def reaction_msgs_roles_autocomplete(
     interaction: discord.Interaction,
     current: str,
@@ -1948,13 +1974,18 @@ class Autoroles(commands.Cog):
             'roles.commands.edit_reaction_msg.cmd'
         ))
     )
-    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @discord.app_commands.autocomplete(
+        reaction_msg=edit_reaction_msgs_autocomplete
+    )
     @describe(
         reaction_msg=I18N.t('roles.commands.sync.desc.reaction_msg')
     )
     async def edit_reaction_message(
         self, interaction: discord.Interaction, reaction_msg: str
     ):
+        # TODO DENNE MÅ VÆRE TILPASSET TIL REACTION_MESSAGE
+        # OG edit_reaction_message TRENGER EKSTRA DB_HENTING FOR Å FINNE
+        # ALL NØDVENDIG INFO
         '''
         Edit a reaction message
 
@@ -1967,9 +1998,21 @@ class Autoroles(commands.Cog):
         reaction_msg = reaction_msg.split('-')
         msg_id = reaction_msg[0]
         msg_name = reaction_msg[1]
-        msg_channel = reaction_msg[2]
-        msg_header = reaction_msg[3]
-        msg_content = reaction_msg[4]
+        db_reactions = await db_helper.get_output(
+            template_info=envs.roles_db_msgs_schema,
+            where=(
+                ('msg_id', msg_id)
+            ),
+            select=('msg_id', 'name', 'channel', 'header', 'content'),
+            order_by=[
+                ('name', 'ASC')
+            ],
+            single=True
+        )
+        logger.debug(f'`db_reactions` is {db_reactions}')
+        msg_channel = db_reactions['channel']
+        msg_header = db_reactions['header']
+        msg_content = db_reactions['content']
         _msg = await discord_commands.get_message_obj(
             msg_id, msg_channel
         )
