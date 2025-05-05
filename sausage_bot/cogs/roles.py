@@ -731,6 +731,7 @@ class ReactionEditModal(discord.ui.Modal):
         self.reaction_text_in = reaction_text_in
         self.reaction_header_out = ''
         self.reaction_text_out = ''
+        self.reaction = None
         logger.debug(f'self.reaction_text_in is: {self.reaction_text_in}')
 
         # Create elements
@@ -754,14 +755,47 @@ class ReactionEditModal(discord.ui.Modal):
         self.add_item(reaction_text)
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.reaction_header_out = self.children[0].value
-        self.reaction_text_out = self.children[1].value
+        header_out = discord_commands.check_user_channel_role(
+            self.children[0].value
+        )
+        text_out = discord_commands.check_user_channel_role(
+            self.children[1].value
+        )
+        msg_out = ''
+        logger.debug('Creating bot message for any errors')
+        for content_block in [
+            header_out,
+            text_out
+        ]:
+            if len(content_block['username_errors']) > 0:
+                msg_out += 'confirm with errors: {}'.format(
+                    ', '.join(content_block['username_errors'])
+                )
+            if len(content_block['channel_errors']) > 0:
+                if len(msg_out) == 0:
+                    msg_out += 'confirm_with_errors: {}'.format(
+                        ', '.join(content_block['channel_errors'])
+                    )
+                else:
+                    # TODO i18n
+                    msg_out += '\nChannels: {}'.format(
+                        ', '.join(content_block['channel_errors'])
+                    )
+        if msg_out != '':
+            await interaction.response.send_message(
+                msg_out, ephemeral=True
+            )
+
+        self.reaction_header_out = header_out['text']
+        self.reaction_text_out = text_out['text']
+
         await interaction.response.send_message(
             I18N.t('roles.modals.reaction_edit.confirm'),
             ephemeral=True
         )
 
     async def on_error(self, interaction: discord.Interaction, error):
+        logger.debug(f'Error when editing reaction message: {error}')
         await interaction.response.send_message(
             I18N.t('roles.modals.reaction_edit.error', error=error),
             ephemeral=True
@@ -1983,9 +2017,6 @@ class Autoroles(commands.Cog):
     async def edit_reaction_message(
         self, interaction: discord.Interaction, reaction_msg: str
     ):
-        # TODO DENNE MÅ VÆRE TILPASSET TIL REACTION_MESSAGE
-        # OG edit_reaction_message TRENGER EKSTRA DB_HENTING FOR Å FINNE
-        # ALL NØDVENDIG INFO
         '''
         Edit a reaction message
 
@@ -2050,7 +2081,6 @@ class Autoroles(commands.Cog):
         await _msg.edit(
             content=content)
         return
-
 
     @commands.is_owner()
     @roles_reaction_remove_group.command(
