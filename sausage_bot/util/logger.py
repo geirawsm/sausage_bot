@@ -73,17 +73,21 @@ def write_json(json_file, json_out):
 class ColorFormatter(logging.Formatter):
     """Logging Formatter to add colors and count warning / errors"""
 
+    red = "\x1b[31m"
+    green = "\x1b[32m"
+    yellow = "\x1b[33m"
+    blue = "\x1b[34m"
+    magenta = "\x1b[35m"
+    cyan = "\x1b[36m"
+    white = "\x1b[37m"
     grey = "\x1b[90m"
-    green = "\x1b[92m"
-    yellow = "\x1b[93m"
-    red = "\x1b[91m"
     reset = "\x1b[0m"
 
-    format = "%(asctime)s | %(levelname)-5.5s | %(message)s  -  "\
-        "%(module)s:%(funcName)s:%(lineno)s"
+    format = "%(asctime)s | %(levelname)-5.5s | %(module)s:%(funcName)s:"\
+        "%(lineno)s - %(message)s"
 
     FORMATS = {
-        logging.DEBUG: grey + format + reset,
+        logging.DEBUG: white + format + reset,
         logging.INFO: green + format + reset,
         logging.WARNING: yellow + format + reset,
         logging.ERROR: red + format + reset,
