@@ -236,4 +236,4 @@ en:
       reaction_text: Reaction text
       reaction_header: Reaction header
       confirm: Reaction message edited
-      error: Error when editing reaction message, check logs
+      error: "Error when editing reaction message: %{error}"

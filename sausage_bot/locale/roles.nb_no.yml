@@ -236,4 +236,4 @@ nb_no:
       reaction_text: Reaksjonstekst
       reaction_header: Reaksjonsoverskrift
       confirm: Endret reaksjonsmelding
-      error: Feil ved endring av reaksjonsmelding, sjekk loggene
+      error: "Feil ved endring av reaksjonsmelding: %{error}"
