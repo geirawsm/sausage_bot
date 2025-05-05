@@ -2,7 +2,9 @@
 # -*- coding: UTF-8 -*-
 'discord_commands: Helper functions for discord commands'
 import discord
+from discord.utils import get
 from tabulate import tabulate
+import re
 
 from sausage_bot.util import config, envs
 from sausage_bot.util.datetime_handling import get_dt
@@ -291,6 +293,148 @@ async def log_to_bot_channel(content_in=None):
         content=content_in
     )
     return msg_out
+
+
+def check_user_channel_role(text_in):
+    def check_discord_username(username_in):
+        if isinstance(username_in, re.Match):
+            username_in = username_in.group(0)
+        logger.debug(f'Got username_in: {username_in}')
+        _user_in = username_in.strip().replace('@', '')\
+            .replace('"', '')
+        logger.debug(f'Stripped and fixed _user_in: {_user_in}')
+        user_obj = get(
+            get_guild().members,
+            name=_user_in
+        )
+        logger.debug(f'Got user_obj: {user_obj}')
+        return user_obj
+
+    def check_similar_discord_usernames(
+        username_in, similar_floor=None, similar_roof=None
+    ):
+        _members = [
+            member.name for member in
+            get_guild().members
+        ]
+        logger.debug(f'Comparing {username_in} with {_members}')
+        similars = file_io.check_similarity(
+            username_in, _members,
+            ratio_floor=similar_floor,
+            ratio_roof=similar_roof
+        )
+        return similars
+
+    def check_discord_channel(channel_in):
+        if isinstance(channel_in, re.Match):
+            channel_in = channel_in.group(0)
+        logger.debug(f'Got channel_in: {channel_in}')
+        _channel_in = channel_in.strip().replace('#', '')
+        logger.debug(f'Stripped and fixed _channel_in: {_channel_in}')
+        channel_obj = get(
+            get_guild().channels,
+            name=_channel_in
+        )
+        logger.debug(f'Got channel_obj: {channel_obj}')
+        return channel_obj
+
+    def check_discord_roles(rolename_in):
+        if isinstance(rolename_in, re.Match):
+            rolename_in = rolename_in.group(0)
+        logger.debug(f'Got rolename_in: {rolename_in}')
+        _role_in = rolename_in.strip().replace('@', '')\
+            .replace('"', '')
+        logger.debug(f'Stripped and fixed _role_in: {_role_in}')
+        role_obj = get(
+            get_guild().roles,
+            name=_role_in
+        )
+        logger.debug(f'Got role_obj: {role_obj}')
+        return role_obj
+
+    # Check for @'s (users or roles)
+    _users = re.finditer(
+        r'\"(?<!<)@([\w\-_\' ]+)\"|(?<!<)@[\w\-_\']+',
+        text_in
+    )
+    username_errors = []
+    for _user in _users:
+        logger.debug(f'`_user`: {_user.group(0)}')
+        # Check if username exist on discord server
+        user_obj = check_discord_username(_user)
+        # If it is not found, add to `username_errors`
+        if user_obj is None:
+            logger.debug('Appending to username_errors')
+            # Add username to error list
+            username_errors.append(_user)
+        else:
+            logger.debug(f'Got this text:\n{text_in}')
+            logger.debug(f'Want to replace `{_user}`')
+            text_in = text_in.replace(
+                str(_user.group(0)).strip(),
+                '<@{}>'.format(user_obj.id)
+            )
+    logger.debug(f'`text_in` after user check: {text_in}')
+    # Check for #'s (channels)
+    _channels = re.finditer(
+        r'(?<!<)#[\w\-_\d『』︰┃・「」┇《》【】╏〚〛〘〙〈〉]+',
+        text_in
+    )
+    channel_errors = []
+    for _channel in _channels:
+        logger.debug(f'`_channel`: {_channel.group(0)}')
+        # Check if channel exist on discord server
+        channel_obj = check_discord_channel(_channel)
+        # If it is not found, add to `channel_errors`
+        if channel_obj is None:
+            logger.debug('Appending to channel_errors')
+            # Add channel to error list
+            channel_errors.append(_channel)
+        else:
+            logger.debug(f'Got this text:\n{text_in}')
+            logger.debug(f'Want to replace `{_channel}`')
+            text_in = text_in.replace(
+                str(_channel.group(0)).strip(),
+                '<#{}>'.format(channel_obj.id)
+            )
+    logger.debug(f'`text_in` after channel check: {text_in}')
+    logger.debug(f'username_errors: {username_errors}')
+    if len(username_errors) > 0:
+        for _user in enumerate(username_errors):
+            logger.debug(f'Checking {_user[1].group(0)} ({_user})')
+            logger.debug('Check as a user')
+            user_check = _user[1].group(0).strip()\
+                .replace('@', '').replace('"', '')
+            similar_users = check_similar_discord_usernames(
+                username_in=user_check,
+                similar_floor=0.7,
+                similar_roof=0.95
+            )
+            logger.debug(f'similar_users: {similar_users}')
+            if similar_users is not False:
+                user_obj = check_discord_username(similar_users)
+                logger.debug(f'Want to replace `{str(similar_users)}`')
+                text_in = text_in.replace(
+                    str(_user[1].group(0)).strip(),
+                    '<@{}>'.format(user_obj.id)
+                )
+                username_errors.pop(_user[0])
+            else:
+                logger.debug('Check as a role')
+                role_check = _user[1].group(0).strip()\
+                    .replace('@', '').replace('"', '')
+                role_obj = check_discord_roles(role_check)
+                logger.debug(f'Want to replace `{str(role_obj)}`')
+                text_in = text_in.replace(
+                    str(_user[1].group(0)).strip(),
+                    '<@&{}>'.format(role_obj.id)
+                )
+                username_errors.pop(_user[0])
+    return {
+        'text': text_in,
+        'username_errors': username_errors,
+        'channel_errors': channel_errors
+    }
 
 
 if __name__ == "__main__":
