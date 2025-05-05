@@ -6,7 +6,7 @@ from discord.utils import get
 from tabulate import tabulate
 import re
 
-from sausage_bot.util import config, envs
+from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
 
