@@ -69,6 +69,7 @@ class Cogs(commands.Cog):
         #autodoc skip#
         '''
         if args.selected_cogs:
+            logger.debug(f'selected_cogs is activated: {args.selected_cogs}')
             if 'none' in [item.lower() for item in args.selected_cogs]:
                 logger.debug('Not Loading cogs')
             else:

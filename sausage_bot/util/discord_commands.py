@@ -12,6 +12,7 @@ from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
+
 async def get_message_obj(
         msg_id: int, channel_id: int
 ) -> dict:
@@ -27,7 +28,8 @@ async def get_message_obj(
     '''
 
     _guild = get_guild()
-    logger.debug(f'Getting channel with id `{channel_id}` ({type(channel_id)})')
+    logger.debug(
+        f'Getting channel with id `{channel_id}` ({type(channel_id)})')
     _channel = _guild.get_channel(int(channel_id))
     logger.debug(f'Got channel `{_channel}`')
     try:

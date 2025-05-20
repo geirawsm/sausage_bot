@@ -818,7 +818,6 @@ class RSSfeed(commands.Cog):
                     )
                 )
             else:
-                FEED_POSTS.reverse()
                 logger.debug(
                     f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
                     '{}'.format(
@@ -879,7 +878,6 @@ class RSSfeed(commands.Cog):
                     I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
                 )
             else:
-                FEED_POSTS.reverse()
                 await feeds_core.process_links_for_posting_or_editing(
                     'spotify', UUID, FEED_POSTS, CHANNEL
                 )
