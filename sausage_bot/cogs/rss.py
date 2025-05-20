@@ -594,7 +594,7 @@ class RSSfeed(commands.Cog):
                     I18N.t('rss.commands.setting.msg_confirm'),
                     ephemeral=True
                 )
-                RSSfeed.post_feeds.restart()
+                RSSfeed.task_post_feeds.restart()
                 break
         return
 
@@ -766,9 +766,10 @@ class RSSfeed(commands.Cog):
 
     # Tasks
     @tasks.loop(
-        minutes=config.env.int('RSS_LOOP', default=5)
+        minutes=config.env.int('RSS_LOOP', default=5),
+        reconnect=True
     )
-    async def post_feeds():
+    async def task_post_feeds():
         logger.info('Starting `post_feeds`')
         # Start processing feeds
         feeds = await db_helper.get_output(
@@ -817,11 +818,12 @@ class RSSfeed(commands.Cog):
                     )
                 )
             else:
+                FEED_POSTS.reverse()
                 logger.debug(
                     f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
                     '{}'.format(
                         ', '.join(
-                            [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+                            [pod_ep['title'] for pod_ep in FEED_POSTS]
                         )
                     )
                 )
@@ -831,7 +833,7 @@ class RSSfeed(commands.Cog):
         logger.info('Done with posting')
         return
 
-    @post_feeds.before_loop
+    @task_post_feeds.before_loop
     async def before_post_new_feeds():
         '#autodoc skip#'
         logger.debug('`post_feeds` waiting for bot to be ready...')
@@ -867,7 +869,7 @@ class RSSfeed(commands.Cog):
                 '{}'.format(
                     len(FEED_POSTS) if FEED_POSTS else 0,
                     [
-                        pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                        pod_ep['title'] for pod_ep in FEED_POSTS
                     ] if FEED_POSTS else None
                 )
             )
@@ -877,6 +879,7 @@ class RSSfeed(commands.Cog):
                     I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
                 )
             else:
+                FEED_POSTS.reverse()
                 await feeds_core.process_links_for_posting_or_editing(
                     'spotify', UUID, FEED_POSTS, CHANNEL
                 )
@@ -1024,14 +1027,14 @@ async def setup(bot):
                         task=task['task'], status=task['status']
                     )
                 )
-                RSSfeed.post_feeds.start()
+                RSSfeed.task_post_feeds.start()
             elif task['status'] == 'stopped':
                 logger.debug(
                     '`{task}` is set as `{status}`'.format(
                         task=task['task'], status=task['status']
                     )
                 )
-                RSSfeed.post_feeds.cancel()
+                RSSfeed.task_post_feeds.cancel()
         if task['task'] == 'post_podcasts':
             if task['status'] == 'started':
                 logger.debug(
@@ -1050,4 +1053,4 @@ async def setup(bot):
 
 
 async def teardown(bot):
-    RSSfeed.post_feeds.cancel()
+    RSSfeed.task_post_feeds.cancel()

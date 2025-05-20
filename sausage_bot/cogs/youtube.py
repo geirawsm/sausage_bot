@@ -98,7 +98,7 @@ class Youtube(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         logger.info('Task started')
-        Youtube.post_videos.start()
+        Youtube.task_post_videos.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -121,7 +121,7 @@ class Youtube(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         logger.info('Task stopped')
-        Youtube.post_videos.cancel()
+        Youtube.task_post_videos.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -144,7 +144,7 @@ class Youtube(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         logger.info('Task restarted')
-        Youtube.post_videos.restart()
+        Youtube.task_post_videos.restart()
         await interaction.followup.send(
             I18N.t('youtube.commands.restart.msg_confirm')
         )
@@ -457,9 +457,10 @@ class Youtube(commands.Cog):
 
     # Tasks
     @tasks.loop(
-        minutes=config.env.int('YT_LOOP', default=5)
+        minutes=config.env.int('YT_LOOP', default=5),
+        reconnect=True
     )
-    async def post_videos():
+    async def task_post_videos():
         logger.info('Starting `post_videos`')
         # Start processing feeds
         feeds = await db_helper.get_output(
@@ -512,7 +513,7 @@ class Youtube(commands.Cog):
         logger.info('Done with posting')
         return
 
-    @post_videos.before_loop
+    @task_post_videos.before_loop
     async def before_post_new_videos():
         '#autodoc skip#'
         logger.debug('`post_videos` waiting for bot to be ready...')
@@ -615,14 +616,14 @@ async def setup(bot):
                     '`{}` is set as `{}`, starting...'.format(
                         task['task'], task['status']
                     ))
-                Youtube.post_videos.start()
+                Youtube.task_post_videos.start()
             elif task['status'] == 'stopped':
                 logger.debug(
                     '`{}` is set as `{}`'.format(
                         task['task'], task['status']
                     ))
-                Youtube.post_videos.cancel()
+                Youtube.task_post_videos.cancel()
 
 
 async def teardown(bot):
-    Youtube.post_videos.cancel()
+    Youtube.task_post_videos.cancel()
