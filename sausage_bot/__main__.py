@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
-import re
+from pendulum import timezones as p_timezones
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
@@ -181,6 +181,19 @@ async def locales_autocomplete(
     ][:25]
 
 
+async def timezones_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    logger.debug(f'p_timezones(): {p_timezones()}')
+    return [
+        discord.app_commands.Choice(
+            name=timezone, value=timezone
+        )
+        for timezone in p_timezones() if current.lower() in timezone.lower()
+    ][:25]
+
+
 @config.bot.event
 async def on_ready():
     '''
@@ -194,15 +207,9 @@ async def on_ready():
         inserts=['en']
     )
     locale_db = await db_helper.get_output(
-        template_info=envs.locale_db_schema,
-        single=True
+        template_info=envs.locale_db_schema
     )
-    logger.debug(
-        'Setting locale to `{}`'.format(
-            locale_db['locale']
-        )
-    )
-    I18N.set('locale', locale_db['locale'])
+    I18N.set('locale', config._LANG)
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
@@ -241,7 +248,9 @@ async def on_ready():
     # Make sure that the BOT_CHANNEL is present
     bot_channel = config.BOT_CHANNEL
     if bot_channel not in discord_commands.get_text_channel_list():
-        logger.debug(f'Bot channel `{bot_channel}` does not exist, creating...')
+        logger.debug(
+            f'Bot channel `{bot_channel}` does not exist, creating...'
+        )
         guild = discord_commands.get_guild()
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(
@@ -267,7 +276,7 @@ sync_group = discord.app_commands.Group(
 )
 
 
-commands.is_owner()
+@commands.is_owner()
 @sync_group.command(
     name='global', description=locale_str(I18N.t('main.owner_only'))
 )
@@ -637,6 +646,24 @@ async def language(
             'main.commands.language.confirm_language_set',
             language=language
         ),
+        ephemeral=True)
+    return
+
+
+@commands.is_owner()
+@config.bot.tree.command(
+    name='timezone', description=locale_str(I18N.t('main.owner_only'))
+)
+@discord.app_commands.autocomplete(timezone=timezones_autocomplete)
+async def timezone(
+    interaction: discord.Interaction, timezone: str
+):
+    await interaction.response.defer(ephemeral=True)
+    logger.debug(f'Setting timezone to {timezone}')
+    config.timezone = timezone(timezone)
+    await interaction.followup.send(
+        # TODO i18n
+        'Set timezone to `{}`'.format(timezone),
         ephemeral=True)
     return
 
