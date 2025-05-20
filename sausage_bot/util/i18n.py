@@ -76,8 +76,8 @@ async def set_language(lang: str):
         I18N.set('locale', lang)
         db_info = envs.locale_db_schema
         table_name = db_info['name']
-        _cmd = 'UPDATE {} SET {} = \'{}\';'.format(
-            table_name, 'locale', lang
+        _cmd = 'UPDATE {} SET {} = \'{}\' WHERE setting = \'language\';'.format(
+            table_name, 'value', lang
         )
         try:
             async with aiosqlite.connect(db_info['db_file']) as db:
