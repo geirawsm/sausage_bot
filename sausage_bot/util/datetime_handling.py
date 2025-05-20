@@ -11,10 +11,8 @@ from sausage_bot.util.i18n import I18N
 logger = config.logger
 
 # Set correct timezone and locale
-tz = pendulum.timezone("Europe/Oslo")
-locale = pendulum.set_locale('nb')
-pendulum.week_starts_at(pendulum.MONDAY)
-pendulum.week_ends_at(pendulum.SUNDAY)
+tz = config.timezone
+locale = config.locale
 
 
 def make_dt(date_in):
@@ -138,9 +136,8 @@ def make_dt(date_in):
                     )
             else:
                 return None
-            logger.debug('-' * 10)
         except ValueError:
-            logger.error('-' * 10)
+            logger.error('ValueError: {}'.format(ValueError))
             return None
 
 
@@ -183,6 +180,7 @@ def get_dt(format='epoch', sep='.', dt=False):
     day                 17
     epoch               1400336619
     ISO8601             YYYY-MM-DD HH:MM:SS.SSS
+    datetimeobject      datetime object
     '''
     if isinstance(dt, datetime.datetime):
         logger.debug('Input is a datetime object')
@@ -231,6 +229,8 @@ def get_dt(format='epoch', sep='.', dt=False):
         return dt.int_timestamp
     elif format == 'ISO8601':
         return dt.format('YYYY-MM-DD HH:mm:ss.SSS', locale=locale)
+    elif format == 'datetimeobject':
+        return dt
     else:
         return None
 
