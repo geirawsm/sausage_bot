@@ -12,6 +12,7 @@ from ..util import config
 
 logger = config.logger
 
+
 def remove_file(filename):
     os.remove(filename)
 
@@ -305,16 +306,23 @@ def create_necessary_files(file_list):
 
 
 def make_db_output_to_json(cols, db_output):
-    'Make `db_output` into a json file'
+    '''
+    Make `db_output` into a json file:
+
+    json_out = {
+        setting1: value1,
+        setting2: value2
+    }
+    '''
     # Length check
-    if len(cols) != len(db_output[0]):
+    if len(db_output) <= 0:
+        return None
+    if len(cols) != 2:
         logger.error('Length of `cols` and `db_output` does not match')
         return None
     json_out = {}
     for item in db_output:
-        json_out[item[0]] = {}
-        for col in enumerate(cols):
-            json_out[item[0]][col[1]] = item[col[0]]
+        json_out[item[cols[0]]] = item[cols[1]]
     return json_out
 
 
