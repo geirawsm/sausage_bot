@@ -712,6 +712,7 @@ async def process_links_for_posting_or_editing(
         )
     FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None\
         else FEED_SETTINGS
+    FEED_POSTS = FEED_POSTS[0:3]
     FEED_POSTS.reverse()
     for item in FEED_POSTS:
         logger.debug(f'Got this item:\n{item}')
