@@ -4,6 +4,26 @@ en:
     quote: Quote
     quote_date: Date
   commands:
+    refresh_quote:
+      start:
+        cmd: Start quote refreshing
+        msg_confirm_ok: Quote refreshing started
+      stop:
+        cmd: Stop quote refreshing
+        msg_confirm_ok: Quote refreshing stopped
+      restart:
+        cmd: Restart quote refreshing
+        msg_confirm_ok: Quote refreshing restarted
+    autopost:
+      start:
+        cmd: Start autoposting
+        msg_confirm_ok: Autoposting started
+      stop:
+        cmd: Stop autoposting
+        msg_confirm_ok: Autoposting stopped
+      restart:
+        cmd: Restart autoposting
+        msg_confirm_ok: Autoposting restarted
     quote:
       cmd: Quotes
     post:
@@ -33,6 +53,19 @@ en:
     list:
       cmd: List quotes
       msg_nonexisting_quote: Sitatet eksisterer ikke
+    server_update:
+      cmd: Update quotes.json for server
+    autopost:
+      cmd: Autopost quotes
+    settings:
+      cmd: Settings
+      change_confirmed: Setting changed
+      add_channel_topic: Posting quotes
+      add_setting_exist: Setting already exists
+      add_type_incorrect: "Value (%{value_in}, %{value_type}) is not correct type (%{value_type_check})"
+      add_confirmed: Setting added
+      remove_confirmed: Setting removed
+      remove_failed: "Failed to remove setting: %{error}"
   modals:
     quote_num: Quote number
     quote_text: Quote text

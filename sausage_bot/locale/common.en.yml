@@ -16,11 +16,18 @@ en:
   num_reactions: No. reactions
   msg_name: Message name
   msg_text: Message text
-  order: Order
   roles: Roles
   emojis: Emojis
-  header: Header
-  none: "None"
+  none: None
   color: Color
-  channel: Channel
   playlist: Playlist
+  settings:
+    setting: Setting
+    value: Value
+    add_setting: Add setting
+    remove_setting: Remove setting
+    change_settings: Change settings
+    list_settings: List settings
+    name_of_setting: Name of setting
+    value_in: Value
+  something_wrong: "Something went wrong: %{error}"

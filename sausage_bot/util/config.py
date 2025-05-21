@@ -109,7 +109,7 @@ except EnvError as e:
 
 # If empty in db, get from env or env default
 locale_db = asyncio.run(db_get_output())
-if locale_db:
+if locale_db and len(locale_db) > 0:
     locale_from_db = {}
     for setting in locale_db:
         locale_from_db[setting['setting']] = setting['value']

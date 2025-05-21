@@ -1,4 +1,4 @@
-nb_no:
+nb:
   get_sorted_scheduled_events:
     headers:
       match: Kamp

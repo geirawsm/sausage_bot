@@ -49,6 +49,12 @@ en:
     clearlocals:
       msg_starting: Deleting local commands...
       msg_confirm: Local commands deleted
+    locale:
+      group: "Change language or timezone"
+      language:
+        cmd: "Change language"
+      timezone:
+        cmd: "Change timezone"
   context_menu:
     edit_msg:
       name: Edit bot message

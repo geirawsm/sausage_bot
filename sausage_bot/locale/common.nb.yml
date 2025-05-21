@@ -1,4 +1,4 @@
-nb_no:
+nb:
   too_few_arguments: Du har gitt for få argumenter til kommandoen
   literal_yes_no:
     "yes": "Ja"
@@ -16,11 +16,18 @@ nb_no:
   num_reactions: Ant. reaksjoner
   msg_name: Meldingsnavn
   msg_text: Meldingstekst
-  order: Rekkefølge
   roles: Roller
   emojis: Emojier
-  header: Overskrift
   none: None
   color: Farge
-  channel: Kanal
   playlist: Spilleliste
+  settings:
+    setting: Innstilling
+    value: Verdi
+    add_setting: Legg til innstilling
+    remove_setting: Fjern innstilling
+    change_settings: Endre innstillinger
+    list_settings: List opp innstillinger
+    name_of_setting: Navn på innstilling
+    value_in: Verdi
+  something_wrong: "Noe gikk galt: %{error}"

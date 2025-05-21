@@ -1,4 +1,4 @@
-nb_no:
+nb:
   setting_log: Feil input for `value_in` (%{e})
   setting_input_reply: Input `value_in` må være `True` eller `False`
   commands:

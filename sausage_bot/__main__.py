@@ -206,9 +206,6 @@ async def on_ready():
         table_in=envs.locale_db_schema,
         inserts=['en']
     )
-    locale_db = await db_helper.get_output(
-        template_info=envs.locale_db_schema
-    )
     I18N.set('locale', config._LANG)
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
