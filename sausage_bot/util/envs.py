@@ -387,30 +387,16 @@ locale_db_schema = {
     'db_file': str(DB_DIR / 'locale.sqlite'),
     'name': 'locale',
     'items': [
-        ['locale', 'TEXT']
+        ['setting', 'TEXT NOT NULL'],
+        ['value', 'TEXT NOT NULL']
+    ],
+    'inserts': [
+        ['language', 'en'],
+        ['timezone', 'UTC']
     ],
     'primary': None,
     'autoincrement': False
 }
-
-
-def log_extra_info(type):
-    infos = {
-        'info': {
-            'log': 'LOG',
-            'verbose': 'VERBOSE',
-            'db': 'DBs',
-            'debug': 'DEBUG',
-            'error': 'ERROR',
-            'i18n': 'I18N'
-        },
-        'length': 7
-    }
-    split = int((infos['length'] - len(infos['info'][type])) / 2)
-    return '{s}{text}{s}'.format(
-        s=' ' * split, text=infos['info'][type]
-    )
-
 
 ### Botlines ###
 # Generiske
