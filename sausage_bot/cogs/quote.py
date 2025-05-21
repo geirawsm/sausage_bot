@@ -9,6 +9,7 @@ import uuid
 from tabulate import tabulate
 import typing
 from pprint import pformat
+from time import sleep
 
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
