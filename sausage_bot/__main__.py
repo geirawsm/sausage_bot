@@ -6,6 +6,7 @@ from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
 from pendulum import timezones as p_timezones
+import asyncio
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
@@ -200,12 +201,6 @@ async def on_ready():
     When the bot is ready, it will notify in the log.
     #autodoc skip#
     '''
-    # Create locale db if not exists
-    logger.debug('Checking locale db')
-    await db_helper.prep_table(
-        table_in=envs.locale_db_schema,
-        inserts=['en']
-    )
     I18N.set('locale', config._LANG)
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
@@ -692,6 +687,15 @@ async def edit_bot_say_msg(
     await message.edit(content=modal_in.comment_out)
     return
 
+
+# Create locale db if not exists
+logger.debug('Checking locale db')
+asyncio.run(
+    db_helper.prep_table(
+        table_in=envs.locale_db_schema,
+        inserts=envs.locale_db_schema['inserts']
+    )
+)
 
 try:
     config.bot.run(config.DISCORD_TOKEN)
