@@ -467,6 +467,8 @@ class Quotes(commands.Cog):
         elif public == I18N.t('common.literal_yes_no.no') or\
                 public is None:
             _ephemeral = True
+        else:
+            _ephemeral = False
         await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
