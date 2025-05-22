@@ -175,6 +175,21 @@ quote_db_log_schema = {
     'autoincrement': False
 }
 
+quote_db_settings_schema = {
+    'db_file': str(DB_DIR / 'quote.sqlite'),
+    'name': 'settings',
+    'items': [
+        ['setting', 'TEXT NOT NULL'],
+        ['value', 'TEXT']
+    ],
+    'inserts': [
+        ['channel', 'quotes']
+    ],
+    'type_checking': {
+        'channel': 'int'
+    },
+}
+
 # Roles
 roles_db_msgs_schema = {
     'db_file': str(DB_DIR / 'roles.sqlite'),
