@@ -80,26 +80,10 @@ async def prep_table(
             return None
     delete_json_ok = False
     if inserts:
-        db_len = len(await get_row_ids(table_in))
-        if db_len <= 0:
-            logger.debug(f'Inserting old info into db file ({table_name})')
-            # Make the returned status from `insert_many_all` decide
-            # whether the json file can be deleted or not
-            delete_json_ok = await insert_many_all(
-                template_info=table_in,
-                inserts=inserts
-            )
-        elif db_len == len(inserts):
-            logger.info(
-                'Length of table and inserts are the same '
-                '({} vs {}), will not import to {}'.format(
-                    db_len, len(inserts), table_name
-                )
-            )
-            delete_json_ok = True
-        else:
-            await add_missing_db_setup(table_in)
-            delete_json_ok = True
+        await add_missing_db_setup(
+            table_in
+        )
+        # TODO Insert missing values, or is this done in `add_missing_db_setup`?
     return delete_json_ok
 
 
@@ -131,14 +115,21 @@ async def add_missing_db_setup(
         row_ids = await row_ids.fetchall()
     _existing_cols = [col[1] for col in existing_cols]
     if len(_existing_cols) > 0:
+        # Add wanted cols if they don't exist
         for col_in in wanted_cols:
             if col_in[0] not in _existing_cols:
                 logger.debug(f'Adding {col_in[0]}')
                 dict_in[table_name].append(col_in)
         async with aiosqlite.connect(db_file) as db:
             for col in dict_in[table_name]:
-                logger.debug(f'col: {col}')
                 _cmd = f'ALTER TABLE {table_name} ADD COLUMN {col[0]};'
+                logger.debug(f'Using this query: {_cmd}')
+                await db.execute(_cmd)
+        # Remove cols if they are not wanted anymore
+        del_cols = [x for x in _existing_cols if x not in [x[0] for x in wanted_cols]]
+        async with aiosqlite.connect(db_file) as db:
+            for col in del_cols:
+                _cmd = f'ALTER TABLE {table_name} DROP COLUMN {col};'
                 logger.debug(f'Using this query: {_cmd}')
                 await db.execute(_cmd)
     # Add existing inserts in columns where they don't exist yet
