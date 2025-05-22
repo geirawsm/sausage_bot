@@ -148,7 +148,7 @@ async def control_posting(feed_type, action):
     for feed_type in feed_type_in:
         if action in actions:
             try:
-                eval('RSSfeed.post_{}.{}()'.format(
+                eval('RSSfeed.task_post_{}.{}()'.format(
                     feed_type, action
                 ))
                 feed_statuses.append(
@@ -841,7 +841,7 @@ class RSSfeed(commands.Cog):
     @tasks.loop(
         minutes=config.env.int('RSS_LOOP', default=5)
     )
-    async def post_podcasts():
+    async def task_post_podcasts():
         logger.info('Starting `post_podcasts`')
         pod_check = await net_io.check_spotify_podcast_episodes()
         if len(pod_check) == 0:
@@ -888,10 +888,10 @@ class RSSfeed(commands.Cog):
                 )
         logger.info('Done with posting')
 
-    @post_podcasts.before_loop
+    @task_post_podcasts.before_loop
     async def before_post_new_podcasts():
         '#autodoc skip#'
-        logger.debug('`post_podcasts` waiting for bot to be ready...')
+        logger.debug('`task_post_podcasts` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
 
@@ -1040,14 +1040,14 @@ async def setup(bot):
                         task=task['task'], status=task['status']
                     )
                 )
-                RSSfeed.post_podcasts.start()
+                RSSfeed.task_post_podcasts.start()
             elif task['status'] == 'stopped':
                 logger.debug(
                     '`{task}` is set as `{status}`'.format(
                         task=task['task'], status=task['status']
                     )
                 )
-                RSSfeed.post_podcasts.cancel()
+                RSSfeed.task_post_podcasts.cancel()
 
 
 async def teardown(bot):
