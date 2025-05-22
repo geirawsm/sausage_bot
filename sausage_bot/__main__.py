@@ -6,6 +6,7 @@ from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
 from pendulum import timezones as p_timezones
+from pendulum import timezone as p_timezone
 import asyncio
 
 from sausage_bot.util.args import args
@@ -652,7 +653,7 @@ async def timezone(
 ):
     await interaction.response.defer(ephemeral=True)
     logger.debug(f'Setting timezone to {timezone}')
-    config.timezone = timezone(timezone)
+    config.timezone = p_timezone(timezone)
     await interaction.followup.send(
         # TODO i18n
         'Set timezone to `{}`'.format(timezone),
