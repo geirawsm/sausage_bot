@@ -1,4 +1,4 @@
-no:
+nb:
   owner_only: Kun for eier
   msg:
     failed_bot_start: Kunne ikke starte boten (%{error})
@@ -42,10 +42,23 @@ no:
       msg_confirm: Lokale kommandoer ble synkronisert med globale kommandoer
     syncglobal:
       msg_starting: Starter synkronisering av globale kommandoer...
-      msg_confirm: Kommandoer synkronisert
+      msg_confirm: Globale kommandoer synkronisert
+    clearglobals:
+      msg_starting: Sletter globale kommandoer...
+      msg_confirm: Globale kommandoer slettet
+    clearlocals:
+      msg_starting: Sletter lokale kommandoer...
+      msg_confirm: Lokale kommandoer slettet
+    locale:
+      group: "Endre språk eller tidssone"
+      language:
+        cmd: "Endre språk"
+      timezone:
+        cmd: "Endre tidssone"
   context_menu:
     edit_msg:
       name: Rediger bot melding
       not_bot: Meldingen ble ikke skrevet av boten
       edit_confirm: Meldingen ble endret
+      edit_confirm_with_errors: ', men noen nevninger fungerte ikke: %{errors}'
       edit_error: 'Feil ved endring av melding, sjekk loggen'

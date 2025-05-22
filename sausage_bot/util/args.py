@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'Arguments to use for running the bot in the terminal'
+'args: Arguments to use for running the bot in the terminal'
 import argparse
 from pprint import pprint
 
@@ -104,7 +104,8 @@ testing_args.add_argument('--not-write-database', '-nwd',
                           default=False,
                           dest='not_write_database')
 testing_args.add_argument('--selected-cogs', '-c',
-                          help='Load only selected cogs for testing purposes',
+                          help='Load only selected cogs for testing '
+                          'purposes, or "none" if no cogs',
                           action='append',
                           dest='selected_cogs')
 testing_args.add_argument('--rss-skip-url-validation',

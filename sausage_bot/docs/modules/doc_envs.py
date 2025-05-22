@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'doc_envs: envs for autodoc'
 from pathlib import Path
 from ...util import envs
 

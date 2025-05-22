@@ -1,4 +1,4 @@
-no:
+nb:
   commands:
     review_feeds_status:
       failed_feeds: "Følgende feeds hadde feil ved henting av linker:\n%{feeds}"
@@ -11,3 +11,4 @@ no:
     added_by: Lagt til av
     allow: Tillat
     deny: Nekt
+    link_type: Link type

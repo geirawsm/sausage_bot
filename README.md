@@ -12,6 +12,7 @@ SausageBot - affectionately known as "pølsa" among its Norwegian users - is a D
 - Make the bot talk (/say, right-click message to edit already posted message)
 
 ### Autoevent
+
 Takes links to soccer games on predefined sites, and make them into an event for the server.
 
 Command: `/autoevent`
@@ -20,8 +21,8 @@ Command: `/autoevent`
 - Create a sync timer for a live event on TV/stream so everyone watching on their own is more or less in sync
 - Announce an event in a specific channel
 
-
 ### Dilemmas
+
 Create dilemmas for discussion on the server
 
 Command: `/dilemmas`
@@ -30,8 +31,8 @@ Command: `/dilemmas`
 - Post dilemma
 - Count no. of dilemmas
 
-
 ### Log Maintenance
+
 Manage logging settings. How many days of logs to keep, or how big the log files should be.
 
 Command: `/log_maintenance`
@@ -40,16 +41,16 @@ Command: `/log_maintenance`
 - List available settings
 - Change settings
 
-
 ### Poll
+
 Make a simple poll.
 
 Command: `/poll`
 
 - Make a poll
 
-
 ### Quote
+
 Save and post quotes from the server.
 
 Command: `/quote`
@@ -60,14 +61,15 @@ Command: `/quote`
 - Count no. of quote
 - List quote from quote number or search for a keyword
 
-
 ### Roles
+
 Manage roles and reaction messages.
 Can autoadd role for new users.
 
 Command: `/roles`
 
 #### Roles
+
 - Add roles to server
 - Remove roles to server
 - Edit a role
@@ -75,6 +77,7 @@ Command: `/roles`
 - List roles or emojis
 
 #### Reaction messages
+
 - Add reaction message
 - Remove reaction message
 - List reaction messages
@@ -84,12 +87,14 @@ Command: `/roles`
 - Remove roles from reaction messages
 
 #### Settings
+
 Settings for roles and reaction messages on the server
+
 - Set a unique role for new users. This is great if you want a certain role to be added to new users to separate them when it comes to moderation or restriction in permissions.
 - Chose roles not to be included when deciding if the unique role is a user's only role or not.
 
-
 ### RSS
+
 Post RSS-feeds to a channel, both normal RSS-feeds and podcasts from Spotify.
 
 Command: `/rss`
@@ -98,20 +103,19 @@ Command: `/rss`
 - Add a RSS feed
 - Remove a RSS feed
 - Edit a RSS feed's settings
-
 - List all active rss feeds
 - Add an allow-/deny-filter for a RSS feed
 - Remove an allow-/deny-filter from a RSS feed
 - List all RSS feeds: normal, added by or filter
 
-
 ### Scrape FCB
+
 (A very specific cog for one of my servers)
 Scrape the football website https://www.fcbarcelona.com and post news from the website to specific team channels.
 Autposting news to specific channels: `first-team`, `femení`, `atlètic`, `juvenil` and `club`.
 
-
 ### Stats
+
 Get stats to post in a stats channel. Can post stats about the codebase, roles and their members.
 
 Command: `/stats`
@@ -124,6 +128,7 @@ Command: `/stats`
 - Hide roles from stats
 
 ### Youtube
+
 Post new videos from given Youtube channels
 
 Command: `/youtube`
@@ -135,7 +140,6 @@ Command: `/youtube`
 - Remove an allow-/deny-filter from a youtube channel
 - List all youtube channels: normal, added by or filter
 
-
 ## Set up
 
 Ok, so you want to run a Discord bot?
@@ -143,6 +147,7 @@ Ok, so you want to run a Discord bot?
 ### Register Discord bot
 
 Follow the instructions on this page on *Creating a Discord Bot Account*: https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account
+
 - Navigate to https://discord.com/developers/applications and log in.
 - Click on New Application.
 - Enter the application's name.
@@ -157,8 +162,6 @@ You need to register with Spotify API first:
 
 - Follow the instructions on this page on *Getting started*: https://developer.spotify.com/documentation/web-api
 - Add "Client ID" and "Client secret" in .env file or as environment argument in docker
-
-
 
 ### Running the bot
 
@@ -177,18 +180,18 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 - Run `pipenv shell` to create the python environment and start the shell
 - Run `pipenv install` to install dependencies
 - Run the bot once to get the `.env` file: `python -m sausage_bot`
-- Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key:
-    - `DISCORD_TOKEN`   Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
-    - `DISCORD_GUILD`   The name of the discord server you want to connect to
-    - `BOT_ID`          Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
-- Invite the bot to your discord server:
-    - Again, go back to the [Discord Developer portal](https://discord.com/developers/applications), "OAuth2", "URL Generator".
-    - Chose the scope "bot"
-    - Chose the minimum needed permission for the bot. Only chose "Administrator" if you're absolutely sure.
-    - Click "Copy" on "Generated url", visit that link in a browser.
-    - Make sure that the information looks correct, select the server you want it to join, and click "Continue" and confirm the permissions by clicking "Authorize". Your bot should now join the channel in a disconnected state.
-- Start the bot
-    - Go back to the terminal and run `python -m sausage_bot` again. The bot will now be online.
+- Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key: 
+  - `DISCORD_TOKEN`   Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
+  - `DISCORD_GUILD`   The name of the discord server you want to connect to
+  - `BOT_ID`          Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
+- Invite the bot to your discord server: 
+  - Again, go back to the [Discord Developer portal](https://discord.com/developers/applications), "OAuth2", "URL Generator".
+  - Chose the scope "bot"
+  - Chose the minimum needed permission for the bot. Only chose "Administrator" if you're absolutely sure.
+  - Click "Copy" on "Generated url", visit that link in a browser.
+  - Make sure that the information looks correct, select the server you want it to join, and click "Continue" and confirm the permissions by clicking "Authorize". Your bot should now join the channel in a disconnected state.
+- Start the bot 
+  - Go back to the terminal and run `python -m sausage_bot` again. The bot will now be online.
 
 If you run `python -m sausage_bot -h` you can also see all the arguments you can add.
 
@@ -200,12 +203,43 @@ If you run `python -m sausage_bot -h` you can also see all the arguments you can
 
 ---
 
-# Want to contribute?
+## Translating (i18n)
+
+### I want to contribute by translating
+
+sausage_bot uses `i18nice` for making text and commands translateable. See the `./sausage_bot/locale` folder to see examples.
+- One file per cog/python file, per language
+- Filename format is `[filename].[shortcode for language].yml`
+- Make a pull request with complete set of files for language
+
+### Hey, does that local flake8 plugin named `flake8-I18N-checker` have anything to do with translating?
+
+I'm glad you asked.
+
+You can use the local flake8 plugin `flake8-I18N-checker` to check your newly created yml-files. Add this to a file in root folder named `.flake8`:
+```
+[flake8]
+exclude =
+    ./sausage_bot/flake8-I18N-checker,
+    ./sausage_bot/util/i18n.py
+
+[flake8:local-plugins]
+extension =
+    LC1 = flake8_I18N_checker:I18N_Checker
+paths =
+    ./sausage_bot/flake8-I18N-checker/
+```
+
+Then run the following command in the root folder in a terminal:
+
+`flake8 --select LC`
+
+---
+
+# I want to contribute in other ways
 
 Here's how to help out:
 
 - Report bugs in issues.
-
 - Come up with awesome ideas (and submit them in issues)
-
 - Make pull requests that solves a problem or an issue

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'poll: Make polls'
 import discord
 from discord.ext import commands
 from discord.app_commands import locale_str, describe
@@ -9,10 +10,11 @@ import re
 import pendulum
 import uuid
 
-from sausage_bot.util import db_helper, envs
+from sausage_bot.util import db_helper, envs, config
 from sausage_bot.util import datetime_handling
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
+
+logger = config.logger
 
 _tz = 'local'
 
@@ -23,10 +25,7 @@ class MakePoll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(manage_messages=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.command(
         name="poll",
         description=locale_str(I18N.t('poll.commands.poll.cmd'))
@@ -49,16 +48,16 @@ class MakePoll(commands.Cog):
         if post_time in [None, 'no', 'now']:
             dt_post = None
         elif re.match(r'^\d{2}([\D]+)?\d{2}$', post_time):
-            log.verbose(f'`post_time`: {post_time}')
+            logger.debug(f'`post_time`: {post_time}')
             re_search = re.search(
                 r'(\d{2})([,.\-;:_]+)?(\d{2})', post_time
             )
             post_time = post_time.replace(str(re_search.group(2)), '')
-            log.verbose(f'`post_time`: {post_time}')
+            logger.debug(f'`post_time`: {post_time}')
             dt_post = pendulum.from_format(
                 post_time, 'HHmm', 'local'
             )
-            log.verbose(f'dt_post: {dt_post} ({type(dt_post)})')
+            logger.debug(f'dt_post: {dt_post} ({type(dt_post)})')
             dt_now = datetime_handling.get_dt()
             dt_post_secs = datetime_handling.get_dt(dt=dt_post)
             if dt_post_secs < dt_now:
@@ -116,13 +115,13 @@ class MakePoll(commands.Cog):
             alts_in.extend(
                 line.strip() for line in str(alternatives).split(';')
             )
-            log.verbose(f'Got `alts_in`: {alts_in}')
+            logger.debug(f'Got `alts_in`: {alts_in}')
             needed_emojis = random.sample(random_emojis, k=len(alts_in))
             reactions = []
             alts_db = []
             for idx, alt in enumerate(alts_in):
                 alts_db.append((_uuid, needed_emojis[idx], alt, 0))
-            log.debug(f'`alts_db`: {alts_db}')
+            logger.debug(f'`alts_db`: {alts_db}')
             # Add to db
             await db_helper.insert_many_some(
                 envs.poll_db_alternatives_schema,
@@ -146,7 +145,7 @@ class MakePoll(commands.Cog):
                     ),
                     ephemeral=False
                 )
-            log.debug(f'post_wait: {post_wait}')
+            logger.debug(f'post_wait: {post_wait}')
             desc_out = f'{poll_text}\n'
             for idx, line in enumerate(alts_in):
                 desc_out += '\n{} - *"{}"*'.format(
@@ -171,11 +170,11 @@ class MakePoll(commands.Cog):
                 dt_lock_text = f'{lock_split.group(1)} minutt'
                 if int(lock_split.group(1)) > 1:
                     dt_lock_text += 'er'
-            log.debug(f'dt_lock: {dt_lock}')
+            logger.debug(f'dt_lock: {dt_lock}')
             lock_diff = (dt_lock - dt_post).in_seconds()
-            log.debug(f'`lock_diff` in seconds: {lock_diff}')
+            logger.debug(f'`lock_diff` in seconds: {lock_diff}')
             dt_lock_epoch = dt_lock.format('x')[0:-3]
-            log.debug(
+            logger.debug(
                 f'Converting `dt_lock` ({dt_lock}) to epoch: {dt_lock_epoch}'
             )
             embed_json = discord.Embed.from_dict(
@@ -212,7 +211,7 @@ class MakePoll(commands.Cog):
             ),
             embed=embed_json
         )
-        log.debug(f'Got `poll_msg`: {poll_msg}')
+        logger.debug(f'Got `poll_msg`: {poll_msg}')
         await db_helper.update_fields(
             template_info=envs.poll_db_polls_schema,
             where=('uuid', _uuid),
@@ -222,9 +221,9 @@ class MakePoll(commands.Cog):
             ]
         )
         for reaction in reactions:
-            log.debug(f'Adding emoji {reaction}')
+            logger.debug(f'Adding emoji {reaction}')
             await poll_msg.add_reaction(reaction)
-        log.debug('Waiting to lock...')
+        logger.debug('Waiting to lock...')
         await db_helper.update_fields(
             envs.poll_db_polls_schema,
             ('uuid', _uuid),
@@ -232,12 +231,12 @@ class MakePoll(commands.Cog):
                 ('status_wait_lock', 1)
             ]
         )
-        log.verbose(f'dt_post: {dt_post}')
-        log.verbose(f'dt_lock: {dt_lock}')
+        logger.debug(f'dt_post: {dt_post}')
+        logger.debug(f'dt_lock: {dt_lock}')
         lock_diff = (dt_lock - pendulum.now()).in_seconds()
-        log.debug(f'`lock_diff` in seconds: {lock_diff}')
+        logger.debug(f'`lock_diff` in seconds: {lock_diff}')
         await asyncio.sleep(lock_diff)
-        log.debug('Ready to lock!')
+        logger.debug('Ready to lock!')
         # Get all reactions
         poll_cache = await channel.fetch_message(poll_msg.id)
         poll_reacts = poll_cache.reactions
@@ -299,13 +298,13 @@ class MakePoll(commands.Cog):
 
 async def setup(bot):
     cog_name = 'poll'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
     await db_helper.prep_table(
         envs.poll_db_polls_schema
     )
     await db_helper.prep_table(
         envs.poll_db_alternatives_schema
     )
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(MakePoll(bot))

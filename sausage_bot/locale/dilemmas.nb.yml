@@ -1,4 +1,4 @@
-no:
+nb:
   commands:
     post:
       cmd: Post et tilfeldig dilemma
@@ -7,7 +7,7 @@ no:
       cmd: Legg til en dilemma
       desc:
         dilemmas_in: Dilemma som skal legges til
-      msg_comfirm: 'La til følgende dilemma: %{dilemmas_in}'
+      msg_confirm: 'La til følgende dilemma: %{dilemmas_in}'
     count:
       cmd: Tell antall dilemmaer
       msg_confirm:

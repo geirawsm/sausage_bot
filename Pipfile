@@ -26,15 +26,21 @@ pytest-asyncio = "*"
 tabulated = "*"
 pip = "*"
 pytest-mock = "*"
+pyyaml = "*"
+tabulate = "*"
+colorlog = "*"
 
 [dev-packages]
-requests-testadapter = "*"
 pytest = "*"
 pytest-asyncio = "*"
 pytest-mock = "*"
 autopep8 = "*"
 vulture = "*"
 flake8 = "*"
+flake8-async = "*"
+pyyaml = "*"
+astpretty = "*"
+tabulate = "*"
 
 [requires]
 python_version = "3"

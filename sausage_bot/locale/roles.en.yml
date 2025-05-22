@@ -32,24 +32,23 @@ en:
     perms_removed: Permissions removed
     roles: Roles
     reason: Reason
+  group:
+    roles: Control roles on the server
+    reaction: Control reaction messages on the server
+    add_reaction: Add reaction message to the server
+    remove_reaction: Remove reaction message from the server
+    edit_reaction: Edit reaction message on the server
+    move_reaction_role: Move a reaction role between reaction messages
+    settings: Control settings on the server
+    emojis: Control emojis on the server
   commands:
-    roles:
-      cmd: Control roles on the server
-    reaction:
-      cmd: Control reaction messages on the server
-    add_reaction:
-      cmd: Add reaction message to the server
-    remove_reaction:
-      cmd: Remove reaction message from the server
     move_reaction_role:
-      cmd: Move a reaction role between reaction messages
+      cmd: Move reactionroles between reaction messages
       desc:
         reaction_role_from: The reaction message to move from
         reaction_message_to: The reaction message to move to
         cannot_move_last_reaction: Cannot move last reaction from message, message needs to be deleted
       msg_confirm: "Moved role %{emoji} `%{role}` from `%{old_msg}` to `%{new_msg}`"
-    settings_group:
-      cmd: Control settings on the server
     role_info:
       cmd: Get info about a specific role
       desc:
@@ -90,6 +89,7 @@ en:
         hoist: Indicates if the role will be displayed separately from other members.
         permissions: Indicate if the permissions also should be edited
       changes_out: 'Did following changes on role `%{role_name}`'
+      no_changes: No changes after edit
       change_perms: Change permissions
       msg_confirm: 'Role `%{role_name}` has been edited'
       msg_error: 'Error when editing role: %{_error}'
@@ -116,10 +116,15 @@ en:
       msg_reaction_already_exist: Reaction message %{msg_name} already exists
       msg_roles_emojis_error: Could not find any roles or emojis
       msg_confirm: Message added
+    edit_reaction_msg:
+      cmd: Edit a reaction message
+      desc:
+        reaction_msg: The message to edit
+      msg_confirm: Reaction message edited
     add_reaction_role:
       cmd: Add roles to a reaction message
       desc:
-        msg_name: Name of the message for the reaction roles
+        msg_info: Name of the message for the reaction roles
       msg_confirm: Roles added
       msg_duplicate: These roles are already registered to the reaction
         message `%{msg_name}`
@@ -156,7 +161,7 @@ en:
       cmd: Add a setting for roles on the server
       desc:
         setting: The setting to add
-        role_in: The role to add to the setting
+        role: The role to add to the setting
       literal:
         setting:
           unique: Unique role
@@ -211,10 +216,10 @@ en:
         emoji: Emoji to get info about
       embed:
         name: Name
-    on_raw_reaction_add:
-      channel_log_confirm: Added in accordance with reaction messages
-    on_raw_reaction_remove:
-      channel_log_confirm: Removed in accordance with reaction message
+  on_raw_reaction_add:
+    channel_log_confirm: Added in accordance with reaction messages
+  on_raw_reaction_remove:
+    channel_log_confirm: Removed in accordance with reaction message
   embed:
     auto_managed:
       name: Auto-managed?
@@ -225,3 +230,10 @@ en:
     permissions: Permissions
     roles_attached: Roles attached
     created: Created
+  modals:
+    reaction_edit:
+      modal_title: Edit reaction message
+      reaction_text: Reaction text
+      reaction_header: Reaction header
+      confirm: Reaction message edited
+      error: "Error when editing reaction message: %{error}"

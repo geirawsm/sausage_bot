@@ -1,0 +1,33 @@
+nb:
+  too_few_arguments: Du har gitt for få argumenter til kommandoen
+  literal_yes_no:
+    "yes": "Ja"
+    "no": Nei
+  literal_allow_deny:
+    allow: Tillat
+    deny: Nekt
+  name: Navn
+  channel: Kanal
+  message_id: Meldings-ID
+  header: Overskrift
+  text: Tekst
+  order: Rekkefølge
+  id: ID
+  num_reactions: Ant. reaksjoner
+  msg_name: Meldingsnavn
+  msg_text: Meldingstekst
+  roles: Roller
+  emojis: Emojier
+  none: None
+  color: Farge
+  playlist: Spilleliste
+  settings:
+    setting: Innstilling
+    value: Verdi
+    add_setting: Legg til innstilling
+    remove_setting: Fjern innstilling
+    change_settings: Endre innstillinger
+    list_settings: List opp innstillinger
+    name_of_setting: Navn på innstilling
+    value_in: Verdi
+  something_wrong: "Noe gikk galt: %{error}"

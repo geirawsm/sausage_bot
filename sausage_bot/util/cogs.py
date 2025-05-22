@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'cogs: Manage cogs'
 import os
 from discord.ext import commands
 from contextlib import suppress
 
 from sausage_bot.util import envs, config
 from sausage_bot.util.args import args
-from .log import log
 
+logger = config.logger
 
 # Create necessary folders before starting
 check_and_create_folders = [
@@ -68,22 +69,26 @@ class Cogs(commands.Cog):
         #autodoc skip#
         '''
         if args.selected_cogs:
-            cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
-            for testing_cog in args.selected_cogs:
-                if testing_cog in cog_files:
-                    log.log('Loading cog: {}'.format(testing_cog))
-                    await Cogs.load_cog_internal(testing_cog)
-            log.debug(
-                'Loading selected cogs for testing purposes: ({})'.format(
-                    ', '.join(args.selected_cogs)
+            logger.debug(f'selected_cogs is activated: {args.selected_cogs}')
+            if 'none' in [item.lower() for item in args.selected_cogs]:
+                logger.debug('Not Loading cogs')
+            else:
+                cog_files = [cog[:-3] for cog in os.listdir(envs.COGS_DIR)]
+                for testing_cog in args.selected_cogs:
+                    if testing_cog in cog_files:
+                        logger.info('Loading cog: {}'.format(testing_cog))
+                        await Cogs.load_cog_internal(testing_cog)
+                logger.debug(
+                    'Loading selected cogs for testing purposes: ({})'.format(
+                        ', '.join(args.selected_cogs)
+                    )
                 )
-            )
         else:
-            log.debug(
+            logger.debug(
                 f'Got these files in `COGS_DIR`: {os.listdir(envs.COGS_DIR)}'
             )
             for filename in os.listdir(envs.COGS_DIR):
                 if filename.endswith('.py') and not filename.startswith('_'):
                     cog_name = filename[:-3]
-                    log.log('Loading cog: {}'.format(cog_name))
+                    logger.info('Loading cog: {}'.format(cog_name))
                     await Cogs.load_cog_internal(cog_name)

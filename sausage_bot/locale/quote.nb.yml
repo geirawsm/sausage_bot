@@ -1,9 +1,23 @@
-no:
+nb:
   tab_headers:
     quote_num: Sitat nr
     quote: Sitat
     quote_date: Dato
   commands:
+    refresh_quote:
+      start:
+        cmd: Start sitat oppdatering
+        msg_confirm_ok: Sitat oppdatering startet
+      stop:
+        cmd: Stopp sitat oppdatering
+        msg_confirm_ok: Sitat oppdatering stoppet
+      restart:
+        cmd: Start sitat oppdatering på nytt
+        msg_confirm_ok: Sitat oppdatering startet på nytt
+    autopost:
+      start:
+        cmd: Start autopost
+        msg_confirm_ok: Autoposting startet
     quote:
       cmd: Sitater
     post:
@@ -32,6 +46,20 @@ no:
       msg_confirm: 'Jeg har for øyeblikket %{num_quotes} sitater i databasen'
     list:
       cmd: Vis sitater
+      msg_nonexisting_quote: Quote does not exist
+    server_update:
+      cmd: Oppdater quotes.json for server
+    autopost:
+      cmd: Autopost sitater
+    settings:
+      cmd: Innstillinger
+      change_confirmed: Innstilling endret
+      add_channel_topic: Poster sitater
+      add_setting_exist: Innstillingen eksisterer allerede
+      add_type_incorrect: "Verdien (%{value_in}, %{value_type}) er ikke riktig type (%{value_type_check})"
+      add_confirmed: Innstilling lagt til
+      remove_confirmed: Innstilling fjernet
+      remove_failed: "Kunne ikke fjerne innstilling: %{error}"
   modals:
     quote_num: Sitat nummer
     quote_text: Sitat tekst
@@ -44,4 +72,5 @@ no:
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
+      msg_no_change: Ingen endringer gjort
     error: 'Fikk følgende feil: %{error}'

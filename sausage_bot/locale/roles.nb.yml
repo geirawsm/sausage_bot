@@ -1,4 +1,4 @@
-no:
+nb:
   views:
     perms:
       drop_general: Velg generelle tillatelser
@@ -32,24 +32,23 @@ no:
     perms_removed: Tillatelser fjernet
     roles: Roller
     reason: Årsak
+  group:
+    roles: Kontroller roller på serveren
+    reaction: Kontroller reaksjonsmeldinger på serveren
+    add_reaction: Legg til reaksjonsmelding på serveren
+    remove_reaction: Fjern reaksjonsmelding på serveren
+    edit_reaction: Endre reaksjonsmelding på serveren
+    move_reaction_role: Flytt en reaksjonsrolle mellom reaksjonsmeldinger
+    settings: Kontroller innstillinger på serveren
+    emojis: Kontroller emojier på serveren
   commands:
-    roles:
-      cmd: Kontroller roller på serveren
-    reaction:
-      cmd: Kontroller reaksjonsmeldinger på serveren
-    add_reaction:
-      cmd: Legg til reaksjonsmelding på serveren
-    remove_reaction:
-      cmd: Fjern reaksjonsmelding på serveren
     move_reaction_role:
-      cmd: Flytt en reaksjonsrolle mellom reaksjonsmeldinger
+      cmd: Flytt reaksjonsroller mellom meldinger
       desc:
         reaction_role_from: Reaksjonsmeldingen det flyttes fra
         reaction_message_to: Reaksjonsmeldingen det flyttes til
         cannot_move_last_reaction: Kan ikke flytte siste reaksjon fra melding, meldingen må slettes
       msg_confirm: "Flyttet rollen %{emoji} `%{role}` fra `%{old_msg}` til `%{new_msg}`"
-    settings:
-      cmd: Kontroller innstillinger på serveren
     role_info:
       cmd: Hent informasjon om en spesifikk rolle
       desc:
@@ -90,6 +89,7 @@ no:
         hoist: Angir om rollen skal skilles ut i brukerliste eller ikke
         permissions: Angir om tillatelser skal redigeres også
       changes_out: 'Utførte følgende endringer på rollen `%{role_name}`'
+      no_changes: Ingen endringer etter redigering
       change_perms: Endre tillatelser
       msg_confirm: 'Rollen `%{role_name}` har blitt redigert'
       msg_error: 'Feil ved redigering av rolle: %{_error}'
@@ -116,10 +116,15 @@ no:
       msg_reaction_already_exist: Reaksjonsmeldingen %{msg_name} finnes allerede
       msg_roles_emojis_error: Klarte ikke å finne verken roller eller emojier
       msg_confirm: Melding lagt til
+    edit_reaction_msg:
+      cmd: Edit a reaction message
+      desc:
+        reaction_msg: The message to edit
+      msg_confirm: Reaction message edited
     add_reaction_role:
       cmd: Legg til roller på en reaksjonsmelding
       desc:
-        msg_name: Navn på melding for reaksjonsroller
+        msg_info: Navn på melding for reaksjonsroller
       msg_confirm: Roller lagt til
       msg_duplicate: Disse rollene er allerede registrert i
         reaksjonsmeldingen `%{msg_name}`
@@ -156,7 +161,7 @@ no:
       cmd: Legg til en innstilling for roller
       desc:
         setting: Innstillingen som skal legges til
-        role_in: Rollen som skal legges til innstillingen
+        role: Rollen som skal legges til innstillingen
       literal:
         setting:
           unique: Unik rolle
@@ -211,10 +216,10 @@ no:
         emoji: Emoji å hente informasjon om
       embed:
         name: Navn
-    on_raw_reaction_add:
-      channel_log_confirm: Lagt til i henhold til reaksjonsmeldinger
-    on_raw_reaction_remove:
-      channel_log_confirm: Fjernet i henhold til reaksjonsmelding
+  on_raw_reaction_add:
+    channel_log_confirm: Lagt til i henhold til reaksjonsmeldinger
+  on_raw_reaction_remove:
+    channel_log_confirm: Fjernet i henhold til reaksjonsmelding
   embed:
     auto_managed:
       name: Autohåndtert?
@@ -225,3 +230,10 @@ no:
     permissions: Tillatelser
     roles_attached: Tilknyttede roller
     created: Laget
+  modals:
+    reaction_edit:
+      modal_title: Endre reaksjonsmelding
+      reaction_text: Reaksjonstekst
+      reaction_header: Reaksjonsoverskrift
+      confirm: Endret reaksjonsmelding
+      error: "Feil ved endring av reaksjonsmelding: %{error}"

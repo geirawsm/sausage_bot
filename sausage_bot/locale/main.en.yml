@@ -42,10 +42,23 @@ en:
       msg_confirm: Local commands synced with global commands
     syncglobal:
       msg_starting: Starting global commands sync...
-      msg_confirm: Commands synced
+      msg_confirm: Global commands synced
+    clearglobals:
+      msg_starting: Deleting global commands...
+      msg_confirm: Global commands deleted
+    clearlocals:
+      msg_starting: Deleting local commands...
+      msg_confirm: Local commands deleted
+    locale:
+      group: "Change language or timezone"
+      language:
+        cmd: "Change language"
+      timezone:
+        cmd: "Change timezone"
   context_menu:
     edit_msg:
       name: Edit bot message
       not_bot: Message was not written by the bot
       edit_confirm: Message was edited
+      edit_confirm_with_errors: ', but some tagging failed: %{errors}'
       edit_error: 'Error when editing, check logs'

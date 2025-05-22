@@ -56,9 +56,9 @@ en:
       desc:
         feed_name: The name of the feed to add
         allow_deny: Allow or deny
-        filter: 'What to filter a post by. Separate multiple with any of the following characers: " .,;-_\\/"'
-        msg_confirm: 'Added filters as `%{allow_deny}`:'
-        msg_error: 'Error when adding filter, check logs'
+        filters: 'What to filter a post by. Separate multiple with any of the following characers: " .,;-_\\/"'
+      msg_confirm: 'Added filters as `%{allow_deny}`:'
+      msg_error: 'Error when adding filter, check logs'
     filter_remove:
       cmd: Remove a filter from a RSS feed
       desc:
@@ -82,5 +82,9 @@ en:
         value_in: Value to change the setting to
       value_in_input_invalid: 'Invalid input for `value_in`: %{error}'
       msg_confirm: Setting updated
+    test:
+      cmd: Test a feed
+      desc:
+        feed_name: The name of the feed to test
   tasks:
     feed_posts_is_none: 'Feed `%{feed_name}` returned `%{return_value}`. Deactivated the feed for now, check logs.'

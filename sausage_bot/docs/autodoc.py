@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'''
-Auto-document all relevant files in the module
+'autodoc: Auto-document all relevant files in the module'
 
+'''
 Open the terminal, get into `pipenv shell` and run `python -m sausage_bot
 .docs.autodoc`. This will create `documentation.md` in the docs folder,
 containing all the functions in a markdown format which makes it easier
@@ -18,11 +18,12 @@ import glob
 from pprint import pprint
 from .modules import doc_envs
 from .modules.doc_args import doc_args
-from ..util import envs, file_io, datetime_handling
+from ..util import envs, file_io, datetime_handling, config
 # from ..util.args import args
-from ..util.log import log
 # from time import sleep
 # import re
+
+logger = config.logger
 
 
 async def dump(item):
@@ -140,7 +141,7 @@ def get_funcs(parsed_file, level=1, filter_in=None):
         '''
         max_len = 0
         try:
-            log.debug(f'`item_in` is {type(item_in)}')
+            logger.debug(f'`item_in` is {type(item_in)}')
             for item_group in item_in:
                 for _arg in item_in[item_group]:
                     if len(_arg) > max_len:
@@ -159,7 +160,7 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                 ast.FunctionDef
             )
         ):
-            log.debug(f'Getting function `{func.name}`')
+            logger.debug(f'Getting function `{func.name}`')
             func_type = None
             # Get a string for the func_type
             if isinstance(func, ast.AsyncFunctionDef):
@@ -169,26 +170,26 @@ def get_funcs(parsed_file, level=1, filter_in=None):
             elif isinstance(func, ast.FunctionDef):
                 func_type = 'Function'
             name = func.name
-            log.debug(f'### Function: `{name}` ({func_type}) ###')
+            logger.debug(f'### Function: `{name}` ({func_type}) ###')
             docstring = ast.get_docstring(func)
             # Skip this function if it is unwanted
             skip_because_of_keyword = False
             if name in doc_envs.skip_function:
-                log.debug(
+                logger.debug(
                     f'Skipping `{name}` because of `doc_envs.skip_function`')
                 continue
                 # Look for a keyword in docstring that indicates that this
                 # function should not be parsed for output
             elif docstring is not None and\
                     doc_envs.skip_keyword in docstring.lower():
-                log.debug(
+                logger.debug(
                     f'Skipping `{name}` because of `doc_envs.skip_keyword`')
                 skip_because_of_keyword = True
             func_out += f'#{"#"*level} {name} ({func_type})'
             # Get arguments for command
             _args = {}
             _args_func = get_args(func, _args)
-            log.debug(f'len of `_args_func`: {len(_args_func)}')
+            logger.debug(f'len of `_args_func`: {len(_args_func)}')
             if not skip_because_of_keyword:
                 # Add keyword variables to the title line
                 if len(_args_func) > 0:
@@ -197,7 +198,7 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                         len(_args_func['kwargdefs'])
                     ) != 0:
                         func_out += ' ('
-                        log.debug(f'`_args_func`: {_args_func}')
+                        logger.debug(f'`_args_func`: {_args_func}')
                         arg_names = []
                         for arg_group in _args_func:
                             for arg_name in _args_func[arg_group]:
@@ -213,26 +214,26 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                 if func_out != '':
                     func_out += '\n'
                     decs = get_decorators(func)
-                    log.debug(f'`decs` is {decs}')
+                    logger.debug(f'`decs` is {decs}')
                     if decs is not None:
                         func_out += f'Decorators: @{decs}\n'
                     # Find aliases for command
                     aliases = get_cmd_aliases(func)
-                    log.debug(f'`aliases` is {aliases}')
+                    logger.debug(f'`aliases` is {aliases}')
                     if aliases is not None:
                         if func_out != '':
                             func_out += '\n'
                         func_out += f'Aliases: {aliases}\n'
                     # Get permission levels
                     permissions = get_cmd_permissions(func)
-                    log.debug(f'`permissions` is {permissions}')
+                    logger.debug(f'`permissions` is {permissions}')
                     if permissions is not None:
                         if func_out != '':
                             func_out += '\n'
                         func_out += f'*Permissions: {permissions}*\n'
                     # Get docstring for command
                     docstring = ast.get_docstring(func)
-                    log.debug(f'`docstring` is {docstring}')
+                    logger.debug(f'`docstring` is {docstring}')
                     if docstring is not None:
                         if func_out != '':
                             func_out += '\n'
@@ -251,7 +252,7 @@ def get_funcs(parsed_file, level=1, filter_in=None):
                             if func_out != '':
                                 func_out += '\n'
                         var_max_len = set_len_desc(_args_func)
-                        log.debug(f'`var_max_len` is {var_max_len}')
+                        logger.debug(f'`var_max_len` is {var_max_len}')
                         for arg_group in _args_func:
                             for arg in _args_func[arg_group]:
                                 if _args_func[arg_group][arg] != {}:
@@ -326,24 +327,24 @@ def get_args(func_in, args_in):
             if arg.arg in doc_envs.skip_variable:
                 def_index += 1
                 continue
-            log.debug(f'Got arg: {arg.arg}')
+            logger.debug(f'Got arg: {arg.arg}')
             out[arg.arg] = {}
             if 'annotation' in vars(arg) and arg.annotation is not None:
-                log.debug('Checking out `annotation`')
+                logger.debug('Checking out `annotation`')
                 out[arg.arg]['type_hint'] = ''
                 try:
                     _ann_s = arg.annotation.slice
                     if 'id' in vars(_ann_s.value):
-                        log.debug(f'Got `_ann_s.value.id`: {_ann_s.value.id}')
+                        logger.debug(f'Got `_ann_s.value.id`: {_ann_s.value.id}')
                         out[arg.arg]['type_hint'] += f'{_ann_s.value.id}'
                 except:
                     try:
-                        log.debug(
+                        logger.debug(
                             f'Got `arg.annotation.id`: {arg.annotation.id}')
                         out[arg.arg]['type_hint'] = f'{arg.annotation.id}'
                     except:
                         if 'attr' in vars(arg.annotation):
-                            log.debug(
+                            logger.debug(
                                 'Got `arg.annotation.attr`: '
                                 f'{arg.annotation.attr}'
                             )
@@ -357,26 +358,26 @@ def get_args(func_in, args_in):
                             out[arg.arg]['type_hint'] =\
                                 f'{arg.annotation.slice.id}'
                         try:
-                            log.debug(
+                            logger.debug(
                                 f'Got `arg.annotation.value.id`: '
                                 f'{arg.annotation.value.id}')
                             out[arg.arg]['type_hint'] =\
                                 f'{arg.annotation.value.id}.'\
                                 f'{arg.annotation.attr}'
                         except:
-                            log.debug('NO MORE TO DO')
+                            logger.debug('NO MORE TO DO')
             if def_index >= 0:
                 if isinstance(
                         _defs[def_index], (
                             ast.Constant, ast.Name, ast.Call
                         )) is True:
                     if 'keywords' in vars(_defs[def_index]):
-                        log.debug('Found `keywords`')
+                        logger.debug('Found `keywords`')
                         try:
-                            log.debug('vars(_defs[def_index]):')
+                            logger.debug('vars(_defs[def_index]):')
                             pprint(vars(_defs[def_index]))
                         except:
-                            log.debug('_defs[def_index]:')
+                            logger.debug('_defs[def_index]:')
                             pprint(_defs[def_index])
                         for _kw in _defs[def_index].keywords:
                             pprint(f'_kw.arg: {_kw.arg}')
@@ -395,7 +396,7 @@ def get_args(func_in, args_in):
                 else:
                     pass
             def_index += 1
-        log.debug(f'Got this for `out`: {out}')
+        logger.debug(f'Got this for `out`: {out}')
         return out
 
     if 'args' in dict(vars(func_in)):
@@ -403,14 +404,14 @@ def get_args(func_in, args_in):
         argdefs = get_args_and_defs(
             func_in.args.args, func_in.args.defaults
         )
-        log.debug(f'Got `argdefs`: {argdefs}', extra_info=func_in.name)
+        logger.debug(f'Got `argdefs`: {argdefs}', extra_info=func_in.name)
         if argdefs is not None:
             args_in['argdefs'] = argdefs
         # Add keyword args and their defaults
         kwargdefs = get_args_and_defs(
             func_in.args.kwonlyargs, func_in.args.kw_defaults
         )
-        log.debug(f'Got `kwargdefs`: {kwargdefs}', extra_info=func_in.name)
+        logger.debug(f'Got `kwargdefs`: {kwargdefs}', extra_info=func_in.name)
         if kwargdefs is not None:
             args_in['kwargdefs'] = kwargdefs
         if len(args_in) > 0:
@@ -419,7 +420,7 @@ def get_args(func_in, args_in):
         pprint(f'BASES: {func_in.bases}')
         for base in func_in.bases:
             # TODO Check if "bases" is something we want
-            log.debug('Only printing from `base`?', extra_color='red')
+            logger.debug('Only printing from `base`?', extra_color='red')
             try:
                 pprint(f'{base.attr}.{base.value.id}')
                 dump_output(f'{base.attr}.{base.value.id}', name='bases')
@@ -435,7 +436,7 @@ def get_info_from_file(filename):
     with open(filename) as fd:
         file_contents = fd.read()
     short_filename = str(filename).split(os.sep)[-1]
-    log.log(f'Got file `{short_filename}`')
+    logger.info(f'Got file `{short_filename}`')
     info_out += f'# `{short_filename}`\n'
     # Get the parsed_file's functions
     parsed_file = ast.parse(file_contents)
@@ -462,13 +463,13 @@ if __name__ == "__main__":
         str(doc_envs.ROOT_DIR / doc_args.file)
     ) is not False:
         filename = doc_envs.ROOT_DIR / doc_args.file
-        log.debug(f'filename: {filename}')
+        logger.debug(f'filename: {filename}')
         filelist = [filename]
         # Get module name
         single_filename = str(filename).split(os.sep)[-1]
         module_name = f'# {single_filename}\n'
     elif doc_args.file is None:
-        log.debug('Getting all files')
+        logger.debug('Getting all files')
         filelist = glob.glob('**/*.py', recursive=True)
         # Get module name
         module_name = f'# {filelist[0].split(os.sep)[0]}\n'
@@ -490,13 +491,13 @@ if __name__ == "__main__":
                 unwanted in str(filename) for unwanted in
                 doc_envs.skip_folder_or_file
             ):
-                log.debug(f'Skipped file: `{rel_filename}`')
+                logger.debug(f'Skipped file: `{rel_filename}`')
                 continue
         md_out += get_info_from_file(filename)
     if not doc_args.file_out:
-        log.debug(f'Writing output to `{doc_envs.docs_file}`')
+        logger.debug(f'Writing output to `{doc_envs.docs_file}`')
         file_io.write_file(doc_envs.docs_file, md_out)
     else:
         out_file = doc_envs.DOCS_DIR / doc_args.file_out
-        log.debug(f'Writing output to `{out_file}`')
+        logger.debug(f'Writing output to `{out_file}`')
         file_io.write_file(out_file, md_out)

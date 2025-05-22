@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'youtube: Autopost new videos from given Youtube channels'
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
@@ -10,8 +11,8 @@ from yt_dlp import YoutubeDL
 from sausage_bot.util import config, envs, feeds_core, file_io
 from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
 
+logger = config.logger
 
 async def feed_name_autocomplete(
     interaction: discord.Interaction,
@@ -48,7 +49,7 @@ async def youtube_filter_autocomplete(
         filters.append(
             (filter['feed_name'], filter['allow_or_deny'], filter['filter'])
         )
-    log.debug(f'filters: {filters}')
+    logger.debug(f'filters: {filters}')
     return [
         discord.app_commands.Choice(
             name='{} - {} - {}'.format(
@@ -96,8 +97,8 @@ class Youtube(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task started')
-        Youtube.post_videos.start()
+        logger.info('Task started')
+        Youtube.task_post_videos.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -119,8 +120,8 @@ class Youtube(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task stopped')
-        Youtube.post_videos.cancel()
+        logger.info('Task stopped')
+        Youtube.task_post_videos.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -142,16 +143,13 @@ class Youtube(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        log.log('Task restarted')
-        Youtube.post_videos.restart()
+        logger.info('Task restarted')
+        Youtube.task_post_videos.restart()
         await interaction.followup.send(
             I18N.t('youtube.commands.restart.msg_confirm')
         )
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_group.command(
         name='add', description=locale_str(
@@ -168,7 +166,7 @@ class Youtube(commands.Cog):
         youtube_link: str, channel: discord.TextChannel
     ):
         '''
-        Add a Youtube feed
+        Add a Youtube feed or playlist
         '''
         await interaction.response.defer()
         AUTHOR = interaction.user.name
@@ -182,10 +180,18 @@ class Youtube(commands.Cog):
                 ),
             )
             return
-        await feeds_core.add_to_feed_db(
-            'youtube', str(feed_name), str(youtube_link), channel.id,
-            AUTHOR, youtube_info['channel_id']
-        )
+        if '&list=' in youtube_link:
+            await feeds_core.add_to_feed_db(
+                'youtube', str(feed_name), str(youtube_link), channel.id,
+                AUTHOR, youtube_info['channel_id'],
+                youtube_info['id']
+            )
+        else:
+            await feeds_core.add_to_feed_db(
+                'youtube', str(feed_name), str(youtube_link), channel.id,
+                AUTHOR, youtube_info['channel_id'],
+                None
+            )
         await discord_commands.log_to_bot_channel(
             I18N.t(
                 'youtube.commands.add.log_feed_confirm',
@@ -201,10 +207,7 @@ class Youtube(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_group.command(
         name='remove', description=locale_str(
@@ -229,7 +232,7 @@ class Youtube(commands.Cog):
             single=True
         )
         if _uuid is None:
-            log.debug(f'The feed `{feed_name}` does not exist')
+            logger.debug(f'The feed `{feed_name}` does not exist')
             await interaction.followup.send(
                 I18N.t(
                     'youtube.commands.remove.msg_remove_non_existing_feed',
@@ -270,10 +273,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_filter_group.command(
         name='add', description=locale_str(
@@ -288,8 +288,8 @@ class Youtube(commands.Cog):
     async def youtube_filter_add(
         self, interaction: discord.Interaction, feed_name: str,
         allow_deny: typing.Literal[
-            I18N.t('youtube.commands.filter_add.literal.allow'),
-            I18N.t('youtube.commands.filter_add.literal.deny')
+            I18N.t('common.literal_allow_deny.allow'),
+            I18N.t('common.literal_allow_deny.deny')
         ], filters_in: str
     ):
         '''
@@ -324,10 +324,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=youtube_filter_autocomplete)
     @youtube_filter_group.command(
@@ -383,40 +380,52 @@ class Youtube(commands.Cog):
         )
     )
     @describe(
-        list_type=I18N.t('youtube.commands.list.desc.list_type')
+        list_type=I18N.t('youtube.commands.list.desc.list_type'),
+        link_type=I18N.t('youtube.commands.list.desc.link_type')
     )
     async def youtube_list(
         self, interaction: discord.Interaction,
         list_type: typing.Literal[
-            I18N.t('youtube.commands.list.literal_type.normal'),
-            I18N.t('youtube.commands.list.literal_type.added'),
-            I18N.t('youtube.commands.list.literal_type.filter')
-        ]
+            I18N.t('youtube.commands.list.literal_list_type.normal'),
+            I18N.t('youtube.commands.list.literal_list_type.added'),
+            I18N.t('youtube.commands.list.literal_list_type.filter')
+        ],
+        link_type: typing.Literal[
+            I18N.t('youtube.commands.list.literal_link_type.channel'),
+            I18N.t('youtube.commands.list.literal_link_type.playlist'),
+        ] = None
     ):
         '''
         List all active Youtube feeds
         '''
         await interaction.response.defer()
-        if list_type == I18N.t('youtube.commands.list.literal_type.added'):
+        if list_type == I18N.t(
+            'youtube.commands.list.literal_list_type.added'
+        ):
             formatted_list = await feeds_core.get_feed_list(
                 db_in=envs.youtube_db_schema,
-                list_type=list_type.lower()
+                list_type=list_type.lower(),
+                link_type=link_type
             )
-        elif list_type == I18N.t('youtube.commands.list.literal_type.filter'):
+        elif list_type == I18N.t(
+            'youtube.commands.list.literal_list_type.filter'
+        ):
             formatted_list = await feeds_core.get_feed_list(
                 db_in=envs.youtube_db_schema,
                 db_filter_in=envs.youtube_db_filter_schema,
-                list_type=list_type.lower()
+                list_type=list_type.lower(),
+                link_type=link_type
             )
         else:
             formatted_list = await feeds_core.get_feed_list(
-                envs.youtube_db_schema
+                envs.youtube_db_schema,
+                link_type=link_type
             )
         if formatted_list is not None:
             page_counter = 0
             for page in formatted_list:
                 page_counter += 1
-                log.debug(
+                logger.debug(
                     f'Sending page ({page_counter} / {len(formatted_list)})')
                 await interaction.followup.send(
                     f"```{page}```"
@@ -443,15 +452,16 @@ class Youtube(commands.Cog):
             with YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(url)
         except Exception as _error:
-            log.error(f'Could not extract youtube info: {_error}')
+            logger.error(f'Could not extract youtube info: {_error}')
             return None
 
     # Tasks
     @tasks.loop(
-        minutes=config.env.int('YT_LOOP', default=5)
+        minutes=config.env.int('YT_LOOP', default=5),
+        reconnect=True
     )
-    async def post_videos():
-        log.log('Starting `post_videos`')
+    async def task_post_videos():
+        logger.info('Starting `post_videos`')
         # Start processing feeds
         feeds = await db_helper.get_output(
             template_info=envs.youtube_db_schema,
@@ -464,25 +474,25 @@ class Youtube(commands.Cog):
             ]
         )
         if len(feeds) == 0 or feeds is None:
-            log.log('Couldn\'t find any Youtube feeds')
+            logger.info('Couldn\'t find any Youtube feeds')
             return
-        log.verbose('Got these feeds:')
+        logger.debug('Got these feeds:')
         for feed in feeds:
-            log.verbose('- {}'.format(feed['feed_name']))
+            logger.debug('- {}'.format(feed['feed_name']))
         # Start processing per feed settings
         for feed in feeds:
             UUID = feed['uuid']
             FEED_NAME = feed['feed_name']
             CHANNEL = feed['channel']
-            log.log(f'Checking {FEED_NAME}', sameline=True)
-            log.debug(
+            logger.info(f'Checking {FEED_NAME}')
+            logger.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='youtube', feed_info=feed
             )
             if FEED_POSTS is not None:
-                log.debug(
+                logger.debug(
                     'Got {} items for `FEED_POSTS`: '
                     '{}'.format(
                         len(FEED_POSTS),
@@ -492,7 +502,7 @@ class Youtube(commands.Cog):
                     )
                 )
             if FEED_POSTS is None:
-                log.log(f'{feed}: this feed returned NoneType.')
+                logger.info(f'{feed}: this feed returned NoneType.')
                 await discord_commands.log_to_bot_channel(
                     I18N.t('youtube.tasks.log_error', feed_name=FEED_NAME)
                 )
@@ -500,21 +510,21 @@ class Youtube(commands.Cog):
                 await feeds_core.process_links_for_posting_or_editing(
                     'youtube', UUID, FEED_POSTS, CHANNEL
                 )
-        log.log('Done with posting')
+        logger.info('Done with posting')
         return
 
-    @post_videos.before_loop
+    @task_post_videos.before_loop
     async def before_post_new_videos():
         '#autodoc skip#'
-        log.verbose('`post_videos` waiting for bot to be ready...')
+        logger.debug('`post_videos` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
 
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'youtube'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
     # Convert json to sqlite db-files if exists
 
     # Define inserts
@@ -524,71 +534,67 @@ async def setup(bot):
     # Populate the inserts if feed and logs json files exist
     if file_io.file_exist(envs.youtube_feeds_file) and \
             file_io.file_exist(envs.youtube_feeds_logs_file):
-        log.verbose('Found old json file - feeds')
+        logger.debug('Found old json file - feeds')
         youtube_inserts = await db_helper.json_to_db_inserts(cog_name)
-    log.debug(f'Got these inserts:\n{youtube_inserts}')
+    logger.debug(f'Got these inserts:\n{youtube_inserts}')
 
-    # Prep of DBs should only be done if the db files does not exist
-    if not file_io.file_exist(envs.youtube_db_schema['db_file']):
-        log.verbose('Youtube db does not exist')
-        youtube_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.youtube_db_schema,
-            inserts=youtube_inserts['feeds'] if youtube_inserts is not None
-            else youtube_inserts
-        )
-        youtube_filter_prep_is_ok = await db_helper.prep_table(
-            envs.youtube_db_filter_schema,
-            youtube_inserts['filter']
-            if youtube_inserts is not None else youtube_inserts
-        )
-        youtube_log_prep_is_ok = await db_helper.prep_table(
-            envs.youtube_db_log_schema,
-            youtube_inserts['logs']
-            if youtube_inserts is not None else youtube_inserts
-        )
-        log.verbose(f'`youtube_prep_is_ok` is {youtube_prep_is_ok}')
-        log.verbose(
-            f'`youtube_filter_prep_is_ok` is {youtube_filter_prep_is_ok}'
-        )
-        log.verbose(f'`youtube_log_prep_is_ok` is {youtube_log_prep_is_ok}')
-    else:
-        log.verbose('youtube db exist!')
-        missing_tbl_cols = {}
-        missing_tbl_cols = await db_helper.add_missing_db_setup(
-            envs.youtube_db_schema, missing_tbl_cols
-        )
-        missing_tbl_cols = await db_helper.add_missing_db_setup(
-            envs.youtube_db_filter_schema, missing_tbl_cols
-        )
-        missing_tbl_cols = await db_helper.add_missing_db_setup(
-            envs.youtube_db_log_schema, missing_tbl_cols
-        )
-        log.debug(f'`missing_tbl_cols` is {missing_tbl_cols}')
-        if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
-            missing_tbl_cols_text = ''
-            for _tbl in missing_tbl_cols:
-                missing_tbl_cols_text += '{}:'.format(_tbl)
-                for col in missing_tbl_cols[_tbl]:
-                    missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
-                if _tbl != list(missing_tbl_cols.keys())[-1]:
-                    missing_tbl_cols_text += '\n\n'
-            await discord_commands.log_to_bot_channel(
-                'Missing columns in rss db: {}\n'
-                'Make sure to populate missing information'.format(
-                    missing_tbl_cols_text
-                )
+    logger.debug('Youtube db does not exist')
+    youtube_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.youtube_db_schema,
+        inserts=youtube_inserts['feeds'] if youtube_inserts is not None
+        else youtube_inserts
+    )
+    youtube_filter_prep_is_ok = await db_helper.prep_table(
+        envs.youtube_db_filter_schema,
+        youtube_inserts['filter']
+        if youtube_inserts is not None else youtube_inserts
+    )
+    youtube_log_prep_is_ok = await db_helper.prep_table(
+        envs.youtube_db_log_schema,
+        youtube_inserts['logs']
+        if youtube_inserts is not None else youtube_inserts
+    )
+    logger.debug(f'`youtube_prep_is_ok` is {youtube_prep_is_ok}')
+    logger.debug(
+        f'`youtube_filter_prep_is_ok` is {youtube_filter_prep_is_ok}'
+    )
+    logger.debug(f'`youtube_log_prep_is_ok` is {youtube_log_prep_is_ok}')
+    missing_tbl_cols = {}
+    missing_tbl_cols = await db_helper.add_missing_db_setup(
+        envs.youtube_db_schema, missing_tbl_cols
+    )
+    missing_tbl_cols = await db_helper.add_missing_db_setup(
+        envs.youtube_db_filter_schema, missing_tbl_cols
+    )
+    missing_tbl_cols = await db_helper.add_missing_db_setup(
+        envs.youtube_db_log_schema, missing_tbl_cols
+    )
+    logger.debug(f'`missing_tbl_cols` is {missing_tbl_cols}')
+    if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
+        missing_tbl_cols_text = ''
+        for _tbl in missing_tbl_cols:
+            missing_tbl_cols_text += '{}:'.format(_tbl)
+            for col in missing_tbl_cols[_tbl]:
+                missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
+            if _tbl != list(missing_tbl_cols.keys())[-1]:
+                missing_tbl_cols_text += '\n\n'
+        await discord_commands.log_to_bot_channel(
+            'Missing columns in rss db: {}\n'
+            'Make sure to populate missing information'.format(
+                missing_tbl_cols_text
             )
-        # Change channel name to id
-        await db_helper.db_channel_name_to_id(
-            template_info=envs.youtube_db_schema,
-            id_col='uuid', channel_col='channel'
         )
+    # Change channel name to id
+    await db_helper.db_channel_name_to_id(
+        template_info=envs.youtube_db_schema,
+        id_col='uuid', channel_col='channel'
+    )
     # Delete old json files if they are not necessary anymore
     if youtube_prep_is_ok:
         file_io.remove_file(envs.youtube_feeds_file)
     if youtube_log_prep_is_ok:
         file_io.remove_file(envs.youtube_feeds_logs_file)
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(Youtube(bot))
 
     task_list = await db_helper.get_output(
@@ -606,18 +612,18 @@ async def setup(bot):
     for task in task_list:
         if task['task'] == 'post_videos':
             if task['status'] == 'started':
-                log.debug(
+                logger.debug(
                     '`{}` is set as `{}`, starting...'.format(
                         task['task'], task['status']
                     ))
-                Youtube.post_videos.start()
+                Youtube.task_post_videos.start()
             elif task['status'] == 'stopped':
-                log.debug(
+                logger.debug(
                     '`{}` is set as `{}`'.format(
                         task['task'], task['status']
                     ))
-                Youtube.post_videos.cancel()
+                Youtube.task_post_videos.cancel()
 
 
 async def teardown(bot):
-    Youtube.post_videos.cancel()
+    Youtube.task_post_videos.cancel()

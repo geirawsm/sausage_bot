@@ -1,4 +1,4 @@
-no:
+nb:
   groups:
     youtube: Administrer YouTube-feeder
     filter: Filtrer YouTube-feeder
@@ -28,7 +28,7 @@ no:
         feed_name: Navn på YouTube-feeden som skal håndteres
       msg_remove_non_existing_feed: Youtube-feeden `%{feed_name}` finnes ikke
       msg_feed_removed: 'Fjernet Youtube-feed `%{feed_name}` fra #%{channel_name}'
-      log_feed_removed: 'Youtube-feed `%{feed_name}` fjernet av %{user_name}'  
+      log_feed_removed: 'Youtube-feed `%{feed_name}` fjernet av %{user_name}'
       msg_feed_remove_failed: 'Youtube-feed `%{feed_name}` kunne ikke fjernes'
       log_feed_remove_failed: 'Bruker %{user_name} prøvde å fjerne Youtube-feed `%{feed_name}`, men det feilet'
     filter_add:
@@ -50,10 +50,14 @@ no:
       cmd: List alle active YouTube-feeder
       desc:
         list_type: Velg type liste
+        link_type: Velg type link
       msg_error: Ingen feeder lagt til
-      literal_type:
+      literal_list_type:
         normal: Normal
         added: Lagt til
         filter: Filter
+      literal_link_type:
+        channel: Kanal
+        playlist: Spilleliste
   tasks:
     log_error: '%{feed_name} returnerte NoneType'

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'rss: Administer RSS-feeds that will autopost to a given channel when published'
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
 import typing
 from time import sleep
 import re
+from pprint import pformat
 
 from sausage_bot.util import config, envs, feeds_core, file_io, net_io
 from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.i18n import I18N
-from sausage_bot.util.log import log
+
+logger = config.logger
 
 
 async def feed_name_autocomplete(
@@ -24,7 +27,7 @@ async def feed_name_autocomplete(
             ('feed_name', 'ASC')
         ]
     )
-    log.verbose('db_feeds:', pretty=db_feeds)
+    logger.debug(f'db_feeds:\n{pformat(db_feeds)}')
     feeds = db_feeds.copy()
     for feed in feeds:
         _counter = 87
@@ -37,6 +40,37 @@ async def feed_name_autocomplete(
                 feed_name=feed['feed_name'], channel=feed['channel'],
                 url=str(feed['url'])
             )[0:feed['length_counter']], value=str(feed['feed_name'])
+        )
+        for feed in feeds if current.lower() in '{}-{}-{}-{}'.format(
+            feed['uuid'], feed['feed_name'], feed['url'], feed['channel']
+        ).lower()
+    ][:25]
+
+
+async def feed_uuid_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[discord.app_commands.Choice[str]]:
+    db_feeds = await db_helper.get_output(
+        template_info=envs.rss_db_schema,
+        select=('uuid', 'feed_name', 'url', 'channel'),
+        order_by=[
+            ('feed_name', 'ASC')
+        ]
+    )
+    logger.debug(f'db_feeds:\n{pformat(db_feeds)}')
+    feeds = db_feeds.copy()
+    for feed in feeds:
+        _counter = 87
+        _counter -= len(str(feed['feed_name']))
+        _counter -= len(str(feed['channel']))
+        feed['length_counter'] = _counter
+    return [
+        discord.app_commands.Choice(
+            name='{feed_name}: #{channel} ({url})'.format(
+                feed_name=feed['feed_name'], channel=feed['channel'],
+                url=str(feed['url'])
+            )[0:feed['length_counter']], value=str(feed['uuid'])
         )
         for feed in feeds if current.lower() in '{}-{}-{}-{}'.format(
             feed['uuid'], feed['feed_name'], feed['url'], feed['channel']
@@ -63,7 +97,7 @@ async def rss_filter_autocomplete(
         filters.append(
             (filter['uuid'], filter['allow_or_deny'], filter['filter'])
         )
-    log.debug(f'filters: {filters}')
+    logger.debug(f'filters: {filters}')
     return [
         discord.app_commands.Choice(
             name='{} - {} - {}'.format(
@@ -83,7 +117,7 @@ async def rss_settings_autocomplete(
         template_info=envs.rss_db_settings_schema,
         select=('setting', 'value')
     )
-    log.debug(f'settings_in_db: {settings_in_db}')
+    logger.debug(f'settings_in_db: {settings_in_db}')
     return [
         discord.app_commands.Choice(
             name='{}: {}'.format(
@@ -124,8 +158,8 @@ async def control_posting(feed_type, action):
                     }
                 )
             except RuntimeError as e:
-                log.error('Error when {}ing feed `{}`: {}'.format(
-                    actions[action]['status_update'], feed_type, e
+                logger.error('Error when {}ing feed `{}`: {}'.format(
+                    actions[action], feed_type, e
                 ))
                 failed_list.append(feed_type)
     # Update status in db
@@ -141,7 +175,7 @@ async def control_posting(feed_type, action):
                 ],
                 updates=('status', feed_type['status']),
             )
-            log.log('Task {}: {}'.format(
+            logger.info('Task {}: {}'.format(
                 feed_type['feed_type'],
                 feed_type['status']
             ))
@@ -232,10 +266,7 @@ class RSSfeed(commands.Cog):
         msg = await control_posting(feed_type, 'restart')
         await interaction.followup.send(msg)
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_group.command(
         name='add', description=locale_str(I18N.t('rss.commands.add.cmd'))
@@ -260,7 +291,7 @@ class RSSfeed(commands.Cog):
                 ephemeral=True
             )
             return
-        log.verbose('Adding feed to db')
+        logger.debug('Adding feed to db')
         if 'open.spotify.com/show/' in feed_link:
             feed_type = 'spotify'
         else:
@@ -284,10 +315,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_group.command(
         name='remove', description=locale_str(I18N.t(
@@ -336,10 +364,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_group.command(
         name='edit', description=locale_str(I18N.t(
@@ -363,7 +388,7 @@ class RSSfeed(commands.Cog):
             select=('feed_name', 'channel', 'url'),
             where=(('feed_name', feed_name))
         )
-        log.debug(f'`feed_info` is {feed_info}')
+        logger.debug(f'`feed_info` is {feed_info}')
         changes_out = I18N.t(
             'rss.commands.edit.changes_out.msg',
             feed_name=feed_name
@@ -400,10 +425,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @rss_filter_group.command(
         name='add', description=locale_str(
@@ -413,13 +435,13 @@ class RSSfeed(commands.Cog):
     @describe(
         feed_name=I18N.t('rss.commands.filter_add.desc.feed_name'),
         allow_deny=I18N.t('rss.commands.filter_add.desc.allow_deny'),
-        filters_in=I18N.t('rss.commands.filter_add.desc.filters_in')
+        filters_in=I18N.t('rss.commands.filter_add.desc.filters')
     )
     async def rss_filter_add(
         self, interaction: discord.Interaction, feed_name: str,
         allow_deny: typing.Literal[
-            I18N.t('rss.commands.filter_add.desc.allow_deny.allow'),
-            I18N.t('rss.commands.filter_add.desc.allow_deny.deny')
+            I18N.t('common.literal_allow_deny.allow'),
+            I18N.t('common.literal_allow_deny.deny')
         ], filters_in: str
     ):
         '''
@@ -458,10 +480,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=rss_filter_autocomplete)
     @rss_filter_group.command(
@@ -511,10 +530,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @discord.app_commands.autocomplete(
         name_of_setting=rss_settings_autocomplete
     )
@@ -547,21 +563,21 @@ class RSSfeed(commands.Cog):
                     try:
                         value_in = eval(str(value_in).capitalize())
                     except NameError as _error:
-                        log.error(f'Invalid input for `value_in`: {_error}')
+                        logger.error(f'Invalid input for `value_in`: {_error}')
                         await interaction.followup.send(
                             I18N.t(
-                                'rss.commands.setting.input_invalid',
+                                'rss.commands.setting.value_in_input_invalid',
                                 error=_error
                             )
                         )
                         return
-                log.debug(
+                logger.debug(
                     '`value_in` is {value_in} ({type_value_in})'.format(
                         value_in=value_in,
                         type_value_in=type(value_in)
                     )
                 )
-                log.debug(
+                logger.debug(
                     '`setting[\'value_check\']` is {value_check} '
                     '({type_value_check})'.format(
                         value_check=setting['value_check'],
@@ -578,14 +594,11 @@ class RSSfeed(commands.Cog):
                     I18N.t('rss.commands.setting.msg_confirm'),
                     ephemeral=True
                 )
-                RSSfeed.post_feeds.restart()
+                RSSfeed.task_post_feeds.restart()
                 break
         return
 
-    @commands.check_any(
-        commands.is_owner(),
-        commands.has_permissions(administrator=True)
-    )
+    @commands.is_owner()
     @rss_group.command(
         name='list', description=locale_str(I18N.t('rss.commands.list.cmd'))
     )
@@ -623,7 +636,7 @@ class RSSfeed(commands.Cog):
             page_counter = 0
             for page in formatted_list:
                 page_counter += 1
-                log.debug(
+                logger.debug(
                     f'Sending page ({page_counter} / {len(formatted_list)})')
                 await interaction.followup.send(
                     f"```{page}```"
@@ -636,12 +649,128 @@ class RSSfeed(commands.Cog):
             )
         return
 
+    @commands.is_owner()
+    @discord.app_commands.autocomplete(feed_name=feed_uuid_autocomplete)
+    @rss_group.command(
+        name='test_feed', description=locale_str(
+            I18N.t('rss.commands.test.cmd')
+        )
+    )
+    @describe(
+        feed_name=I18N.t('rss.commands.test.desc.feed_name'),
+    )
+    async def rss_test_feed(
+        self, interaction: discord.Interaction, feed_name: str,
+        public: typing.Literal[
+            I18N.t('common.literal_yes_no.yes'),
+            I18N.t('common.literal_yes_no.no')
+        ] = None
+    ):
+        '''
+        Test an added feed manually. Creates a report that is posted
+        after the test is done.
+        '''
+        def enclose_status_out(status_out):
+            return '```{}```'.format(status_out)
+
+        if public == I18N.t('common.literal_yes_no.yes'):
+            _ephemeral = False
+        elif public == I18N.t('common.literal_yes_no.no') or\
+                public is None:
+            _ephemeral = True
+        status_out = ''
+        await interaction.response.defer(ephemeral=_ephemeral)
+        feed = await db_helper.get_output(
+            template_info=envs.rss_db_schema,
+            order_by=[
+                ('feed_name', 'DESC')
+            ],
+            where=[
+                ('uuid', feed_name)
+            ],
+            not_like=[
+                ('feed_type', 'spotify')
+            ],
+            single=True
+        )
+        status_out += '💭 Checking URL: {}'.format(feed['url'])
+        status_msg = await interaction.followup.send(
+            enclose_status_out(status_out), ephemeral=_ephemeral
+        )
+        # Reading url, what code?
+        req = await net_io.get_link(feed['url'], status_out=True)
+        logger.debug('Got this response from url:\n{pformat(req)}')
+        if req['status'] != 200:
+            status_out += '\n❌ Got http status {}'.format(req['status'])
+            if req['content']:
+                status_out += ':\n\t{}'.format(req['content'])
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+            return
+        else:
+            status_out += '\n✅ Got HTTP status {}'.format(req['status'])
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+        rss_items = await feeds_core.get_items_from_rss(
+            req=req['content'],
+            url=feed['url'],
+        )
+        if rss_items is None or len(rss_items) <= 0:
+            status_out += '\n❌ Unable to get feed items'
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+            return
+        else:
+            rss_items[0].pop('type')
+            status_out += '\n✅ Got {} feed items:'.format(len(rss_items))
+            for item in rss_items[0]:
+                status_out += '\n\t- {}: {}'.format(
+                    item, rss_items[0][item]
+                )
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+        # Get link hash
+        _hash = await feeds_core.get_page_hash(rss_items[0]['link'])
+        if _hash is None:
+            status_out += f'\n❌ Could not make hash, got "{_hash}"'
+            status_msg = await interaction.followup.edit_message(
+                message_id=status_msg.id, content=enclose_status_out(status_out)
+            )
+            return
+        # Get log
+        _FEED_DB = await db_helper.get_output(
+            template_info=envs.rss_db_log_schema,
+            select=('url', 'hash')
+        )
+        FEED_HASH = [item['hash'] for item in _FEED_DB]
+        if _hash in FEED_HASH:
+            status_out += f'\n✅ Found hash in log ({_hash})'
+        else:
+            status_out += f'\n❌ Did not find hash in log ({_hash})'
+        status_msg = await interaction.followup.edit_message(
+            message_id=status_msg.id, content=enclose_status_out(status_out)
+        )
+        FEED_LOG = [item['url'] for item in _FEED_DB]
+        if feed['url'] in FEED_LOG:
+            status_out += '\n✅ Found link in log'
+        else:
+            status_out += '\n❌ Did not find link in log'
+        status_msg = await interaction.followup.edit_message(
+            message_id=status_msg.id, content=enclose_status_out(status_out)
+        )
+        return
+
     # Tasks
     @tasks.loop(
-        minutes=config.env.int('RSS_LOOP', default=5)
+        minutes=config.env.int('RSS_LOOP', default=5),
+        reconnect=True
     )
-    async def post_feeds():
-        log.log('Starting `post_feeds`')
+    async def task_post_feeds():
+        logger.info('Starting `post_feeds`')
         # Start processing feeds
         feeds = await db_helper.get_output(
             template_info=envs.rss_db_schema,
@@ -657,11 +786,11 @@ class RSSfeed(commands.Cog):
             ]
         )
         if len(feeds) == 0:
-            log.log('No feeds found')
+            logger.info('No feeds found')
             return
-        log.verbose('Got these feeds:')
+        logger.debug('Got these feeds:')
         for feed in feeds:
-            log.verbose('- {}'.format(feed['feed_name']))
+            logger.debug('- {}'.format(feed['feed_name']))
         # Start processing per feed settings
         for feed in feeds:
             UUID = feed['uuid']
@@ -669,14 +798,14 @@ class RSSfeed(commands.Cog):
             CHANNEL = feed['channel']
             _guild = discord_commands.get_guild()
             channel_obj = _guild.get_channel(int(CHANNEL))
-            log.debug(
+            logger.debug(
                 f'Found channel `{channel_obj.name}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type='rss', feed_info=feed
             )
             if FEED_POSTS is None or isinstance(FEED_POSTS, int):
-                log.log(f'Feed {FEED_NAME} returned {FEED_POSTS}')
+                logger.info(f'Feed {FEED_NAME} returned {FEED_POSTS}')
                 await db_helper.update_fields(
                     template_info=envs.rss_db_schema,
                     where=('uuid', UUID),
@@ -689,38 +818,38 @@ class RSSfeed(commands.Cog):
                     )
                 )
             else:
-                log.debug(
+                logger.debug(
                     f'Got {len(FEED_POSTS)} items for `FEED_POSTS`: '
                     '{}'.format(
                         ', '.join(
-                            [pod_ep['title'] for pod_ep in FEED_POSTS[0:3]]
+                            [pod_ep['title'] for pod_ep in FEED_POSTS]
                         )
                     )
                 )
                 await feeds_core.process_links_for_posting_or_editing(
                     'rss', UUID, FEED_POSTS, CHANNEL
                 )
-        log.log('Done with posting')
+        logger.info('Done with posting')
         return
 
-    @post_feeds.before_loop
+    @task_post_feeds.before_loop
     async def before_post_new_feeds():
         '#autodoc skip#'
-        log.verbose('`post_feeds` waiting for bot to be ready...')
+        logger.debug('`post_feeds` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
     @tasks.loop(
         minutes=config.env.int('RSS_LOOP', default=5)
     )
     async def post_podcasts():
-        log.log('Starting `post_podcasts`')
+        logger.info('Starting `post_podcasts`')
         pod_check = await net_io.check_spotify_podcast_episodes()
         if len(pod_check) == 0:
-            log.log('No feeds found')
+            logger.info('No feeds found')
             return
-        log.verbose('Got these feeds:')
+        logger.debug('Got these feeds:')
         for feed in pod_check:
-            log.verbose('- {}'.format(pod_check[feed]['name']))
+            logger.debug('- {}'.format(pod_check[feed]['name']))
         # Start processing per feed settings
         for feed in pod_check:
             POD_ID = feed
@@ -728,23 +857,23 @@ class RSSfeed(commands.Cog):
             FEED_NAME = pod_check[feed]['name']
             CHANNEL = pod_check[feed]['channel']
             NUM_EPISODES = pod_check[feed]['num_episodes_new']
-            log.debug(
+            logger.debug(
                 f'Found channel `{CHANNEL}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await net_io.get_spotify_podcast_links(
                 POD_ID, UUID
             )
-            log.debug(
+            logger.debug(
                 'Got {} items for `FEED_POSTS`: '
                 '{}'.format(
                     len(FEED_POSTS) if FEED_POSTS else 0,
                     [
-                        pod_ep['title'] for pod_ep in FEED_POSTS[0:3]
+                        pod_ep['title'] for pod_ep in FEED_POSTS
                     ] if FEED_POSTS else None
                 )
             )
             if FEED_POSTS is None:
-                log.log(f'Feed {FEED_NAME} returned NoneType')
+                logger.info(f'Feed {FEED_NAME} returned NoneType')
                 await discord_commands.log_to_bot_channel(
                     I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
                 )
@@ -757,20 +886,20 @@ class RSSfeed(commands.Cog):
                     where=('uuid', UUID),
                     updates=('num_episodes', NUM_EPISODES)
                 )
-        log.log('Done with posting')
+        logger.info('Done with posting')
 
     @post_podcasts.before_loop
     async def before_post_new_podcasts():
         '#autodoc skip#'
-        log.verbose('`post_podcasts` waiting for bot to be ready...')
+        logger.debug('`post_podcasts` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
 
 async def setup(bot):
     # Create necessary databases before starting
     cog_name = 'rss'
-    log.log(envs.COG_STARTING.format(cog_name))
-    log.verbose('Checking db')
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug('Checking db')
     # Convert json to sqlite db-files if exists
 
     # Define inserts
@@ -781,75 +910,73 @@ async def setup(bot):
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.rss_feeds_file) or\
             file_io.file_exist(envs.rss_feeds_logs_file):
-        log.verbose('Found old json files')
+        logger.debug('Found old json files')
         rss_inserts = await db_helper.json_to_db_inserts(cog_name)
-    log.debug(f'Got these inserts:\n{rss_inserts}')
+    logger.debug(f'Got these inserts:\n{rss_inserts}')
 
     # Prep of DBs with json inserts should only be done if the
     # db files does not exist
     missing_tbl_cols = {}
-    if not file_io.file_exist(envs.rss_db_schema['db_file']):
-        log.verbose('RSS db does not exist')
-        rss_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.rss_db_schema,
-            inserts=rss_inserts['feeds'] if rss_inserts is not None
-            else rss_inserts
-        )
-        rss_filter_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.rss_db_filter_schema,
-            inserts=rss_inserts['filter'] if rss_inserts is not None
-            else rss_inserts
-        )
-        rss_settings_prep_is_ok = await db_helper.prep_table(
-            table_in=envs.rss_db_settings_schema,
-            inserts=envs.rss_db_settings_schema['inserts']
-        )
-        log.verbose(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
-        log.verbose(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
-        log.verbose(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
-    else:
-        log.verbose('rss db exist, checking columns!')
-        await db_helper.add_missing_db_setup(
-            envs.rss_db_schema, missing_tbl_cols
-        )
-        await db_helper.add_missing_db_setup(
-            envs.rss_db_settings_schema, missing_tbl_cols
-        )
-        await db_helper.add_missing_db_setup(
-            envs.rss_db_log_schema, missing_tbl_cols
-        )
-        log.debug(f'rss db: `missing_tbl_cols` is {missing_tbl_cols}')
-        if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
-            missing_tbl_cols_text = ''
-            for _tbl in missing_tbl_cols:
-                missing_tbl_cols_text += '{}:'.format(_tbl)
-                for col in missing_tbl_cols[_tbl]:
-                    missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
-                if _tbl != list(missing_tbl_cols.keys())[-1]:
-                    missing_tbl_cols_text += '\n\n'
-            await discord_commands.log_to_bot_channel(
-                'Missing columns in rss db: {}\n'
-                'Make sure to populate missing information'.format(
-                    missing_tbl_cols_text
-                )
-            )
-        # Change channel name to id
-        await db_helper.db_channel_name_to_id(
-            template_info=envs.rss_db_schema,
-            id_col='uuid', channel_col='channel'
+    logger.debug('RSS db does not exist')
+    rss_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_schema,
+        inserts=rss_inserts['feeds'] if rss_inserts is not None
+        else rss_inserts
+    )
+    rss_filter_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_filter_schema,
+        inserts=rss_inserts['filter'] if rss_inserts is not None
+        else rss_inserts
+    )
+    rss_settings_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_settings_schema,
+        inserts=envs.rss_db_settings_schema['inserts']
+    )
+    logger.debug(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
+    logger.debug(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
+    logger.debug(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
 
+    logger.debug('Checking columns in db')
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_schema, missing_tbl_cols
+    )
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_settings_schema, missing_tbl_cols
+    )
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_log_schema, missing_tbl_cols
+    )
+    logger.debug(f'rss db: `missing_tbl_cols` is {missing_tbl_cols}')
+    if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
+        missing_tbl_cols_text = ''
+        for _tbl in missing_tbl_cols:
+            missing_tbl_cols_text += '{}:'.format(_tbl)
+            for col in missing_tbl_cols[_tbl]:
+                missing_tbl_cols_text += '\n{}'.format(' - '.join(col))
+            if _tbl != list(missing_tbl_cols.keys())[-1]:
+                missing_tbl_cols_text += '\n\n'
+        await discord_commands.log_to_bot_channel(
+            'Missing columns in rss db: {}\n'
+            'Make sure to populate missing information'.format(
+                missing_tbl_cols_text
+            )
         )
+    # Change channel name to id
+    await db_helper.db_channel_name_to_id(
+        template_info=envs.rss_db_schema,
+        id_col='uuid', channel_col='channel'
+    )
     rss_log_prep_is_ok = await db_helper.prep_table(
         table_in=envs.rss_db_log_schema,
         inserts=rss_inserts['logs'] if rss_inserts is not None
         else rss_inserts
     )
-    log.verbose(f'`rss_log_prep_is_ok` is {rss_log_prep_is_ok}')
-    log.verbose('checking columns')
+    logger.debug(f'`rss_log_prep_is_ok` is {rss_log_prep_is_ok}')
+    logger.debug('checking columns')
     missing_tbl_cols = await db_helper.add_missing_db_setup(
         envs.rss_db_log_schema, missing_tbl_cols
     )
-    log.debug(f'rss log: `missing_tbl_cols` is {missing_tbl_cols}')
+    logger.debug(f'rss log: `missing_tbl_cols` is {missing_tbl_cols}')
     if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
         missing_tbl_cols_text = ''
         for _tbl in missing_tbl_cols:
@@ -869,7 +996,7 @@ async def setup(bot):
         file_io.remove_file(envs.rss_feeds_file)
     if rss_log_prep_is_ok:
         file_io.remove_file(envs.rss_feeds_logs_file)
-    log.verbose('Registering cog to bot')
+    logger.debug('Registering cog to bot')
     await bot.add_cog(RSSfeed(bot))
 
     task_list = await db_helper.get_output(
@@ -890,32 +1017,32 @@ async def setup(bot):
             )
         )
     for task in task_list:
-        log.debug(f'Checking task: {task}')
+        logger.debug(f'Checking task: {task}')
         if task['task'] == 'post_feeds':
             if task['status'] == 'started':
-                log.debug(
+                logger.debug(
                     '`{task}` is set as `{status}`, starting...'.format(
                         task=task['task'], status=task['status']
                     )
                 )
-                RSSfeed.post_feeds.start()
+                RSSfeed.task_post_feeds.start()
             elif task['status'] == 'stopped':
-                log.debug(
+                logger.debug(
                     '`{task}` is set as `{status}`'.format(
                         task=task['task'], status=task['status']
                     )
                 )
-                RSSfeed.post_feeds.cancel()
+                RSSfeed.task_post_feeds.cancel()
         if task['task'] == 'post_podcasts':
             if task['status'] == 'started':
-                log.debug(
+                logger.debug(
                     '`{task}` is set as `{status}`, starting...'.format(
                         task=task['task'], status=task['status']
                     )
                 )
                 RSSfeed.post_podcasts.start()
             elif task['status'] == 'stopped':
-                log.debug(
+                logger.debug(
                     '`{task}` is set as `{status}`'.format(
                         task=task['task'], status=task['status']
                     )
@@ -924,4 +1051,4 @@ async def setup(bot):
 
 
 async def teardown(bot):
-    RSSfeed.post_feeds.cancel()
+    RSSfeed.task_post_feeds.cancel()

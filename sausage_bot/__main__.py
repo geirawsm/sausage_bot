@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-"Set's up the bot, have a few generic commands and controls cogs"
+'__main__: Set up the bot, have a few generic commands and controls cogs'
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
-import typing
+from pendulum import timezones as p_timezones
+from pendulum import timezone as p_timezone
+import asyncio
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.i18n import I18N, available_languages, set_language
 from sausage_bot.util.i18n import MyTranslator
-from sausage_bot.util.log import log
+
+logger = config.logger
 
 
 @tasks.loop(
@@ -38,24 +41,17 @@ class SayTextInput(discord.ui.TextInput):
 
 class SayModal(discord.ui.Modal):
     def __init__(
-        self, title_in=None, channel=None, mention=None
+        self, title_in=None, channel=None
     ):
         super().__init__(
             title=title_in, timeout=120
         )
         self.comment_out = None
         self.channel = channel
-        self.mention = mention
         self.error_out = None
 
         # Create elements
-        if self.mention:
-            label_in = I18N.t(
-                'main.commands.say.modal.reply', member=self.mention.name
-            )
-        else:
-            label_in = I18N.t('main.commands.say.modal.comment')
-        self.mention
+        label_in = I18N.t('main.commands.say.modal.comment')
         comment_text = SayTextInput(
             style_in=discord.TextStyle.paragraph,
             label_in=label_in,
@@ -66,16 +62,38 @@ class SayModal(discord.ui.Modal):
         self.add_item(comment_text)
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.comment_out = self.children[0].value
+        comment_out = discord_commands.check_user_channel_role(
+            self.children[0].value
+        )
+        logger.debug(f'Got `comment_out`: {comment_out}')
+        msg_out = I18N.t('main.context_menu.edit_msg.edit_confirm')
+        if len(comment_out['username_errors']) > 0:
+            msg_out += I18N.t(
+                'main.context_menu.edit_msg.edit_confirm_with_errors',
+                errors=', '.join(comment_out['username_errors'])
+            )
+        if len(comment_out['channel_errors']) > 0:
+            if len(msg_out) == 0:
+                msg_out += I18N.t(
+                    'main.context_menu.edit_msg.edit_confirm_with_errors',
+                    errors=', '.join(comment_out['channel_errors'])
+                )
+            else:
+                # TODO i18n
+                msg_out += '\nChannels: {}'.format(
+                    ', '.join(comment_out['channel_errors'])
+                )
         await interaction.response.send_message(
             I18N.t(
                 'main.commands.say.modal.confirm', channel=self.channel.name
             ),
             ephemeral=True
         )
+        self.comment_out = comment_out['text']
+        return
 
     async def on_error(self, interaction: discord.Interaction, error):
-        log.error(f'Error when editing message: {error}')
+        logger.error(f'Error when editing message: {error}')
         await interaction.response.send_message(
             I18N.t(
                 'main.commands.say.modal.error_sending',
@@ -96,7 +114,7 @@ class EditModal(discord.ui.Modal):
         self.comment_in = comment_in
         self.comment_out = None
         self.error_out = None
-        log.verbose(f'self.comment_in is: {self.comment_in}')
+        logger.debug(f'self.comment_in is: {self.comment_in}')
 
         # Create elements
         comment_text = SayTextInput(
@@ -110,14 +128,37 @@ class EditModal(discord.ui.Modal):
         self.add_item(comment_text)
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.comment_out = self.children[0].value
-        await interaction.response.send_message(
-            I18N.t('main.context_menu.edit_msg.edit_confirm'),
-            ephemeral=True
+        comment_out = discord_commands.check_user_channel_role(
+            self.children[0].value
         )
+        logger.debug(f'Got `comment_out`: {comment_out}')
+        msg_out = I18N.t('main.context_menu.edit_msg.edit_confirm')
+        if len(comment_out['username_errors']) > 0:
+            msg_out += I18N.t(
+                'main.context_menu.edit_msg.edit_confirm_with_errors',
+                errors=', '.join(comment_out['username_errors'])
+            )
+        if len(comment_out['channel_errors']) > 0:
+            if len(msg_out) == 0:
+                msg_out += I18N.t(
+                    'main.context_menu.edit_msg.edit_confirm_with_errors',
+                    errors=', '.join(comment_out['channel_errors'])
+                )
+            else:
+                # TODO i18n
+                msg_out += '\nChannels: {}'.format(
+                    ', '.join(comment_out['channel_errors'])
+                )
+
+        self.comment_out = comment_out['text']
+
+        await interaction.response.send_message(
+            msg_out, ephemeral=True
+        )
+        return
 
     async def on_error(self, interaction: discord.Interaction, error):
-        log.error(f'Error when editing message: {error}')
+        logger.error(f'Error when editing message: {error}')
         self.error_out = error
         await interaction.response.send_message(
             I18N.t(
@@ -133,12 +174,25 @@ async def locales_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     locales = available_languages()
-    log.debug(f'locales: {locales}')
+    logger.debug(f'locales: {locales}')
     return [
         discord.app_commands.Choice(
             name=locale, value=locale
         )
         for locale in locales if current.lower() in locale.lower()
+    ][:25]
+
+
+async def timezones_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    logger.debug(f'p_timezones(): {p_timezones()}')
+    return [
+        discord.app_commands.Choice(
+            name=timezone, value=timezone
+        )
+        for timezone in p_timezones() if current.lower() in timezone.lower()
     ][:25]
 
 
@@ -148,22 +202,11 @@ async def on_ready():
     When the bot is ready, it will notify in the log.
     #autodoc skip#
     '''
-    # Create locale db if not exists
-    log.verbose('Checking locale db')
-    await db_helper.prep_table(
-        table_in=envs.locale_db_schema,
-        inserts=['en']
-    )
-    locale_db = await db_helper.get_output(
-        template_info=envs.locale_db_schema,
-        single=True
-    )
-    log.debug(f'Setting locale to `{locale_db}`')
-    I18N.set('locale', locale_db['locale'])
+    I18N.set('locale', config._LANG)
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
-            log.log(
+            logger.info(
                 I18N.t('main.msg.bot_connected',
                        bot=config.bot.user,
                        server=guild.name
@@ -171,17 +214,17 @@ async def on_ready():
             )
             break
 
-    log.verbose('Checking cog tasks db')
+    logger.debug('Checking cog tasks db')
     await db_helper.prep_table(
         envs.tasks_db_schema
     )
-    log.verbose('Deleting old json files')
+    logger.debug('Deleting old json files')
     if file_io.file_size(envs.cogs_status_file):
-        log.verbose('Found old json file')
+        logger.debug('Found old json file')
         file_io.remove_file(envs.cogs_status_file)
     await cogs.Cogs.load_and_clean_cogs_internal()
     if args.maintenance:
-        log.log('Maintenance mode activated', color='RED')
+        logger.info('Maintenance mode activated', color='RED')
         await config.bot.change_presence(
             status=discord.Status.dnd
         )
@@ -198,7 +241,9 @@ async def on_ready():
     # Make sure that the BOT_CHANNEL is present
     bot_channel = config.BOT_CHANNEL
     if bot_channel not in discord_commands.get_text_channel_list():
-        log.debug(f'Bot channel `{bot_channel}` does not exist, creating...')
+        logger.debug(
+            f'Bot channel `{bot_channel}` does not exist, creating...'
+        )
         guild = discord_commands.get_guild()
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(
@@ -224,7 +269,7 @@ sync_group = discord.app_commands.Group(
 )
 
 
-@commands.check_any(commands.is_owner())
+@commands.is_owner()
 @sync_group.command(
     name='global', description=locale_str(I18N.t('main.owner_only'))
 )
@@ -264,7 +309,7 @@ async def sync_dev(interaction: discord.Interaction):
     slash_cmds = []
     text_cmds = []
     for command in config.bot.tree.get_commands():
-        log.debug(f'Checking {command.name}')
+        logger.debug(f'Checking {command.name}')
         if isinstance(command, discord.app_commands.Command):
             slash_cmds.append(command.name)
         else:
@@ -298,7 +343,7 @@ async def synclocal(ctx):
             I18N.t('main.commands.synclocal.msg_starting')
         )
     )
-    # log.debug('Clearing commands...')
+    # logger.debug('Clearing commands...')
     # config.bot.tree.clear_commands(guild=None)
     # config.bot.tree.clear_commands(guild=ctx.guild)
     await _reply.edit(
@@ -306,18 +351,18 @@ async def synclocal(ctx):
             I18N.t('main.commands.synclocal.msg_cont_copy')
         )
     )
-    log.debug('Copying global commands...')
+    logger.debug('Copying global commands...')
     config.bot.tree.copy_global_to(guild=ctx.guild)
     for command in config.bot.tree.get_commands():
-        log.debug(f'Checking {command.name}')
-    log.debug('Syncing...')
+        logger.debug(f'Checking {command.name}')
+    logger.debug('Syncing...')
     await config.bot.tree.sync(guild=ctx.guild)
     await _reply.edit(
         content='✅✅ {}'.format(
             I18N.t('main.commands.synclocal.msg_confirm')
         )
     )
-    log.debug('Done')
+    logger.debug('Done')
 
 
 @commands.is_owner()
@@ -328,37 +373,35 @@ async def syncglobal(ctx):
             I18N.t('main.commands.syncglobal.msg_starting')
         )
     )
-    log.debug('Clearing commands...')
+    logger.debug('Clearing commands...')
     config.bot.tree.clear_commands(guild=None)
     for command in config.bot.tree.get_commands():
-        log.debug(f'Checking {command.name}')
-    log.debug('Syncing...')
+        logger.debug(f'Checking {command.name}')
+    logger.debug('Syncing...')
     await config.bot.tree.sync(guild=None)
     await _reply.edit(
         content='✅✅ {}'.format(
             I18N.t('main.commands.syncglobal.msg_confirm')
         )
     )
-    log.debug('Done')
+    logger.debug('Done')
 
 
 @commands.is_owner()
 @config.bot.command(name='clearglobals')
 async def clear_globals(ctx):
-    log.debug('Deleting global commands...')
+    logger.debug('Deleting global commands...')
     _reply = await ctx.reply(
         '💭 {}'.format(
-            'Deleting global commands...'
-            # I18N.t('main.commands.synclocal.msg_starting')
+            I18N.t('main.commands.clearglobals.msg_starting')
         )
     )
     config.bot.tree.clear_commands(guild=None)
     await config.bot.tree.sync(guild=None)
-    log.debug('Commands deleted')
+    logger.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            # I18N.t('main.commands.synclocal.msg_confirm')
-            'Global commands deleted'
+            I18N.t('main.commands.clearglobals.msg_confirm')
         )
     )
 
@@ -366,20 +409,18 @@ async def clear_globals(ctx):
 @commands.is_owner()
 @config.bot.command(name='clearlocals')
 async def clear_locals(ctx):
-    log.debug('Deleting local commands...')
+    logger.debug('Deleting local commands...')
     _reply = await ctx.reply(
         '💭 {}'.format(
-            'Deleting local commands...'
-            # I18N.t('main.commands.synclocal.msg_starting')
+            I18N.t('main.commands.clearlocals.msg_starting')
         )
     )
     config.bot.tree.clear_commands(guild=ctx.guild)
     await config.bot.tree.sync(guild=ctx.guild)
-    log.debug('Commands deleted')
+    logger.debug('Commands deleted')
     await _reply.edit(
         content='✅ {}'.format(
-            # I18N.t('main.commands.synclocal.msg_confirm')
-            'Local commands deleted'
+            I18N.t('main.commands.clearlocals.msg_confirm')
         )
     )
 
@@ -391,7 +432,7 @@ async def clear_locals(ctx):
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     version_in = file_io.read_json(envs.version_file)
-    log.debug(f'Got `version_in`: {version_in}')
+    logger.debug(f'Got `version_in`: {version_in}')
     await interaction.followup.send(
         'Branch: {}\n'
         'Last commit message: {}\n'
@@ -420,10 +461,7 @@ async def ping(interaction: discord.Interaction):
     )
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(manage_messages=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name='delete',
     description=locale_str(I18N.t('main.commands.delete.command'))
@@ -447,10 +485,7 @@ async def delete(interaction: discord.Interaction, amount: int):
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(kick_members=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name='kick',
     description=locale_str(I18N.t('main.commands.kick.command'))
@@ -489,10 +524,7 @@ async def kick(
         )
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(ban_members=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name='ban',
     description=locale_str(I18N.t('main.commands.ban.command'))
@@ -531,52 +563,35 @@ async def ban(
         )
 
 
-@commands.check_any(commands.is_owner())
+@commands.is_owner()
 @config.bot.tree.command(
     name='say', description=locale_str(I18N.t('main.commands.say.command'))
 )
 async def say(
     interaction: discord.Interaction, channel: discord.TextChannel,
-    message_id: str = None, mention: typing.Union[
-        discord.Member, discord.Role
-    ] = None
+    message_id: str = None
 ):
     reply_msg = None
-    log.debug(f'`channel` is {channel} ({type(channel)})')
-    if message_id and mention:
-        log.error('Can\'t use `message_id` and `mention` at the same time')
-        await interaction.response.send_message(
-            I18N.t('main.commands.say.modal.error_both_args'),
-            ephemeral=True
-        )
-        return
+    logger.debug(f'`channel` is {channel} ({type(channel)})')
     if message_id:
         reply_msg = await discord_commands.get_message_obj(
             msg_id=message_id, channel_name_or_id=channel.name
         )
-        log.debug(f'Got `reply_msg`: {reply_msg}')
+        logger.debug(f'Got `reply_msg`: {reply_msg}')
     modal_in = SayModal(
         title_in=I18N.t('main.commands.say.modal.title'),
-        channel=channel,
-        mention=mention
+        channel=channel
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
     if reply_msg:
         await reply_msg.reply(modal_in.comment_out)
     elif channel:
-        msg_out = ''
-        if mention:
-            msg_out = mention.mention
-        msg_out += modal_in.comment_out
-        await channel.send(msg_out)
+        await channel.send(modal_in.comment_out)
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(administrator=True)
-)
+@commands.is_owner()
 @config.bot.tree.command(
     name="tasks", description=locale_str(I18N.t('main.commands.tasks.command'))
 )
@@ -593,7 +608,7 @@ async def get_tasks_list(interaction: discord.Interaction):
             ('task', 'ASC')
         ]
     )
-    log.debug(f'Got this from `tasks_in_db`: {tasks_in_db}')
+    logger.debug(f'Got this from `tasks_in_db`: {tasks_in_db}')
     text_out = '```{}```'.format(
         tabulate(
             tasks_in_db, headers={
@@ -601,12 +616,12 @@ async def get_tasks_list(interaction: discord.Interaction):
             }
         )
     )
-    log.debug(f'Returning:\n{text_out}')
+    logger.debug(f'Returning:\n{text_out}')
     await interaction.followup.send(text_out, ephemeral=True)
     return
 
 
-@commands.check_any(commands.is_owner())
+@commands.is_owner()
 @config.bot.tree.command(
     name='language', description=locale_str(I18N.t('main.owner_only'))
 )
@@ -615,9 +630,9 @@ async def language(
     interaction: discord.Interaction, language: str
 ):
     await interaction.response.defer(ephemeral=True)
-    log.verbose(f'Setting language to {language}')
+    logger.debug(f'Setting language to {language}')
     await set_language(language)
-    log.verbose('Syncing commands')
+    logger.debug('Syncing commands')
     await config.bot.tree.sync()
     await interaction.followup.send(
         I18N.t(
@@ -628,17 +643,32 @@ async def language(
     return
 
 
-@commands.check_any(
-    commands.is_owner(),
-    commands.has_permissions(administrator=True)
+@commands.is_owner()
+@config.bot.tree.command(
+    name='timezone', description=locale_str(I18N.t('main.owner_only'))
 )
+@discord.app_commands.autocomplete(timezone=timezones_autocomplete)
+async def timezone(
+    interaction: discord.Interaction, timezone: str
+):
+    await interaction.response.defer(ephemeral=True)
+    logger.debug(f'Setting timezone to {timezone}')
+    config.timezone = p_timezone(timezone)
+    await interaction.followup.send(
+        # TODO i18n
+        'Set timezone to `{}`'.format(timezone),
+        ephemeral=True)
+    return
+
+
+@commands.is_owner()
 @config.bot.tree.context_menu(
     name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
 )
 async def edit_bot_say_msg(
     interaction: discord.Interaction, message: discord.Message
 ):
-    log.debug(
+    logger.debug(
         f'`message.author.id` {message.author.id} '
         f'({type(message.author.id)})) vs `config.bot.user.id` '
         f'{config.bot.user.id} ({type(config.bot.user.id)}))'
@@ -655,12 +685,20 @@ async def edit_bot_say_msg(
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
-    if modal_in.comment_out is not None:
-        await message.edit(content=modal_in.comment_out)
+    await message.edit(content=modal_in.comment_out)
     return
 
+
+# Create locale db if not exists
+logger.debug('Checking locale db')
+asyncio.run(
+    db_helper.prep_table(
+        table_in=envs.locale_db_schema,
+        inserts=envs.locale_db_schema['inserts']
+    )
+)
 
 try:
     config.bot.run(config.DISCORD_TOKEN)
 except Exception as _error:
-    log.error(f'Could not start bot: {_error}')
+    logger.error(f'Could not start bot: {_error}')
