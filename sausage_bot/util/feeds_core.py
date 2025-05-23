@@ -626,7 +626,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
     if log_in is None:
         logger.debug('Log is empty')
         return False
-    logger.debug(f'log_in is {log_in}')
+    logger.debug(f'log_in seems to be ok {len(log_in)}')
     link_hash = await get_page_hash(link)
     logger.debug(f'Link hash is `{link_hash}`')
     if link in [log_url['url'] for log_url in log_in]:
@@ -649,7 +649,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         return True
     if link_in_log and not hash_in_log:
         logger.debug('Link is in log, but hash has changed. Replacing...')
-        await replace_post(link, log_in, link_hash, channel)
+        await replace_post(link, log_in, link_hash, channel, uuid)
         logger.debug('Adding link to log')
         await log_link(
             log_env, uuid, link, link_hash
