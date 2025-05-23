@@ -77,7 +77,7 @@ async def get_page_hash(url, debug=False):
     desc = None
     soup = BeautifulSoup(req, features='html.parser')
     if desc is None:
-        log.debug('Trying yt check')
+        logger.debug('Trying yt check')
         try:
             _scripts = soup.find_all('script')
             for _script in _scripts:
@@ -91,7 +91,7 @@ async def get_page_hash(url, debug=False):
         except TypeError:
             pass
     if desc is None:
-        log.debug('Trying spotify check')
+        logger.debug('Trying spotify check')
         try:
             check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
             if check_if_spotify is not None:
@@ -101,7 +101,7 @@ async def get_page_hash(url, debug=False):
         except TypeError:
             pass
     if desc is None:
-        log.debug('Trying common html')
+        logger.debug('Trying common html')
         try:
             desc = soup.find('meta', attrs={'name': 'description'})
             if desc is not None:
