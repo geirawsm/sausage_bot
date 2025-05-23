@@ -83,8 +83,8 @@ class ColorFormatter(logging.Formatter):
     grey = "\x1b[90m"
     reset = "\x1b[0m"
 
-    format = "%(asctime)s | %(levelname)-5.5s | %(module)s:%(funcName)s:"\
-        "%(lineno)s - %(message)s"
+    format = "%(asctime)s | %(levelname)-5.5s | [ %(module)s : %(funcName)s : "\
+        "%(lineno)s ]\t%(message)s"
 
     FORMATS = {
         logging.DEBUG: white + format + reset,
@@ -130,8 +130,8 @@ def configure_logging(
             file_level if file_level is not None else logging.DEBUG
         )
         file_formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-5.5s | %(message)s  -  "
-            "%(module)s:%(funcName)s:%(lineno)s",
+            "%(asctime)s | %(levelname)-5.5s | "
+            "[ %(module)s : %(funcName)s : %(lineno)s ]\t%(message)s",
             "%Y-%m-%d %H:%M:%S"
         )
         file_handler.setFormatter(file_formatter)
