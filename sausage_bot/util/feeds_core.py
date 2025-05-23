@@ -462,9 +462,6 @@ async def get_feed_list(
     if list_type is None:
         feeds_out = await db_helper.get_output(
             template_info=db_in,
-            select=(
-                'feed_name', 'url', 'channel', 'playlist_id'
-            ),
             where=wheres_in,
             order_by=[
                 ('feed_name', 'ASC')
