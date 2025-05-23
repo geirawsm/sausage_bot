@@ -114,8 +114,11 @@ async def get_link(url=None, mock_file=None, status_out=None):
         return content_out
 
 
-async def check_spotify_podcast(url):
+async def check_spotify_podcast(url, mock_file=None):
     logger.debug('Checking podcast...')
+    if mock_file:
+        logger.debug('Found mock file, returning it')
+        return file_io.read_file(mock_file)
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         logger.error(_spotipy_error)
