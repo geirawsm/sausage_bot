@@ -76,39 +76,66 @@ async def get_page_hash(url, debug=False):
         return None
     desc = None
     soup = BeautifulSoup(req, features='html.parser')
-    if debug:
-        file_io.write_file(
-            envs.LOG_DIR / 'HTTP_files' / f'{datetime_handling.get_dt(format="revdatetimefull", sep="-")}.html',
-            soup
-        )
-        return
-    print('prøver yt')
-    _scripts = soup.find_all('script')
-    for _script in _scripts:
-        if 'var ytInitialData =' in _script.text:
-            _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
-            _script = json.loads(_script)
-            try:
-                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
-            except KeyError:
-                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']['runs'][0]['text']
     if desc is None:
-        print('prøver vanlig')
+        log.debug('Trying yt check')
+        try:
+            _scripts = soup.find_all('script')
+            for _script in _scripts:
+                if 'var ytInitialData =' in _script.text:
+                    _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
+                    _script = json.loads(_script)
+                    try:
+                        desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
+                    except KeyError:
+                        desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']['runs'][0]['text']
+        except TypeError:
+            pass
+    if desc is None:
+        log.debug('Trying spotify check')
+        try:
+            check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
+            if check_if_spotify is not None:
+                desc = soup.find('meta', attrs={'name': 'description'})['content']
+                desc = re.search(r'.*Listen to this episode from .* on Spotify. (.*)', desc).group(1)
+                desc = re.sub(r'\b\.\b', '\n', desc)
+        except TypeError:
+            pass
+    if desc is None:
+        log.debug('Trying common html')
         try:
             desc = soup.find('meta', attrs={'name': 'description'})
+            if desc is not None:
+                desc = desc['content']
             if desc is None:
                 logger.info(
                     f'Error when trying to hash description in {url},'
                     'trying to find an article tag instead'
                 )
                 desc = soup.find('article').text
+            if debug:
+                file_io.write_file(
+                    envs.LOG_DIR / 'HTTP_files' / f'{datetime_handling.get_dt(format="revdatetimefull", sep="-")}.html',
+                    soup
+                )
+                return
             logger.debug(f'Got this description: {desc[0:200]}')
         except Exception as e:
             logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
-    if desc is not None:
-        hash = md5(str(desc).encode('utf-8')).hexdigest()
-    else:
+    if debug:
+        file_io.write_file(
+            envs.LOG_DIR / 'HTTP_files' /
+            '{}.html'.format(
+                datetime_handling.get_dt(
+                    format="revdatetimefull", sep="-"
+                )
+            ),
+            soup
+        )
+    if desc is None:
         hash = desc
+        logger.debug(f'Using desc: {desc[0:200]}')
+    elif desc is not None:
+        hash = md5(str(desc).encode('utf-8')).hexdigest()
     logger.debug(f'Got `hash`: {hash}')
     return hash
 
