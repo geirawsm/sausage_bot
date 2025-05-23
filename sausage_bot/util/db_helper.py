@@ -210,7 +210,7 @@ async def db_fix_old_hide_roles_status():
         where=('setting', 'hide_roles')
     )
     if len(old_hide_roles) > 0:
-        log.verbose('Moving hide_roles from settings tale to hide_roles')
+        logger.info('Moving hide_roles from settings tale to hide_roles')
         await prep_table(
             table_in=envs.stats_db_hide_roles_schema
         )

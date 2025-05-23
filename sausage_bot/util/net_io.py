@@ -64,7 +64,7 @@ async def get_link(url=None, mock_file=None, status_out=None):
     content_out = None
     url_status = 0
     if type(url) is not str or url == '':
-        logger.error('Input `{url}`is not a proper URL. Check spelling.')
+        logger.error(f'Input `{url}`is not a proper URL. Check spelling.')
         return None
     if re.search(r'^http(s)?\:', url):
         logger.debug('Found scheme in url')
