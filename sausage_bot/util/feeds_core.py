@@ -76,7 +76,7 @@ async def get_page_hash(url):
         return None
     desc = None
     try:
-        soup = BeautifulSoup(req, features='xml')
+        soup = BeautifulSoup(req, features='html.parser')
         desc = soup.find('meta', attrs={'name': 'description'})
     except Exception as e:
         logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
