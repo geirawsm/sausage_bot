@@ -444,6 +444,10 @@ async def get_feed_list(
                 ('feed_name', 'ASC')
             ]
         )
+        # Return None if empty db
+        if feeds_out is None:
+            logger.info('No feeds in database')
+            return None
         for feed in feeds_out:
             feed['channel'] = _guild.get_channel(
                 int(feed['channel'])
@@ -457,10 +461,6 @@ async def get_feed_list(
                     'common.playlist'
                 )
         logger.debug(f'`feeds_out` is {feeds_out}')
-        # Return None if empty db
-        if feeds_out is None:
-            logger.info('No feeds in database')
-            return None
         headers = {
             'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
             'url': I18N.t('feeds_core.list_headers.url'),
