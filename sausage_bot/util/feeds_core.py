@@ -68,51 +68,43 @@ async def check_feed_validity(url_in, mock_file=None):
         return False
 
 
-async def get_page_hash(url):
+async def get_page_hash(url, debug=False):
     'Get hash of page at `url`'
     req = await net_io.get_link(url)
     if req is None:
         logger.error('Could not get link')
         return None
     desc = None
-    try:
-        soup = BeautifulSoup(req, features='html.parser')
-        desc = soup.find('meta', attrs={'name': 'description'})
-        if desc is None:
-            logger.info(
-                f'Error when trying to hash description in {url},'
-                'trying to find an article tag instead'
-            )
-            desc = soup.find('article').text
-        logger.debug(f'Got this description: {desc[0:200]}')
-    except Exception as e:
-        logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
-    try:
-        soup = BeautifulSoup(req, features='html.parser')
-        _scripts = soup.find_all('script')
-        for _script in _scripts:
-            if 'var ytInitialData =' in _script.text:
-                _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
-                _script = json.loads(_script)
-                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
-    except Exception as e:
-        logger.error(f'Error when trying to hash YT-desc {url}: {e}')
-        soup = BeautifulSoup(req, features='html.parser')
-        _scripts = soup.find_all('script')
-        for _script in _scripts:
-            if 'var ytInitialData =' in _script.text:
-                _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
-                _script = json.loads(_script)
-                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']['runs'][0]['text']
-        _file_date = datetime_handling.get_dt(
-            format='revdatetimefull', sep='_'
-        )
-        error_out = f'{url}: {e}\n\n'
-        error_out += str(_scripts)
+    soup = BeautifulSoup(req, features='html.parser')
+    if debug:
         file_io.write_file(
-            envs.LOG_DIR / 'YT_ERRORS' / f'{_file_date}.html',
-            error_out
+            envs.LOG_DIR / 'HTTP_files' / f'{datetime_handling.get_dt(format="revdatetimefull", sep="-")}.html',
+            soup
         )
+        return
+    print('prøver yt')
+    _scripts = soup.find_all('script')
+    for _script in _scripts:
+        if 'var ytInitialData =' in _script.text:
+            _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
+            _script = json.loads(_script)
+            try:
+                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
+            except KeyError:
+                desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']['runs'][0]['text']
+    if desc is None:
+        print('prøver vanlig')
+        try:
+            desc = soup.find('meta', attrs={'name': 'description'})
+            if desc is None:
+                logger.info(
+                    f'Error when trying to hash description in {url},'
+                    'trying to find an article tag instead'
+                )
+                desc = soup.find('article').text
+            logger.debug(f'Got this description: {desc[0:200]}')
+        except Exception as e:
+            logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
     if desc is not None:
         hash = md5(str(desc).encode('utf-8')).hexdigest()
     else:
