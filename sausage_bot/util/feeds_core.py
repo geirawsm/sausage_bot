@@ -459,10 +459,15 @@ async def get_feed_list(
         wheres_in = [('playlist_id', 'IS NOT', 'None')]
     else:
         wheres_in = None
+    if link_type is None:
+        selects = ('feed_name', 'url', 'channel')
+    else:
+        selects = ('feed_name', 'url', 'channel', 'playlist_id')
     if list_type is None:
         feeds_out = await db_helper.get_output(
             template_info=db_in,
             where=wheres_in,
+            select=selects,
             order_by=[
                 ('feed_name', 'ASC')
             ]
@@ -475,14 +480,15 @@ async def get_feed_list(
             feed['channel'] = _guild.get_channel(
                 int(feed['channel'])
             ).name
-            if feed['playlist_id'] is None:
-                feed['playlist_id'] = I18N.t(
-                    'common.channel'
-                )
-            else:
-                feed['playlist_id'] = I18N.t(
-                    'common.playlist'
-                )
+            if 'playlist_id' in feed:
+                if feed['playlist_id'] is None:
+                    feed['playlist_id'] = I18N.t(
+                        'common.channel'
+                    )
+                else:
+                    feed['playlist_id'] = I18N.t(
+                        'common.playlist'
+                    )
         logger.debug(f'`feeds_out` is {feeds_out}')
         headers = {
             'feed_name': I18N.t('feeds_core.list_headers.feed_name'),
