@@ -1021,13 +1021,15 @@ async def setup(bot):
         quote_inserts = await db_helper.json_to_db_inserts(cog_name)
 
     quote_prep_is_ok = await db_helper.prep_table(
-        envs.quote_db_schema, quote_inserts
+        table_in=envs.quote_db_schema,
+        inserts=quote_inserts
     )
     await db_helper.prep_table(
-        envs.quote_db_log_schema
+        table_in=envs.quote_db_log_schema
     )
     await db_helper.prep_table(
-        envs.quote_db_settings_schema
+        table_in=envs.quote_db_settings_schema,
+        inserts=envs.quote_db_settings_schema['inserts']
     )
 
     # Delete old json files if they exist
