@@ -183,10 +183,14 @@ quote_db_settings_schema = {
         ['value', 'TEXT']
     ],
     'inserts': [
-        ['channel', 'quotes']
+        ['channel', 'quotes'],
+        ['autopost_prefix', 'Dagens sitat!'],
+        ['autopost_tag_role', ''],
     ],
     'type_checking': {
-        'channel': 'int'
+        'channel': 'int',
+        'autopost_prefix': 'str',
+        'autopost_tag_role': 'role_id'
     },
 }
 

@@ -340,6 +340,54 @@ async def log_to_bot_channel(content_in=None):
     return msg_out
 
 
+def get_user_channel_role_id(id_in):
+    if re.match(r'\d{19,22}', id_in):
+        object_out = None
+        _guild = get_guild()
+        # Try user
+        object_out = get(
+            _guild.members,
+            id=int(id_in)
+        )
+        if object_out is None:
+            # Try role
+            object_out = get(
+                _guild.roles,
+                id=int(id_in)
+            )
+        if object_out is None:
+            # Try channel
+            object_out = get(
+                _guild.channels,
+                id=int(id_in)
+            )
+        return object_out
+
+
+def get_user_channel_role_name(name_in):
+    if isinstance(name_in, str):
+        object_out = None
+        _guild = get_guild()
+        # Try user
+        object_out = get(
+            _guild.members,
+            name=name_in
+        )
+        if object_out is None:
+            # Try role
+            object_out = get(
+                _guild.roles,
+                name=name_in
+            )
+        if object_out is None:
+            # Try channel
+            object_out = get(
+                _guild.channels,
+                name=name_in
+            )
+        return object_out
+
+
 def check_user_channel_role(text_in):
     def check_discord_username(username_in):
         if isinstance(username_in, re.Match):
