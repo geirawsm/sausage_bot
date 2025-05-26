@@ -675,8 +675,7 @@ class RSSfeed(commands.Cog):
 
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no') or\
-                public is None:
+        else:
             _ephemeral = True
         status_out = ''
         await interaction.response.defer(ephemeral=_ephemeral)

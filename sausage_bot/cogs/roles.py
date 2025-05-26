@@ -888,8 +888,7 @@ class Autoroles(commands.Cog):
         '''
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no') or\
-                public is None:
+        else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         embed = discord.Embed(color=role_in.color)
@@ -1061,8 +1060,7 @@ class Autoroles(commands.Cog):
 
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no') or\
-                public is None:
+        else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         if type == I18N.t('common.roles'):
@@ -1102,8 +1100,7 @@ class Autoroles(commands.Cog):
     ):
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no') or\
-                public is None:
+        else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         if not color:
@@ -1450,8 +1447,7 @@ class Autoroles(commands.Cog):
         'Get info about a specific emoji'
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no') or\
-                public is None:
+        else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         _guild = discord_commands.get_guild()

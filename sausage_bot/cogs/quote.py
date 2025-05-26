@@ -476,8 +476,7 @@ class Quotes(commands.Cog):
         '''
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no') or\
-                public is None:
+        else:
             _ephemeral = True
         else:
             _ephemeral = False
@@ -505,7 +504,7 @@ class Quotes(commands.Cog):
         'Add a quote'
         if public == I18N.t('common.literal_yes_no.yes'):
             _ephemeral = False
-        elif public == I18N.t('common.literal_yes_no.no'):
+        else:
             _ephemeral = True
         # Get available row id
         _row_ids = await db_helper.get_row_ids(
