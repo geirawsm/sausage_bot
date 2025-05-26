@@ -478,8 +478,6 @@ class Quotes(commands.Cog):
             _ephemeral = False
         else:
             _ephemeral = True
-        else:
-            _ephemeral = False
         await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
