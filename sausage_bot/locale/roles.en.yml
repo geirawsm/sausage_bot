@@ -60,10 +60,6 @@ en:
         public: Make the reply public
         type: Type of list
         sort: Sorting method
-      literal:
-        sort:
-          name: By name
-          id: By ID
     add_role:
       cmd: Add a role
       desc:

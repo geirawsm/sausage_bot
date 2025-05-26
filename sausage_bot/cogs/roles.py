@@ -991,11 +991,12 @@ class Autoroles(commands.Cog):
                 'members': [],
                 'managed': []
             }
-            if sort == I18N.t('roles.commands.list.literal.sort.name'):
+            logger.debug(f'sort is `{sort}`')
+            if sort == I18N.t('common.name'):
                 _roles = tuple(sorted(
                     _guild.roles, key=lambda role: role.name.lower()
                 ))
-            elif sort == I18N.t('roles.commands.list.literal.sort.id'):
+            elif sort == I18N.t('common.id'):
                 _roles = tuple(sorted(
                     _guild.roles, key=lambda role: role.id
                 ))

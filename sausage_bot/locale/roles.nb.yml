@@ -60,10 +60,6 @@ nb:
         public: Gjør svaret offentlig
         type: Listetype
         sort: Sorteringsmetode
-      literal:
-        sort:
-          name: Etter navn
-          id: Etter ID
     add_role:
       cmd: Legg til en rolle
       desc:
