@@ -81,6 +81,49 @@ def channel_exist(channel_in):
     return channel_in in all_channels
 
 
+async def create_missing_channel(
+    channel, channel_name, topic=None, overwrites=None
+):
+    logger.debug('Checking if channel {channel exists')
+    missing = None
+    _guild = get_guild()
+    if re.match(r'\d{19,22}', channel):
+        if get(_guild.text_channels, id=int(channel)) is None:
+            missing = True
+            logger.info(f'Could not find channel with id {channel}')
+    else:
+        if get(_guild.text_channels, name=str(channel)) is None:
+            missing = True
+            logger.info(f'Could not find channel with name {channel}')
+    if not missing:
+        return
+    if missing:
+        overwrites = {
+            _guild.default_role: discord.PermissionOverwrite(
+                send_messages=False,
+                read_messages=True,
+                send_tts_messages=False,
+                use_external_emojis=True,
+                send_messages_in_threads=False,
+                use_external_stickers=True,
+                create_polls=False
+            ),
+            _guild.me: discord.PermissionOverwrite(
+                send_messages=True,
+                read_messages=True
+            )
+        }
+        channel_obj = await _guild.create_text_channel(
+            name=channel_name,
+            topic=topic,
+            overwrites=overwrites
+        )
+        return channel_obj
+    else:
+        logger.error('Something unexpected went wrong in this function')
+        return missing
+
+
 def get_voice_channel_list():
     '''
     Get a dict of all voice channels and their ID's
@@ -295,6 +338,54 @@ async def log_to_bot_channel(content_in=None):
         content=content_in
     )
     return msg_out
+
+
+def get_user_channel_role_id(id_in):
+    if re.match(r'\d{19,22}', id_in):
+        object_out = None
+        _guild = get_guild()
+        # Try user
+        object_out = get(
+            _guild.members,
+            id=int(id_in)
+        )
+        if object_out is None:
+            # Try role
+            object_out = get(
+                _guild.roles,
+                id=int(id_in)
+            )
+        if object_out is None:
+            # Try channel
+            object_out = get(
+                _guild.channels,
+                id=int(id_in)
+            )
+        return object_out
+
+
+def get_user_channel_role_name(name_in):
+    if isinstance(name_in, str):
+        object_out = None
+        _guild = get_guild()
+        # Try user
+        object_out = get(
+            _guild.members,
+            name=name_in
+        )
+        if object_out is None:
+            # Try role
+            object_out = get(
+                _guild.roles,
+                name=name_in
+            )
+        if object_out is None:
+            # Try channel
+            object_out = get(
+                _guild.channels,
+                name=name_in
+            )
+        return object_out
 
 
 def check_user_channel_role(text_in):

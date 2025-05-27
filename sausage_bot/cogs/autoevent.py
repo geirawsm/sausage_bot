@@ -127,7 +127,7 @@ class AutoEvent(commands.Cog):
                     image_in = await event_image.read()
                 else:
                     autoevent_img = envs.STATIC_DIR / config.env.str(
-                        'AUTOEVENT_EVENT_IMAGE', default=None
+                        'AUTOEVENT_EVENT_IMAGE', default='autoevent_img.png'
                     )
                     with open(autoevent_img, 'rb') as f:
                         image_in = f.read()

@@ -375,6 +375,7 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
             logger.error('Unexpected error')
             reactions_copy.pop(reactions_copy.index(reaction_msg))
     changes = {channel_col: []}
+    logger.debug('Reactions to copy: {}'.format(reactions_copy))
     for reaction in reactions_copy:
         changes[channel_col].append(
             (
@@ -383,11 +384,13 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
                 reaction['channel_new']
             )
         )
-    # Replace channel names with channel id in db
-    await update_fields(
-        template_info=template_info,
-        updates=changes
-    )
+    logger.debug('Changes: {}'.format(changes))
+    if len(changes[channel_col]) > 0:
+        # Replace channel names with channel id in db
+        await update_fields(
+            template_info=template_info,
+            updates=changes
+        )
     return
 
 
