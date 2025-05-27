@@ -228,16 +228,6 @@ async def on_ready():
         await config.bot.change_presence(
             status=discord.Status.dnd
         )
-    else:
-        await config.bot.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.watching,
-                name=config.env(
-                    'BOT_WATCHING',
-                    default=I18N.t('main.msg.bot_watching')
-                )
-            )
-        )
     # Make sure that the BOT_CHANNEL is present
     bot_channel = config.BOT_CHANNEL
     if bot_channel not in discord_commands.get_text_channel_list():
@@ -634,6 +624,15 @@ async def language(
     await set_language(language)
     logger.debug('Syncing commands')
     await config.bot.tree.sync()
+    await config.bot.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.watching,
+            name=config.env(
+                'BOT_WATCHING',
+                default=I18N.t('main.msg.bot_watching')
+            )
+        )
+    )
     await interaction.followup.send(
         I18N.t(
             'main.commands.language.confirm_language_set',
