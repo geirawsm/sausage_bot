@@ -459,7 +459,7 @@ def tabulate_roles(dict_in):
         content['members']['header'],
         content['members']['length'],
         content['managed']['header'],
-        content['managed']['length'],
+        content['managed']['length']
     )
     paginated = []
     temp_out = header
@@ -893,6 +893,7 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=_ephemeral)
         embed = discord.Embed(color=role_in.color)
         embed.set_thumbnail(url=role_in.icon)
+        embed.add_field(name="Role name", value=role_in.name, inline=True)
         embed.add_field(name="ID", value=role_in.id, inline=True)
         embed.add_field(
             name=I18N.t('common.color'),
@@ -931,7 +932,7 @@ class Autoroles(commands.Cog):
                 inline=True
             )
         embed.add_field(
-            name=I18N.t('common.name'),
+            name=I18N.t('roles.embed.hoist.name'),
             value=I18N.t(
                 'common.literal_yes_no.yes'
             ) if role_in.hoist else I18N.t(
@@ -950,6 +951,11 @@ class Autoroles(commands.Cog):
         embed.add_field(
             name=I18N.t('roles.embed.permissions'),
             value=permissions if permissions else I18N.t('common.none'),
+            inline=False
+        )
+        embed.add_field(
+            name=I18N.t('roles.embed.position'),
+            value=role_in.position,
             inline=False
         )
         await interaction.followup.send(

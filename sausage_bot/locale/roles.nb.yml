@@ -16,6 +16,7 @@ nb:
     id: ID
     members: Medlemmer
     managed: Auto-håndtert?
+    position: Pos.
   tabulate_emojis_and_roles:
     emoji_name: Emoji
     emoji_id: Emoji ID
@@ -226,6 +227,7 @@ nb:
     permissions: Tillatelser
     roles_attached: Tilknyttede roller
     created: Laget
+    position: Posisjon
   modals:
     reaction_edit:
       modal_title: Endre reaksjonsmelding

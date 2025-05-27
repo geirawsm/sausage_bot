@@ -16,6 +16,7 @@ en:
     id: ID
     members: Members
     managed: Auto-managed?
+    position: Pos.
   tabulate_emojis_and_roles:
     emoji_name: Emoji
     emoji_id: Emoji ID
@@ -226,6 +227,7 @@ en:
     permissions: Permissions
     roles_attached: Roles attached
     created: Created
+    position: Position
   modals:
     reaction_edit:
       modal_title: Edit reaction message
