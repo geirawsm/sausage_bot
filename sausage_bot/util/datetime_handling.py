@@ -6,10 +6,7 @@ import re
 import datetime
 import asyncio
 import aiosqlite
-import asyncio
-import aiosqlite
 
-from sausage_bot.util import config, envs, file_io
 from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.i18n import I18N
 
@@ -20,7 +17,6 @@ tz = config.timezone
 locale = config.locale
 
 
-async def make_dt(date_in):
 async def make_dt(date_in):
     '''
     Make a datetime-object from string input
@@ -171,7 +167,6 @@ async def make_dt(date_in):
 
 
 async def get_dt(format='epoch', sep='.', dt=False):
-async def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
 
@@ -320,6 +315,7 @@ def change_dt(
         return eval(f'p.add({unit}={count})')
     elif change == 'remove':
         return eval(f'p.subtract({unit}={count})')
+
 
 async def main():
     print(await make_dt('17.05.22'))
