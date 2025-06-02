@@ -172,9 +172,9 @@ class QuoteAddModal(discord.ui.Modal):
         self.quote_out['row_id'] = self.children[0].value
         self.quote_out['quote_text'] = self.children[1].value
         if self.children[2].value == '':
-            self.quote_out['datetime'] = str(get_dt(format='ISO8601'))
+            self.quote_out['datetime'] = str(await get_dt(format='ISO8601'))
         else:
-            self.quote_out['datetime'] = get_dt(
+            self.quote_out['datetime'] = await get_dt(
                 format='ISO8601', dt=self.children[2].value
             )
 
@@ -185,7 +185,7 @@ class QuoteAddModal(discord.ui.Modal):
                 [I18N.t('quote.tab_headers.quote'),
                  self.quote_out['quote_text']],
                 [I18N.t('quote.tab_headers.quote_date'),
-                 get_dt(
+                 await get_dt(
                      format='datetime', dt=self.quote_out['datetime']
                 )]
             ], tablefmt='plain'
@@ -382,7 +382,7 @@ async def post_random_quote(interaction, _ephemeral):
     # Post quote
     quote_number = random_quote[0][0]
     quote_text = random_quote[0][2]
-    quote_date = get_dt(
+    quote_date = await get_dt(
         format='datetextfull',
         dt=random_quote[0][3]
     )
@@ -408,7 +408,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
     logger.debug(f'quote_out: {quote_out}')
     if quote_out:
         quote_text = quote_out[0]['quote_text']
-        quote_date = get_dt(
+        quote_date = await get_dt(
             format='datetextfull',
             dt=quote_out[0]['datetime']
         )
@@ -439,6 +439,13 @@ class Quotes(commands.Cog):
         name="quote", description=locale_str(
             I18N.t('quote.commands.quote.cmd')
         )
+    )
+
+    server_group = discord.app_commands.Group(
+        name="server_update", description=locale_str(
+            I18N.t('quote.commands.server_update.cmd')
+        ),
+        parent=group
     )
 
     autopost_group = discord.app_commands.Group(
@@ -581,7 +588,7 @@ class Quotes(commands.Cog):
                 ],
                 updates=[
                     ('quote_text', modal_in.quote_out['quote_text']),
-                    ('datetime', get_dt(
+                    ('datetime', await get_dt(
                         format='ISO8601',
                         dt=modal_in.quote_out['datetime']
                     ))
@@ -622,7 +629,7 @@ class Quotes(commands.Cog):
             [
                 [I18N.t('quote.tab_headers.quote_num'), quote['rowid']],
                 [I18N.t('quote.tab_headers.quote'), quote['quote_text']],
-                [I18N.t('quote.tab_headers.quote_date'), get_dt(
+                [I18N.t('quote.tab_headers.quote_date'), await get_dt(
                     format='datetime',
                     dt=quote['datetime']
                 )]
@@ -758,7 +765,7 @@ class Quotes(commands.Cog):
         temp_out = []
         for quote in quote_in:
             temp_out.append(
-                (quote[0], quote[1], get_dt(format='datetime', dt=quote[2]))
+                (quote[0], quote[1], await get_dt(format='datetime', dt=quote[2]))
             )
         logger.debug(f'`temp_out` is {temp_out}')
         paginated = []
@@ -1027,6 +1034,66 @@ class Quotes(commands.Cog):
             )
         return
 
+    @server_group.command(
+        name='start',
+        description=locale_str(I18N.t('quote.commands.refresh_quote.start.cmd'))
+    )
+    async def refresh_quote_json_start(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        logger.info('Starting quote refreshing for the webserver')
+        Quotes.task_update_quote.start()
+        await db_helper.update_fields(
+            template_info=envs.tasks_db_schema,
+            where=[
+                ('cog', 'quotes'),
+                ('task', 'server_quote')
+            ],
+            updates=('status', 'started')
+        )
+        await interaction.followup.send(
+            I18N.t('quote.commands.refresh_quote.start.msg_confirm_ok')
+        )
+
+    @server_group.command(
+        name='stop',
+        description=locale_str(I18N.t('quote.commands.refresh_quote.stop.cmd'))
+    )
+    async def refresh_quote_json_stop(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        logger.info('Stopping quote refreshing for the webserver')
+        Quotes.task_update_quote.cancel()
+        await db_helper.update_fields(
+            template_info=envs.tasks_db_schema,
+            where=[
+                ('cog', 'quotes'),
+                ('task', 'server_quote'),
+            ],
+            updates=('status', 'stopped')
+        )
+        await interaction.followup.send(
+            I18N.t('quote.commands.refresh_quote.stop.msg_confirm_ok')
+        )
+
+    @server_group.command(
+        name='restart',
+        description=locale_str(I18N.t(
+            'quote.commands.refresh_quote.restart.cmd'
+        ))
+    )
+    async def refresh_quote_json_restart(
+        self, interaction: discord.Interaction
+    ):
+        await interaction.response.defer(ephemeral=True)
+        logger.info('Quotes server restarted')
+        Quotes.task_update_quote.restart()
+        await interaction.followup.send(
+            I18N.t('quote.commands.refresh_quote.restart.msg_confirm_ok')
+        )
+
     @autopost_group.command(
         name='start',
         description=locale_str(I18N.t('quote.commands.autopost.start.cmd'))
@@ -1084,6 +1151,57 @@ class Quotes(commands.Cog):
         await interaction.followup.send(
             I18N.t('quote.commands.autopost.restart.msg_confirm_ok')
         )
+
+    # Tasks
+    @tasks.loop(
+        minutes=config.env.int('QUOTE_LOOP', default=2)
+    )
+    async def task_update_quote():
+        '''
+        Update quotes.json which is used by the web server
+        '''
+        quote_file = envs.quotes_json_file
+        quote_file_exist = file_io.file_exist(quote_file)
+        if quote_file_exist is True:
+            quote_file_in = file_io.read_json(quote_file)
+            logger.debug('quote_file_in: {}'.format(quote_file_in))
+            # Read json, check timestamp
+            _now = await get_dt(format='epoch')
+            logger.debug('_now: {}'.format(_now))
+            # If older than 2m
+            logger.debug('timestamp + 120: {}'.format(
+                int(quote_file_in['timestamp']) + 120
+            ))
+            # If newer than 2m
+            if _now > (int(quote_file_in['timestamp']) + 120):
+                # Reload from database
+                rand_quote = await db_helper.get_one_random_output(
+                    template_info=envs.quote_db_schema,
+                )
+                # Write to quote.json
+                quote_file_in["quote"] = rand_quote
+                quote_file_in["timestamp"] = await get_dt(
+                    format='epoch'
+                )
+                file_io.write_json(quote_file, quote_file_in)
+                return
+            else:
+                logger.debug('quote_file is newer than 2 minutes')
+                return
+        elif quote_file_exist is False:
+            logger.debug('quote_file does not exist')
+            # Get quote from database
+            rand_quote = await db_helper.get_one_random_output(
+                template_info=envs.quote_db_schema,
+            )
+            quote_to_file = envs.quote_json_template.copy()
+            # Add quote and timestamp to quote_to_file
+            quote_to_file["quote"] = rand_quote[0]
+            quote_to_file["timestamp"] = await get_dt(format='epoch')
+            logger.debug('Populated quote_to_file: {}'.format(quote_to_file))
+            # Write to quote.json
+            file_io.write_json(quote_file, quote_to_file)
+            return
 
     @tasks.loop(
         hours=config.env.int('QUOTE_POST_LOOP', default=72)
@@ -1154,7 +1272,7 @@ class Quotes(commands.Cog):
         quote_out = prettify(
             rand_quote[0][0],
             rand_quote[0][2],
-            get_dt(
+            await get_dt(
                 format='datetextfull',
                 dt=rand_quote[0][3]
             )
@@ -1220,6 +1338,7 @@ async def setup(bot):
         select=('task', 'status'),
         where=('cog', 'quotes')
     )
+    #_tasks = ['server_quote', 'autopost']
     _tasks = ['autopost']
     inserts = []
     for task in _tasks:
@@ -1231,6 +1350,21 @@ async def setup(bot):
             inserts=inserts
         )
     for task in task_list:
+        if task['task'] == 'server_quote':
+            if task['status'] == 'started':
+                logger.debug(
+                    '`{}` is set as `{}`, starting...'.format(
+                        task['task'], task['status']
+                    )
+                )
+                Quotes.task_update_quote.start()
+            elif task['status'] == 'stopped':
+                logger.debug(
+                    '`{}` is set as `{}`'.format(
+                        task['task'], task['status']
+                    )
+                )
+                Quotes.task_update_quote.cancel()
         if task['task'] == 'autopost':
             if task['status'] == 'started':
                 logger.debug(

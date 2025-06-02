@@ -89,7 +89,7 @@ async def get_link(url=None, mock_file=None, status_out=None):
                 file_io.ensure_folder(envs.TEMP_DIR / 'HTTP_errors')
                 file_io.write_file(
                     envs.LOG_DIR / 'HTTP_errors' / '{}.log'.format(
-                        datetime_handling.get_dt(
+                        await datetime_handling.get_dt(
                             format='revdatetimefull',
                             sep='-'
                         )
@@ -343,7 +343,7 @@ def filter_links(items):
     return links_out
 
 
-def make_event_start_stop(date, time=None):
+async def make_event_start_stop(date, time=None):
     '''
     Make datetime objects for the event based on the start date and time.
     The event will start 30 minutes prior to the match, and it will end 2
@@ -356,17 +356,17 @@ def make_event_start_stop(date, time=None):
     try:
         # Make the original startdate an object
         if time is None:
-            start_dt = datetime_handling.make_dt(date)
+            start_dt = await datetime_handling.make_dt(date)
         else:
-            start_dt = datetime_handling.make_dt(f'{date} {time}')
+            start_dt = await datetime_handling.make_dt(f'{date} {time}')
         logger.debug(f'`start_dt` is {start_dt}')
     except Exception as e:
         logger.error(f'Got an error: {e}')
         return None
     try:
-        start_date = datetime_handling.get_dt('date', dt=start_dt)
+        start_date = await datetime_handling.get_dt('date', dt=start_dt)
         logger.debug(f'Making `start_date` {start_date}')
-        start_time = datetime_handling.get_dt(
+        start_time = await datetime_handling.get_dt(
             'time', sep=':', dt=start_dt
         )
         logger.debug(f'Making `start_time` {start_time}')
@@ -383,10 +383,10 @@ def make_event_start_stop(date, time=None):
         )
         logger.debug(f'`end_dt` is {end_dt}')
         # Make the epochs that the event will use
-        event_start_epoch = datetime_handling.get_dt(dt=start_event)
-        event_end_epoch = datetime_handling.get_dt(dt=end_dt)
+        event_start_epoch = await datetime_handling.get_dt(dt=start_event)
+        event_end_epoch = await datetime_handling.get_dt(dt=end_dt)
         # Make a relative start object for the game
-        start_epoch = datetime_handling.get_dt(dt=start_dt)
+        start_epoch = await datetime_handling.get_dt(dt=start_dt)
         rel_start = discord.utils.format_dt(
             datetime.fromtimestamp(start_epoch),
             'R'
@@ -498,8 +498,8 @@ async def parse_nifs(url_in=None, mock_in=None):
             mock_file=mock_in
         )
     date_in = match_json['timestamp']
-    _date_obj = datetime_handling.make_dt(date_in)
-    dt_in = make_event_start_stop(_date_obj)
+    _date_obj = await datetime_handling.make_dt(date_in)
+    dt_in = await make_event_start_stop(_date_obj)
     if dt_in is None:
         return None
     if 'tvChannels' in match_json:
@@ -576,8 +576,9 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
         tv = None
     logger.debug(f'Got `tv`: {tv}')
     date_in = match_json['event']['startDate']
-    _date_obj = datetime_handling.make_dt(date_in)
-    dt_in = make_event_start_stop(_date_obj)
+    _date_obj = await datetime_handling.make_dt(date_in)
+    logger.debug(f'`_date_obj` is {_date_obj}')
+    dt_in = await make_event_start_stop(_date_obj)
     if dt_in is None:
         logger.error('`dt_in` is None')
         return None
@@ -631,8 +632,8 @@ async def parse_tv2livesport(url_in=None, mock_in=None):
     else:
         tv = None
     date_in = match_json['startTime']
-    _date_obj = datetime_handling.make_dt(date_in)
-    dt_in = make_event_start_stop(_date_obj)
+    _date_obj = await datetime_handling.make_dt(date_in)
+    dt_in = await make_event_start_stop(_date_obj)
     if dt_in is None:
         logger.error('Error with `dt_in`')
         return None

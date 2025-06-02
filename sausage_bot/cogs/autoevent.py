@@ -236,7 +236,7 @@ class AutoEvent(commands.Cog):
         Lists all the planned events: `!autoevent list`
         '''
         await interaction.response.defer(ephemeral=True)
-        events = discord_commands.get_sorted_scheduled_events()
+        events = await discord_commands.get_sorted_scheduled_events()
         if events is None:
             msg_out = I18N.t('autoevent.commands.list.msg_no_events')
         else:
@@ -268,7 +268,8 @@ class AutoEvent(commands.Cog):
         # Check that `sync_time` is a decent time
         re_check = re.match(r'^(\d{1,2})[-:.,;_]+(\d{1,2})', str(sync_time))
         if re_check:
-            timer_epoch = datetime_handling.get_dt() + int(countdown)
+            timer_epoch = await datetime_handling.get_dt()
+            timer_epoch += int(countdown)
             rel_start = f'<t:{timer_epoch}:R>'
             timer_msg = await interaction.followup.send(
                 I18N.t('autoevent.commands.sync.msg_confirm',
@@ -308,7 +309,7 @@ class AutoEvent(commands.Cog):
         # Get event
         _guild = discord_commands.get_guild()
         _event = _guild.get_scheduled_event(int(event))
-        epoch_time = datetime_handling.get_dt(
+        epoch_time = await datetime_handling.get_dt(
             format='epoch',
             dt=_event.start_time.astimezone()
         )

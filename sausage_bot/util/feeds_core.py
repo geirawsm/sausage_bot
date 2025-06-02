@@ -114,7 +114,7 @@ async def get_page_hash(url, debug=False):
                 desc = soup.find('article').text
             if debug:
                 file_io.write_file(
-                    envs.LOG_DIR / 'HTTP_files' / f'{datetime_handling.get_dt(format="revdatetimefull", sep="-")}.html',
+                    envs.LOG_DIR / 'HTTP_files' / f'{await datetime_handling.get_dt(format="revdatetimefull", sep="-")}.html',
                     soup
                 )
                 return
@@ -125,7 +125,7 @@ async def get_page_hash(url, debug=False):
         file_io.write_file(
             envs.LOG_DIR / 'HTTP_files' /
             '{}.html'.format(
-                datetime_handling.get_dt(
+                await datetime_handling.get_dt(
                     format="revdatetimefull", sep="-"
                 )
             ),
@@ -286,7 +286,7 @@ async def add_to_feed_db(
             return test_link
     else:
         logger.debug('Skipping url validation')
-    date_now = datetime_handling.get_dt(format='datetime')
+    date_now = await datetime_handling.get_dt(format='datetime')
     if feed_type in ['rss', 'spotify']:
         await db_helper.insert_many_some(
             envs.rss_db_schema,
@@ -677,7 +677,7 @@ async def log_link(template_info, uuid, feed_link, page_hash):
     )
     inserts = [
         uuid, feed_link, str(
-            datetime_handling.get_dt(
+            await datetime_handling.get_dt(
                 format='ISO8601'
             )
         )
