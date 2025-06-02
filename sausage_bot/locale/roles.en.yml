@@ -118,6 +118,7 @@ en:
       desc:
         reaction_msg: The message to edit
       msg_confirm: Reaction message edited
+      msg_error: Did not find reaction message
     add_reaction_role:
       cmd: Add roles to a reaction message
       desc:

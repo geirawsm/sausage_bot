@@ -1031,11 +1031,11 @@ class Autoroles(commands.Cog):
                 'animated': [],
                 'managed': []
             }
-            if sort == I18N.t('roles.commands.list.literal.sort.name'):
+            if sort == I18N.t('common.name'):
                 _emojis = tuple(sorted(
                     _guild.emojis, key=lambda emoji: emoji.name.lower()
                 ))
-            elif sort == I18N.t('roles.commands.list.literal.sort.id'):
+            elif sort == I18N.t('common.id'):
                 _emojis = tuple(sorted(
                     _guild.emojis, key=lambda emoji: emoji.id
                 ))

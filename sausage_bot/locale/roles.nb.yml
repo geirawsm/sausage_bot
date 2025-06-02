@@ -114,10 +114,11 @@ nb:
       msg_roles_emojis_error: Klarte ikke å finne verken roller eller emojier
       msg_confirm: Melding lagt til
     edit_reaction_msg:
-      cmd: Edit a reaction message
+      cmd: Rediger en reaksjonsmelding
       desc:
-        reaction_msg: The message to edit
-      msg_confirm: Reaction message edited
+        reaction_msg: Meldingen som skal redigeres
+        msg_confirm: Reaksjonsmelding redigert
+      msg_error: Fant ikke reaksjonsmelding
     add_reaction_role:
       cmd: Legg til roller på en reaksjonsmelding
       desc:
