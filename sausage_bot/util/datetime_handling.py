@@ -6,7 +6,10 @@ import re
 import datetime
 import asyncio
 import aiosqlite
+import asyncio
+import aiosqlite
 
+from sausage_bot.util import config, envs, file_io
 from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.i18n import I18N
 
@@ -17,6 +20,7 @@ tz = config.timezone
 locale = config.locale
 
 
+async def make_dt(date_in):
 async def make_dt(date_in):
     '''
     Make a datetime-object from string input
@@ -59,6 +63,7 @@ async def make_dt(date_in):
     logger.debug(f'language/locale is {locale}')
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
         logger.debug('Found a Z/T/+ in `date_in`')
+        return pendulum.parse(str(date_in)).in_timezone(tz)
         return pendulum.parse(str(date_in)).in_timezone(tz)
     elif re.match(r'\d{10}|\d{13}', str(date_in)):
         return pendulum.from_timestamp(int(date_in))
@@ -166,6 +171,7 @@ async def make_dt(date_in):
 
 
 async def get_dt(format='epoch', sep='.', dt=False):
+async def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
 
@@ -231,8 +237,10 @@ async def get_dt(format='epoch', sep='.', dt=False):
     if isinstance(dt, datetime.datetime):
         logger.debug('Input is a datetime object')
         dt = await make_dt(str(dt))
+        dt = await make_dt(str(dt))
     if isinstance(dt, str):
         logger.debug('Input is a string')
+        dt = await make_dt(dt)
         dt = await make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
