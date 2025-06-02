@@ -599,9 +599,9 @@ class Stats(commands.Cog):
                 date_exist = date_exist['datetime']
             log_stats = False
             if date_exist:
-                date_now = datetime_handling.get_dt(format='date')
-                date_exist = datetime_handling.get_dt(
-                    format='date', dt=date_exist
+                date_now = await datetime_handling.get_dt(format='date')
+                date_exist = await datetime_handling.get_dt(
+                    format='date', dt=date_exist['datetime']
                 )
                 if date_now > date_exist:
                     log_stats = True
@@ -612,7 +612,7 @@ class Stats(commands.Cog):
             if log_stats:
                 stats_log_inserts.append(
                     (
-                        str(datetime_handling.get_dt('ISO8601')),
+                        str(await datetime_handling.get_dt('ISO8601')),
                         files_in_codebase, lines_in_codebase,
                         members['member_count']
                     )
@@ -817,7 +817,7 @@ class Stats(commands.Cog):
                 hide_roles=stats_hide_roles
             )
             logger.debug(f'`roles_members`:\n{roles_members}')
-        dt_log = datetime_handling.get_dt('datetimefull')
+        dt_log = await datetime_handling.get_dt('datetimefull')
         stats_info = ''
         logger.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']

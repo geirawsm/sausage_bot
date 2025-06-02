@@ -137,7 +137,7 @@ def get_voice_channel_list():
     return channel_dict
 
 
-def get_scheduled_events():
+async def get_scheduled_events():
     '''
     Get all scheduled events from server
     #autodoc skip#
@@ -153,7 +153,7 @@ def get_scheduled_events():
         _event = guild.get_scheduled_event(event.id)
         logger.debug(f'`_event`: {_event}')
         _dt = _event.start_time.astimezone()
-        _dt_pend = get_dt(format='datetimetextday', dt=_dt)
+        _dt_pend = await get_dt(format='datetimetextday', dt=_dt)
         epoch = int(_event.start_time.astimezone().timestamp())
         if epoch not in _epochs:
             _epochs[epoch] = 1
@@ -171,13 +171,13 @@ def get_scheduled_events():
     return event_dict
 
 
-def get_sorted_scheduled_events():
+async def get_sorted_scheduled_events():
     '''
     Get a sorted list of events and prettify it
     #autodoc skip#
     '''
     # Sort the dict based on epoch
-    events_in = get_scheduled_events()
+    events_in = await get_scheduled_events()
     logger.debug(f'`events_in`: {events_in}')
     if len(events_in) == 0:
         return None

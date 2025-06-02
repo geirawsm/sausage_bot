@@ -8,6 +8,7 @@ from tabulate import tabulate
 from pendulum import timezones as p_timezones
 from pendulum import timezone as p_timezone
 import asyncio
+import aiosqlite
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
@@ -202,7 +203,7 @@ async def on_ready():
     When the bot is ready, it will notify in the log.
     #autodoc skip#
     '''
-    I18N.set('locale', config._LANG)
+    I18N.set('locale', config.locale)
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):
@@ -650,9 +651,24 @@ async def language(
 async def timezone(
     interaction: discord.Interaction, timezone: str
 ):
+    async def set_timezone(timezone: str):
+        db_info = envs.locale_db_schema
+        table_name = db_info['name']
+        _cmd = 'UPDATE {} SET {} = \'{}\' WHERE setting = \'timezone\';'.format(
+            table_name, 'value', timezone
+        )
+        try:
+            async with aiosqlite.connect(db_info['db_file']) as db:
+                await db.execute(_cmd)
+                await db.commit()
+            logger.debug('Done and commited!')
+        except aiosqlite.OperationalError as e:
+            logger.error(f'Error: {e}')
+            return None
+
     await interaction.response.defer(ephemeral=True)
     logger.debug(f'Setting timezone to {timezone}')
-    config.timezone = p_timezone(timezone)
+    await set_timezone(timezone)
     await interaction.followup.send(
         # TODO i18n
         'Set timezone to `{}`'.format(timezone),

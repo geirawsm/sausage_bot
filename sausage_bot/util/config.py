@@ -104,30 +104,40 @@ try:
         print('Something is wrong with the env file.')
         exit()
 except EnvError as e:
-    logger.error(f'You need to set environment variables for the bot to work: {e}')
+    logger.error(
+        f'You need to set environment variables for the bot to work: {e}'
+    )
     exit()
 
-# If empty in db, get from env or env default
-locale_db = asyncio.run(db_get_output())
-logger.debug(f'locale_db: {locale_db}')
-if locale_db is None:
-    locale_db = []
-if len(locale_db) > 0:
-    if 'setting' in locale_db and 'value' in locale_db:
-        locale_from_db = {}
-        for setting in locale_db:
-            locale_from_db[setting['setting']] = setting['value']
-        _TZ = locale_from_db['timezone']
-        _LANG = locale_from_db['language']
+
+async def get_locale_from_db():
+    # If empty in db, get from env or env default
+    locale_db = await db_get_output()
+    logger.debug(f'locale_db: {locale_db}')
+    if locale_db is None:
+        locale_db = []
+    if len(locale_db) > 0:
+        if 'setting' in locale_db and 'value' in locale_db:
+            locale_from_db = {}
+            for setting in locale_db:
+                locale_from_db[setting['setting']] = setting['value']
+            _TZ = locale_from_db['timezone']
+            _LANG = locale_from_db['language']
+        else:
+            _TZ = TIMEZONE
+            _LANG = LANGUAGE
     else:
         _TZ = TIMEZONE
         _LANG = LANGUAGE
-else:
-    _TZ = TIMEZONE
-    _LANG = LANGUAGE
+    return {
+        'timezone': _TZ,
+        'language': _LANG
+    }
 
-timezone = pendulum.timezone(_TZ)
-locale = pendulum.set_locale(_LANG)
+locale_from_db = asyncio.run(get_locale_from_db())
+
+timezone = pendulum.timezone(locale_from_db['timezone'])
+locale = pendulum.set_locale(locale_from_db['language'])
 pendulum.week_starts_at(pendulum.MONDAY)
 pendulum.week_ends_at(pendulum.SUNDAY)
 

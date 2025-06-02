@@ -4,8 +4,10 @@
 import pendulum
 import re
 import datetime
+import asyncio
+import aiosqlite
 
-from sausage_bot.util import config
+from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
@@ -15,7 +17,7 @@ tz = config.timezone
 locale = config.locale
 
 
-def make_dt(date_in):
+async def make_dt(date_in):
     '''
     Make a datetime-object from string input
 
@@ -33,9 +35,26 @@ def make_dt(date_in):
     - 2022-05-17 11:22:00.987
     - 1652779320
     '''
+    db_in = None
+    async with aiosqlite.connect(envs.locale_db_schema['db_file']) as db:
+        db.row_factory = aiosqlite.Row
+        out = await db.execute(
+            "SELECT setting, value FROM {};".format(
+                envs.locale_db_schema['name']
+            )
+        )
+        db_in = [dict(row) for row in await out.fetchall()]
+    locale_db = file_io.make_db_output_to_json(
+        ['setting', 'value'],
+        db_in
+    )
+    tz = locale_db.get('timezone', 'UTC')
+    locale = locale_db.get('language', 'en')
+    logger.debug(f'tz is {tz}')
+    logger.debug(f'language/locale is {locale}')
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
         logger.debug('Found a Z/T/+ in `date_in`')
-        return pendulum.parse(str(date_in))
+        return pendulum.parse(str(date_in)).in_timezone(tz)
     elif re.match(r'\d{10}|\d{13}', str(date_in)):
         return pendulum.from_timestamp(int(date_in))
     else:
@@ -141,7 +160,7 @@ def make_dt(date_in):
             return None
 
 
-def get_dt(format='epoch', sep='.', dt=False):
+async def get_dt(format='epoch', sep='.', dt=False):
     '''
     Get a datetime object in preferred dateformat.
 
@@ -182,12 +201,29 @@ def get_dt(format='epoch', sep='.', dt=False):
     ISO8601             YYYY-MM-DD HH:MM:SS.SSS
     datetimeobject      datetime object
     '''
+    db_in = None
+    async with aiosqlite.connect(envs.locale_db_schema['db_file']) as db:
+        db.row_factory = aiosqlite.Row
+        out = await db.execute(
+            "SELECT setting, value FROM {};".format(
+                envs.locale_db_schema['name']
+            )
+        )
+        db_in = [dict(row) for row in await out.fetchall()]
+    locale_db = file_io.make_db_output_to_json(
+        ['setting', 'value'],
+        db_in
+    )
+    tz = locale_db.get('timezone', 'UTC')
+    locale = locale_db.get('language', 'en')
+    logger.debug(f'tz is {tz}')
+    logger.debug(f'language/locale is {locale}')
     if isinstance(dt, datetime.datetime):
         logger.debug('Input is a datetime object')
-        dt = make_dt(str(dt))
+        dt = await make_dt(str(dt))
     if isinstance(dt, str):
         logger.debug('Input is a string')
-        dt = make_dt(dt)
+        dt = await make_dt(dt)
         if dt is None:
             print('Can\'t process date `{}`. Aborting.'.format(dt))
             return None
