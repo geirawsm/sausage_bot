@@ -15,6 +15,7 @@ en:
         cmd: Restart quote refreshing
         msg_confirm_ok: Quote refreshing restarted
     autopost:
+      cmd: Autopost quotes
       start:
         cmd: Start autoposting
         msg_confirm_ok: Autoposting started
@@ -55,8 +56,6 @@ en:
       msg_nonexisting_quote: Sitatet eksisterer ikke
     server_update:
       cmd: Update quotes.json for server
-    autopost:
-      cmd: Autopost quotes
     settings:
       cmd: Settings
       change_confirmed: Setting changed
