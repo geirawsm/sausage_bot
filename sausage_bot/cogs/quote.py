@@ -217,20 +217,20 @@ class QuoteEditModal(discord.ui.Modal):
             title=title_in, timeout=120
         )
         self.quote_in = quote_in
+        logger.debug(f'self.quote_in is: {self.quote_in}')
         self.available_row_id = available_row_id
         self.quote_out = {
-            'row_id': quote_in[0][0],
-            'uuid': str(uuid.uuid4()) if not quote_in else quote_in[0][1],
+            'row_id': quote_in[0]['rowid'],
+            'uuid': str(uuid.uuid4()) if not quote_in else quote_in[0]['uuid'],
             'quote_text': None,
             'datetime': None
         }
-        logger.debug(f'self.quote_in is: {self.quote_in}')
 
         # Create elements
         quote_text = QuoteTextInput(
             style_in=discord.TextStyle.paragraph,
             label_in=I18N.t('quote.modals.quote_text'),
-            default_in=self.quote_in[0][2] if self.quote_in else '',
+            default_in=self.quote_in[0]['quote_text'] if self.quote_in else '',
             required_in=True,
             placeholder_in='Text'
         )
@@ -238,7 +238,7 @@ class QuoteEditModal(discord.ui.Modal):
         quote_date = QuoteTextInput(
             style_in=discord.TextStyle.short,
             label_in=I18N.t('quote.modals.quote_date'),
-            default_in=self.quote_in[0][3] if self.quote_in else '',
+            default_in=self.quote_in[0]['datetime'] if self.quote_in else '',
             required_in=False,
             placeholder_in=I18N.t('quote.modals.date_placeholder')
         )
@@ -247,7 +247,7 @@ class QuoteEditModal(discord.ui.Modal):
         self.add_item(quote_date)
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.quote_out['row_id'] = self.quote_in[0][0]
+        self.quote_out['row_id'] = self.quote_in[0]['rowid']
         self.quote_out['quote_text'] = self.children[0].value
         self.quote_out['datetime'] = self.children[1].value
 
@@ -564,9 +564,15 @@ class Quotes(commands.Cog):
         await modal_in.wait()
         update_triggered = False
         # Check for changes in quote text or quote date
-        if str(quote_from_db[0][2]) != str(modal_in.quote_out['quote_text'])\
-                or str(quote_from_db[0][2]) !=\
-                str(modal_in.quote_out['datetime']):
+        if str(
+            quote_from_db[0]['quote_text']
+        ) != str(
+            modal_in.quote_out['quote_text']
+        ) or str(
+            quote_from_db[0]['datetime']
+        ) != str(
+            modal_in.quote_out['datetime']
+        ):
             update_triggered = True
         else:
             logger.error('No changes discovered in quote')
