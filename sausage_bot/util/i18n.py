@@ -6,12 +6,42 @@ import re
 import discord
 from discord import app_commands
 import aiosqlite
+import asyncio
+import i18n as _i18n
 
 from . import envs, file_io, config
 
-import i18n as _i18n
+logger = config.logger
+
 _i18n.load_path.append(envs.LOCALE_DIR)
 _i18n.set('fallback', 'en')
+
+
+# Get locale from db
+async def get_locale():
+    try:
+        async with aiosqlite.connect(envs.locale_db_schema['db_file']) as db:
+            db.row_factory = aiosqlite.Row
+            out = await db.execute(
+                "SELECT setting, value FROM {};".format(
+                    envs.locale_db_schema['name']
+                )
+            )
+            db_in = [dict(row) for row in await out.fetchall()]
+        locale_db = file_io.make_db_output_to_json(
+            ['setting', 'value'],
+            db_in
+        )
+        return locale_db.get('language', 'en')
+    except aiosqlite.OperationalError as e:
+        logger.error('Could not get locale from db: {}'.format(e))
+        return 'en'
+
+locale_in = asyncio.run(get_locale())
+logger.info(f'Got locale `{locale_in}`')
+
+_i18n.set('locale', locale_in)
+
 I18N = _i18n
 
 logger = config.logger
@@ -54,7 +84,6 @@ def handler_plural(key, locale, **kwargs):
 
 
 _i18n.set('on_missing_placeholder', handler_placeholder)
-#_i18n.set('on_missing_translation', handler_translation)
 _i18n.set('on_missing_plural', handler_plural)
 
 
@@ -65,9 +94,9 @@ def reload_i18n():
 def available_languages():
     lang_list = []
     for filename in os.listdir(envs.LOCALE_DIR):
-        file_check = re.search(r'.*\.(.*)\.yml$', filename).group(1)
-        if file_check and file_check not in lang_list:
-            lang_list.append(file_check)
+        lang_check = re.search(r'.*\.(.*)\.yml$', filename).group(1)
+        if lang_check and lang_check not in lang_list:
+            lang_list.append(lang_check)
     return lang_list
 
 
@@ -76,9 +105,10 @@ async def set_language(lang: str):
         I18N.set('locale', lang)
         db_info = envs.locale_db_schema
         table_name = db_info['name']
-        _cmd = 'UPDATE {} SET {} = \'{}\' WHERE setting = \'language\';'.format(
-            table_name, 'value', lang
-        )
+        _cmd = 'UPDATE {} SET {} = \'{}\' WHERE setting'\
+            ' = \'language\';'.format(
+                table_name, 'value', lang
+            )
         try:
             async with aiosqlite.connect(db_info['db_file']) as db:
                 await db.execute(_cmd)

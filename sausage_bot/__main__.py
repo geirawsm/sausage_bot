@@ -6,7 +6,6 @@ from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
 from pendulum import timezones as p_timezones
-from pendulum import timezone as p_timezone
 import asyncio
 import aiosqlite
 
@@ -203,7 +202,6 @@ async def on_ready():
     When the bot is ready, it will notify in the log.
     #autodoc skip#
     '''
-    I18N.set('locale', config.locale)
     await config.bot.tree.set_translator(MyTranslator())
     for guild in config.bot.guilds:
         if guild.name == config.env('DISCORD_GUILD'):

@@ -25,7 +25,7 @@ async def db_get_output():
         async with aiosqlite.connect(envs.locale_db_schema['db_file']) as db:
             db.row_factory = aiosqlite.Row
             out = await db.execute(
-                'SELECT * FROM {};'.format(
+                'SELECT setting, value FROM {};'.format(
                     envs.locale_db_schema['name']
                 )
             )
