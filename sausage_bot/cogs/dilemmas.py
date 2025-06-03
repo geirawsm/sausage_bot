@@ -11,6 +11,7 @@ from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
+
 class Dilemmas(commands.Cog):
     'Post a random dilemma'
 

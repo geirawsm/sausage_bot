@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from discord.utils import get
 from pprint import pformat
-from pprint import pformat
 
 from sausage_bot.util import envs, config, file_io, discord_commands
 from sausage_bot.util.args import args
@@ -83,7 +82,6 @@ async def prep_table(
         await add_missing_db_setup(
             table_in
         )
-        # TODO Insert missing values, or is this done in `add_missing_db_setup`?
     return delete_json_ok
 
 
@@ -126,7 +124,9 @@ async def add_missing_db_setup(
                 logger.debug(f'Using this query: {_cmd}')
                 await db.execute(_cmd)
         # Remove cols if they are not wanted anymore
-        del_cols = [x for x in _existing_cols if x not in [x[0] for x in wanted_cols]]
+        del_cols = [
+            x for x in _existing_cols if x not in [x[0] for x in wanted_cols]
+        ]
         async with aiosqlite.connect(db_file) as db:
             for col in del_cols:
                 _cmd = f'ALTER TABLE {table_name} DROP COLUMN {col};'
@@ -487,7 +487,7 @@ async def json_to_db_inserts(cog_name):
             quotes_inserts.append(
                 (
                     str(uuid4()), quote_file[quote]['quote'],
-                    get_dt(
+                    await get_dt(
                         format="ISO8601", dt=re.sub(
                             r'[\(\)]+', '',
                             quote_file[quote]['datetime']
@@ -560,7 +560,9 @@ async def json_to_db_inserts(cog_name):
         rss_file = file_io.read_json(envs.rss_feeds_file)
         logger.debug('Got `rss_file`: {}'.format(str(rss_file)[0:100]))
         rss_logs_file = file_io.read_json(envs.rss_feeds_logs_file)
-        logger.debug('Got `rss_logs_file`: {}'.format(str(rss_logs_file)[0:100]))
+        logger.debug(
+            'Got `rss_logs_file`: {}'.format(str(rss_logs_file)[0:100])
+        )
         rss_inserts = []
         rss_filter_inserts = []
         rss_logs_inserts = []
@@ -605,7 +607,7 @@ async def json_to_db_inserts(cog_name):
                         rss_logs_inserts.append(
                             (
                                 rss_logs_index[feed], link,
-                                str(get_dt(format='ISO8601'))
+                                str(await get_dt(format='ISO8601'))
                             )
                         )
         return {
@@ -658,7 +660,7 @@ async def json_to_db_inserts(cog_name):
                     yt_logs_inserts.append(
                         (
                             yt_logs_index[feed], link,
-                            str(get_dt(format='ISO8601'))
+                            str(await get_dt(format='ISO8601'))
                         )
                     )
         return {

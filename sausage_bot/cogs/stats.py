@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'stats: Get interesting stats for the discord server and post them to a channel'
+'''
+stats: Get interesting stats for the discord server and post them
+to a channel
+'''
 import os
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
@@ -16,6 +19,7 @@ from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+
 
 async def settings_db_autocomplete(
     interaction: discord.Interaction,
@@ -93,7 +97,9 @@ async def hidden_roles_autocomplete(
 def get_role_numbers(settings_in):
     'Get roles and number of members'
     logger.debug(f'settings_in: {settings_in}')
-    logger.debug('hide_empty_roles: {}'.format(settings_in['hide_empty_roles']))
+    logger.debug('hide_empty_roles: {}'.format(
+        settings_in['hide_empty_roles']
+    ))
     logger.debug('hide_bot_roles: {}'.format(settings_in['hide_bot_roles']))
     roles_info = discord_commands.get_roles(
         hide_empties=settings_in['hide_empty_roles'],
@@ -599,8 +605,8 @@ class Stats(commands.Cog):
                 date_exist = date_exist['datetime']
             log_stats = False
             if date_exist:
-                date_now = datetime_handling.get_dt(format='date')
-                date_exist = datetime_handling.get_dt(
+                date_now = await datetime_handling.get_dt(format='date')
+                date_exist = await datetime_handling.get_dt(
                     format='date', dt=date_exist
                 )
                 if date_now > date_exist:
@@ -612,7 +618,7 @@ class Stats(commands.Cog):
             if log_stats:
                 stats_log_inserts.append(
                     (
-                        str(datetime_handling.get_dt('ISO8601')),
+                        str(await datetime_handling.get_dt('ISO8601')),
                         files_in_codebase, lines_in_codebase,
                         members['member_count']
                     )
@@ -795,7 +801,9 @@ class Stats(commands.Cog):
             return
 
         upd_mins = config.env.int('STATS_LOOP', default=5)
-        logger.info(f'Starting `update_stats`, updating each {upd_mins} minute')
+        logger.info(
+            f'Starting `update_stats`, updating each {upd_mins} minute'
+        )
         stats_settings = await get_db_settings()
         # Get stats about the code
         _codebase = get_stats_codebase()
@@ -817,7 +825,7 @@ class Stats(commands.Cog):
                 hide_roles=stats_hide_roles
             )
             logger.debug(f'`roles_members`:\n{roles_members}')
-        dt_log = datetime_handling.get_dt('datetimefull')
+        dt_log = await datetime_handling.get_dt('datetimefull')
         stats_info = ''
         logger.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']

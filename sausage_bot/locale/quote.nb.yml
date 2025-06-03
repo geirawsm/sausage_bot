@@ -15,9 +15,16 @@ nb:
         cmd: Start sitat oppdatering på nytt
         msg_confirm_ok: Sitat oppdatering startet på nytt
     autopost:
+      cmd: Autopost sitater
       start:
         cmd: Start autopost
         msg_confirm_ok: Autoposting startet
+      stop:
+        cmd: Stopp autopost
+        msg_confirm_ok: Autoposting stoppet
+      restart:
+        cmd: Restart autopost
+        msg_confirm_ok: Autoposting restartet
     quote:
       cmd: Sitater
     post:
@@ -49,8 +56,6 @@ nb:
       msg_nonexisting_quote: Quote does not exist
     server_update:
       cmd: Oppdater quotes.json for server
-    autopost:
-      cmd: Autopost sitater
     settings:
       cmd: Innstillinger
       change_confirmed: Innstilling endret

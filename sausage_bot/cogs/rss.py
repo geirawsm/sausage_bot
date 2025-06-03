@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'rss: Administer RSS-feeds that will autopost to a given channel when published'
+'''
+rss: Administer RSS-feeds that will autopost to a given channel
+when published
+'''
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
@@ -704,13 +707,15 @@ class RSSfeed(commands.Cog):
             if req['content']:
                 status_out += ':\n\t{}'.format(req['content'])
             status_msg = await interaction.followup.edit_message(
-                message_id=status_msg.id, content=enclose_status_out(status_out)
+                message_id=status_msg.id,
+                content=enclose_status_out(status_out)
             )
             return
         else:
             status_out += '\n✅ Got HTTP status {}'.format(req['status'])
             status_msg = await interaction.followup.edit_message(
-                message_id=status_msg.id, content=enclose_status_out(status_out)
+                message_id=status_msg.id,
+                content=enclose_status_out(status_out)
             )
         rss_items = await feeds_core.get_items_from_rss(
             req=req['content'],
@@ -719,7 +724,8 @@ class RSSfeed(commands.Cog):
         if rss_items is None or len(rss_items) <= 0:
             status_out += '\n❌ Unable to get feed items'
             status_msg = await interaction.followup.edit_message(
-                message_id=status_msg.id, content=enclose_status_out(status_out)
+                message_id=status_msg.id,
+                content=enclose_status_out(status_out)
             )
             return
         else:
@@ -730,14 +736,16 @@ class RSSfeed(commands.Cog):
                     item, rss_items[0][item]
                 )
             status_msg = await interaction.followup.edit_message(
-                message_id=status_msg.id, content=enclose_status_out(status_out)
+                message_id=status_msg.id,
+                content=enclose_status_out(status_out)
             )
         # Get link hash
         _hash = await feeds_core.get_page_hash(rss_items[0]['link'])
         if _hash is None:
             status_out += f'\n❌ Could not make hash, got "{_hash}"'
             status_msg = await interaction.followup.edit_message(
-                message_id=status_msg.id, content=enclose_status_out(status_out)
+                message_id=status_msg.id,
+                content=enclose_status_out(status_out)
             )
             return
         # Get log
