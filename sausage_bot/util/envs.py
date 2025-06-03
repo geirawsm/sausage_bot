@@ -436,7 +436,8 @@ CHANNEL_STATUS_SUCCESS = 'OK'
 
 # COG - YOUTUBE
 YOUTUBE_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?channel_id={}'
-YOUTUBE_PLAYLIST_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?playlist_id={}'
+YOUTUBE_PLAYLIST_RSS_LINK = 'https://www.youtube.com/feeds/videos.xml?'\
+    'playlist_id={}'
 
 # VARIABLES
 input_split_regex = r'[\s\.\-_,;\\\/]+'

@@ -12,11 +12,12 @@ from hashlib import md5
 from pprint import pformat
 
 from sausage_bot.util import config, envs, datetime_handling, file_io
-from sausage_bot.util import discord_commands, net_io, db_helper, file_io
+from sausage_bot.util import discord_commands, net_io, db_helper
 from sausage_bot.util.args import args
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+
 
 async def check_if_feed_name_exist(feed_name):
     feeds = await db_helper.get_output(
@@ -82,12 +83,22 @@ async def get_page_hash(url, debug=False):
             _scripts = soup.find_all('script')
             for _script in _scripts:
                 if 'var ytInitialData =' in _script.text:
-                    _script = re.match(r'^var ytInitialData = (.*);$', _script.text).group(1)
+                    _script = re.match(
+                        r'^var ytInitialData = (.*);$', _script.text
+                    ).group(1)
                     _script = json.loads(_script)
                     try:
-                        desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][1]['videoSecondaryInfoRenderer']['attributedDescription']['content']
+                        desc = _script['contents'][
+                            'twoColumnWatchNextResults'
+                        ]['results']['results']['contents'][1][
+                            'videoSecondaryInfoRenderer'
+                        ]['attributedDescription']['content']
                     except KeyError:
-                        desc = _script['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['title']['runs'][0]['text']
+                        desc = _script['contents'][
+                            'twoColumnWatchNextResults'
+                        ]['results']['results']['contents'][0][
+                            'videoPrimaryInfoRenderer'
+                        ]['title']['runs'][0]['text']
         except TypeError:
             pass
     if desc is None:
@@ -95,11 +106,18 @@ async def get_page_hash(url, debug=False):
         try:
             check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
             if check_if_spotify is not None:
-                desc = soup.find('meta', attrs={'name': 'description'})['content']
-                desc = re.search(r'.*Listen to this episode from .* on Spotify. (.*)', desc).group(1)
+                desc = soup.find(
+                    'meta', attrs={'name': 'description'}
+                )['content']
+                desc = re.search(
+                    r'.*Listen to this episode from .* on Spotify. (.*)', desc
+                ).group(1)
                 desc = re.sub(r'\b\.\b', '\n', desc)
         except TypeError:
             pass
+    dt = await datetime_handling.get_dt(
+        format="revdatetimefull", sep="-"
+    )
     if desc is None:
         logger.debug('Trying common html')
         try:
@@ -114,8 +132,7 @@ async def get_page_hash(url, debug=False):
                 desc = soup.find('article').text
             if debug:
                 file_io.write_file(
-                    envs.LOG_DIR / 'HTTP_files' / f'{await datetime_handling.get_dt(format="revdatetimefull", sep="-")}.html',
-                    soup
+                    envs.LOG_DIR / 'HTTP_files' / f'{dt}.html', soup
                 )
                 return
             logger.debug(f'Got this description: {desc[0:200]}')
@@ -123,13 +140,7 @@ async def get_page_hash(url, debug=False):
             logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
     if debug:
         file_io.write_file(
-            envs.LOG_DIR / 'HTTP_files' /
-            '{}.html'.format(
-                await datetime_handling.get_dt(
-                    format="revdatetimefull", sep="-"
-                )
-            ),
-            soup
+            envs.LOG_DIR / 'HTTP_files' / f'{dt}.html', soup
         )
     if desc is None:
         hash = desc
@@ -501,7 +512,8 @@ async def get_feed_list(
         feeds_out = await db_helper.get_output(
             template_info=db_in,
             select=(
-                'feed_name', 'url', 'channel', 'added', 'added_by', 'playlist_id'
+                'feed_name', 'url', 'channel', 'added', 'added_by',
+                'playlist_id'
             ),
             where=wheres_in,
             order_by=[
@@ -643,8 +655,9 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
                 hash_in_log = False
     else:
         hash_in_log = False
-    if ((link_in_log and hash_in_log) or
-            (link_in_log and hash_in_log is None)):
+    if ((link_in_log and hash_in_log) or (
+        link_in_log and hash_in_log is None
+    )):
         logger.debug('Link is in log, returning True')
         return True
     if link_in_log and not hash_in_log:

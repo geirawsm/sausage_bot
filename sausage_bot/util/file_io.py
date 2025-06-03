@@ -4,7 +4,6 @@
 import os
 import stat
 import json
-import re
 from pathlib import Path
 from difflib import SequenceMatcher
 import pendulum
@@ -157,8 +156,8 @@ def file_exist(filename):
 
 def file_age(filename):
     '''
-    Checks the age of a file (today's date - last modified). If it can't find the file it will
-    return False
+    Checks the age of a file (today's date - last modified).
+    If it can't find the file it will return False
     '''
     if not file_size(filename):
         return False

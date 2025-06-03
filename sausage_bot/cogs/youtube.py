@@ -14,6 +14,7 @@ from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
+
 async def feed_name_autocomplete(
     interaction: discord.Interaction,
     current: str,

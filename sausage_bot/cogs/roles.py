@@ -323,7 +323,9 @@ async def sync_reaction_message_from_settings(
                 emoji_out = _emoji_id
             await msg_obj.add_reaction(emoji_out)
         except Exception as e:
-            logger.error(f'Could not find or add emoji with id {_emoji_id}: {e}')
+            logger.error(
+                f'Could not find or add emoji with id {_emoji_id}: {e}'
+            )
             emoji_errors.append(_emoji_id)
             emoji_out = None
         if emoji_out is not None:
@@ -738,7 +740,8 @@ class ReactionEditModal(discord.ui.Modal):
         reaction_header = ReactionTextInput(
             style_in=discord.TextStyle.paragraph,
             label_in=I18N.t('roles.modals.reaction_edit.reaction_header'),
-            default_in=self.reaction_header_in if self.reaction_header_in else '',
+            default_in=self.reaction_header_in if self.reaction_header_in
+            else '',
             required_in=True,
             placeholder_in='Text'
         )
@@ -1596,7 +1599,8 @@ class Autoroles(commands.Cog):
                     I18N.t('common.name'), db_reactions[0]['name'],
                     I18N.t('common.channel'), db_reactions[0]['channel'],
                     I18N.t('common.message_id'), db_reactions[0]['msg_id'],
-                    I18N.t('common.header'), _header if _header is not None else ' ',
+                    I18N.t('common.header'),
+                    _header if _header is not None else ' ',
                     I18N.t('common.text'), db_reactions[0]['content'],
                     '\n'.join(tabulated_reactions)
                 )
@@ -2092,7 +2096,6 @@ class Autoroles(commands.Cog):
         ))
     )
     @describe(
-        # reaction_msg=I18N.t('roles.commands.remove_role.desc.reaction_msg'),
         reaction_role=I18N.t('roles.commands.remove_role.desc.role_name')
     )
     @discord.app_commands.autocomplete(

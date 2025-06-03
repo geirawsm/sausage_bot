@@ -652,9 +652,10 @@ async def timezone(
     async def set_timezone(timezone: str):
         db_info = envs.locale_db_schema
         table_name = db_info['name']
-        _cmd = 'UPDATE {} SET {} = \'{}\' WHERE setting = \'timezone\';'.format(
-            table_name, 'value', timezone
-        )
+        _cmd = 'UPDATE {} SET {} = \'{}\' WHERE setting = '\
+            '\'timezone\';'.format(
+                table_name, 'value', timezone
+            )
         try:
             async with aiosqlite.connect(db_info['db_file']) as db:
                 await db.execute(_cmd)

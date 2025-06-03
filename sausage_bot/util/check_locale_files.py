@@ -29,15 +29,16 @@ def test_local_variables():
         _yaml = read_file(_file)
         for line in enumerate(_yaml.split('\n')):
             if ':' in line[1]:
-                before_split = line[1].split(':')[0]
                 after_split = line[1].split(':')[1]
                 if len(after_split) > 0:
-                    for word in re.split(r'[\.:,;\-\'\s\(\)`#\"]', after_split):
+                    for word in re.split(
+                        r'[\.:,;\-\'\s\(\)`#\"]', after_split
+                    ):
                         if any(
                             _list_item in word for _list_item in _list
                         ) and not re.match(r'%{.*}', word):
                             errors_out.append(
-                                [_cog, _lang, line[0]+1, word]
+                                [_cog, _lang, line[0] + 1, word]
                             )
     if len(errors_out) > 0:
         print('ERRORS FOUND:')

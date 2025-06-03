@@ -11,6 +11,9 @@ from datetime import datetime
 import json
 import colorgram
 from pprint import pformat
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
+from requests.exceptions import ConnectionError
 
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
@@ -19,9 +22,6 @@ from sausage_bot.util.args import args
 logger = config.logger
 
 
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
-from requests.exceptions import ConnectionError
 try:
     _spotipy = spotipy.Spotify(
         auth_manager=SpotifyClientCredentials(
@@ -107,8 +107,6 @@ async def get_link(url=None, mock_file=None, status_out=None):
             return int(url_status)
         else:
             return None
-
-
         return None
     else:
         return content_out

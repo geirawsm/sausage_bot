@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 'dl_parse_file: Download and parse files for testing'
-import asyncio
 from sausage_bot.util import config, file_io, envs, net_io
 from bs4 import BeautifulSoup
 import json
@@ -8,8 +7,10 @@ import re
 
 logger = config.logger
 
+
 async def get_nifs_file():
-    nifs_in = 'https://www.nifs.no/kampfakta.php?matchId=2372733&land=1&t=6&u=694962'
+    nifs_in = 'https://www.nifs.no/kampfakta.php?'\
+        'matchId=2372733&land=1&t=6&u=694962'
     base_url = 'https://api.nifs.no/matches/{}'
     # Get info relevant for the event
     _id = re.match(r'.*matchId=(\d+)\b', nifs_in).group(1)
@@ -25,7 +26,8 @@ async def get_nifs_file():
 
 
 async def get_vglive_file():
-    vglive_in = 'https://vglive.vg.no/kamp/v%C3%A5lerenga-sandnes-ulf/633696/rapport'
+    vglive_in = 'https://vglive.vg.no/kamp/'\
+        'v%C3%A5lerenga-sandnes-ulf/633696/rapport'
     base_url = 'https://vglive.vg.no/bff/vg/events/{}'
     # Get info relevant for the event
     _id = re.match(r'.*/kamp/.*/(\d+)/.*', vglive_in).group(1)

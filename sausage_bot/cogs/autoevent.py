@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 '''
-autoevent: This cog can take links to soccer games on predefined sites, and make them
-into an event for the server.
+autoevent: This cog can take links to soccer games on predefined sites,
+and turn them into an event for the server.
 '''
 import discord
 from discord.ext import commands

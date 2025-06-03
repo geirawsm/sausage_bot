@@ -281,7 +281,9 @@ async def settings_db_autocomplete(
                         setting['value']
                     ),
                     actual_value=setting['value']
-                ) if discord_commands.get_user_channel_role_id(setting['value']) is not None
+                ) if discord_commands.get_user_channel_role_id(
+                    setting['value']
+                ) is not None
                 else '{} '.format(setting['value']),
                 value_type=settings_type[setting['setting']]
             ),
@@ -771,7 +773,10 @@ class Quotes(commands.Cog):
         temp_out = []
         for quote in quote_in:
             temp_out.append(
-                (quote[0], quote[1], await get_dt(format='datetime', dt=quote[2]))
+                (
+                    quote[0], quote[1],
+                    await get_dt(format='datetime', dt=quote[2])
+                )
             )
         logger.debug(f'`temp_out` is {temp_out}')
         paginated = []
@@ -813,7 +818,8 @@ class Quotes(commands.Cog):
                     setting[1]['value']
                 )
                 if object is not None:
-                    settings_in_db[setting[0]]['value'] = f'{object.name} ({object.id})'
+                    settings_in_db[setting[0]]['value'] =\
+                        f'{object.name} ({object.id})'
         headers_settings = {
             'setting': I18N.t('common.settings.setting'),
             'value': I18N.t('common.settings.value')
@@ -1035,14 +1041,19 @@ class Quotes(commands.Cog):
         except Exception as error:
             logger.error(f'Error when removing setting: {error}')
             await interaction.followup.send(
-                content=I18N.t('quote.commands.settings.remove_failed', error=error),
+                content=I18N.t(
+                    'quote.commands.settings.remove_failed',
+                    error=error
+                ),
                 ephemeral=True
             )
         return
 
     @server_group.command(
         name='start',
-        description=locale_str(I18N.t('quote.commands.refresh_quote.start.cmd'))
+        description=locale_str(I18N.t(
+            'quote.commands.refresh_quote.start.cmd'
+        ))
     )
     async def refresh_quote_json_start(
         self, interaction: discord.Interaction
@@ -1124,7 +1135,7 @@ class Quotes(commands.Cog):
 
     @autopost_group.command(
         name='stop',
-            description=locale_str(I18N.t('quote.commands.autopost.stop.cmd'))
+        description=locale_str(I18N.t('quote.commands.autopost.stop.cmd'))
     )
     async def autopost_quote_stop(
         self, interaction: discord.Interaction
@@ -1271,7 +1282,8 @@ class Quotes(commands.Cog):
             Quotes.task_autopost.stop()
             await discord_commands.log_to_bot_channel(
                 # TODO i18n
-                content_in='No quotes available for autoposting in db, disabling autopost task'
+                content_in='No quotes available for autoposting in db, '
+                           'disabling autopost task'
             )
             return
         logger.debug('Got quote, posting it')
@@ -1285,9 +1297,14 @@ class Quotes(commands.Cog):
         )
         if 'autopost_prefix' in settings_db_json:
             if 'autopost_tag_role' in settings_db_json and\
-                    re.match(r'\d{19,22}', settings_db_json['autopost_tag_role']):
+                    re.match(
+                        r'\d{19,22}',
+                        settings_db_json['autopost_tag_role']
+                    ):
                 _guild = discord_commands.get_guild()
-                _role = _guild.get_role(int(settings_db_json['autopost_tag_role']))
+                _role = _guild.get_role(
+                    int(settings_db_json['autopost_tag_role'])
+                )
                 quote_out = '# {}\n{}\nPing {}'.format(
                     settings_db_json['autopost_prefix'],
                     quote_out,

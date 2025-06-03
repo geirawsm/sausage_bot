@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'scrape_fcb_news: A hardcoded cog - get newsposts from https://www.fcbarcelona.com and post them to specific team channels'
+'''
+scrape_fcb_news: A hardcoded cog - get newsposts from
+https://www.fcbarcelona.com and post them to specific team channels
+'''
 from bs4 import BeautifulSoup
 import requests
 from discord.ext import commands, tasks
@@ -109,7 +112,9 @@ class scrape_and_post(commands.Cog):
                         news_dev = main_dev.find_all(
                             'div', attrs={'class': 'feed__items'})
                     except (AttributeError) as e:
-                        logger.error(f'Fikk feil ved henting av nyhetssaker: {e}')
+                        logger.error(
+                            f'Error when fetching articles: {e}'
+                        )
                         return None
                     max_items = 2
                     index_items = 0
@@ -144,7 +149,8 @@ class scrape_and_post(commands.Cog):
             for team in FEED_POSTS:
                 channel_name = team_channel_defaults[team.upper()]
                 if channel_name not in guild_channels:
-                    error_msg = f'Could not find channel `{channel_name}` in guild'
+                    error_msg = f'Could not find channel '\
+                        '`{channel_name}` in guild'
                     logger.error(error_msg)
                     # TODO i18n
                     await discord_commands.log_to_bot_channel(error_msg)

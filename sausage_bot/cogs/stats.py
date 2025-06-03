@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'stats: Get interesting stats for the discord server and post them to a channel'
+'''
+stats: Get interesting stats for the discord server and post them
+to a channel
+'''
 import os
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
@@ -16,6 +19,7 @@ from sausage_bot.util import discord_commands, db_helper
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+
 
 async def settings_db_autocomplete(
     interaction: discord.Interaction,
@@ -93,7 +97,9 @@ async def hidden_roles_autocomplete(
 def get_role_numbers(settings_in):
     'Get roles and number of members'
     logger.debug(f'settings_in: {settings_in}')
-    logger.debug('hide_empty_roles: {}'.format(settings_in['hide_empty_roles']))
+    logger.debug('hide_empty_roles: {}'.format(
+        settings_in['hide_empty_roles']
+    ))
     logger.debug('hide_bot_roles: {}'.format(settings_in['hide_bot_roles']))
     roles_info = discord_commands.get_roles(
         hide_empties=settings_in['hide_empty_roles'],
@@ -601,7 +607,7 @@ class Stats(commands.Cog):
             if date_exist:
                 date_now = await datetime_handling.get_dt(format='date')
                 date_exist = await datetime_handling.get_dt(
-                    format='date', dt=date_exist['datetime']
+                    format='date', dt=date_exist
                 )
                 if date_now > date_exist:
                     log_stats = True
@@ -795,7 +801,9 @@ class Stats(commands.Cog):
             return
 
         upd_mins = config.env.int('STATS_LOOP', default=5)
-        logger.info(f'Starting `update_stats`, updating each {upd_mins} minute')
+        logger.info(
+            f'Starting `update_stats`, updating each {upd_mins} minute'
+        )
         stats_settings = await get_db_settings()
         # Get stats about the code
         _codebase = get_stats_codebase()
