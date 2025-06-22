@@ -174,10 +174,18 @@ async def check_spotify_podcast_episodes():
         checklist[show['id']]['num_episodes_new'] = show['total_episodes']
         _old_eps = checklist[show['id']]['num_episodes_old']
         _new_eps = checklist[show['id']]['num_episodes_new']
-        if _new_eps > _old_eps:
-            _old_eps = _new_eps
+        if all([_old_eps, _new_eps]):
+            if _new_eps > _old_eps:
+                _old_eps = _new_eps
+            else:
+                checklist.pop(show['id'])
         else:
-            checklist.pop(show['id'])
+            _msg = 'Error when checking for new episodes for {}'.format(
+                feed['feed_name']
+            )
+            logger.error(_msg)
+            discord_commands.log_to_bot_channel(_msg)
+    return checklist
     return checklist
 
 
