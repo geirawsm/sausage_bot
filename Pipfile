@@ -29,6 +29,7 @@ pytest-mock = "*"
 pyyaml = "*"
 tabulate = "*"
 colorlog = "*"
+httpx = "*"
 
 [dev-packages]
 pytest = "*"

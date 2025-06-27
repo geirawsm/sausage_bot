@@ -814,7 +814,7 @@ class RSSfeed(commands.Cog):
     @commands.is_owner()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
-        name='add', description=locale_str(I18N.t('rss.commands.add.cmd')) 
+        name='add', description=locale_str(I18N.t('rss.commands.add.cmd'))
     )
     @describe(
         podcast_name=I18N.t('rss.commands.add.desc.feed_name'),
@@ -838,7 +838,7 @@ class RSSfeed(commands.Cog):
             return
         logger.debug('Adding feed to db')
         feed_type = 'podcast'
-        if 'acast.com' in feed_link and not 'feeds.acast.com' in feed_link:
+        if 'acast.com' in feed_link and 'feeds.acast.com' not in feed_link:
             logger.debug('Found Acast, but not the rss feed. Changing url')
             base_feed_url = 'https://feeds.acast.com/public/shows/{}'
             feed_link = re.sub(r'/episodes.*', '', feed_link)
@@ -1189,7 +1189,7 @@ async def setup(bot):
         table_in=envs.rss_db_settings_schema,
         inserts=envs.rss_db_settings_schema['inserts']
     )
-    rss_ratings_prep_is_ok = await db_helper.prep_table(
+    await db_helper.prep_table(
         table_in=envs.rss_db_ratings_schema
     )
     logger.debug(f'`rss_prep_is_ok` is {rss_prep_is_ok}')

@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from discord.utils import get
 from pprint import pformat
-import json
 
 from sausage_bot.util import envs, config, file_io, discord_commands
 from sausage_bot.util.args import args

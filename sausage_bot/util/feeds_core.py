@@ -63,16 +63,21 @@ class DynamicRatingSelect(
         self.show_uuid = show_uuid
         self.episode_uuid = episode_uuid
 
-    # This method actually extracts the information from the custom ID and creates the item.
+    # This method actually extracts the information from the custom ID and
+    # creates the item.
     @classmethod
-    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Select, match: re.Match[str], /):
+    async def from_custom_id(cls, interaction: discord.Interaction,
+                             item: discord.ui.Select,
+                             match: re.Match[str], /):
         show_uuid = str(match['show_uuid'])
         episode_uuid = str(match['episode_uuid'])
         return cls(show_uuid, episode_uuid)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         self.rating = self.item.values[0]
-        self.custom_id = f'rating.show:{self.show_uuid}:episode:{self.episode_uuid}'
+        self.custom_id = 'rating.show:{}:episode:{}'.format(
+            self.show_uuid, self.episode_uuid
+        )
         uuid_checks = await db_helper.get_output(
             template_info=envs.rss_db_ratings_schema,
             where=[
@@ -152,7 +157,7 @@ async def check_feed_validity(url_in, mock_file=None):
         return True
     sample_item = None
     logger.debug(f'Checking `url_in`: {url_in}')
-    if 'acast.com' in url_in and not 'feeds.acast.com' in url_in:
+    if 'acast.com' in url_in and 'feeds.acast.com' not in url_in:
         logger.debug('Found Acast, but not the rss feed. Changing url')
         base_feed_url = 'https://feeds.acast.com/public/shows/{}'
         url_in = re.sub(r'/episodes.*', '', url_in)
@@ -894,7 +899,7 @@ async def process_links_for_posting_or_editing(
                         CHANNEL,
                         view=rating_view
                     )
-                episode_thread = await episode_msg.create_thread(
+                await episode_msg.create_thread(
                     name='Diskusjon: {} - {}'.format(
                         item['pod_name'],
                         item['title']
