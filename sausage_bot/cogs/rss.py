@@ -162,8 +162,8 @@ async def rss_settings_autocomplete(
             ),
             value=str(setting['setting'])
         )
-        for setting in settings_in_db \
-            if current.lower() in setting['setting'].lower()
+        for setting in settings_in_db
+        if current.lower() in setting['setting'].lower()
     ][:25]
 
 
@@ -991,7 +991,7 @@ class RSSfeed(commands.Cog):
                 ('status_channel', envs.CHANNEL_STATUS_SUCCESS)
             ],
             not_like=[
-                ('feed_type', 'spotify')
+                ('feed_type', 'podcast')
             ]
         )
         if len(feeds) == 0:
