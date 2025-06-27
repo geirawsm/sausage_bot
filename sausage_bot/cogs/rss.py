@@ -14,7 +14,7 @@ import re
 from pprint import pformat
 
 from sausage_bot.util import config, envs, feeds_core, file_io, net_io
-from sausage_bot.util import db_helper, discord_commands, datetime_handling
+from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
