@@ -1427,3 +1427,24 @@ async def del_row_by_AND_filter(
         except aiosqlite.OperationalError as e:
             logger.error(f'Error: {e}')
             return None
+
+
+async def calculate_average_rating_from_db(
+    show_uuid, episode_uuid, template_info
+):
+    all_ratings = await get_output(
+        template_info=template_info,
+        where=[
+            ('show_uuid', show_uuid),
+            ('episode_uuid', episode_uuid),
+        ],
+        select=('rating')
+    )
+    if len(all_ratings) <= 0:
+        logger.debug(
+            f'No ratings found for show_uuid: {show_uuid}, '
+            f'episode_uuid: {episode_uuid}'
+        )
+        return None
+    ratings = [int(rating['rating']) for rating in all_ratings]
+    return sum(ratings) / len(ratings)

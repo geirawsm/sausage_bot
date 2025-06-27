@@ -1189,6 +1189,9 @@ async def setup(bot):
         table_in=envs.rss_db_settings_schema,
         inserts=envs.rss_db_settings_schema['inserts']
     )
+    rss_ratings_prep_is_ok = await db_helper.prep_table(
+        table_in=envs.rss_db_ratings_schema
+    )
     logger.debug(f'`rss_prep_is_ok` is {rss_prep_is_ok}')
     logger.debug(f'`rss_filter_prep_is_ok` is {rss_filter_prep_is_ok}')
     logger.debug(f'`rss_settings_prep_is_ok` is {rss_settings_prep_is_ok}')
@@ -1202,6 +1205,9 @@ async def setup(bot):
     )
     await db_helper.add_missing_db_setup(
         envs.rss_db_log_schema, missing_tbl_cols
+    )
+    await db_helper.add_missing_db_setup(
+        envs.rss_db_ratings_schema, missing_tbl_cols
     )
     logger.debug(f'rss db: `missing_tbl_cols` is {missing_tbl_cols}')
     if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):

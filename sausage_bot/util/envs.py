@@ -337,7 +337,22 @@ rss_db_settings_schema = {
         ['value_check', 'TEXT NOT NULL']
     ],
     'inserts': [
-        ['show_pod_description_in_embed', 'False', 'bool']
+        ['show_pod_description_in_embed', 'False', 'bool'],
+        ['podcast_ratings_enabled', 'True', 'bool']
+    ],
+    'primary': None,
+    'autoincrement': False
+}
+
+rss_db_ratings_schema = {
+    'db_file': str(DB_DIR / 'rss_feeds.sqlite'),
+    'name': 'ratings',
+    'items': [
+        ['user_id', 'TEXT NOT NULL'],
+        ['show_uuid', 'TEXT NOT NULL'],
+        ['episode_uuid', 'TEXT NOT NULL'],
+        ['rating', 'TEXT NOT NULL'],
+        ['datetime', 'TEXT']
     ],
     'primary': None,
     'autoincrement': False

@@ -10,12 +10,129 @@ import re
 from hashlib import md5
 from pprint import pformat
 
-from sausage_bot.util import config, envs, datetime_handling, file_io
+from sausage_bot.util import config, envs, datetime_handling
 from sausage_bot.util import discord_commands, net_io, db_helper
 from sausage_bot.util.args import args
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+
+
+class DynamicRatingSelect(
+    discord.ui.DynamicItem[discord.ui.Select],
+    template=r'rating.show:(?P<show_uuid>.*):episode:(?P<episode_uuid>.*)'
+):
+    def __init__(self, show_uuid: str, episode_uuid: str) -> None:
+        self.show_uuid: str = show_uuid
+        self.episode_uuid: str = episode_uuid
+        super().__init__(
+            discord.ui.Select(
+                custom_id=f'rating.show:{show_uuid}:episode:{episode_uuid}',
+                placeholder='★ Rate this episode ★',
+                min_values=1,
+                max_values=1,
+                options=[
+                    discord.SelectOption(
+                        label='★', value='1',
+                        description='1 star',
+                        default=False
+                    ),
+                    discord.SelectOption(
+                        label='★★', value='2',
+                        description='2 stars',
+                        default=False
+                    ),
+                    discord.SelectOption(
+                        label='★★★', value='3',
+                        description='3 stars',
+                        default=False
+                    ),
+                    discord.SelectOption(
+                        label='★★★★', value='4',
+                        description='4 stars',
+                        default=False
+                    ),
+                    discord.SelectOption(
+                        label='★★★★★', value='5',
+                        description='5 stars',
+                        default=False
+                    )
+                ]
+            )
+        )
+        self.show_uuid = show_uuid
+        self.episode_uuid = episode_uuid
+
+    # This method actually extracts the information from the custom ID and creates the item.
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Select, match: re.Match[str], /):
+        show_uuid = str(match['show_uuid'])
+        episode_uuid = str(match['episode_uuid'])
+        return cls(show_uuid, episode_uuid)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        self.rating = self.item.values[0]
+        self.custom_id = f'rating.show:{self.show_uuid}:episode:{self.episode_uuid}'
+        uuid_checks = await db_helper.get_output(
+            template_info=envs.rss_db_ratings_schema,
+            where=[
+                ('show_uuid', self.show_uuid),
+                ('episode_uuid', self.episode_uuid),
+                ('user_id', str(interaction.user.id))
+            ]
+        )
+        if len(uuid_checks) >= 1:
+            await db_helper.update_fields(
+                template_info=envs.rss_db_ratings_schema,
+                where=[
+                    ('show_uuid', self.show_uuid),
+                    ('episode_uuid', self.episode_uuid),
+                    ('user_id', str(interaction.user.id))
+                ],
+                updates=[
+                    ('rating', self.rating),
+                    ('datetime', await datetime_handling.get_dt(
+                        format='ISO8601'
+                    ))
+                ]
+            )
+        else:
+            await db_helper.insert_many_all(
+                template_info=envs.rss_db_ratings_schema,
+                inserts=[
+                    (
+                        str(interaction.user.id), self.show_uuid,
+                        self.episode_uuid, self.rating,
+                        await datetime_handling.get_dt(
+                            format='ISO8601'
+                        )
+                    )
+                ]
+            )
+        # Update average rating
+        avg_rating = await db_helper.calculate_average_rating_from_db(
+            show_uuid=self.show_uuid,
+            episode_uuid=self.episode_uuid,
+            template_info=envs.rss_db_ratings_schema
+        )
+        if not avg_rating:
+            await db_helper.add_avg_for_new_show(
+                template_info='',
+                show_uuid=self.show_uuid,
+                episode_uuid=self.episode_uuid,
+                message_id=interaction.id,
+                episode_rating=self.rating
+            )
+        stars = calculate_star_rating(float(self.rating))
+        await interaction.response.edit_message(
+            view=self.view,
+            content=f'★ Average rating {stars} ({avg_rating:.1f}) ★'
+        )
+        await interaction.followup.send(
+            ephemeral=True,
+            # TODO i18n
+            content=f'You rated this episode {self.rating} ★'
+        )
 
 
 async def check_if_feed_name_exist(feed_name):
@@ -764,6 +881,32 @@ async def process_links_for_posting_or_editing(
                     episode_msg = await discord_commands.post_to_channel(
                         CHANNEL, embed_in=embed
                     )
+                rating_setting = 'podcast_ratings_enabled'
+                if rating_setting in FEED_SETTINGS\
+                        and FEED_SETTINGS[rating_setting].lower()\
+                        == 'true':
+                    rating_view = discord.ui.View(timeout=None)
+                    rating_view.add_item(DynamicRatingSelect(
+                        show_uuid=item['pod_uuid'],
+                        episode_uuid=item['hash']
+                    ))
+                    await discord_commands.post_to_channel(
+                        CHANNEL,
+                        view=rating_view
+                    )
+                episode_thread = await episode_msg.create_thread(
+                    name='Diskusjon: {} - {}'.format(
+                        item['pod_name'],
+                        item['title']
+                    ),
+                    auto_archive_duration=10080
+                )
+                await log_link(
+                    envs.rss_db_log_schema,
+                    item['pod_uuid'],
+                    item['link'],
+                    item['hash']
+                )
             else:
                 logger.debug('Found a regular post')
                 if args.testmode:
@@ -775,6 +918,31 @@ async def process_links_for_posting_or_editing(
                     await discord_commands.post_to_channel(
                         CHANNEL, feed_link
                     )
+
+
+def calculate_star_rating(rating):
+    if rating == 5:
+        return '★★★★★'
+    elif rating >= 4.5:
+        return '★★★★⯪'
+    elif rating >= 4:
+        return '★★★★☆'
+    elif rating >= 3.5:
+        return '★★★⯪☆'
+    elif rating >= 3:
+        return '★★★☆☆'
+    elif rating >= 2.5:
+        return '★★⯪☆☆'
+    elif rating >= 2:
+        return '★★☆☆☆'
+    elif rating >= 1.5:
+        return '★⯪☆☆☆'
+    elif rating >= 1:
+        return '★☆☆☆☆'
+    elif rating >= 0.5:
+        return '⯪☆☆☆☆'
+    elif rating >= 0:
+        return '☆☆☆☆☆'
 
 
 if __name__ == "__main__":

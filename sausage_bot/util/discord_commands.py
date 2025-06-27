@@ -260,7 +260,7 @@ def get_roles(
 
 async def post_to_channel(
     channel_id: int, content_in=None,
-    embed_in=None
+    embed_in=None, view=None
 ) -> discord.message.Message:
     '''
     Post `content_in` in plain text or `embed_in` to channel
@@ -272,13 +272,14 @@ async def post_to_channel(
     try:
         msg_out = await channel_out.send(
             content=content_in,
-            embed=embed_in
+            embed=embed_in,
+            view=view
         )
         return msg_out
     except discord.errors.HTTPException as e:
         logger.error(
             f'{e} - this is the offending message:\n'
-            f'`content`: {content_in}\n`embed`: {embed_in}'
+            f'`content`: {content_in}\n`embed`: {embed_in}\n`view`: {view}'
         )
     return None
 
