@@ -162,7 +162,8 @@ async def rss_settings_autocomplete(
             ),
             value=str(setting['setting'])
         )
-        for setting in settings_in_db if current.lower() in setting['setting'].lower()
+        for setting in settings_in_db \
+            if current.lower() in setting['setting'].lower()
     ][:25]
 
 
@@ -850,14 +851,14 @@ class RSSfeed(commands.Cog):
         await discord_commands.log_to_bot_channel(
             I18N.t(
                 'rss.commands.add.log_feed_confirm',
-                user_name=AUTHOR, podcast_name=podcast_name,
+                user_name=AUTHOR, feed_name=podcast_name,
                 channel_name=channel.name
             )
         )
         await interaction.followup.send(
             I18N.t(
                 'rss.commands.add.msg_feed_confirm',
-                podcast_name=podcast_name, channel_name=channel.name
+                feed_name=podcast_name, channel_name=channel.name
             ),
             ephemeral=True
         )

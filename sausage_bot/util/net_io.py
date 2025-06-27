@@ -861,7 +861,7 @@ async def get_page_hash(url, debug=False):
         return None
     desc = None
     soup = BeautifulSoup(req, features='html.parser')
-    if desc is None:
+    if desc is None and 'youtube.com' in url:
         logger.debug('Trying yt check')
         ydl_opts = {
             'simulate': True,
@@ -872,7 +872,7 @@ async def get_page_hash(url, debug=False):
         with YoutubeDL(ydl_opts) as ydl:
             yt_info = ydl.extract_info(url)
         desc = yt_info['fulltitle']
-    if desc is None:
+    if desc is None and 'open.spotify.com' in url:
         logger.debug('Trying spotify check')
         try:
             check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
