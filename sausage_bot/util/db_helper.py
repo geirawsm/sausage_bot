@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from discord.utils import get
 from pprint import pformat
+import json
 
 from sausage_bot.util import envs, config, file_io, discord_commands
 from sausage_bot.util.args import args
@@ -943,7 +944,8 @@ async def update_fields(
 async def get_output(
     template_info, where: tuple = None, like: tuple = None,
     not_like: tuple = None, select: tuple = None, order_by: list = None,
-    get_row_ids: bool = False, rowid_sort: bool = False, single: bool = None
+    get_row_ids: bool = False, rowid_sort: bool = False,
+    single: bool = None, as_settings_json: bool = False
 ):
     '''
     Get output from a SELECT query from a specified
@@ -976,6 +978,9 @@ async def get_output(
         Sort output by rowids
     single: bool
         Only return one single result
+    as_settings_json: bool
+        Return output as json instead of dict
+        Only works for tables with two columns
     '''
     def parse_wheres(where):
         if not isinstance(where, tuple):
@@ -1075,6 +1080,11 @@ async def get_output(
                     return dict(out)
             else:
                 out = [dict(row) for row in await out.fetchall()]
+                if as_settings_json:
+                    out_dict = {}
+                    for item in out:
+                        out_dict[item['setting']] = item['value']
+                    return out_dict
             logger.debug(f'Returning {len(out)} items from from db')
             return out
     except aiosqlite.OperationalError as e:

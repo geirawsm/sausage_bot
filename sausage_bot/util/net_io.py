@@ -4,16 +4,23 @@
 import discord
 import re
 import aiohttp
-import aiofiles
 from random import choice
 import requests
 from datetime import datetime
 import json
-import colorgram
 from pprint import pformat
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOauthError
 from requests.exceptions import ConnectionError
+from bs4 import BeautifulSoup
+from bs4 import element as bs4_element
+from PIL import Image
+from io import BytesIO
+import httpx
+from numpy import array as np_array
+import json
+from hashlib import md5
+from yt_dlp import YoutubeDL
 
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
@@ -131,7 +138,11 @@ async def check_spotify_podcast(url, mock_file=None):
         return False
 
 
-async def check_spotify_podcast_episodes():
+async def check_for_new_spotify_podcast_episodes():
+    '''
+    Create a dict of Spotify podcasts that have more available episodes
+    than registered in the db
+    '''
     logger.debug('Getting num of episodes...')
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
@@ -147,8 +158,9 @@ async def check_spotify_podcast_episodes():
         where=[
             ('status_url', envs.FEEDS_URL_SUCCESS),
             ('status_channel', envs.CHANNEL_STATUS_SUCCESS),
-            ('feed_type', 'spotify')
-        ]
+            ('feed_type', 'podcast')
+        ],
+        like=('url', 'spotify.com/show/')
     )
     checklist = {}
     if len(spotify_feeds) == 0:
@@ -186,10 +198,42 @@ async def check_spotify_podcast_episodes():
             logger.error(_msg)
             discord_commands.log_to_bot_channel(_msg)
     return checklist
+
+
+async def check_other_podcast_episodes():
+    podcast_feeds = await db_helper.get_output(
+        template_info=envs.rss_db_schema,
+        select=('uuid', 'feed_name', 'url', 'channel'),
+        order_by=[
+            ('feed_name', 'DESC')
+        ],
+        where=[
+            ('status_url', envs.FEEDS_URL_SUCCESS),
+            ('status_channel', envs.CHANNEL_STATUS_SUCCESS),
+            ('feed_type', 'podcast')
+        ],
+        not_like=('url', 'spotify.com/show/')
+    )
+    checklist = {}
+    if len(podcast_feeds) == 0:
+        return checklist
+    for feed in podcast_feeds:
+        checklist[feed['uuid']] = {
+            'name': feed['feed_name'],
+            'uuid': feed['uuid'],
+            'url': feed['url'],
+            'channel': feed['channel']
+        }
     return checklist
 
 
 async def get_spotify_podcast_links(pod_id=str, uuid=str):
+    '''
+    Returns a dict with filters_db, log_db and items.
+    Items is a list of dicts with the following keys:
+    pod_name, pod_description, pod_img, title, description, link, img, id,
+    duration, type
+    '''
     if _spotipy is None:
         _spotipy_error = 'Spotipy has no credentials. Check README'
         logger.info(_spotipy_error)
@@ -218,9 +262,11 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         'pod_name': _show['name'],
         'pod_description': _show['description'],
         'pod_img': _show['images'][0]['url'],
+        'pod_uuid': uuid,
         'title': '',
         'description': '',
         'link': '',
+        'hash': '',
         'img': '',
         'id': '',
         'duration': '',
@@ -235,6 +281,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
             temp_info['title'] = ep['name']
             temp_info['description'] = ep['description']
             temp_info['link'] = ep['external_urls']['spotify']
+            temp_info['hash'] = await get_page_hash(temp_info['link'])
             temp_info['img'] = ep['images'][0]['url']
             temp_info['id'] = ep['id']
             temp_info['duration'] = ep['duration_ms'] * 1000
@@ -248,6 +295,117 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         )
         logger.error(_msg)
         await discord_commands.log_to_bot_channel(_msg)
+
+
+async def get_other_podcast_links(
+    req, url, uuid, num_items=None
+):
+    '''
+    Returns a dict with filters_db, log_db and items.
+    Items is a list of dicts with the following keys:
+    pod_name, pod_description, pod_img, title, description, link, img, id,
+    duration, type
+    '''
+    try:
+        soup = BeautifulSoup(req, features='lxml')
+        rss_status = False
+        if soup.find('feed') or soup.find('rss') or\
+                soup.find('link', attrs={'type': 'application/rss+xml'}):
+            rss_status = True
+        if rss_status is False:
+            logger.error(f'No rss feed found in {url}')
+            return None
+        else:
+            logger.debug(f'Found rss feed in {url}')
+    except Exception as e:
+        logger.error(f'Error when reading `soup` from {url}: {e}')
+        return None
+    logger.debug('Getting DB filters')
+    filters_db = await db_helper.get_output(
+        template_info=envs.rss_db_filter_schema,
+        select=('allow_or_deny', 'filter'),
+        where=[('uuid', uuid)]
+    )
+    logger.debug('Getting DB log')
+    log_db = await db_helper.get_output(
+        template_info=envs.rss_db_log_schema,
+        select=('url', 'hash'),
+        where=[('uuid', uuid)]
+    )
+    items_out = {
+        'filters': filters_db,
+        'items': [],
+        'log': log_db
+    }
+    pod_name = soup.find('channel').find('title').text
+    pod_description = soup.find('channel').find('description').text
+    pod_img = soup.find('channel').find('itunes:image')['href']
+    items_info = {
+        'pod_name': pod_name,
+        'pod_description': pod_description,
+        'pod_img': pod_img,
+        'pod_uuid': uuid,
+        'title': '',
+        'description': '',
+        'link': '',
+        'hash': '',
+        'img': '',
+        'duration': '',
+        'type': 'podcast',
+    }
+    logger.debug('Processing episodes')
+    # Gets podcast feed
+    if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
+        logger.debug('Found podcast feed')
+        if isinstance(num_items, int) and num_items > 0:
+            all_items = soup.find_all('item')[0:num_items]
+        else:
+            all_items = soup.find_all('item')
+        #try:
+        for item in all_items:
+            temp_info = items_info.copy()
+            temp_info['title'] = item.find('title').text if\
+                hasattr(item.find('title'), 'text') else\
+                item.find('title')
+            desc_in = str(item.find('description').text) if\
+                hasattr(item.find('description'), 'text') else\
+                str(item.find('description'))
+            temp_info['description'] = clean_pod_description(desc_in)
+            itunes_link = item.find('media:player')
+            normal_link = item.find('link')
+            logger.info('normal_link is {} ({}) ({})'.format(
+                normal_link, type(normal_link), len(normal_link)
+            ))
+            if itunes_link:
+                temp_info['link'] = itunes_link['url']
+            if len(normal_link) == 0 and isinstance(normal_link, bs4_element.Tag):
+                for line in str(item).split('\n'):
+                    if '<link/>' in line:
+                        temp_info['link'] = line.replace('<link/>', '')
+                        continue
+            elif len(normal_link) > 0:
+                temp_info['link'] = normal_link.text if\
+                    hasattr(normal_link, 'text')\
+                    else normal_link
+            if temp_info['link'] is None or\
+                    temp_info['link'] == '':
+                _msg = 'No link found for item: {}'.format(temp_info['title'])
+                logger.error(_msg)
+                await discord_commands.log_to_bot_channel(_msg)
+                continue
+            if temp_info['link'] is not None or\
+                    temp_info['link'] != '':
+                temp_info['hash'] = await get_page_hash(temp_info['link'])
+            temp_info['img'] = item.find('itunes:image')['href']
+            items_out['items'].append(temp_info)
+        items_out = filter_links(items_out)
+        return items_out
+#        except TypeError as e:
+#            _msg = 'Error processing episodes from {}: {}'.format(
+#                items_info['pod_name'], e
+#            )
+#            logger.error(_msg)
+#            await discord_commands.log_to_bot_channel(_msg)
 
 
 def filter_links(items):
@@ -664,39 +822,112 @@ async def parse_tv2livesport(url_in=None, mock_in=None):
     }
 
 
-async def download_pod_image(img_url):
-    session = aiohttp.ClientSession()
-    async with session.get(img_url) as resp:
-        if resp.status == 200:
-            file_io.ensure_file(f'{envs.TEMP_DIR}/temp_img.png')
-            f = await aiofiles.open(
-                f'{envs.TEMP_DIR}/temp_img.png', mode='wb'
-            )
-            await f.write(await resp.read())
-            await f.close()
-    await session.close()
-
-
 async def extract_color_from_image_url(image_url):
-    def rgb_to_hex(value1, value2, value3):
-        """
-        Convert RGB color to hex color
-        """
-        for value in (value1, value2, value3):
-            if not 0 <= value <= 255:
-                raise ValueError(
-                    'Value each slider must be ranges from 0 to 255'
-                )
-        return str('{0:02X}{1:02X}{2:02X}'.format(value1, value2, value3))
+    async with httpx.AsyncClient() as client:
+        response = await client.get(image_url)
+    image = Image.open(BytesIO(response.content)).convert('RGB')
+    image = image.resize((50, 50))  # Nedskalere for raskere prosessering
 
-    logger.debug(f'Downloading image: {image_url}')
-    await download_pod_image(image_url)
-    logger.debug('Extracting color')
-    color = colorgram.extract(f'{envs.TEMP_DIR}/temp_img.png', 1)[0]
-    logger.debug('Converting color to hex')
-    color_out = rgb_to_hex(color.rgb.r, color.rgb.g, color.rgb.b)
-    logger.debug(f'Returning: {color_out}')
-    return color_out
+    pixels = np_array(image).reshape(-1, 3)
+    avg_color = pixels.mean(axis=0).astype(int)
+
+    return '{:02X}{:02X}{:02X}'.format(*avg_color)
+
+
+def clean_pod_description(desc_in):
+    if '.]]>' in desc_in:
+        desc_in = desc_in.split('.]]>')[0]
+    desc_in = desc_in.replace('<p>', '\n')
+    desc_in = re.sub(r'<(p|br)>', '\n', desc_in)
+    desc_in = re.sub(r'<\/?\w+>|<\w+\s+.*?>', '', desc_in)
+    if 'hosted on acast. see' in desc_in.lower():
+        desc_in = desc_in.split(
+            'Hosted on Acast'
+        )[0]
+    desc_in = desc_in.split('See omnystudio.com/listener for')[0]
+    return desc_in
+
+
+async def get_page_hash(url, debug=False):
+    'Get hash of page at `url`'
+    req = await get_link(url)
+    if req is None:
+        logger.error('Could not get link')
+        return None
+    desc = None
+    soup = BeautifulSoup(req, features='html.parser')
+    if desc is None:
+        logger.debug('Trying yt check')
+        ydl_opts = {
+            'simulate': True,
+            'download': False,
+            'ignoreerrors': True,
+            'quiet': True
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            yt_info = ydl.extract_info(url)
+        desc = yt_info['fulltitle']
+    if desc is None:
+        logger.debug('Trying spotify check')
+        try:
+            check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
+            if check_if_spotify is not None:
+                desc = soup.find(
+                    'meta', attrs={'name': 'description'}
+                )['content']
+                desc = re.search(
+                    r'.*Listen to this episode from .* on Spotify. (.*)', desc
+                ).group(1)
+                desc = re.sub(r'\b\.\b', '\n', desc)
+        except TypeError:
+            pass
+    dt = await datetime_handling.get_dt(
+        format="revdatetimefull", sep="-"
+    )
+    if desc is None:
+        logger.debug('Trying podcast check')
+        if soup.find('enclosure'):
+            desc = soup.find('description').text
+    if desc is None:
+        script_json = soup.find('script', attrs={'type': 'application/json'})
+        if script_json:
+            info_json = json.loads(script_json.text)
+            try:
+                desc = info_json['props']['pageProps']['clip']['Description']
+            except KeyError:
+                desc = info_json['props']['pageProps']['episode']['summary']
+    if desc is None:
+        logger.debug('Trying common html')
+        try:
+            desc = soup.find('meta', attrs={'name': 'description'})
+            if desc is not None:
+                desc = desc['content']
+            if desc is None:
+                logger.info(
+                    f'Error when trying to hash description in {url},'
+                    'trying to find an article tag instead'
+                )
+                desc = soup.find('article').text
+            if debug:
+                file_io.write_file(
+                    envs.LOG_DIR / 'HTTP_files' / f'{dt}.html', soup
+                )
+                return
+            logger.debug(f'Got this description: {desc[0:200]}')
+        except Exception as e:
+            logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
+    if debug:
+        file_io.write_file(
+            envs.LOG_DIR / 'HTTP_files' / f'{dt}.html', soup
+        )
+    if desc is None:
+        hash = desc
+        logger.debug(f'Using desc: {desc[0:200]}')
+    elif desc is not None:
+        hash = md5(str(desc).encode('utf-8')).hexdigest()
+    logger.debug(f'Got `hash`: {hash}')
+    return hash
+
 
 if __name__ == "__main__":
     pass

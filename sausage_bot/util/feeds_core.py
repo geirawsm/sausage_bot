@@ -7,7 +7,6 @@ from tabulate import tabulate
 from uuid import uuid4
 import discord
 import re
-import json
 from hashlib import md5
 from pprint import pformat
 
@@ -36,6 +35,12 @@ async def check_feed_validity(url_in, mock_file=None):
         return True
     sample_item = None
     logger.debug(f'Checking `url_in`: {url_in}')
+    if 'acast.com' in url_in and not 'feeds.acast.com' in url_in:
+        logger.debug('Found Acast, but not the rss feed. Changing url')
+        base_feed_url = 'https://feeds.acast.com/public/shows/{}'
+        url_in = re.sub(r'/episodes.*', '', url_in)
+        pod_url_name = re.search(r'.*/(.*)', url_in).group(1)
+        url_in = base_feed_url.format(pod_url_name)
     req = await net_io.get_link(url_in, mock_file=mock_file)
     logger.debug(f'req is ({type(req)})')
     if req is None:
@@ -69,88 +74,6 @@ async def check_feed_validity(url_in, mock_file=None):
         return False
 
 
-async def get_page_hash(url, debug=False):
-    'Get hash of page at `url`'
-    req = await net_io.get_link(url)
-    if req is None:
-        logger.error('Could not get link')
-        return None
-    desc = None
-    soup = BeautifulSoup(req, features='html.parser')
-    if desc is None:
-        logger.debug('Trying yt check')
-        try:
-            _scripts = soup.find_all('script')
-            for _script in _scripts:
-                if 'var ytInitialData =' in _script.text:
-                    _script = re.match(
-                        r'^var ytInitialData = (.*);$', _script.text
-                    ).group(1)
-                    _script = json.loads(_script)
-                    try:
-                        desc = _script['contents'][
-                            'twoColumnWatchNextResults'
-                        ]['results']['results']['contents'][1][
-                            'videoSecondaryInfoRenderer'
-                        ]['attributedDescription']['content']
-                    except KeyError:
-                        desc = _script['contents'][
-                            'twoColumnWatchNextResults'
-                        ]['results']['results']['contents'][0][
-                            'videoPrimaryInfoRenderer'
-                        ]['title']['runs'][0]['text']
-        except TypeError:
-            pass
-    if desc is None:
-        logger.debug('Trying spotify check')
-        try:
-            check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
-            if check_if_spotify is not None:
-                desc = soup.find(
-                    'meta', attrs={'name': 'description'}
-                )['content']
-                desc = re.search(
-                    r'.*Listen to this episode from .* on Spotify. (.*)', desc
-                ).group(1)
-                desc = re.sub(r'\b\.\b', '\n', desc)
-        except TypeError:
-            pass
-    dt = await datetime_handling.get_dt(
-        format="revdatetimefull", sep="-"
-    )
-    if desc is None:
-        logger.debug('Trying common html')
-        try:
-            desc = soup.find('meta', attrs={'name': 'description'})
-            if desc is not None:
-                desc = desc['content']
-            if desc is None:
-                logger.info(
-                    f'Error when trying to hash description in {url},'
-                    'trying to find an article tag instead'
-                )
-                desc = soup.find('article').text
-            if debug:
-                file_io.write_file(
-                    envs.LOG_DIR / 'HTTP_files' / f'{dt}.html', soup
-                )
-                return
-            logger.debug(f'Got this description: {desc[0:200]}')
-        except Exception as e:
-            logger.error(f'Error when trying to hash RSS-desc {url}: {e}')
-    if debug:
-        file_io.write_file(
-            envs.LOG_DIR / 'HTTP_files' / f'{dt}.html', soup
-        )
-    if desc is None:
-        hash = desc
-        logger.debug(f'Using desc: {desc[0:200]}')
-    elif desc is not None:
-        hash = md5(str(desc).encode('utf-8')).hexdigest()
-    logger.debug(f'Got `hash`: {hash}')
-    return hash
-
-
 async def get_items_from_rss(
     req, url, filters_in=None, log_in=None, num_items=None
 ) -> list:
@@ -178,7 +101,8 @@ async def get_items_from_rss(
         'title': '',
         'description': '',
         'hash': '',
-        'link': ''
+        'link': '',
+        'img': ''
     }
     # Gets podcast feed
     if soup.find('enclosure') and 'audio' in soup.find('enclosure')['type']:
@@ -193,15 +117,18 @@ async def get_items_from_rss(
             temp_info['title'] = item.find('title').text if\
                 hasattr(item.find('title'), 'text') else\
                 item.find('title')
-            temp_info['description'] = item.find('description').text if\
+            desc_in = str(item.find('description').text) if\
                 hasattr(item.find('description'), 'text') else\
-                item.find('description')
+                str(item.find('description'))
+            desc_in = net_io.clean_pod_description(desc_in)
+            temp_info['description'] = desc_in
             temp_info['hash'] = md5(
                 str(temp_info['description']).encode('utf-8')
             ).hexdigest()
             temp_info['link'] = item.find('link').text if\
                 hasattr(item.find('link'), 'text') else\
                 item.find('link')
+            temp_info['img'] = item.find('itunes:image')['href']
             items_out['items'].append(temp_info)
     # Gets Youtube feed
     elif soup.find('yt:channelId'):
@@ -244,11 +171,11 @@ async def get_items_from_rss(
             temp_info['type'] = 'rss'
             temp_info['title'] = item.find('title').text
             if item.find('description'):
-                temp_info['description'] = item.find('description').text
+                temp_info['description'] = str(item.find('description').text)
             elif item.find('media:keywords'):
-                temp_info['description'] = item.find('media:keywords')
+                temp_info['description'] = str(item.find('media:keywords'))
             elif item.find('content'):
-                temp_info['description'] = item.find('content').text
+                temp_info['description'] = str(item.find('content').text)
             else:
                 temp_info['description'] = None
             if temp_info['description'] is not None:
@@ -283,7 +210,7 @@ async def add_to_feed_db(
     ``playlist_id`: id of playlist
     '''
 
-    if feed_type not in ['rss', 'youtube', 'spotify']:
+    if feed_type not in ['rss', 'youtube', 'podcast']:
         logger.error('Function requires `feed_type`')
         return None
     # Test the link first
@@ -298,7 +225,7 @@ async def add_to_feed_db(
     else:
         logger.debug('Skipping url validation')
     date_now = await datetime_handling.get_dt(format='datetime')
-    if feed_type in ['rss', 'spotify']:
+    if feed_type in ['rss']:
         await db_helper.insert_many_some(
             envs.rss_db_schema,
             rows=(
@@ -330,12 +257,28 @@ async def add_to_feed_db(
                 )
             )
         )
+    elif feed_type in ['podcast']:
+        await db_helper.insert_many_some(
+            envs.rss_db_schema,
+            rows=(
+                'uuid', 'feed_name', 'url', 'channel', 'added', 'added_by',
+                'feed_type', 'status_url', 'status_url_counter',
+                'status_channel', 'num_episodes'
+            ),
+            inserts=(
+                (
+                    str(uuid4()), name, feed_link, channel, date_now,
+                    user_add, feed_type, envs.FEEDS_URL_SUCCESS, 0,
+                    envs.CHANNEL_STATUS_SUCCESS, 0
+                )
+            )
+        )
 
 
 async def remove_feed_from_db(feed_type, feed_name):
     'Remove a feed from `feed file` based on `feed_name`'
     removal_ok = True
-    if feed_type in ['rss', 'spotify']:
+    if feed_type in ['rss', 'podcast']:
         feed_db = envs.rss_db_schema
         feed_db_filter = envs.rss_db_filter_schema
     elif feed_type == 'youtube':
@@ -639,7 +582,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         logger.debug('Log is empty')
         return False
     logger.debug(f'log_in seems to be ok {len(log_in)}')
-    link_hash = await get_page_hash(link)
+    link_hash = await net_io.get_page_hash(link)
     logger.debug(f'Link hash is `{link_hash}`')
     if link in [log_url['url'] for log_url in log_in]:
         logger.debug('Link in log')
@@ -664,14 +607,10 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         logger.debug('Link is in log, but hash has changed. Replacing...')
         await replace_post(link, log_in, link_hash, channel, uuid)
         logger.debug('Adding link to log')
-        await log_link(
-            log_env, uuid, link, link_hash
-        )
         return True
     elif not link_in_log and hash_in_log:
         logger.debug(
-            'Hash in log, but link is not. '
-            'Adding to log and replacing post'
+            'Hash in log, but link is not. Adding to log and replacing post'
         )
         await replace_post(link, log_in, link_hash, channel, uuid)
         return True
@@ -684,7 +623,8 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
 
 
 async def log_link(template_info, uuid, feed_link, page_hash):
-    print(
+    logger.info('Logging link to db')
+    logger.debug(
         f'Got these vars: template_info: {template_info}, uuid: {uuid}, '
         f'feed_link: {feed_link}, page_hash: {page_hash}'
     )
@@ -704,7 +644,7 @@ async def log_link(template_info, uuid, feed_link, page_hash):
         )
         # TODO i18n
         await discord_commands.log_to_bot_channel(
-            'No page hash found for {feed_link}, logging link instead'
+            f'No page hash found for {feed_link}, logging link instead'
         )
     logger.debug(f'Adding this to log:\n{pformat(inserts)}')
     await db_helper.insert_many_all(
@@ -732,14 +672,15 @@ async def process_links_for_posting_or_editing(
     logger.debug(
         'Starting `process_links_for_posting_or_editing`'
     )
-    if feed_type not in ['rss', 'youtube', 'spotify']:
+    if feed_type not in ['rss', 'youtube', 'podcast']:
         logger.error('Function requires `feed_type`')
         return None
-    if feed_type in ['rss', 'spotify']:
+    if feed_type in ['rss', 'podcast']:
         feed_db_log = envs.rss_db_log_schema
         FEED_SETTINGS = await db_helper.get_output(
             template_info=envs.rss_db_settings_schema,
-            select=('setting', 'value')
+            select=('setting', 'value'),
+            as_settings_json=True
         )
     elif feed_type == 'youtube':
         feed_db_log = envs.youtube_db_log_schema
@@ -760,8 +701,7 @@ async def process_links_for_posting_or_editing(
             select=('url'),
             where=[('uuid', uuid)]
         )
-    FEED_SETTINGS = dict(FEED_SETTINGS) if FEED_SETTINGS is not None\
-        else FEED_SETTINGS
+    logger.debug(f'FEED_SETTINGS is {FEED_SETTINGS}')
     FEED_POSTS = FEED_POSTS[0:3]
     FEED_POSTS.reverse()
     for item in FEED_POSTS:
@@ -780,17 +720,13 @@ async def process_links_for_posting_or_editing(
             continue
         elif not link_in_log:
             # Add link to log
-            _page_hash = await get_page_hash(feed_link)
+            _page_hash = await net_io.get_page_hash(feed_link)
             logger.debug(
                 f'Link {feed_link} got hash {_page_hash}'
             )
-            await log_link(
-                template_info=feed_db_log, uuid=uuid,
-                feed_link=feed_link, page_hash=_page_hash
-            )
             # Consider this a whole new post and post link to channel
             logger.debug(f'Posting link `{feed_link}`')
-            if isinstance(item, dict) and item['type'] == 'spotify':
+            if isinstance(item, dict) and item['type'] == 'podcast':
                 logger.debug(
                     'Found a podcast that should '
                     f'be embedded:\n{pformat(item)}',
@@ -802,13 +738,15 @@ async def process_links_for_posting_or_editing(
                 embed = discord.Embed(
                     title=item['title'],
                     url=item['link'],
-                    description='{}\n\n{}'.format(
-                        item['description'],
-                        '[🎧 HØR PÅ SPOTIFY 🎧]({})'.format(
-                            item['link']
-                        )
-                    ),
+                    description=item['description'],
                     colour=discord.Color.from_str(f'#{embed_color}')
+                )
+                embed.add_field(
+                    name='',
+                    value='[🎧 HØR PÅ EPISODEN 🎧]({})'.format(
+                        item['link']
+                    ),
+                    inline=False
                 )
                 embed.set_author(name=item['pod_name'])
                 embed.set_image(url=item['img'])
@@ -823,7 +761,7 @@ async def process_links_for_posting_or_editing(
                 if args.testmode:
                     logger.debug(embed, color='yellow')
                 else:
-                    await discord_commands.post_to_channel(
+                    episode_msg = await discord_commands.post_to_channel(
                         CHANNEL, embed_in=embed
                     )
             else:

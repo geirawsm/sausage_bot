@@ -1,45 +1,46 @@
 nb:
   groups:
-    rss: Administrer RSS-feeder
-    filter: Administrer RSS filters
-    posting: Posting fra RSS feeds
-    settings: Endre innstillinger for RSS feeds
+    rss: Administrer feeder
+    podcast: Administrer podcaster
+    filter: Administrer filtere
+    posting: Posting fra feeds
+    settings: Endre innstillinger for feeds
   commands:
     start:
       cmd: Start posting
-      msg_confirm_ok: "Startet RSS-posting: `%{feed_type}`"
+      msg_confirm_ok: "Startet posting: `%{feed_type}`"
       msg_confirm_fail_suffix: ", men feilet for `%{feed_type}`"
-      msg_confirm_fail: "Start RSS posting feilet for `%{feed_type}`"
+      msg_confirm_fail: "Start feilet for `%{feed_type}`"
     stop:
       cmd: Stopp posting
-      msg_confirm_ok: "Stoppet RSS-posting: %{feed_type}"
+      msg_confirm_ok: "Stoppet posting: %{feed_type}"
       msg_confirm_fail_suffix: ", men feilet for `%{feed_type}`"
-      msg_confirm_fail: "Stopping av RSS post feilet for `%{feed_type}`"
+      msg_confirm_fail: "Stopping feilet for `%{feed_type}`"
     restart:
       cmd: Restart posting
-      msg_confirm_ok: "Restartet RSS-posting: %{feed_type}"
+      msg_confirm_ok: "Restartet posting: %{feed_type}"
       msg_confirm_fail_suffix: ", men feilet for `%{feed_type}`"
-      msg_confirm_fail: "Restarting av RSS post feilet for `%{feed_type}`"
+      msg_confirm_fail: "Restarting feilet for `%{feed_type}`"
     add:
-      cmd: Legg til en RSS-feed
+      cmd: Legg til en feed
       desc:
         feed_name: Navn på feeden som legges til
-        feed_link: Link til en RSS-/XML-feed
+        feed_link: Link til en feed
         channel: Kanalen som det skal postes til
       msg_feed_failed: Urlen er ikke en RSS/XML feed
       msg_feed_confirm: '%{feed_name} ble lagt til i #%{channel_name}'
       log_feed_confirm: '%{user_name} la til feeden %{feed_name} i #%{channel_name}'
     remove:
-      cmd: Fjern en RSS-feed
+      cmd: Fjern en feed
       desc:
         feed_name: Navn på feeden som skal fjernes
       msg_feed_not_found: Feeden ble ikke funnet
       msg_feed_removed: '%{feed_name} ble fjernet'
       log_feed_removed: 'Feeden %{feed_name} ble fjernet av %{user_name}'
-      msg_feed_remove_failed: 'Klarte ikke å fjerne RSS-feeden %{feed_name}'
+      msg_feed_remove_failed: 'Klarte ikke å fjerne feeden %{feed_name}'
       log_feed_remove_failed: '%{user_name} prøvde å fjerne feeden %{feed_name}, men det oppsto en feil'
     edit:
-      cmd: Rediger en RSS-feed
+      cmd: Rediger en feed
       desc:
         feed_name: Navnet på feeden som skal redigeres
         new_feed_name: Nytt navn på feeden som skal endres til
@@ -52,7 +53,7 @@ nb:
         channel: Kanal
         url: URL
     filter_add:
-      cmd: Legg til et filter på en RSS-feed
+      cmd: Legg til et filter på en feed
       desc:
         feed_name: Navnet på feeden som skal legges til
         allow_deny: Tillat eller nekt
@@ -60,14 +61,14 @@ nb:
       msg_confirm: 'Lagt til filtre som `%{allow_deny}`:'
       msg_error: 'Feil ved legging av filter, sjekk loggfilene'
     filter_remove:
-      cmd: Fjern et filter fra en RSS-feed
+      cmd: Fjern et filter fra en feed
       desc:
         feed_name: Navnet på feeden som skal fjernes
         filter: 'Hvilket filter som skal søkes etter'
       msg_confirm: 'Fjernet filter `%{filter}`'
       msg_error: 'Feil ved fjerning av filter `%{filter}`, sjekk loggfilene'
     list:
-      cmd: List alle aktive RSS-feeder
+      cmd: List alle aktive feeder
       desc:
         list_type: 'Spesifiser type liste'
       literal_type:
@@ -83,7 +84,7 @@ nb:
       value_in_input_invalid: 'Ugyldig inndata for `value_in`: %{error}'
       msg_confirm: Innstilling oppdatert
     test:
-      cmd: Test en RSS-feed
+      cmd: Test en feed
       desc:
         feed_name: Navnet på feeden som skal testes
   tasks:
