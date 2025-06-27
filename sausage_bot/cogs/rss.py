@@ -158,11 +158,11 @@ async def rss_settings_autocomplete(
     return [
         discord.app_commands.Choice(
             name='{}: {}'.format(
-                setting[0], setting[1]
+                setting['setting'], setting['value']
             ),
-            value=str(setting[0])
+            value=str(setting['setting'])
         )
-        for setting in settings_in_db if current.lower() in setting[0].lower()
+        for setting in settings_in_db if current.lower() in setting['setting'].lower()
     ][:25]
 
 
