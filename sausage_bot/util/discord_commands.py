@@ -298,10 +298,11 @@ async def replace_post(replace_content, replace_with, channel_in):
                 if replace_content in msg.content:
                     await msg.edit(content=replace_with)
                     return
-            elif isinstance(replace_content, list):
-                if any(_cont in msg.content for _cont in replace_content):
-                    await msg.edit(content=replace_with)
-                    return
+            elif isinstance(replace_content, list) and any(
+                    _cont in msg.content for _cont in replace_content
+            ):
+                await msg.edit(content=replace_with)
+                return
     return
 
 

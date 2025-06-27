@@ -18,7 +18,6 @@ from PIL import Image
 from io import BytesIO
 import httpx
 from numpy import array as np_array
-import json
 from hashlib import md5
 from yt_dlp import YoutubeDL
 
@@ -361,51 +360,55 @@ async def get_other_podcast_links(
             all_items = soup.find_all('item')[0:num_items]
         else:
             all_items = soup.find_all('item')
-        #try:
-        for item in all_items:
-            temp_info = items_info.copy()
-            temp_info['title'] = item.find('title').text if\
-                hasattr(item.find('title'), 'text') else\
-                item.find('title')
-            desc_in = str(item.find('description').text) if\
-                hasattr(item.find('description'), 'text') else\
-                str(item.find('description'))
-            temp_info['description'] = clean_pod_description(desc_in)
-            itunes_link = item.find('media:player')
-            normal_link = item.find('link')
-            logger.info('normal_link is {} ({}) ({})'.format(
-                normal_link, type(normal_link), len(normal_link)
-            ))
-            if itunes_link:
-                temp_info['link'] = itunes_link['url']
-            if len(normal_link) == 0 and isinstance(normal_link, bs4_element.Tag):
-                for line in str(item).split('\n'):
-                    if '<link/>' in line:
-                        temp_info['link'] = line.replace('<link/>', '')
-                        continue
-            elif len(normal_link) > 0:
-                temp_info['link'] = normal_link.text if\
-                    hasattr(normal_link, 'text')\
-                    else normal_link
-            if temp_info['link'] is None or\
-                    temp_info['link'] == '':
-                _msg = 'No link found for item: {}'.format(temp_info['title'])
-                logger.error(_msg)
-                await discord_commands.log_to_bot_channel(_msg)
-                continue
-            if temp_info['link'] is not None or\
-                    temp_info['link'] != '':
-                temp_info['hash'] = await get_page_hash(temp_info['link'])
-            temp_info['img'] = item.find('itunes:image')['href']
-            items_out['items'].append(temp_info)
-        items_out = filter_links(items_out)
-        return items_out
-#        except TypeError as e:
-#            _msg = 'Error processing episodes from {}: {}'.format(
-#                items_info['pod_name'], e
-#            )
-#            logger.error(_msg)
-#            await discord_commands.log_to_bot_channel(_msg)
+        try:
+            for item in all_items:
+                temp_info = items_info.copy()
+                temp_info['title'] = item.find('title').text if\
+                    hasattr(item.find('title'), 'text') else\
+                    item.find('title')
+                desc_in = str(item.find('description').text) if\
+                    hasattr(item.find('description'), 'text') else\
+                    str(item.find('description'))
+                temp_info['description'] = clean_pod_description(desc_in)
+                itunes_link = item.find('media:player')
+                normal_link = item.find('link')
+                logger.info('normal_link is {} ({}) ({})'.format(
+                    normal_link, type(normal_link), len(normal_link)
+                ))
+                if itunes_link:
+                    temp_info['link'] = itunes_link['url']
+                if len(normal_link) == 0 and isinstance(
+                    normal_link, bs4_element.Tag
+                ):
+                    for line in str(item).split('\n'):
+                        if '<link/>' in line:
+                            temp_info['link'] = line.replace('<link/>', '')
+                            continue
+                elif len(normal_link) > 0:
+                    temp_info['link'] = normal_link.text if\
+                        hasattr(normal_link, 'text')\
+                        else normal_link
+                if temp_info['link'] is None or\
+                        temp_info['link'] == '':
+                    _msg = 'No link found for item: {}'.format(
+                        temp_info['title']
+                    )
+                    logger.error(_msg)
+                    await discord_commands.log_to_bot_channel(_msg)
+                    continue
+                if temp_info['link'] is not None or\
+                        temp_info['link'] != '':
+                    temp_info['hash'] = await get_page_hash(temp_info['link'])
+                temp_info['img'] = item.find('itunes:image')['href']
+                items_out['items'].append(temp_info)
+            items_out = filter_links(items_out)
+            return items_out
+        except TypeError as e:
+            _msg = 'Error processing episodes from {}: {}'.format(
+                items_info['pod_name'], e
+            )
+            logger.error(_msg)
+            await discord_commands.log_to_bot_channel(_msg)
 
 
 def filter_links(items):
@@ -615,7 +618,8 @@ async def parse(url: str = None):
             parse = await parse_nifs(url)
             return parse
         except Exception as e:
-            error_msg = f'Could not parse {url} - got the following error:\n{e}'
+            error_msg = f'Could not parse {url} - '\
+                f'got the following error:\n{e}'
             logger.error(error_msg)
             return None
     elif PARSER == 'vglive':
@@ -629,7 +633,8 @@ async def parse(url: str = None):
             else:
                 return parse
         except Exception as e:
-            error_msg = f'Could not parse {url} - got the following error:\n{e}'
+            error_msg = f'Could not parse {url} - '\
+                f'got the following error:\n{e}'
             logger.error(error_msg)
             return None
     elif PARSER == 'tv2livesport':
