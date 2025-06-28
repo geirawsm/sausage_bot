@@ -920,7 +920,7 @@ async def process_links_for_posting_or_editing(
                     )
             await log_link(
                 envs.rss_db_log_schema,
-                item['pod_uuid'],
+                uuid,
                 item['link'],
                 item['hash']
             )
