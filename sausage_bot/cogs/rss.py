@@ -241,7 +241,7 @@ async def control_posting(feed_type, action):
             f'rss.commands.{action}.msg_confirm_fail',
             feed_type=failed_list
         )
-    return
+    return _msg
 
 
 class RSSfeed(commands.Cog):

@@ -701,7 +701,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
     hash_in_log = None
     link_hash = None
     if log_in is None:
-        logger.debug('Log is empty')
+        logger.debug('Log is None')
         return False
     logger.debug(f'log_in seems to be ok {len(log_in)}')
     link_hash = await net_io.get_page_hash(link)
@@ -811,7 +811,7 @@ async def process_links_for_posting_or_editing(
         logger.debug('`FEED_POSTS` is None')
         return None
     logger.debug(f'Got {len(FEED_POSTS)} items in `FEED_POSTS`')
-    if feed_type == 'rss':
+    if feed_type in ['rss', 'podcast']:
         FEED_LOG = await db_helper.get_output(
             template_info=feed_db_log,
             select=('url', 'hash'),
@@ -841,6 +841,7 @@ async def process_links_for_posting_or_editing(
             logger.debug(f'Link `{feed_link}` already logged. Skipping.')
             continue
         elif not link_in_log:
+            logger.debug(f'Link `{feed_link}` not in log. Posting..')
             # Add link to log
             _page_hash = await net_io.get_page_hash(feed_link)
             logger.debug(
@@ -906,12 +907,6 @@ async def process_links_for_posting_or_editing(
                     ),
                     auto_archive_duration=10080
                 )
-                await log_link(
-                    envs.rss_db_log_schema,
-                    item['pod_uuid'],
-                    item['link'],
-                    item['hash']
-                )
             else:
                 logger.debug('Found a regular post')
                 if args.testmode:
@@ -923,6 +918,12 @@ async def process_links_for_posting_or_editing(
                     await discord_commands.post_to_channel(
                         CHANNEL, feed_link
                     )
+            await log_link(
+                envs.rss_db_log_schema,
+                item['pod_uuid'],
+                item['link'],
+                item['hash']
+            )
 
 
 def calculate_star_rating(rating):
