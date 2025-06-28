@@ -704,7 +704,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         logger.debug('Log is None')
         return False
     logger.debug(f'log_in seems to be ok (got {len(log_in)} items)')
-    link_hash = await get_page_hash(link)
+    link_hash = await net_io.get_page_hash(link)
     logger.debug(f'Link hash is `{link_hash}`')
     if link in [log_url['url'] for log_url in log_in]:
         logger.debug('Link in log')
