@@ -943,7 +943,8 @@ async def update_fields(
 async def get_output(
     template_info, where: tuple = None, like: tuple = None,
     not_like: tuple = None, select: tuple = None, order_by: list = None,
-    get_row_ids: bool = False, rowid_sort: bool = False, single: bool = None
+    get_row_ids: bool = False, rowid_sort: bool = False,
+    single: bool = None, as_settings_json: bool = False
 ):
     '''
     Get output from a SELECT query from a specified
@@ -976,6 +977,9 @@ async def get_output(
         Sort output by rowids
     single: bool
         Only return one single result
+    as_settings_json: bool
+        Return output as json instead of dict
+        Only works for tables with two columns
     '''
     def parse_wheres(where):
         if not isinstance(where, tuple):
@@ -1075,6 +1079,11 @@ async def get_output(
                     return dict(out)
             else:
                 out = [dict(row) for row in await out.fetchall()]
+                if as_settings_json:
+                    out_dict = {}
+                    for item in out:
+                        out_dict[item['setting']] = item['value']
+                    return out_dict
             logger.debug(f'Returning {len(out)} items from from db')
             return out
     except aiosqlite.OperationalError as e:
@@ -1417,3 +1426,24 @@ async def del_row_by_AND_filter(
         except aiosqlite.OperationalError as e:
             logger.error(f'Error: {e}')
             return None
+
+
+async def calculate_average_rating_from_db(
+    show_uuid, episode_uuid, template_info
+):
+    all_ratings = await get_output(
+        template_info=template_info,
+        where=[
+            ('show_uuid', show_uuid),
+            ('episode_uuid', episode_uuid),
+        ],
+        select=('rating')
+    )
+    if len(all_ratings) <= 0:
+        logger.debug(
+            f'No ratings found for show_uuid: {show_uuid}, '
+            f'episode_uuid: {episode_uuid}'
+        )
+        return None
+    ratings = [int(rating['rating']) for rating in all_ratings]
+    return sum(ratings) / len(ratings)
