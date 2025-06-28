@@ -283,7 +283,7 @@ async def db_replace_numeral_bool_with_bool(template_info):
                 remove_status = True
             else:
                 if db_type_checking[setting_in[0]] == 'bool':
-                    if type(eval(setting_in[1])) is not\
+                    if type(eval(str(setting_in[1]).capitalize())) is not\
                             eval(db_type_checking[setting_in[0]]):
                         remove_status = False
                     else:

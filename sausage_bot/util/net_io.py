@@ -862,7 +862,7 @@ async def get_page_hash(url, debug=False):
     desc = None
     soup = BeautifulSoup(req, features='html.parser')
     if desc is None and 'youtube.com' in url:
-        logger.debug('Trying yt check')
+        logger.debug(f'Trying yt check on {url}')
         ydl_opts = {
             'simulate': True,
             'download': False,
@@ -873,7 +873,7 @@ async def get_page_hash(url, debug=False):
             yt_info = ydl.extract_info(url)
         desc = yt_info['fulltitle']
     if desc is None and 'open.spotify.com' in url:
-        logger.debug('Trying spotify check')
+        logger.debug(f'Trying spotify check on {url}')
         try:
             check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
             if check_if_spotify is not None:
@@ -890,7 +890,7 @@ async def get_page_hash(url, debug=False):
         format="revdatetimefull", sep="-"
     )
     if desc is None:
-        logger.debug('Trying podcast check')
+        logger.debug(f'Trying podcast check on {url}')
         if soup.find('enclosure'):
             desc = soup.find('description').text
     if desc is None:
@@ -902,7 +902,7 @@ async def get_page_hash(url, debug=False):
             except KeyError:
                 desc = info_json['props']['pageProps']['episode']['summary']
     if desc is None:
-        logger.debug('Trying common html')
+        logger.debug(f'Trying common html on {url}')
         try:
             desc = soup.find('meta', attrs={'name': 'description'})
             if desc is not None:
