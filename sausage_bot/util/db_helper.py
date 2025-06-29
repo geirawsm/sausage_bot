@@ -297,6 +297,8 @@ async def db_replace_numeral_bool_with_bool(template_info):
     )
     for setting in db_new_bool_status:
         setting_in = list(setting.values())
+        if str(setting_in[1]).lower() in ['true', 'false']:
+            setting_in[1] = setting_in[1].capitalize()
         if type(eval(setting_in[1])) is int:
             if setting_in[1] == 0:
                 setting_in[1] = False
