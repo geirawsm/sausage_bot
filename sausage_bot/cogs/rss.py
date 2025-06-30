@@ -197,7 +197,7 @@ async def control_posting(feed_type, action):
                 )
             except RuntimeError as e:
                 logger.error('Error when {}ing feed `{}`: {}'.format(
-                    actions[action], feed_type, e
+                    actions[action]['status_update'], feed_type, e
                 ))
                 failed_list.append(feed_type)
     # Update status in db
@@ -732,7 +732,7 @@ class RSSfeed(commands.Cog):
                 ('uuid', feed_name)
             ],
             not_like=[
-                ('feed_type', 'spotify')
+                ('feed_type', 'podcast')
             ],
             single=True
         )
@@ -1081,7 +1081,9 @@ class RSSfeed(commands.Cog):
                 f'Found channel `{channel_obj.name}` in `{FEED_NAME}`'
             )
             FEED_POSTS = await net_io.get_spotify_podcast_links(
-                POD_ID, UUID
+                feed_id=POD_ID,
+                uuid=UUID,
+                num_items=3
             )
             logger.debug(
                 'Got {} items for `FEED_POSTS`: '

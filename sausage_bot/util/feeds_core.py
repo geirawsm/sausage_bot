@@ -823,7 +823,7 @@ async def process_links_for_posting_or_editing(
             select=('url'),
             where=[('uuid', uuid)]
         )
-    logger.debug(f'FEED_SETTINGS is {FEED_SETTINGS}')
+    logger.debug(f'FEED_SETTINGS is {FEED_SETTINGS} for feed type {feed_type}')
     FEED_POSTS = FEED_POSTS[0:3]
     FEED_POSTS.reverse()
     for item in FEED_POSTS:
@@ -849,11 +849,10 @@ async def process_links_for_posting_or_editing(
             )
             # Consider this a whole new post and post link to channel
             logger.debug(f'Posting link `{feed_link}`')
+            logger.debug(
+                f'Found item:\n{pformat(item)}',
+            )
             if isinstance(item, dict) and item['type'] == 'podcast':
-                logger.debug(
-                    'Found a podcast that should '
-                    f'be embedded:\n{pformat(item)}',
-                )
                 embed_color = await net_io.\
                     extract_color_from_image_url(
                         item['img']
@@ -871,42 +870,48 @@ async def process_links_for_posting_or_editing(
                     ),
                     inline=False
                 )
-                embed.set_author(name=item['pod_name'])
+                embed.set_author(name=item['feed_name'])
                 embed.set_image(url=item['img'])
                 desc_setting = 'show_pod_description_in_embed'
                 if desc_setting in FEED_SETTINGS\
                         and FEED_SETTINGS[desc_setting].lower()\
                         == 'true':
-                    embed.set_footer(text=item['pod_description'])
+                    logger.debug('Descriptions enabled')
+                    embed.set_footer(text=item['feed_description'])
                 logger.debug(
                     f'Sending this embed to channel:\n{pformat(embed)}'
                 )
-                if args.testmode:
-                    logger.debug(embed, color='yellow')
-                else:
-                    episode_msg = await discord_commands.post_to_channel(
-                        CHANNEL, embed_in=embed
-                    )
+                episode_msg = await discord_commands.post_to_channel(
+                    CHANNEL, embed_in=embed
+                )
+                view = None
                 rating_setting = 'podcast_ratings_enabled'
                 if rating_setting in FEED_SETTINGS\
                         and FEED_SETTINGS[rating_setting].lower()\
                         == 'true':
-                    rating_view = discord.ui.View(timeout=None)
-                    rating_view.add_item(DynamicRatingSelect(
-                        show_uuid=item['pod_uuid'],
+                    logger.debug('Ratings enabled')
+                    view = discord.ui.View(timeout=None)
+                    view.add_item(DynamicRatingSelect(
+                        show_uuid=item['feed_uuid'],
                         episode_uuid=item['hash']
                     ))
                     await discord_commands.post_to_channel(
                         CHANNEL,
-                        view=rating_view
+                        view=view
                     )
-                await episode_msg.create_thread(
-                    name='Diskusjon: {} - {}'.format(
-                        item['pod_name'],
-                        item['title']
-                    ),
-                    auto_archive_duration=10080
-                )
+                discussion_setting = 'podcast_discussion_enabled'
+                if discussion_setting in FEED_SETTINGS\
+                        and FEED_SETTINGS[discussion_setting].lower()\
+                        == 'true':
+                    logger.debug('Discussion enabled')
+                    # Create a thread for discussion
+                    await episode_msg.create_thread(
+                        name='Diskusjon: {} - {}'.format(
+                            item['feed_name'],
+                            item['title']
+                        ),
+                        auto_archive_duration=10080
+                    )
             else:
                 logger.debug('Found a regular post')
                 if args.testmode:
@@ -919,7 +924,7 @@ async def process_links_for_posting_or_editing(
                         CHANNEL, feed_link
                     )
             await log_link(
-                envs.rss_db_log_schema,
+                feed_db_log,
                 uuid,
                 item['link'],
                 item['hash']

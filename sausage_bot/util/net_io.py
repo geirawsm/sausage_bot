@@ -226,11 +226,11 @@ async def check_other_podcast_episodes():
     return checklist
 
 
-async def get_spotify_podcast_links(pod_id=str, uuid=str):
+async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None):
     '''
     Returns a dict with filters_db, log_db and items.
     Items is a list of dicts with the following keys:
-    pod_name, pod_description, pod_img, title, description, link, img, id,
+    feed_name, feed_description, feed_img, title, description, link, img, id,
     duration, type
     '''
     if _spotipy is None:
@@ -239,7 +239,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         await discord_commands.log_to_bot_channel(_spotipy_error)
         return None
     logger.debug('Getting show info...')
-    _show = _spotipy.show(pod_id)
+    _show = _spotipy.show(feed_id)
     logger.debug('Getting DB filters')
     filters_db = await db_helper.get_output(
         template_info=envs.rss_db_filter_schema,
@@ -252,16 +252,18 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         where=[('uuid', uuid)]
     )
     episodes = _show['episodes']['items']
+    if isinstance(num_items, int) and num_items > 0:
+        episodes = episodes[0:num_items]
     items_out = {
         'filters': filters_db,
         'items': [],
         'log': log_db
     }
     items_info = {
-        'pod_name': _show['name'],
-        'pod_description': _show['description'],
-        'pod_img': _show['images'][0]['url'],
-        'pod_uuid': uuid,
+        'feed_name': _show['name'],
+        'feed_description': _show['description'],
+        'feed_img': _show['images'][0]['url'],
+        'feed_uuid': uuid,
         'title': '',
         'description': '',
         'link': '',
@@ -269,7 +271,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         'img': '',
         'id': '',
         'duration': '',
-        'type': 'spotify',
+        'type': 'podcast',
     }
     logger.debug('Processing episodes')
     try:
@@ -290,7 +292,7 @@ async def get_spotify_podcast_links(pod_id=str, uuid=str):
         return items_out
     except TypeError as e:
         _msg = 'Error processing episodes from {}: {}'.format(
-            items_info['pod_name'], e
+            items_info['feed_name'], e
         )
         logger.error(_msg)
         await discord_commands.log_to_bot_channel(_msg)
@@ -302,7 +304,7 @@ async def get_other_podcast_links(
     '''
     Returns a dict with filters_db, log_db and items.
     Items is a list of dicts with the following keys:
-    pod_name, pod_description, pod_img, title, description, link, img, id,
+    feed_name, feed_description, feed_img, title, description, link, img, id,
     duration, type
     '''
     try:
@@ -336,14 +338,14 @@ async def get_other_podcast_links(
         'items': [],
         'log': log_db
     }
-    pod_name = soup.find('channel').find('title').text
-    pod_description = soup.find('channel').find('description').text
-    pod_img = soup.find('channel').find('itunes:image')['href']
+    feed_name = soup.find('channel').find('title').text
+    feed_description = soup.find('channel').find('description').text
+    feed_img = soup.find('channel').find('itunes:image')['href']
     items_info = {
-        'pod_name': pod_name,
-        'pod_description': pod_description,
-        'pod_img': pod_img,
-        'pod_uuid': uuid,
+        'feed_name': feed_name,
+        'feed_description': feed_description,
+        'feed_img': feed_img,
+        'feed_uuid': uuid,
         'title': '',
         'description': '',
         'link': '',
@@ -405,7 +407,7 @@ async def get_other_podcast_links(
             return items_out
         except TypeError as e:
             _msg = 'Error processing episodes from {}: {}'.format(
-                items_info['pod_name'], e
+                items_info['feed_name'], e
             )
             logger.error(_msg)
             await discord_commands.log_to_bot_channel(_msg)

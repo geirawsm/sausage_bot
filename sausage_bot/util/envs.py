@@ -338,7 +338,8 @@ rss_db_settings_schema = {
     ],
     'inserts': [
         ['show_pod_description_in_embed', 'False', 'bool'],
-        ['podcast_ratings_enabled', 'True', 'bool']
+        ['podcast_ratings_enabled', 'True', 'bool'],
+        ['podcast_discussion_enabled', 'True', 'bool']
     ],
     'primary': None,
     'autoincrement': False
