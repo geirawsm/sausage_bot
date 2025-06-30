@@ -931,8 +931,8 @@ async def process_links_for_posting_or_editing(
             await log_link(
                 feed_db_log,
                 uuid,
-                item['link'],
-                item['hash']
+                item['link'] if isinstance(item, dict) else feed_link,
+                item['hash'] if isinstance(item, dict) else _page_hash
             )
 
 
