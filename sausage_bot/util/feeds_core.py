@@ -905,11 +905,16 @@ async def process_links_for_posting_or_editing(
                         == 'true':
                     logger.debug('Discussion enabled')
                     # Create a thread for discussion
+                    ep_name = 'Diskusjon: {} - {}'.format(
+                        item['feed_name'],
+                        item['title']
+                    )
+                    if len(ep_name) > 100:
+                        ep_name = ep_name[0:90]
+                        ep_name += '...'
+                    print(len(ep_name), ep_name)
                     await episode_msg.create_thread(
-                        name='Diskusjon: {} - {}'.format(
-                            item['feed_name'],
-                            item['title']
-                        ),
+                        name=ep_name,
                         auto_archive_duration=10080
                     )
             else:
