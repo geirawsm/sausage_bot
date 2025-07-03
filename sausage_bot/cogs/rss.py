@@ -974,10 +974,7 @@ class RSSfeed(commands.Cog):
 ###
 
     # Tasks
-    @tasks.loop(
-        minutes=config.env.int('RSS_LOOP', default=5),
-        reconnect=True
-    )
+    @tasks.loop(minutes=config.RSS_LOOP, reconnect=True)
     async def task_post_feeds():
         logger.info('Starting `post_feeds`')
         # Start processing feeds
@@ -1047,9 +1044,7 @@ class RSSfeed(commands.Cog):
         logger.debug('`post_feeds` waiting for bot to be ready...')
         await config.bot.wait_until_ready()
 
-    @tasks.loop(
-        minutes=config.env.int('RSS_LOOP', default=5)
-    )
+    @tasks.loop(minutes=config.POD_LOOP, reconnect=True)
     async def task_post_podcasts():
         logger.info('Starting `post_podcasts`')
         # Check for new episodes of Spotify podcasts

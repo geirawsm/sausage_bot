@@ -98,6 +98,11 @@ try:
     SPOTIFY_ID = env('SPOTIFY_ID', default=None)
     SPOTIFY_SECRET = env('SPOTIFY_SECRET', default=None)
     SCRAPEOPS_API_KEY = env('SCRAPEOPS_API_KEY', default=None)
+    STATS_LOOP = env.int('STATS_LOOP', default=10)
+    YT_LOOP = env.int('YT_LOOP', default=15)
+    RSS_LOOP = env.int('RSS_LOOP', default=15)
+    POD_LOOP = env.int('POD_LOOP', default=15)
+    FCB_LOOP = env.int('FCB_LOOP', default=60)
     if any(envvar is None for envvar in [
         DISCORD_TOKEN, DISCORD_GUILD, BOT_ID
     ]):

@@ -78,7 +78,7 @@ class scrape_and_post(commands.Cog):
         )
 
     # Tasks
-    @tasks.loop(minutes=config.env.int('FCB_LOOP', default=5))
+    @tasks.loop(minutes=config.FCB_LOOP, reconnect=True)
     async def post_fcb_news():
         '''
         Post news from https://www.fcbarcelona.com to specific team channels

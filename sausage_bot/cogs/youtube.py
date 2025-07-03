@@ -457,10 +457,7 @@ class Youtube(commands.Cog):
             return None
 
     # Tasks
-    @tasks.loop(
-        minutes=config.env.int('YT_LOOP', default=5),
-        reconnect=True
-    )
+    @tasks.loop(minutes=config.YT_LOOP,reconnect=True)
     async def task_post_videos():
         logger.info('Starting `post_videos`')
         # Start processing feeds

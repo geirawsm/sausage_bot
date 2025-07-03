@@ -555,9 +555,7 @@ class Stats(commands.Cog):
         return
 
     # Tasks
-    @tasks.loop(
-        minutes=config.env.int('STATS_LOOP', default=5)
-    )
+    @tasks.loop(minutes=config.STATS_LOOP, reconnect=True)
     async def task_update_stats():
         '''
         Update interesting stats in a channel post and write the info to
