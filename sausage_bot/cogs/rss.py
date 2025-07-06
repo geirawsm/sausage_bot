@@ -1020,7 +1020,7 @@ class RSSfeed(commands.Cog):
                 await discord_commands.log_to_bot_channel(
                     I18N.t(
                         'rss.tasks.feed_posts_is_none',
-                        feed_name=FEED_NAME, return_value=FEED_POSTS
+                        feed_name=FEED_NAME, return_value=str(FEED_POSTS)
                     )
                 )
             else:

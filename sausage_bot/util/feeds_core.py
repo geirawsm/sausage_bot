@@ -250,7 +250,12 @@ async def get_items_from_rss(
             temp_info['link'] = item.find('link').text if\
                 hasattr(item.find('link'), 'text') else\
                 item.find('link')
-            temp_info['img'] = item.find('itunes:image')['href']
+            item_img = item.find('itunes:image')
+            if item_img:
+                temp_info['img'] = item_img['href']
+            else:
+                temp_info['img'] = soup.find('channel')\
+                    .find('itunes:image')['href']
             items_out['items'].append(temp_info)
     # Gets Youtube feed
     elif soup.find('yt:channelId'):

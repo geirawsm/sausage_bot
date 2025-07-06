@@ -185,7 +185,7 @@ async def check_for_new_spotify_podcast_episodes():
         checklist[show['id']]['num_episodes_new'] = show['total_episodes']
         _old_eps = checklist[show['id']]['num_episodes_old']
         _new_eps = checklist[show['id']]['num_episodes_new']
-        if all([_old_eps, _new_eps]):
+        if _old_eps and _new_eps:
             if _new_eps > _old_eps:
                 _old_eps = _new_eps
             else:
@@ -195,7 +195,7 @@ async def check_for_new_spotify_podcast_episodes():
                 feed['feed_name']
             )
             logger.error(_msg)
-            discord_commands.log_to_bot_channel(_msg)
+            await discord_commands.log_to_bot_channel(_msg)
     return checklist
 
 
@@ -374,22 +374,18 @@ async def get_other_podcast_links(
                 temp_info['description'] = clean_pod_description(desc_in)
                 itunes_link = item.find('media:player')
                 normal_link = item.find('link')
-                logger.info('normal_link is {} ({}) ({})'.format(
-                    normal_link, type(normal_link), len(normal_link)
-                ))
                 if itunes_link:
                     temp_info['link'] = itunes_link['url']
-                if len(normal_link) == 0 and isinstance(
-                    normal_link, bs4_element.Tag
-                ):
-                    for line in str(item).split('\n'):
-                        if '<link/>' in line:
-                            temp_info['link'] = line.replace('<link/>', '')
-                            continue
+                if isinstance(normal_link, bs4_element.Tag) and\
+                        'https://' in str(normal_link.next):
+                    temp_info['link'] = str(normal_link.next)
                 elif len(normal_link) > 0:
                     temp_info['link'] = normal_link.text if\
                         hasattr(normal_link, 'text')\
                         else normal_link
+                logger.debug('link is {}'.format(
+                    temp_info['link']
+                ))
                 if temp_info['link'] is None or\
                         temp_info['link'] == '':
                     _msg = 'No link found for item: {}'.format(
@@ -401,7 +397,10 @@ async def get_other_podcast_links(
                 if temp_info['link'] is not None or\
                         temp_info['link'] != '':
                     temp_info['hash'] = await get_page_hash(temp_info['link'])
-                temp_info['img'] = item.find('itunes:image')['href']
+                try:
+                    temp_info['img'] = item.find('itunes:image')['href']
+                except:
+                    temp_info['img'] = feed_img
                 items_out['items'].append(temp_info)
             items_out = filter_links(items_out)
             return items_out
@@ -851,8 +850,18 @@ def clean_pod_description(desc_in):
         desc_in = desc_in.split(
             'Hosted on Acast'
         )[0]
+    if 'nrss.deno' in desc_in.lower():
+        desc_in = desc_in.replace(
+            '⬇️NRSS er avhengig av din Vipps-støtte⬇️',
+            ''
+        )
+        desc_in = re.sub(
+            r'Takk for at du bruker NRSS.*Se mer på https://nrss.deno.dev/',
+            '',
+            desc_in
+        )
     desc_in = desc_in.split('See omnystudio.com/listener for')[0]
-    return desc_in
+    return desc_in.strip()
 
 
 async def get_page_hash(url, debug=False):
@@ -903,6 +912,9 @@ async def get_page_hash(url, debug=False):
                 desc = info_json['props']['pageProps']['clip']['Description']
             except KeyError:
                 desc = info_json['props']['pageProps']['episode']['summary']
+            except TypeError:
+                ep_info = soup.find('div', attrs={'class': 'EpisodeWrapper'})
+                desc = ep_info.find('p', attrs={'class': 'e79qwfn0'}).text
     if desc is None:
         logger.debug(f'Trying common html on {url}')
         try:
@@ -931,6 +943,7 @@ async def get_page_hash(url, debug=False):
         hash = desc
         logger.debug(f'Using desc: {desc[0:200]}')
     elif desc is not None:
+        logger.debug(f'Got `desc`: {desc[0:200]}')
         hash = md5(str(desc).encode('utf-8')).hexdigest()
     logger.debug(f'Got `hash`: {hash}')
     return hash
