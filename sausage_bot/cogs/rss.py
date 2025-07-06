@@ -1227,6 +1227,9 @@ async def setup(bot):
         template_info=envs.rss_db_schema,
         id_col='uuid', channel_col='channel'
     )
+    await db_helper.db_update_to_correct_feed_types(
+        template_info=envs.rss_db_schema
+    )
     rss_log_prep_is_ok = await db_helper.prep_table(
         table_in=envs.rss_db_log_schema,
         inserts=rss_inserts['logs'] if rss_inserts is not None

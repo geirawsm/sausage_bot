@@ -324,6 +324,32 @@ async def db_replace_numeral_bool_with_bool(template_info):
             )
 
 
+async def db_update_to_correct_feed_types(template_info):
+    update_to_correct_feed_types = await get_output(template_info)
+    logger.debug('Running db_update_to_correct_feed_types')
+    # Make a copy of the db-dict to use as a checklist for converting
+    # feed types if need be
+    db_new_feed_types = update_to_correct_feed_types.copy()
+    for feed in update_to_correct_feed_types:
+        if str(feed['feed_type']).lower() != 'spotify':
+            # Remove item from copied list if it's ok
+            remove_status = True
+        else:
+            remove_status = False
+        if remove_status:
+            db_new_feed_types.pop(db_new_feed_types.index(feed))
+    if len(db_new_feed_types) > 0:
+        logger.debug(
+            f'`db_new_feed_types` after checking:\n{pformat(db_new_feed_types)}',
+        )
+        for feed_type in db_new_feed_types:
+            await update_fields(
+                template_info=template_info,
+                where=('feed_type', 'spotify'),
+                updates=('feed_type', 'podcast')
+            )
+
+
 async def db_channel_name_to_id(template_info, id_col, channel_col: str):
     reactions_msgs = await get_output(
         template_info=template_info,
