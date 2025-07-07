@@ -425,7 +425,7 @@ async def db_single_channel_name_to_id(
         logger.debug('No channel found in database')
         return None
     channel_in = channel_in_db[0]['value']
-    if not re.match(r'(\d+)', channel_in):
+    if not re.match(r'(\d+)', channel_in) and len(channel_in) > 0:
         # Try to search for channel ID
         logger.debug('channel is not an id, searching for name...')
         try:
