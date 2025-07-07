@@ -1223,7 +1223,7 @@ async def setup(bot):
             )
         )
     # Change channel name to id
-    await db_helper.db_channel_name_to_id(
+    await db_helper.db_channel_names_to_ids(
         template_info=envs.rss_db_schema,
         id_col='uuid', channel_col='channel'
     )

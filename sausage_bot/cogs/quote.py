@@ -1348,6 +1348,13 @@ async def setup(bot):
         inserts=envs.quote_db_settings_schema['inserts']
     )
 
+    # Change channel name to id
+    await db_helper.db_single_channel_name_to_id(
+        template_info=envs.quote_db_settings_schema,
+        channel_row='setting',
+        channel_col='value'
+    )
+
     # Delete old json files if they exist
     if quote_prep_is_ok and file_io.file_exist(envs.quote_file):
         file_io.remove_file(envs.quote_file)

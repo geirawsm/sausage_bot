@@ -2542,7 +2542,7 @@ async def setup(bot):
     # Cleaning DB if irregularities from previous instances of database
     if file_io.file_exist(envs.roles_db_msgs_schema['db_file']):
         # Change channel name to id
-        await db_helper.db_channel_name_to_id(
+        await db_helper.db_channel_names_to_ids(
             template_info=envs.roles_db_msgs_schema,
             id_col='msg_id', channel_col='channel'
         )

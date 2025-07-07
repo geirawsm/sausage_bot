@@ -350,29 +350,29 @@ async def db_update_to_correct_feed_types(template_info):
             )
 
 
-async def db_channel_name_to_id(template_info, id_col, channel_col: str):
-    reactions_msgs = await get_output(
+async def db_channel_names_to_ids(template_info, id_col, channel_col: str):
+    row_items = await get_output(
         template_info=template_info,
         select=(id_col, channel_col)
     )
     # Replace channel names with channel id in list
-    reactions_copy = reactions_msgs.copy()
-    for reaction_msg in reactions_msgs:
-        if not re.match(r'(\d+)', reaction_msg['channel']):
+    row_items_copy = row_items.copy()
+    for row_item in row_items:
+        if not re.match(r'(\d+)', row_item['channel']):
             # Try to search for channel ID
             logger.debug('channel is not an id, searching for name...')
             try:
                 channel_id = get(
                     discord_commands.get_guild().text_channels,
-                    name=reaction_msg['channel']
+                    name=row_item['channel']
                 ).id
                 logger.debug(f'Found channel id: {channel_id}')
-                reaction_msg['channel_new'] = channel_id
+                row_item['channel_new'] = channel_id
             except AttributeError as e:
                 # TODO i18n
                 error_msg = 'Could not find channel `{}` in `{}` (`{}`)'\
                     ': {}'.format(
-                        reaction_msg['channel'],
+                        row_item['channel'],
                         template_info['name'],
                         template_info['db_file'],
                         e
@@ -381,25 +381,25 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
                 await discord_commands.log_to_bot_channel(
                     f'`db_channel_name_to_id`: {error_msg}'
                 )
-                reactions_copy.pop(reactions_copy.index(reaction_msg))
-        elif re.match(r'(\d+)', reaction_msg['channel']):
+                row_items_copy.pop(row_items_copy.index(row_item))
+        elif re.match(r'(\d+)', row_item['channel']):
             logger.debug(
                 'Channel `{}` is an id and is ok'.format(
-                    reaction_msg['channel']
+                    row_item['channel']
                 )
             )
-            reactions_copy.pop(reactions_copy.index(reaction_msg))
+            row_items_copy.pop(row_items_copy.index(row_item))
         else:
             logger.error('Unexpected error')
-            reactions_copy.pop(reactions_copy.index(reaction_msg))
+            row_items_copy.pop(row_items_copy.index(row_item))
     changes = {channel_col: []}
-    logger.debug('Reactions to copy: {}'.format(reactions_copy))
-    for reaction in reactions_copy:
+    logger.debug('Channel updates: {}'.format(row_items_copy))
+    for copy in row_items_copy:
         changes[channel_col].append(
             (
                 channel_col,
-                reaction['channel'],
-                reaction['channel_new']
+                copy['channel'],
+                copy['channel_new']
             )
         )
     logger.debug('Changes: {}'.format(changes))
@@ -409,6 +409,59 @@ async def db_channel_name_to_id(template_info, id_col, channel_col: str):
             template_info=template_info,
             updates=changes
         )
+    return
+
+
+async def db_single_channel_name_to_id(
+        template_info, channel_row: str, channel_col: str
+):
+    channel_in_db = await get_output(
+        template_info=template_info,
+        where=(channel_row, 'channel'),
+        select=(channel_col)
+    )
+    # Replace channel names with channel id in list
+    if len(channel_in_db) <= 0:
+        logger.debug('No channel found in database')
+        return None
+    channel_in = channel_in_db[0]['value']
+    if not re.match(r'(\d+)', channel_in):
+        # Try to search for channel ID
+        logger.debug('channel is not an id, searching for name...')
+        try:
+            channel_id = get(
+                discord_commands.get_guild().text_channels,
+                name=channel_in
+            ).id
+            logger.debug(f'Found channel id: {channel_id}')
+            # Replace channel names with channel id in db
+            await update_fields(
+                template_info=template_info,
+                where=(channel_row, 'channel'),
+                updates=(channel_col, channel_id)
+            )
+        except AttributeError as e:
+            # TODO i18n
+            error_msg = 'Could not find channel `{}` in `{}` (`{}`)'\
+                ': {}'.format(
+                    channel_in,
+                    template_info['name'],
+                    template_info['db_file'],
+                    e
+                )
+            logger.error(error_msg)
+            await discord_commands.log_to_bot_channel(
+                f'`db_single_channel_name_to_id`: {error_msg}'
+            )
+    elif re.match(r'(\d+)', channel_in):
+        logger.debug(
+            'Channel `{}` is an id and is ok'.format(
+                channel_in
+            )
+        )
+    else:
+        logger.error('Unexpected error')
+        return None
     return
 
 

@@ -705,10 +705,7 @@ class Stats(commands.Cog):
                 stats_settings, stats_info
         ):
             # Get `stats_msg_id` from db to update stats post
-            stats_channel = get(
-                _guild.channels,
-                name=stats_settings.get('channel', 'stats')
-            )
+            stats_channel = _guild.get_channel(int(stats_settings.get('channel')))
             logger.debug(
                 f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
             )
@@ -768,6 +765,7 @@ class Stats(commands.Cog):
                     # Edit the stats message if found
                     stats_msg = await stats_channel.fetch_message(stats_msg_id)
                     await stats_msg.edit(content=stats_info)
+                    logger.debug('Edited existing stats message')
                     return
                 except discord.errors.NotFound:
                     logger.error(
@@ -905,6 +903,12 @@ async def setup(bot):
         )
         await db_helper.db_remove_old_cols(
             envs.stats_db_settings_schema
+        )
+        # Change channel name to id
+        await db_helper.db_single_channel_name_to_id(
+            template_info=envs.stats_db_settings_schema,
+            channel_row='setting',
+            channel_col='value'
         )
     stats_settings_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_settings_schema,
