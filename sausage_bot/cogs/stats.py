@@ -705,7 +705,18 @@ class Stats(commands.Cog):
                 stats_settings, stats_info
         ):
             # Get `stats_msg_id` from db to update stats post
-            stats_channel = _guild.get_channel(int(stats_settings.get('channel')))
+            if isinstance(stats_settings.get('channel'), str):
+                stats_channel = await db_helper.db_single_channel_name_to_id(
+                    template_info=envs.stats_db_settings_schema,
+                    channel_row='setting',
+                    channel_col='value'
+                )
+                stats_channel = _guild.get_channel(int(stats_settings.get('channel')))
+            elif isinstance(stats_settings.get('channel'), int):
+                stats_channel = _guild.get_channel(int(stats_settings.get('channel')))
+            else:
+                logger.error('`stats_channel` is not a channel')
+                return None
             logger.debug(
                 f'Got `stats_channel` {stats_channel} ({type(stats_channel)})'
             )
@@ -905,11 +916,22 @@ async def setup(bot):
             envs.stats_db_settings_schema
         )
         # Change channel name to id
-        await db_helper.db_single_channel_name_to_id(
+        channel_name_to_id = await db_helper.db_single_channel_name_to_id(
             template_info=envs.stats_db_settings_schema,
             channel_row='setting',
             channel_col='value'
         )
+        if channel_name_to_id is None:
+            logger.error('Stats channel is not found, stopping posting')
+            Stats.task_update_stats.cancel()
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[
+                    ('task', 'post_stats'),
+                    ('cog', 'stats'),
+                ],
+                updates=('status', 'stopped')
+            )
     stats_settings_prep_is_ok = await db_helper.prep_table(
         table_in=envs.stats_db_settings_schema,
         inserts=stats_settings_inserts

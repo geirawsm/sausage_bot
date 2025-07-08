@@ -433,14 +433,7 @@ async def db_single_channel_name_to_id(
                 discord_commands.get_guild().text_channels,
                 name=channel_in
             ).id
-            logger.debug(f'Found channel id: {channel_id}')
-            # Replace channel names with channel id in db
-            await update_fields(
-                template_info=template_info,
-                where=(channel_row, 'channel'),
-                updates=(channel_col, channel_id)
-            )
-        except AttributeError as e:
+        except Exception as e:
             # TODO i18n
             error_msg = 'Could not find channel `{}` in `{}` (`{}`)'\
                 ': {}'.format(
@@ -453,12 +446,25 @@ async def db_single_channel_name_to_id(
             await discord_commands.log_to_bot_channel(
                 f'`db_single_channel_name_to_id`: {error_msg}'
             )
+            return None
+        if channel_id:
+            logger.debug(f'Found channel id: {channel_id}')
+            # Replace channel names with channel id in db
+            await update_fields(
+                template_info=template_info,
+                where=(channel_row, 'channel'),
+                updates=(channel_col, channel_id)
+            )
+        elif channel_id is None:
+            logger.error('Could not find channel')
+            return None
     elif re.match(r'(\d+)', channel_in):
         logger.debug(
             'Channel `{}` is an id and is ok'.format(
                 channel_in
             )
         )
+        return True
     else:
         logger.error('Unexpected error')
         return None
