@@ -334,16 +334,16 @@ async def synclocal(ctx):
     )
     # logger.debug('Clearing commands...')
     # config.bot.tree.clear_commands(guild=None)
-    # config.bot.tree.clear_commands(guild=ctx.guild)
+    config.bot.tree.clear_commands(guild=ctx.guild)
     await _reply.edit(
         content='✅💭 {}'.format(
             I18N.t('main.commands.synclocal.msg_cont_copy')
         )
     )
-    logger.debug('Copying global commands...')
-    config.bot.tree.copy_global_to(guild=ctx.guild)
-    for command in config.bot.tree.get_commands():
-        logger.debug(f'Checking {command.name}')
+    #logger.debug('Copying global commands...')
+    #config.bot.tree.copy_global_to(guild=ctx.guild)
+    #for command in config.bot.tree.get_commands():
+    #    logger.debug(f'Checking {command.name}')
     logger.debug('Syncing...')
     await config.bot.tree.sync(guild=ctx.guild)
     await _reply.edit(
