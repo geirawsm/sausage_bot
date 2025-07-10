@@ -61,7 +61,7 @@ class ConfirmButtons(discord.ui.View):
         self.value = None
 
     @discord.ui.button(
-        label=I18N.t('common.literal_yes_no.yes'),
+        label=I18N.t('common.literal_yes_no.lit_yes'),
         style=discord.ButtonStyle.green
     )
     async def yes_button(
@@ -77,7 +77,7 @@ class ConfirmButtons(discord.ui.View):
         self.stop()
 
     @discord.ui.button(
-        label=I18N.t('common.literal_yes_no.no'),
+        label=I18N.t('common.literal_yes_no.lit_no'),
         style=discord.ButtonStyle.red
     )
     async def no_button(
@@ -126,9 +126,9 @@ class QuoteAddModal(discord.ui.Modal):
         }
         self.public_in = public_in
         if public_in in [None, False]:
-            self.public_in_text = I18N.t('common.literal_yes_no.yes')
+            self.public_in_text = I18N.t('common.literal_yes_no.lit_yes')
         elif public_in is True:
-            self.public_in_text = I18N.t('common.literal_yes_no.no')
+            self.public_in_text = I18N.t('common.literal_yes_no.lit_no')
         logger.debug(f'self.public_in: {self.public_in}')
         logger.debug(f'self.public_in_text: {self.public_in_text}')
 
@@ -193,9 +193,9 @@ class QuoteAddModal(discord.ui.Modal):
         msg_out = I18N.t(
             'quote.modals.add.msg_confirm'
         )
-        if self.children[3].value == I18N.t('common.literal_yes_no.yes'):
+        if self.children[3].value == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
-        elif self.children[3].value == I18N.t('common.literal_yes_no.no'):
+        elif self.children[3].value == I18N.t('common.literal_yes_no.lit_no'):
             _ephemeral = True
         await interaction.response.send_message(
             f'{msg_out}:\n```{tab_quote}```',
@@ -476,14 +476,14 @@ class Quotes(commands.Cog):
         self, interaction: discord.Interaction,
         quote_in: str = None,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
-        ] = None
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
+        ] = I18N.t('common.literal_yes_no.lit_no')
     ):
         '''
         Post quotes
         '''
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -504,12 +504,12 @@ class Quotes(commands.Cog):
     async def quote_add(
         self, interaction: discord.Interaction,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
-        ] = I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
+        ] = I18N.t('common.literal_yes_no.lit_no')
     ):
         'Add a quote'
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True

@@ -179,8 +179,8 @@ class AutoEvent(commands.Cog):
     async def event_remove(
         self, interaction: discord.Interaction,
         remove_all: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
         ] = None, event: str = None
     ):
         '''
@@ -198,9 +198,9 @@ class AutoEvent(commands.Cog):
         logger.debug(f'Got `event_dict`: {event_dict}')
         _guild = discord_commands.get_guild()
         # Delete all events
-        if remove_all == I18N.t('common.literal_yes_no.yes'):
+        if remove_all == I18N.t('common.literal_yes_no.lit_yes'):
             logger.debug('Got `remove_all`: {}'.format(
-                I18N.t('common.literal_yes_no.yes')
+                I18N.t('common.literal_yes_no.lit_yes')
             ))
             for event in event_dict:
                 _id = event_dict[event]['id']

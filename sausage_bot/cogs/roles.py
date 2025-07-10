@@ -882,14 +882,14 @@ class Autoroles(commands.Cog):
         self, interaction: discord.Interaction,
         role_in: discord.Role,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
         ] = None
     ):
         '''
         Get info about a specific role
         '''
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -930,16 +930,16 @@ class Autoroles(commands.Cog):
                     'roles.embed.auto_managed.name'
                 ),
                 value=I18N.t(
-                    'common.literal_yes_no.no'
+                    'common.literal_yes_no.lit_no'
                 ),
                 inline=True
             )
         embed.add_field(
             name=I18N.t('roles.embed.hoist.name'),
             value=I18N.t(
-                'common.literal_yes_no.yes'
+                'common.literal_yes_no.lit_yes'
             ) if role_in.hoist else I18N.t(
-                'common.literal_yes_no.no'
+                'common.literal_yes_no.lit_no'
             ),
             inline=True
         )
@@ -986,8 +986,8 @@ class Autoroles(commands.Cog):
             I18N.t('common.id')
         ],
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
         ] = None,
     ):
         async def roles_list_roles():
@@ -1017,11 +1017,11 @@ class Autoroles(commands.Cog):
                 tabulate_dict['members'].append(len(role.members))
                 if role.managed:
                     tabulate_dict['managed'].append(
-                        I18N.t('common.literal_yes_no.yes')
+                        I18N.t('common.literal_yes_no.lit_yes')
                     )
                 elif not role.managed:
                     tabulate_dict['managed'].append(
-                        I18N.t('common.literal_yes_no.no')
+                        I18N.t('common.literal_yes_no.lit_no')
                     )
             return tabulate_roles(tabulate_dict)
 
@@ -1050,24 +1050,24 @@ class Autoroles(commands.Cog):
                 tabulate_dict['id'].append(emoji.id)
                 if emoji.animated:
                     tabulate_dict['animated'].append(
-                        I18N.t('common.literal_yes_no.yes')
+                        I18N.t('common.literal_yes_no.lit_yes')
                     )
                 else:
                     tabulate_dict['animated'].append(
-                        I18N.t('common.literal_yes_no.no')
+                        I18N.t('common.literal_yes_no.lit_no')
                     )
                 if emoji.managed:
                     tabulate_dict['managed'].append(
-                        I18N.t('common.literal_yes_no.yes')
+                        I18N.t('common.literal_yes_no.lit_yes')
                     )
                 else:
                     tabulate_dict['managed'].append(
-                        I18N.t('common.literal_yes_no.no')
+                        I18N.t('common.literal_yes_no.lit_no')
                     )
             # Returning pagination
             return tabulate_emoji(dict_in=tabulate_dict)
 
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -1103,11 +1103,11 @@ class Autoroles(commands.Cog):
         hoist: bool, mentionable: bool, color: str = None,
         display_icon: discord.Attachment = None,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
         ] = None
     ):
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -1449,12 +1449,12 @@ class Autoroles(commands.Cog):
         self, interaction: discord.Interaction,
         emoji: str,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
         ] = None
     ):
         'Get info about a specific emoji'
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -1492,7 +1492,7 @@ class Autoroles(commands.Cog):
                     'roles.embed.auto_managed.name'
                 ),
                 value=I18N.t(
-                    'common.literal_yes_no.no'
+                    'common.literal_yes_no.lit_no'
                 ),
                 inline=True
             )

@@ -706,8 +706,8 @@ class RSSfeed(commands.Cog):
     async def rss_test_feed(
         self, interaction: discord.Interaction, feed_name: str,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.yes'),
-            I18N.t('common.literal_yes_no.no')
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
         ] = None
     ):
         '''
@@ -717,7 +717,7 @@ class RSSfeed(commands.Cog):
         def enclose_status_out(status_out):
             return '```{}```'.format(status_out)
 
-        if public == I18N.t('common.literal_yes_no.yes'):
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
             _ephemeral = False
         else:
             _ephemeral = True
