@@ -825,26 +825,29 @@ class Stats(commands.Cog):
         logger.debug('Logging stats')
         log_stats = await log_stats()
         # Update the stats-msg
-        if eval(stats_settings['show_role_stats']):
+        if eval(stats_settings['show_members_total']):
             total_members = members['member_count']
-            roles_members = await tabify(
-                dict_in=members['roles'], headers=['Rolle', 'Brukere'],
-                hide_roles=stats_hide_roles
-            )
-            logger.debug(f'`roles_members`:\n{roles_members}')
         dt_log = await datetime_handling.get_dt('datetimefull')
         stats_info = ''
         logger.debug('`show_role_stats` is {}'.format(
             stats_settings['show_role_stats']
         ))
-        if eval(stats_settings['show_role_stats']):
+        if eval(stats_settings['show_members_total']) or\
+                eval(stats_settings['show_role_stats']):
+            roles_members = await tabify(
+                dict_in=members['roles'], headers=['Rolle', 'Brukere'],
+                hide_roles=stats_hide_roles
+            )
+            logger.debug(f'`roles_members`:\n{roles_members}')
             members_sub = I18N.t(
                 'stats.tasks.update_stats.stats_msg.members_sub')
+            stats_info += f'### {members_sub}\n'
+        if eval(stats_settings['show_members_total']):
             members_num = I18N.t(
                 'stats.tasks.update_stats.stats_msg.members_num')
-            stats_info += f'### {members_sub}\n```'\
-                f'{members_num}: {total_members}\n\n'\
-                f'{roles_members}```\n'
+            stats_info += f'```{members_num}: {total_members}```\n'
+        if eval(stats_settings['show_role_stats']):
+            stats_info += f'```{roles_members}```\n'
         logger.debug('`show_code_stats` is {}'.format(
             stats_settings['show_code_stats']
         ))
