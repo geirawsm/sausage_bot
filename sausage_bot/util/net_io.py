@@ -184,8 +184,10 @@ async def check_for_new_spotify_podcast_episodes():
     for show in _shows:
         checklist[show['id']]['num_episodes_new'] = show['total_episodes']
         _old_eps = checklist[show['id']]['num_episodes_old']
+        logger.debug(f'Got `old_eps`: {_old_eps}')
         _new_eps = checklist[show['id']]['num_episodes_new']
-        if _old_eps and _new_eps:
+        logger.debug(f'Got `new_eps`: {_new_eps}')
+        if isinstance(_old_eps, int) and isinstance(_new_eps, int):
             if _new_eps > _old_eps:
                 _old_eps = _new_eps
             else:
