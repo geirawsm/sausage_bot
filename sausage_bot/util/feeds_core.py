@@ -540,6 +540,10 @@ async def get_feed_list(
         wheres_in = [('playlist_id', 'IS NOT', 'None')]
     else:
         wheres_in = None
+    if wheres_in is None:
+        wheres_in = [('feed_type', 'IS', 'rss')]
+    else:
+        wheres_in.append(('feed_type', 'IS', 'rss'))
     if link_type is None:
         selects = ('feed_name', 'url', 'channel')
     else:
