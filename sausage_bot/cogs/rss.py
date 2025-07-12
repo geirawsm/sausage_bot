@@ -664,17 +664,20 @@ class RSSfeed(commands.Cog):
         if list_type.lower() == 'added':
             formatted_list = await feeds_core.get_feed_list(
                 db_in=envs.rss_db_schema,
-                list_type=list_type.lower()
+                list_type=list_type.lower(),
+                feed_type='rss'
             )
         elif list_type.lower() == 'filter':
             formatted_list = await feeds_core.get_feed_list(
                 db_in=envs.rss_db_schema,
                 db_filter_in=envs.rss_db_filter_schema,
-                list_type=list_type.lower()
+                list_type=list_type.lower(),
+                feed_type='rss'
             )
         else:
             formatted_list = await feeds_core.get_feed_list(
-                db_in=envs.rss_db_schema
+                db_in=envs.rss_db_schema,
+                feed_type='rss'
             )
         if formatted_list is not None:
             page_counter = 0
@@ -971,7 +974,62 @@ class RSSfeed(commands.Cog):
             changes_out, ephemeral=True
         )
         return
-###
+
+    @commands.is_owner()
+    @podcast_group.command(
+        name='list',
+        description=locale_str(I18N.t('rss.commands.list.cmd'))
+    )
+    @describe(
+        list_type=I18N.t('rss.commands.list.desc.list_type')
+    )
+    async def podcast_list(
+        self, interaction: discord.Interaction,
+        list_type: typing.Literal[
+            I18N.t('rss.commands.list.literal_type.normal'),
+            I18N.t('rss.commands.list.literal_type.added'),
+            I18N.t('rss.commands.list.literal_type.filter')
+        ]
+    ):
+        '''
+        List all active podcast feeds
+        '''
+        await interaction.response.defer()
+        if list_type.lower() == 'added':
+            formatted_list = await feeds_core.get_feed_list(
+                db_in=envs.rss_db_schema,
+                list_type=list_type.lower(),
+                feed_type='podcast'
+            )
+        elif list_type.lower() == 'filter':
+            formatted_list = await feeds_core.get_feed_list(
+                db_in=envs.rss_db_schema,
+                db_filter_in=envs.rss_db_filter_schema,
+                list_type=list_type.lower(),
+                feed_type='podcast'
+            )
+        else:
+            formatted_list = await feeds_core.get_feed_list(
+                db_in=envs.rss_db_schema,
+                feed_type='podcast'
+            )
+        if formatted_list is not None:
+            page_counter = 0
+            for page in formatted_list:
+                page_counter += 1
+                logger.debug(
+                    f'Sending page ({page_counter} / {len(formatted_list)})')
+                await interaction.followup.send(
+                    f"```{page}```"
+                )
+                sleep(1)
+        else:
+            await interaction.followup.send(
+                I18N.t('rss.commands.list.msg_error'),
+                ephemeral=True
+            )
+        return
+
 
     # Tasks
     @tasks.loop(minutes=config.RSS_LOOP, reconnect=True)

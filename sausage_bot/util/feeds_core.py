@@ -483,7 +483,7 @@ async def get_feed_links(feed_type, feed_info):
 
 async def get_feed_list(
     db_in: str = None, db_filter_in: str = None, list_type: str = None,
-    link_type: str = None
+    link_type: str = None, feed_type: str = None
 ):
     '''
     Get a prettified list of feeds.
@@ -498,6 +498,8 @@ async def get_feed_list(
         If specified, should show that specific list_type
     link_type: str
         If specified, should show that specific link_type
+    feed_type: str
+        If specified, should show that specific feed_type
     '''
 
     async def split_lengthy_list(table_in):
@@ -540,10 +542,11 @@ async def get_feed_list(
         wheres_in = [('playlist_id', 'IS NOT', 'None')]
     else:
         wheres_in = None
-    if wheres_in is None:
-        wheres_in = [('feed_type', 'IS', 'rss')]
-    else:
-        wheres_in.append(('feed_type', 'IS', 'rss'))
+    if feed_type:
+        if wheres_in is not None:
+            wheres_in.append(('feed_type', 'IS', feed_type))
+        else:
+            wheres_in = [('feed_type', 'IS', feed_type)]
     if link_type is None:
         selects = ('feed_name', 'url', 'channel')
     else:
