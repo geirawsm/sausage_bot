@@ -60,7 +60,6 @@ async def make_dt(date_in):
     if any(marker in str(date_in) for marker in ['Z', 'T', '+']):
         logger.debug('Found a Z/T/+ in `date_in`')
         return pendulum.parse(str(date_in)).in_timezone(tz)
-        return pendulum.parse(str(date_in)).in_timezone(tz)
     elif re.match(r'\d{10}|\d{13}', str(date_in)):
         return pendulum.from_timestamp(int(date_in))
     else:

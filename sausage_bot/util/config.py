@@ -7,8 +7,10 @@ from sys import exit
 from environs import Env, EnvError
 from contextlib import suppress
 import os
+import re
 from pathlib import Path
 import pendulum
+import datetime
 import aiosqlite
 import asyncio
 
@@ -19,14 +21,14 @@ logger.configure_logging(to_file=True)
 logger = logger.logging
 
 
-async def db_get_output():
+async def db_get_output(db_in):
     # Get timezone and locale from db
     try:
-        async with aiosqlite.connect(envs.locale_db_schema['db_file']) as db:
+        async with aiosqlite.connect(db_in['db_file']) as db:
             db.row_factory = aiosqlite.Row
             out = await db.execute(
                 'SELECT setting, value FROM {};'.format(
-                    envs.locale_db_schema['name']
+                    db_in['name']
                 )
             )
             out = [dict(row) for row in await out.fetchall()]
@@ -35,6 +37,34 @@ async def db_get_output():
         print(f'Error: {e}')
         return None
 
+
+async def get_locale_from_db():
+    # If empty in db, get from env or env default
+    db = envs.locale_db_schema
+    locale_db = await db_get_output(db)
+    logger.debug(f'locale_db: {locale_db}')
+    if locale_db is None:
+        locale_db = []
+    _TZ = None
+    _LANG = None
+    if len(locale_db) > 0 and 'setting' in locale_db[0]\
+            and 'value' in locale_db[0]:
+        locale_from_db = {}
+        for setting in locale_db:
+            locale_from_db[setting['setting']] = setting['value']
+        _TZ = locale_from_db['timezone']
+        _LANG = locale_from_db['language']
+    return {
+        'timezone': _TZ,
+        'language': _LANG
+    }
+
+locale_from_db = asyncio.run(get_locale_from_db())
+
+timezone = pendulum.timezone(locale_from_db['timezone'])
+locale = pendulum.set_locale(locale_from_db['language'])
+pendulum.week_starts_at(pendulum.MONDAY)
+pendulum.week_ends_at(pendulum.SUNDAY)
 
 # Create necessary folders before starting
 check_and_create_folders = [
@@ -83,6 +113,28 @@ def ensure_file(file_path_in: str, file_template=False):
 logger.debug('Ensuring env file')
 ensure_file(envs.env_file, envs.env_template)
 
+
+async def get_autopost_time():
+    db_settings = await db_get_output(envs.quote_db_settings_schema)
+    QUOTE_AUTOPOST_TIME = None
+    for setting in db_settings:
+        if setting['setting'] == 'autopost_time':
+            QUOTE_AUTOPOST_TIME = setting['value']
+    if QUOTE_AUTOPOST_TIME is None:
+        QUOTE_AUTOPOST_TIME = '1200'
+    if QUOTE_AUTOPOST_TIME is not None:
+        QUOTE_AUTOPOST_TIME = re.search(
+            r'^(\d{2})(\d{2})$',
+            QUOTE_AUTOPOST_TIME
+        )
+        QUOTE_AUTOPOST_TIME = datetime.time(
+            hour=int(QUOTE_AUTOPOST_TIME.group(1)),
+            minute=int(QUOTE_AUTOPOST_TIME.group(2)),
+            tzinfo=timezone
+        )
+    return QUOTE_AUTOPOST_TIME
+
+
 try:
     env = Env()
     env.read_env(path=envs.env_file)
@@ -103,6 +155,7 @@ try:
     RSS_LOOP = env.int('RSS_LOOP', default=15)
     POD_LOOP = env.int('POD_LOOP', default=15)
     FCB_LOOP = env.int('FCB_LOOP', default=60)
+    QUOTE_AUTOPOST_TIME = asyncio.run(get_autopost_time())
     if any(envvar is None for envvar in [
         DISCORD_TOKEN, DISCORD_GUILD, BOT_ID
     ]):
@@ -114,37 +167,6 @@ except EnvError as e:
     )
     exit()
 
-
-async def get_locale_from_db():
-    # If empty in db, get from env or env default
-    locale_db = await db_get_output()
-    logger.debug(f'locale_db: {locale_db}')
-    if locale_db is None:
-        locale_db = []
-    if len(locale_db) > 0:
-        if 'setting' in locale_db and 'value' in locale_db:
-            locale_from_db = {}
-            for setting in locale_db:
-                locale_from_db[setting['setting']] = setting['value']
-            _TZ = locale_from_db['timezone']
-            _LANG = locale_from_db['language']
-        else:
-            _TZ = TIMEZONE
-            _LANG = LANGUAGE
-    else:
-        _TZ = TIMEZONE
-        _LANG = LANGUAGE
-    return {
-        'timezone': _TZ,
-        'language': _LANG
-    }
-
-locale_from_db = asyncio.run(get_locale_from_db())
-
-timezone = pendulum.timezone(locale_from_db['timezone'])
-locale = pendulum.set_locale(locale_from_db['language'])
-pendulum.week_starts_at(pendulum.MONDAY)
-pendulum.week_ends_at(pendulum.SUNDAY)
 
 try:
     intents = discord.Intents.all()

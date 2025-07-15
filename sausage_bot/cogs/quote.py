@@ -11,9 +11,10 @@ import typing
 from pprint import pformat
 from time import sleep
 import re
+import datetime
 
-from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
+from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
@@ -880,9 +881,17 @@ class Quotes(commands.Cog):
                 return
         if setting_type == 'role_id':
             value_obj = discord_commands.get_user_channel_role_name(value_in)
-            print(value_obj)
             value_in = value_obj.id
             setting_type = 'int'
+        if name_of_setting == 'autopost_time':
+            await db_helper.update_fields(
+                template_info=envs.quote_db_settings_schema,
+                where=[('setting', name_of_setting)],
+                updates=[('value', str(value_in))]
+            )
+            Quotes.task_autopost.change_interval(
+                time=await config.get_autopost_time()
+            )
         logger.debug(f'`value_in` is {value_in} ({type(value_in)})')
         logger.debug(
             f'`settings_type` is {settings_type[name_of_setting]} '
@@ -1220,12 +1229,9 @@ class Quotes(commands.Cog):
             file_io.write_json(quote_file, quote_to_file)
             return
 
-    @tasks.loop(
-        hours=config.env.int('QUOTE_POST_LOOP', default=72)
-    )
+    @tasks.loop(time=config.QUOTE_AUTOPOST_TIME)
     async def task_autopost():
-        '''
-        '''
+        logger.info(f'Running autopost task at {config.QUOTE_AUTOPOST_TIME}')
         # Get settings
         settings_in_db = await db_helper.get_output(
             template_info=envs.quote_db_settings_schema,

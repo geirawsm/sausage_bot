@@ -186,11 +186,13 @@ quote_db_settings_schema = {
         ['channel', 'quotes'],
         ['autopost_prefix', 'Dagens sitat!'],
         ['autopost_tag_role', ''],
+        ['autopost_time', '']
     ],
     'type_checking': {
         'channel': 'int',
         'autopost_prefix': 'str',
-        'autopost_tag_role': 'role_id'
+        'autopost_tag_role': 'role_id',
+        'autopost_time': 'str',
     },
 }
 
@@ -488,7 +490,6 @@ SELECT_PERMISSIONS = {
         'use_external_sounds', 'use_soundboard', 'use_voice_activation'
     ]
 }
-
 
 if __name__ == "__main__":
     pass
