@@ -11,13 +11,40 @@ import typing
 from pprint import pformat
 from time import sleep
 import re
-import datetime
+from datetime import datetime, time
 
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+QUOTE_AUTOPOST_TIME = None
+
+
+async def get_autopost_time():
+    db_in = envs.quote_db_settings_schema
+    db_settings = await db_helper.get_output(db_in)
+    logger.debug('`db_settings` is: {}'.format(db_settings))
+    time_out = None
+    for setting in db_settings:
+        if setting['setting'] == 'autopost_time':
+            time_out = setting['value']
+            time_out = datetime.strptime(time_out, '%H:%M:%S').astimezone().time()
+    logger.debug('`time_out` is: {}'.format(time_out))
+    if time_out in [None, '']:
+        time_out = '12:00:00'
+        time_out = datetime.strptime(time_out, '%H:%M:%S').astimezone().time()
+        await db_helper.update_fields(
+            template_info=db_in,
+            where=[('setting', 'autopost_time')],
+            updates=[('value', str(time_out))]
+        )
+    if time_out is not None:
+        time_out = re.search(
+            r'^(\d{2}):(\d{2}):\d{2}$',
+            str(time_out)
+        )
+    return time_out
 
 
 class EditButtons(discord.ui.View):
@@ -884,20 +911,28 @@ class Quotes(commands.Cog):
             value_in = value_obj.id
             setting_type = 'int'
         if name_of_setting == 'autopost_time':
+            time_out = datetime.strptime(value_in, '%H:%M:%S').astimezone().time()
             await db_helper.update_fields(
                 template_info=envs.quote_db_settings_schema,
                 where=[('setting', name_of_setting)],
-                updates=[('value', str(value_in))]
+                updates=[('value', str(time_out))]
             )
+            # Fetch new time and update interval
+            QUOTE_AUTOPOST_TIME = await get_autopost_time()
             Quotes.task_autopost.change_interval(
-                time=await config.get_autopost_time()
+                time=time(
+                    hour=int(QUOTE_AUTOPOST_TIME.group(1)),
+                    minute=int(QUOTE_AUTOPOST_TIME.group(2)),
+                    tzinfo=config.timezone
+                )
             )
         logger.debug(f'`value_in` is {value_in} ({type(value_in)})')
         logger.debug(
             f'`settings_type` is {settings_type[name_of_setting]} '
             f'({type(settings_type[name_of_setting])})'
         )
-        if type(value_in) is eval(setting_type):
+        if type(value_in) is eval(setting_type) and\
+                name_of_setting != 'autopost_time':
             await db_helper.update_fields(
                 template_info=envs.quote_db_settings_schema,
                 where=[('setting', name_of_setting)],
@@ -1139,7 +1174,10 @@ class Quotes(commands.Cog):
             updates=('status', 'started')
         )
         await interaction.followup.send(
-            I18N.t('quote.commands.autopost.start.msg_confirm_ok')
+            I18N.t(
+                'quote.commands.autopost.start.msg_confirm_ok',
+                time=Quotes.task_autopost.next_iteration.astimezone()
+            )
         )
 
     @autopost_group.command(
@@ -1175,7 +1213,10 @@ class Quotes(commands.Cog):
         logger.info('Autopost restarted')
         Quotes.task_autopost.restart()
         await interaction.followup.send(
-            I18N.t('quote.commands.autopost.restart.msg_confirm_ok')
+            I18N.t(
+                'quote.commands.autopost.restart.msg_confirm_ok',
+                time=Quotes.task_autopost.next_iteration.astimezone()
+            )
         )
 
     # Tasks
@@ -1229,9 +1270,9 @@ class Quotes(commands.Cog):
             file_io.write_json(quote_file, quote_to_file)
             return
 
-    @tasks.loop(time=config.QUOTE_AUTOPOST_TIME)
+    @tasks.loop()
     async def task_autopost():
-        logger.info(f'Running autopost task at {config.QUOTE_AUTOPOST_TIME}')
+        logger.info(f'Running autopost task at {QUOTE_AUTOPOST_TIME}')
         # Get settings
         settings_in_db = await db_helper.get_output(
             template_info=envs.quote_db_settings_schema,
@@ -1374,7 +1415,6 @@ async def setup(bot):
         select=('task', 'status'),
         where=('cog', 'quotes')
     )
-    #_tasks = ['server_quote', 'autopost']
     _tasks = ['autopost']
     inserts = []
     for task in _tasks:
@@ -1416,3 +1456,26 @@ async def setup(bot):
                     )
                 )
                 Quotes.task_autopost.cancel()
+
+    global QUOTE_AUTOPOST_TIME
+    QUOTE_AUTOPOST_TIME = await get_autopost_time()
+    logger.debug('`QUOTE_AUTOPOST_TIME` is: {}'.format(QUOTE_AUTOPOST_TIME.group(0)))
+    # Parse time from QUOTE_AUTOPOST_TIME
+    hour = int(QUOTE_AUTOPOST_TIME.group(1))
+    minute = int(QUOTE_AUTOPOST_TIME.group(2))
+    logger.debug(
+        'Parsed hour: {}, minute: {}'.format(hour, minute)
+    )
+    # Set the interval for the loop
+    Quotes.task_autopost.change_interval(
+        time=time(
+            hour=hour, minute=minute, tzinfo=config.timezone
+        )
+    )
+    logger.debug(
+        'Changed interval to: {}:{}'.format(
+            hour, minute
+        )
+    )
+    # Start the loop if needed
+    Quotes.task_autopost.restart()

@@ -7,7 +7,7 @@ nb:
     create_log_channel_logging: "Innkommende logg-meldinger fra %{botname}"
   commands:
     language:
-      confirm_language_set: Språk satt til `%{language}`
+      confirm_language_set: Språk satt til `%{language}`. Restart botten manuelt for å synliggjøre endringer.
     test:
       confirm: Norsk testmelding
     delete:

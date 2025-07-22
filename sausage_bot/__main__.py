@@ -6,8 +6,10 @@ from discord.ext import commands, tasks
 from discord.app_commands import locale_str
 from tabulate import tabulate
 from pendulum import timezones as p_timezones
+import os
 import asyncio
 import aiosqlite
+from sys import argv, executable
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
@@ -16,6 +18,13 @@ from sausage_bot.util.i18n import I18N, available_languages, set_language
 from sausage_bot.util.i18n import MyTranslator
 
 logger = config.logger
+
+
+async def reload_cogs():
+    logger.debug('Reloading cogs')
+    for cog in config.bot.cogs:
+        logger.info('Reloading cog: {}'.format(cog))
+        await config.bot.reload_extension(f'cogs/{cog}')
 
 
 @tasks.loop(
@@ -632,6 +641,7 @@ async def language(
             )
         )
     )
+    await reload_cogs()
     await interaction.followup.send(
         I18N.t(
             'main.commands.language.confirm_language_set',
@@ -672,6 +682,7 @@ async def timezone(
         # TODO i18n
         'Set timezone to `{}`'.format(timezone),
         ephemeral=True)
+    await reload_cogs()
     return
 
 

@@ -7,10 +7,8 @@ from sys import exit
 from environs import Env, EnvError
 from contextlib import suppress
 import os
-import re
 from pathlib import Path
 import pendulum
-import datetime
 import aiosqlite
 import asyncio
 
@@ -60,9 +58,17 @@ async def get_locale_from_db():
     }
 
 locale_from_db = asyncio.run(get_locale_from_db())
+logger.debug(f'locale_from_db: {locale_from_db}')
 
-timezone = pendulum.timezone(locale_from_db['timezone'])
-locale = pendulum.set_locale(locale_from_db['language'])
+if locale_from_db['timezone'] is not None:
+    timezone = pendulum.timezone(locale_from_db['timezone'])
+else:
+    timezone = pendulum.timezone('UTC')
+
+if locale_from_db['language'] is not None:
+    locale = pendulum.set_locale(locale_from_db['language'])
+else:
+    locale = pendulum.set_locale('en')
 pendulum.week_starts_at(pendulum.MONDAY)
 pendulum.week_ends_at(pendulum.SUNDAY)
 
@@ -114,27 +120,6 @@ logger.debug('Ensuring env file')
 ensure_file(envs.env_file, envs.env_template)
 
 
-async def get_autopost_time():
-    db_settings = await db_get_output(envs.quote_db_settings_schema)
-    QUOTE_AUTOPOST_TIME = None
-    for setting in db_settings:
-        if setting['setting'] == 'autopost_time':
-            QUOTE_AUTOPOST_TIME = setting['value']
-    if QUOTE_AUTOPOST_TIME is None:
-        QUOTE_AUTOPOST_TIME = '1200'
-    if QUOTE_AUTOPOST_TIME is not None:
-        QUOTE_AUTOPOST_TIME = re.search(
-            r'^(\d{2})(\d{2})$',
-            QUOTE_AUTOPOST_TIME
-        )
-        QUOTE_AUTOPOST_TIME = datetime.time(
-            hour=int(QUOTE_AUTOPOST_TIME.group(1)),
-            minute=int(QUOTE_AUTOPOST_TIME.group(2)),
-            tzinfo=timezone
-        )
-    return QUOTE_AUTOPOST_TIME
-
-
 try:
     env = Env()
     env.read_env(path=envs.env_file)
@@ -155,7 +140,6 @@ try:
     RSS_LOOP = env.int('RSS_LOOP', default=15)
     POD_LOOP = env.int('POD_LOOP', default=15)
     FCB_LOOP = env.int('FCB_LOOP', default=60)
-    QUOTE_AUTOPOST_TIME = asyncio.run(get_autopost_time())
     if any(envvar is None for envvar in [
         DISCORD_TOKEN, DISCORD_GUILD, BOT_ID
     ]):

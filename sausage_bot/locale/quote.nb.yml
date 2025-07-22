@@ -18,10 +18,10 @@ nb:
       cmd: Autopost sitater
       start:
         cmd: Start autopost
-        msg_confirm_ok: Autoposting startet
+        msg_confirm_ok: Autoposting startet, neste post kommer %{time}
       stop:
         cmd: Stopp autopost
-        msg_confirm_ok: Autoposting stoppet
+        msg_confirm_ok: Autoposting stoppet, neste post kommer %{time}
       restart:
         cmd: Restart autopost
         msg_confirm_ok: Autoposting restartet

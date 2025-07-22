@@ -7,7 +7,7 @@ en:
     create_log_channel_logging: "Incoming log messages from %{botname}"
   commands:
     language:
-      confirm_language_set: Language set to `%{language}`
+      confirm_language_set: Language set to `%{language}`. Restart the bot manually for changes to appear.
     test:
       confirm: English test message
     delete:

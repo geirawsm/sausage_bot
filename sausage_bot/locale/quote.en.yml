@@ -18,13 +18,13 @@ en:
       cmd: Autopost quotes
       start:
         cmd: Start autoposting
-        msg_confirm_ok: Autoposting started
+        msg_confirm_ok: Autoposting started, next posting is at %{time}
       stop:
         cmd: Stop autoposting
         msg_confirm_ok: Autoposting stopped
       restart:
         cmd: Restart autoposting
-        msg_confirm_ok: Autoposting restarted
+        msg_confirm_ok: Autoposting restarted, next posting is at %{time}
     quote:
       cmd: Quotes
     post:
