@@ -693,7 +693,7 @@ class Stats(commands.Cog):
                             )
                 text_out = '{}'.format(
                     tabulate(
-                        dict_out, headers=headers, numalign='center'
+                        dict_out, headers=headers, numalign='right'
                     )
                 )
                 logger.debug(f'Returning: {text_out[0:200]}...')
