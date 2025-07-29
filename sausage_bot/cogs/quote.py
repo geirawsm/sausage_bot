@@ -739,7 +739,11 @@ class Quotes(commands.Cog):
     )
     async def quote_list(
         self, interaction: discord.Interaction, keyword: str = None,
-        quote_number: int = None, shortened: bool = False
+        quote_number: int = None, public: typing.Literal[
+            I18N.t('common.literal_yes_no.lit_yes'),
+            I18N.t('common.literal_yes_no.lit_no')
+        ] = I18N.t('common.literal_yes_no.lit_no'),
+        shortened: bool = False
     ):
         async def prep_quotes(
             keyword: str = None,
@@ -785,7 +789,11 @@ class Quotes(commands.Cog):
             logger.debug(f'Returning this as `quotes_out`: {quotes_out}')
             return quotes_out
 
-        await interaction.response.defer()
+        if public == I18N.t('common.literal_yes_no.lit_yes'):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         quote_in = await prep_quotes(
             keyword=keyword,
             quote_number=quote_number,
@@ -796,7 +804,7 @@ class Quotes(commands.Cog):
                 I18N.t(
                     'quote.commands.list.msg_nonexisting_quote'
                 ),
-                ephemeral=True
+                ephemeral=_ephemeral
             )
         temp_out = []
         for quote in quote_in:
@@ -820,7 +828,9 @@ class Quotes(commands.Cog):
             if quote == temp_out[-1]:
                 paginated.append(msg)
         for page in paginated:
-            await interaction.followup.send(f'```{page}```')
+            await interaction.followup.send(
+                f'```{page}```', ephemeral=_ephemeral
+            )
         return
 
     @commands.is_owner()
