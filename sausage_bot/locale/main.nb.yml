@@ -49,6 +49,9 @@ nb:
     clearlocals:
       msg_starting: Sletter lokale kommandoer...
       msg_confirm: Lokale kommandoer slettet
+    syncdev:
+      msg_starting: Starter kommando synkronisering...
+      msg_confirm: Kommandoer synkronisert
     locale:
       group: "Endre språk eller tidssone"
       language:

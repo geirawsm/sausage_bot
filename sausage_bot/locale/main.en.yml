@@ -49,6 +49,9 @@ en:
     clearlocals:
       msg_starting: Deleting local commands...
       msg_confirm: Local commands deleted
+    syncdev:
+      msg_starting: Starting commands sync...
+      msg_confirm: Commands synced
     locale:
       group: "Change language or timezone"
       language:

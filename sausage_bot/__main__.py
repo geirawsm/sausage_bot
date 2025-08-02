@@ -297,35 +297,23 @@ async def sync_global(interaction: discord.Interaction):
 )
 async def sync_dev(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
+    await interaction.followup.send(
+        content='✅💭 {}'.format(
+            I18N.t('main.commands.syncdev.msg_starting')
+        )
+    )
     config.bot.tree.copy_global_to(
         guild=discord_commands.get_guild()
     )
     await config.bot.tree.sync(
         guild=discord_commands.get_guild()
     )
-    _cmd = ''
-    slash_cmds = []
-    text_cmds = []
     for command in config.bot.tree.get_commands():
         logger.debug(f'Checking {command.name}')
-        if isinstance(command, discord.app_commands.Command):
-            slash_cmds.append(command.name)
-        else:
-            text_cmds.append(command.name)
-    if len(slash_cmds) > 0:
-        _cmd += 'Slash-commands:'
-        for cmd in slash_cmds:
-            _cmd += f'\n- {cmd}'
-    if len(text_cmds) > 0:
-        if len(_cmd) > 0:
-            _cmd += '\n'
-        _cmd += 'Text-commands:'
-        for cmd in text_cmds:
-            _cmd += f'\n- {cmd}'
-
-    await interaction.followup.send(
-        f'Commands synched!\n{_cmd}',
-        ephemeral=True
+    await interaction.edit_original_response(
+        content='✅✅ {}'.format(
+            I18N.t('main.commands.syncdev.msg_confirm')
+        )
     )
     return
 
