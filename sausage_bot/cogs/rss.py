@@ -1112,93 +1112,97 @@ class RSSfeed(commands.Cog):
         pod_check = await net_io.check_other_podcast_episodes()
         logger.debug('pod_check is {}'.format(pod_check))
         logger.debug('Got these feeds:')
-        for feed in spotify_check:
-            logger.debug('  Spotify:')
-            logger.debug('- {}'.format(spotify_check[feed]['name']))
-        for feed in pod_check:
-            logger.debug('  Other podcasts:')
-            logger.debug('- {}'.format(pod_check[feed]['name']))
+        if len(spotify_check) > 0:
+            for feed in spotify_check:
+                logger.debug('  Spotify:')
+                logger.debug('- {}'.format(spotify_check[feed]['name']))
+        if len(pod_check) > 0:
+            for feed in pod_check:
+                logger.debug('  Other podcasts:')
+                logger.debug('- {}'.format(pod_check[feed]['name']))
         # Start processing per feed settings
         # Spotify links first
-        for feed in spotify_check:
-            POD_ID = feed
-            UUID = spotify_check[feed]['uuid']
-            FEED_NAME = spotify_check[feed]['name']
-            CHANNEL = spotify_check[feed]['channel']
-            NUM_EPISODES = spotify_check[feed]['num_episodes_new']
-            channel_obj = get(
-                discord_commands.get_guild().channels,
-                id=int(CHANNEL)
-            )
-            logger.debug(
-                f'Found channel `{channel_obj.name}` in `{FEED_NAME}`'
-            )
-            FEED_POSTS = await net_io.get_spotify_podcast_links(
-                feed_id=POD_ID,
-                uuid=UUID,
-                num_items=3
-            )
-            logger.debug(
-                'Got {} items for `FEED_POSTS`: '
-                '{}'.format(
-                    len(FEED_POSTS) if FEED_POSTS else 0,
-                    [
-                        pod_ep['title'] for pod_ep in FEED_POSTS
-                    ] if FEED_POSTS else None
+        if len(spotify_check) > 0:
+            for feed in spotify_check:
+                POD_ID = feed
+                UUID = spotify_check[feed]['uuid']
+                FEED_NAME = spotify_check[feed]['name']
+                CHANNEL = spotify_check[feed]['channel']
+                NUM_EPISODES = spotify_check[feed]['num_episodes_new']
+                channel_obj = get(
+                    discord_commands.get_guild().channels,
+                    id=int(CHANNEL)
                 )
-            )
-            if FEED_POSTS is None:
-                logger.info(f'Feed {FEED_NAME} returned NoneType')
-                await discord_commands.log_to_bot_channel(
-                    I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
+                logger.debug(
+                    f'Found channel `{channel_obj.name}` in `{FEED_NAME}`'
                 )
-            else:
-                await feeds_core.process_links_for_posting_or_editing(
-                    feed_type='podcast', uuid=UUID,
-                    FEED_POSTS=FEED_POSTS, CHANNEL=CHANNEL
+                FEED_POSTS = await net_io.get_spotify_podcast_links(
+                    feed_id=POD_ID,
+                    uuid=UUID,
+                    num_items=3
                 )
-                await db_helper.update_fields(
-                    template_info=envs.rss_db_schema,
-                    where=('uuid', UUID),
-                    updates=('num_episodes', NUM_EPISODES)
+                logger.debug(
+                    'Got {} items for `FEED_POSTS`: '
+                    '{}'.format(
+                        len(FEED_POSTS) if FEED_POSTS else 0,
+                        [
+                            pod_ep['title'] for pod_ep in FEED_POSTS
+                        ] if FEED_POSTS else None
+                    )
                 )
+                if FEED_POSTS is None:
+                    logger.info(f'Feed {FEED_NAME} returned NoneType')
+                    await discord_commands.log_to_bot_channel(
+                        I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
+                    )
+                else:
+                    await feeds_core.process_links_for_posting_or_editing(
+                        feed_type='podcast', uuid=UUID,
+                        FEED_POSTS=FEED_POSTS, CHANNEL=CHANNEL
+                    )
+                    await db_helper.update_fields(
+                        template_info=envs.rss_db_schema,
+                        where=('uuid', UUID),
+                        updates=('num_episodes', NUM_EPISODES)
+                    )
         # ...then other podcasts
-        for feed in pod_check:
-            UUID = pod_check[feed]['uuid']
-            FEED_NAME = pod_check[feed]['name']
-            CHANNEL = pod_check[feed]['channel']
-            URL = pod_check[feed]['url']
-            logger.debug(
-                'Found channel `{} ({})` in `{}`'.format(
-                    get(
-                        discord_commands.get_guild().channels,
-                        id=int(CHANNEL)
-                    ).name, CHANNEL, FEED_NAME
+        if len(pod_check) > 0:
+            for feed in pod_check:
+                UUID = pod_check[feed]['uuid']
+                FEED_NAME = pod_check[feed]['name']
+                CHANNEL = pod_check[feed]['channel']
+                URL = pod_check[feed]['url']
+                logger.debug(
+                    'Found channel `{} ({})` in `{}`'.format(
+                        get(
+                            discord_commands.get_guild().channels,
+                            id=int(CHANNEL)
+                        ).name, CHANNEL, FEED_NAME
+                    )
                 )
-            )
-            req = await net_io.get_link(URL)
-            FEED_POSTS = await net_io.get_other_podcast_links(
-                req=req, url=URL, uuid=UUID, num_items=3
-            )
-            logger.debug(
-                'Got {} items for `FEED_POSTS`: '
-                '{}'.format(
-                    len(FEED_POSTS) if FEED_POSTS else 0,
-                    [
-                        pod_ep['title'] for pod_ep in FEED_POSTS
-                    ] if FEED_POSTS else None
+                req = await net_io.get_link(URL)
+                FEED_POSTS = await net_io.get_other_podcast_links(
+                    req=req, url=URL, uuid=UUID, num_items=3
                 )
-            )
-            if FEED_POSTS is None:
-                logger.info(f'Feed {FEED_NAME} returned NoneType')
-                await discord_commands.log_to_bot_channel(
-                    I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
+                logger.debug(
+                    'Got {} items for `FEED_POSTS`: '
+                    '{}'.format(
+                        len(FEED_POSTS) if FEED_POSTS else 0,
+                        [
+                            pod_ep['title'] for pod_ep in FEED_POSTS
+                        ] if FEED_POSTS else None
+                    )
                 )
-            else:
-                await feeds_core.process_links_for_posting_or_editing(
-                    feed_type='podcast', uuid=UUID,
-                    FEED_POSTS=FEED_POSTS, CHANNEL=CHANNEL
-                )
+                if FEED_POSTS is None:
+                    logger.info(f'Feed {FEED_NAME} returned NoneType')
+                    await discord_commands.log_to_bot_channel(
+                        I18N.t('rss.tasks.feed_posts_is_none', feed_name=FEED_NAME)
+                    )
+                else:
+                    await feeds_core.process_links_for_posting_or_editing(
+                        feed_type='podcast', uuid=UUID,
+                        FEED_POSTS=FEED_POSTS, CHANNEL=CHANNEL
+                    )
         logger.info('Done with posting')
 
     @task_post_podcasts.before_loop
