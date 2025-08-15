@@ -13,6 +13,7 @@ from time import sleep
 import re
 from datetime import datetime, time
 
+from sausage_bot.util.args import args
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
@@ -390,24 +391,49 @@ def prettify(number: str, text: str, date: str) -> str:
     return out
 
 
-async def get_random_quote():
+async def get_random_quote(testmode=False):
     '''
     Return rowid, `uuid`, `quote_text` and `datetime`
     #autodoc skip#
     '''
-    return await db_helper.get_random_left_exclude_output(
+    row_id = await db_helper.get_row_ids(envs.quote_db_schema)
+    if len(row_id) == 0:
+        return None
+    if testmode:
+        row_id = row_id[0]
+        logger.debug(f'Got `row_id`: {row_id}')
+        quote = await db_helper.get_output_by_rowid(
+            envs.quote_db_schema,
+            rowid=row_id,
+            fields_out=('rowid', 'uuid', 'quote_text', 'datetime')
+        )
+        return quote
+    random_quote = await db_helper.get_random_left_exclude_output(
         envs.quote_db_schema,
         envs.quote_db_log_schema,
         'uuid',
         ('rowid', 'uuid', 'quote_text', 'datetime')
     )
+    if len(random_quote) == 0:
+        await db_helper.empty_table(envs.quote_db_log_schema)
+        random_quote = await db_helper.get_random_left_exclude_output(
+            envs.quote_db_schema,
+            envs.quote_db_log_schema,
+            'uuid',
+            ('rowid', 'uuid', 'quote_text', 'datetime')
+        )
+    return random_quote
 
 
 async def post_random_quote(interaction, _ephemeral):
-    random_quote = await get_random_quote()
-    if len(random_quote) == 0:
-        await db_helper.empty_table(envs.quote_db_log_schema)
-        random_quote = await get_random_quote()
+    random_quote = await get_random_quote(testmode=args.testmode)
+    if random_quote is None:
+        logger.debug('No quotes found in database')
+        await interaction.followup.send(
+            I18N.t('quote.commands.post.quote_db_empty'),
+            ephemeral=_ephemeral
+        )
+        return 
     logger.debug(f'Got `random_quote`: {random_quote}')
     # Post quote
     quote_number = random_quote[0][0]
@@ -1322,7 +1348,8 @@ class Quotes(commands.Cog):
             topic='Posting quotes', overwrites=overwrites
         )
         # Load quote from database
-        rand_quote = await get_random_quote()
+        # If in testmode, get the same quote every time
+        rand_quote = await get_random_quote(testmode=args.testmode)
         logger.debug(f'rand_quote is `{rand_quote}`')
         if len(rand_quote) <= 0:
             logger.debug(
@@ -1340,7 +1367,7 @@ class Quotes(commands.Cog):
             await discord_commands.log_to_bot_channel(
                 # TODO i18n
                 content_in='No quotes available for autoposting in db, '
-                           'disabling autopost task'
+                'disabling autopost task'
             )
             return
         logger.debug('Got quote, posting it')
