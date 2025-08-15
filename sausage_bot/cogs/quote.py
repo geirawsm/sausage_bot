@@ -30,6 +30,8 @@ async def get_autopost_time():
     for setting in db_settings:
         if setting['setting'] == 'autopost_time':
             time_out = setting['value']
+            if time_out in [None, '']:
+                time_out = '12:00:00'
             time_out = datetime.strptime(time_out, '%H:%M:%S').astimezone().time()
     logger.debug('`time_out` is: {}'.format(time_out))
     if time_out in [None, '']:
