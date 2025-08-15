@@ -13,6 +13,7 @@ from time import sleep
 import re
 from datetime import datetime, time
 
+from sausage_bot.util.args import args
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
@@ -29,6 +30,8 @@ async def get_autopost_time():
     for setting in db_settings:
         if setting['setting'] == 'autopost_time':
             time_out = setting['value']
+            if time_out in [None, '']:
+                time_out = '12:00:00'
             time_out = datetime.strptime(time_out, '%H:%M:%S').astimezone().time()
     logger.debug('`time_out` is: {}'.format(time_out))
     if time_out in [None, '']:
@@ -121,6 +124,25 @@ class ConfirmButtons(discord.ui.View):
         self.stop()
 
 
+class EasyButton(discord.ui.Button):
+    def __init__(self, label, color):
+        if color == 'red':
+            style = discord.ButtonStyle.red
+        elif color == 'green':
+            style = discord.ButtonStyle.green
+        super().__init__(style=style, label=label)
+
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        self.disabled = True
+        buttons = [x for x in self.view.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        await interaction.response.edit_message(view=self.view)
+        self.view.stop()
+
+
 class QuoteTextInput(discord.ui.TextInput):
     def __init__(
             self, style_in, label_in, default_in=None, required_in=None,
@@ -133,6 +155,92 @@ class QuoteTextInput(discord.ui.TextInput):
             required=required_in,
             placeholder=placeholder_in
         )
+
+
+class DropdownQuote(discord.ui.Select):
+    def __init__(
+            self, placeholder_in, msg_type, msgs_in, msgs_out
+    ):
+        super().__init__(
+            placeholder=placeholder_in,
+            min_values=0,
+            max_values=len(msgs_in),
+            options=msgs_in
+        )
+        self.msg_type = msg_type
+        self.msgs_in = msgs_in
+        self.msgs_out = msgs_out
+
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        logger.debug(f'Checking for defaults in values {self.values}')
+        for opt in self.msgs_in:
+            print(f'THIS IS opt:   {opt}')
+            if opt.label in self.msgs_out:
+                opt.default = True
+            else:
+                opt.default = False
+        logger.debug(f'Checking for defaults in msgs_out {self.msgs_out[self.msg_type]}')
+        self.msgs_out[self.msg_type] += self.values
+        await interaction.response.edit_message(view=self.view)
+
+
+class DropdownQuoteAdd(discord.ui.View):
+    def __init__(self, msgs_in=None):
+        def prep_dropdown(msgs_in: dict = None):
+            list_out = []
+            for _msg in msgs_in:
+                oneliner = f'{_msg.author.name} ({_msg.content})'
+                if len(str(oneliner)) >= 100:
+                    oneliner = f'{str(oneliner):.90}...'
+                list_out.append(
+                    discord.SelectOption(
+                        label=oneliner,
+                        value=_msg.id,
+                        default=False
+                    )
+                )
+            logger.debug(f'This is `list_out`: {list_out}')
+            return list_out
+
+        super().__init__(timeout=180)
+        self.msgs_in = msgs_in
+        self.msgs_out = {'before': [], 'after': []}
+
+        before_quotes = prep_dropdown(self.msgs_in['before'])
+        after_quotes = prep_dropdown(self.msgs_in['after'])
+        logger.debug('Prepped quotes for dropdowns')
+        before_dropdown = DropdownQuote(
+            #I18N.t('roles.views.perms.drop_general'),
+            # TODO i18n
+            placeholder_in='BEFORE QUOTES',
+            msg_type='before',
+            msgs_in=before_quotes,
+            msgs_out=self.msgs_out
+        )
+        after_dropdown = DropdownQuote(
+            #I18N.t('roles.views.perms.drop_text'),
+            # TODO i18n
+            placeholder_in='AFTER QUOTES',
+            msg_type='after',
+            msgs_in=after_quotes,
+            msgs_out=self.msgs_out
+        )
+        logger.debug('Adding dropdowns to view')
+
+        self.add_item(before_dropdown)
+        self.add_item(after_dropdown)
+        # TODO i18n
+        self.add_item(EasyButton(label='Yes, save quote', color='green'))
+        self.add_item(EasyButton(label='No, cancel', color='red'))
+
+
+class ConfirmQuoteAdd(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+        self.add_item(EasyButton(label='Yes, save quote', color='green'))
+        self.add_item(EasyButton(label='No, cancel', color='red'))
 
 
 class QuoteAddModal(discord.ui.Modal):
@@ -160,6 +268,98 @@ class QuoteAddModal(discord.ui.Modal):
         logger.debug(f'self.public_in: {self.public_in}')
         logger.debug(f'self.public_in_text: {self.public_in_text}')
 
+        # Create elements
+        num_label = QuoteTextInput(
+            style_in=discord.TextStyle.short,
+            label_in=I18N.t('quote.modals.quote_num'),
+            default_in=self.quote_in[0][0] if self.quote_in else
+            self.available_row_id,
+            required_in=not self.quote_in
+        )
+
+        quote_text = QuoteTextInput(
+            style_in=discord.TextStyle.paragraph,
+            label_in=I18N.t('quote.modals.quote_text'),
+            default_in=self.quote_in[0][2] if self.quote_in else '',
+            required_in=True,
+            placeholder_in='Text'
+        )
+
+        quote_date = QuoteTextInput(
+            style_in=discord.TextStyle.short,
+            label_in=I18N.t('quote.modals.quote_date'),
+            default_in=self.quote_in[0][3] if self.quote_in else '',
+            required_in=False,
+            placeholder_in=I18N.t('quote.modals.date_placeholder')
+        )
+
+        quote_public = QuoteTextInput(
+            style_in=discord.TextStyle.short,
+            label_in=I18N.t('quote.modals.quote_public'),
+            default_in=self.public_in_text
+        )
+
+        self.add_item(num_label)
+        self.add_item(quote_text)
+        self.add_item(quote_date)
+        self.add_item(quote_public)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.quote_out['row_id'] = self.children[0].value
+        self.quote_out['quote_text'] = self.children[1].value
+        if self.children[2].value == '':
+            self.quote_out['datetime'] = str(await get_dt(format='ISO8601'))
+        else:
+            self.quote_out['datetime'] = await get_dt(
+                format='ISO8601', dt=self.children[2].value
+            )
+
+        tab_quote = tabulate(
+            [
+                [I18N.t('quote.tab_headers.quote_num'),
+                 self.quote_out['row_id']],
+                [I18N.t('quote.tab_headers.quote'),
+                 self.quote_out['quote_text']],
+                [I18N.t('quote.tab_headers.quote_date'),
+                 await get_dt(
+                     format='datetime', dt=self.quote_out['datetime']
+                )]
+            ], tablefmt='plain'
+        )
+        msg_out = I18N.t(
+            'quote.modals.add.msg_confirm'
+        )
+        if self.children[3].value == I18N.t('common.literal_yes_no.lit_yes'):
+            _ephemeral = False
+        elif self.children[3].value == I18N.t('common.literal_yes_no.lit_no'):
+            _ephemeral = True
+        await interaction.response.send_message(
+            f'{msg_out}:\n```{tab_quote}```',
+            ephemeral=_ephemeral
+        )
+
+    async def on_error(self, interaction: discord.Interaction, error):
+        await interaction.response.send_message(
+            I18N.t('quote.modals.error', error=error),
+            ephemeral=True
+        )
+
+
+class QuoteAddBetterModal(discord.ui.Modal):
+    def __init__(
+        self, quote_msg_in=None, surrounding_msgs=None,
+        available_row_id=None
+    ):
+        super().__init__(
+            title=I18N.t('quote.modals.add.modal_title'), timeout=120
+        )
+        self.available_row_id = available_row_id
+        self.quote_out = {
+            'row_id': None,
+            'uuid': str(uuid.uuid4()) if not quote_in else quote_in[0][1],
+            'quote_text': None,
+            'datetime': None
+        }
         # Create elements
         num_label = QuoteTextInput(
             style_in=discord.TextStyle.short,
@@ -390,24 +590,49 @@ def prettify(number: str, text: str, date: str) -> str:
     return out
 
 
-async def get_random_quote():
+async def get_random_quote(testmode=False):
     '''
     Return rowid, `uuid`, `quote_text` and `datetime`
     #autodoc skip#
     '''
-    return await db_helper.get_random_left_exclude_output(
+    row_id = await db_helper.get_row_ids(envs.quote_db_schema)
+    if len(row_id) == 0:
+        return None
+    if testmode:
+        row_id = row_id[0]
+        logger.debug(f'Got `row_id`: {row_id}')
+        quote = await db_helper.get_output_by_rowid(
+            envs.quote_db_schema,
+            rowid=row_id,
+            fields_out=('rowid', 'uuid', 'quote_text', 'datetime')
+        )
+        return quote
+    random_quote = await db_helper.get_random_left_exclude_output(
         envs.quote_db_schema,
         envs.quote_db_log_schema,
         'uuid',
         ('rowid', 'uuid', 'quote_text', 'datetime')
     )
+    if len(random_quote) == 0:
+        await db_helper.empty_table(envs.quote_db_log_schema)
+        random_quote = await db_helper.get_random_left_exclude_output(
+            envs.quote_db_schema,
+            envs.quote_db_log_schema,
+            'uuid',
+            ('rowid', 'uuid', 'quote_text', 'datetime')
+        )
+    return random_quote
 
 
 async def post_random_quote(interaction, _ephemeral):
-    random_quote = await get_random_quote()
-    if len(random_quote) == 0:
-        await db_helper.empty_table(envs.quote_db_log_schema)
-        random_quote = await get_random_quote()
+    random_quote = await get_random_quote(testmode=args.testmode)
+    if random_quote is None:
+        logger.debug('No quotes found in database')
+        await interaction.followup.send(
+            I18N.t('quote.commands.post.quote_db_empty'),
+            ephemeral=_ephemeral
+        )
+        return 
     logger.debug(f'Got `random_quote`: {random_quote}')
     # Post quote
     quote_number = random_quote[0][0]
@@ -1322,7 +1547,8 @@ class Quotes(commands.Cog):
             topic='Posting quotes', overwrites=overwrites
         )
         # Load quote from database
-        rand_quote = await get_random_quote()
+        # If in testmode, get the same quote every time
+        rand_quote = await get_random_quote(testmode=args.testmode)
         logger.debug(f'rand_quote is `{rand_quote}`')
         if len(rand_quote) <= 0:
             logger.debug(
@@ -1340,7 +1566,7 @@ class Quotes(commands.Cog):
             await discord_commands.log_to_bot_channel(
                 # TODO i18n
                 content_in='No quotes available for autoposting in db, '
-                           'disabling autopost task'
+                'disabling autopost task'
             )
             return
         logger.debug('Got quote, posting it')
@@ -1377,6 +1603,103 @@ class Quotes(commands.Cog):
             content_in=quote_out
         )
         return
+
+
+@commands.is_owner()
+@config.bot.tree.context_menu(
+    #name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
+    name='Add quote (better version)'
+)
+async def quote_add_better(
+    interaction: discord.Interaction, message: discord.Message
+):
+    'Add a quote (better version)'
+    await interaction.response.defer(ephemeral=True)
+    # Get available row id
+    _row_ids = await db_helper.get_row_ids(
+        envs.quote_db_schema, sort=True
+    )
+    logger.debug(f'_row_ids: {_row_ids}')
+    if len(_row_ids) <= 0:
+        last_row_id = 1
+    else:
+        last_row_id = _row_ids[-1] + 1
+    ###
+    # Get 10 messages both before and after this quote
+    channel_out = discord_commands.get_guild().get_channel(
+        interaction.channel_id
+    )
+    msgs = {
+        'actual': None,
+        'before': [],
+        'after': []
+    }
+    async for msg in channel_out.history(limit=100):
+        if msg.id == message.id:
+            main_msg = msg
+            msgs['actual'] = main_msg
+    msgs_before = channel_out.history(
+        limit=20, before=main_msg
+    )
+    async for _msg in msgs_before:
+        msgs['before'].append(_msg)
+    msgs['before'].reverse()
+    msgs_after = channel_out.history(
+        limit=20, after=main_msg
+    )
+    async for _msg in msgs_after:
+        msgs['after'].append(_msg)
+    addquote_view = DropdownQuoteAdd(msgs_in=msgs)
+    quote_msg = f'Her er det valgte sitatet: `{main_msg.author}: '\
+        f'{main_msg.content}`\n\nVelg relevante kommentarer før '\
+        'og etter sitatet for å sikre kontekst.'
+    await interaction.followup.send(
+        content=quote_msg,
+        #I18N.t('quote.modals.add.modal_title'),
+        view=addquote_view
+    )
+    await addquote_view.wait()
+    # Get quotes and add to db
+    quote_msgs_out = addquote_view.msgs_out
+    complete_quote = 'Here is the quote:\n```'
+    for quote in quote_msgs_out['before']:
+        quote_object = await discord_commands.get_message_obj(
+            quote, interaction.channel_id
+        )
+        complete_quote += '{}: {}\n'.format(
+            quote_object.author.name, quote_object.content
+        )
+    complete_quote += '{}: {}\n'.format(
+        main_msg.author.name, main_msg.content
+    )
+    for quote in quote_msgs_out['after']:
+        quote_object = await discord_commands.get_message_obj(
+            quote, interaction.channel_id
+        )
+        complete_quote += '{}: {}\n'.format(
+            quote_object.author.name, quote_object.content
+        )
+    complete_quote += '```'
+    logger.debug(f'Sending `complete_quote`:\n{complete_quote}')
+    await interaction.followup.send(
+        complete_quote, view=ConfirmQuoteAdd, ephemeral=True
+    )
+    return
+    # Parse the quote
+    ###
+    quote_out = modal_in.quote_out
+    logger.debug(f'quote_out: {quote_out}')
+    # Add the quote
+    await db_helper.insert_many_all(
+        template_info=envs.quote_db_schema,
+        inserts=[
+            (
+                quote_out['uuid'], quote_out['quote_text'],
+                quote_out['datetime']
+            )
+        ]
+    )
+    return
 
 
 async def setup(bot):
