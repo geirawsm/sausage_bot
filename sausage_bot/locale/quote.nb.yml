@@ -32,6 +32,7 @@ nb:
       desc:
         number: Velg et nummer hvis du vil ha et spesifikt sitat
       quote_not_exist: 'Sitat nummer %{quote_in} finnes ikke'
+      quote_db_empty: Ingen sitater i databasen
     add:
       cmd: Legg til sitat
     edit:

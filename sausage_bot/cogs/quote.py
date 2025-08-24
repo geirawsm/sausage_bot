@@ -87,41 +87,76 @@ class EditButtons(discord.ui.View):
 
 
 class ConfirmButtons(discord.ui.View):
-    def __init__(self, *, timeout=10):
+    def __init__(
+            self, *, timeout=10, yes_label=None, no_label=None
+    ):
         super().__init__(timeout=timeout)
-        self.value = None
+        self.yes_label = yes_label
+        self.no_label = no_label
 
-    @discord.ui.button(
-        label=I18N.t('common.literal_yes_no.lit_yes'),
-        style=discord.ButtonStyle.green
-    )
-    async def yes_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
+        self.add_item(ButtonConfirm(label=self.yes_label))
+        self.add_item(ButtonDeny(label=self.no_label))
+
+
+class ButtonConfirm(discord.ui.Button):
+    def __init__(self, label):
+        super().__init__(
+            label=label,
+            style=discord.ButtonStyle.green
+        )
+
+    async def callback(
+        self, interaction: discord.Interaction
     ):
         self.value = True
         # Disable all buttons
-        buttons = [x for x in self.children]
+        buttons = [x for x in self.view.children]
         for _btn in buttons:
             _btn.disabled = True
-        # Update message
-        await interaction.response.edit_message(view=self)
-        self.stop()
+        await interaction.response.edit_message(
+            view=self.view
+        )
+        self.view.stop()
 
-    @discord.ui.button(
-        label=I18N.t('common.literal_yes_no.lit_no'),
-        style=discord.ButtonStyle.red
-    )
-    async def no_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
+
+class ButtonDeny(discord.ui.Button):
+    def __init__(self, label):
+        super().__init__(
+            label=label,
+            style=discord.ButtonStyle.red
+        )
+
+    async def callback(
+        self, interaction: discord.Interaction
     ):
         self.value = False
         # Disable all buttons
-        buttons = [x for x in self.children]
+        buttons = [x for x in self.view.children]
         for _btn in buttons:
             _btn.disabled = True
-        # Update message
-        await interaction.response.edit_message(view=self)
-        self.stop()
+        await interaction.response.edit_message(
+            view=self.view
+        )
+        self.view.stop()
+
+
+class EasyButton(discord.ui.Button):
+    def __init__(self, label, color, return_value=None):
+        if color == 'red':
+            style = discord.ButtonStyle.red
+        elif color == 'green':
+            style = discord.ButtonStyle.green
+        super().__init__(style=style, label=label)
+
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        self.disabled = True
+        buttons = [x for x in self.view.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        await interaction.response.edit_message(view=self.view)
+        self.view.stop()
 
 
 class QuoteTextInput(discord.ui.TextInput):
@@ -136,6 +171,85 @@ class QuoteTextInput(discord.ui.TextInput):
             required=required_in,
             placeholder=placeholder_in
         )
+
+
+class DropdownQuote(discord.ui.Select):
+    def __init__(
+            self, placeholder_in, msg_type, msgs_in, msgs_out
+    ):
+        super().__init__(
+            placeholder=placeholder_in,
+            min_values=0,
+            max_values=len(msgs_in),
+            options=msgs_in
+        )
+        self.msg_type = msg_type
+        self.msgs_in = msgs_in
+        self.msgs_out = msgs_out
+
+    async def callback(
+        self, interaction: discord.Interaction
+    ):
+        logger.debug(f'Checking for defaults in {self.msg_type} {self.values}')
+        for opt in self.msgs_in:
+            if str(opt.value) in self.values:
+                opt.default = True
+            else:
+                opt.default = False
+        self.msgs_out[self.msg_type] = self.values
+        await interaction.response.edit_message(view=self.view)
+
+
+class DropdownQuoteAdd(discord.ui.View):
+    def __init__(self, msgs_in=None):
+        def prep_dropdown(msgs_in: dict = None):
+            list_out = []
+            for _msg in msgs_in:
+                oneliner = f'{_msg.author.name} ({_msg.content})'
+                if len(str(oneliner)) >= 100:
+                    oneliner = f'{str(oneliner):.90}...'
+                list_out.append(
+                    discord.SelectOption(
+                        label=oneliner,
+                        value=_msg.id,
+                        default=False
+                    )
+                )
+            logger.debug(f'This is `list_out`: {list_out}')
+            return list_out
+
+        super().__init__(timeout=180)
+        self.msgs_in = msgs_in
+        self.msgs_out = {'main': None, 'before': [], 'after': []}
+
+        before_quotes = prep_dropdown(self.msgs_in['before'])
+        logger.debug(f'before_quotes is {before_quotes}')
+        after_quotes = prep_dropdown(self.msgs_in['after'])
+        logger.debug(f'after_quotes is {after_quotes}')
+        logger.debug('Prepped quotes for dropdowns')
+        before_dropdown = DropdownQuote(
+            #I18N.t('roles.views.perms.drop_general'),
+            # TODO i18n
+            placeholder_in='BEFORE QUOTES',
+            msg_type='before',
+            msgs_in=before_quotes,
+            msgs_out=self.msgs_out
+        )
+        after_dropdown = DropdownQuote(
+            #I18N.t('roles.views.perms.drop_text'),
+            # TODO i18n
+            placeholder_in='AFTER QUOTES',
+            msg_type='after',
+            msgs_in=after_quotes,
+            msgs_out=self.msgs_out
+        )
+        logger.debug('Adding dropdowns to view')
+
+        self.add_item(before_dropdown)
+        self.add_item(after_dropdown)
+        # TODO i18n
+        self.add_item(ButtonConfirm(label='Yes, save quote'))
+        self.add_item(ButtonDeny(label='No, cancel'))
 
 
 class QuoteAddModal(discord.ui.Modal):
@@ -688,7 +802,10 @@ class Quotes(commands.Cog):
             return
         quote = quote_from_db[0]
         logger.debug(f'quote is: {quote}')
-        confirm_buttons = ConfirmButtons()
+        confirm_buttons = ConfirmButtons(
+            yes_label=I18N.t('common.literal_yes_no.lit_yes'),
+            no_label=I18N.t('common.literal_yes_no.lit_no')
+        )
         tab_quote = tabulate(
             [
                 [I18N.t('quote.tab_headers.quote_num'), quote['rowid']],
@@ -1406,6 +1523,158 @@ class Quotes(commands.Cog):
             content_in=quote_out
         )
         return
+
+
+@commands.is_owner()
+@config.bot.tree.context_menu(
+    #name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
+    name='Add quote (better version)'
+)
+async def quote_add_better(
+    interaction: discord.Interaction, message: discord.Message
+):
+    'Add a quote (better version)'
+    def make_imgs_inline(content, msg: discord.Message):
+        if len(msg.attachments) > 0:
+            for att in msg.attachments:
+                att_counter = 0
+                if att.url is not None and att.url != '':
+                    if att.filename.split('.')[-1] in ['jpg', 'png', 'gif']:
+                        logger.debug(f'Found attachment: {att.url}')
+                        att_counter += 1
+                        # TODO i18n
+                        content += ' [Bilde {}]{}'.format(att_counter, att.url)
+                        logger.debug(f'`content` is now: {content}')
+        return content
+
+    await interaction.response.defer(ephemeral=True)
+    # Get available row id
+    _row_ids = await db_helper.get_row_ids(
+        envs.quote_db_schema, sort=True
+    )
+    logger.debug(f'_row_ids: {_row_ids}')
+    if len(_row_ids) <= 0:
+        last_row_id = 1
+    else:
+        last_row_id = _row_ids[-1] + 1
+    ###
+    # Get 10 messages both before and after this quote
+    channel_out = discord_commands.get_guild().get_channel(
+        interaction.channel_id
+    )
+    msgs = {
+        'actual': None,
+        'before': [],
+        'after': []
+    }
+    async for msg in channel_out.history(limit=100):
+        if msg.id == message.id:
+            main_msg = msg
+            msgs['actual'] = main_msg
+    msgs_before = channel_out.history(
+        limit=20, before=main_msg
+    )
+    async for _msg in msgs_before:
+        msgs['before'].append(_msg)
+    msgs['before'].reverse()
+    msgs_after = channel_out.history(
+        limit=20, after=main_msg
+    )
+    async for _msg in msgs_after:
+        msgs['after'].append(_msg)
+    addquote_view = DropdownQuoteAdd(msgs_in=msgs)
+    quote_msg = f'Her er det valgte sitatet: `{main_msg.author}: '\
+        f'{main_msg.content}`\n\nVelg relevante kommentarer før '\
+        'og etter sitatet for å sikre kontekst.'
+    await interaction.followup.send(
+        content=quote_msg,
+        #I18N.t('quote.modals.add.modal_title'),
+        view=addquote_view
+    )
+    await addquote_view.wait()
+    save_quote = None
+    for _btn in addquote_view.children:
+        if hasattr(_btn, 'value'):
+            save_quote = _btn.value
+            break
+    if save_quote is False:
+        logger.debug('Cancelled adding quote')
+        return
+    # Get quotes and add to db
+    quote_msgs_out = addquote_view.msgs_out
+    logger.debug(f'quote_msgs_out: {quote_msgs_out}')
+    # TODO i18n
+    complete_quote = 'Here is the quote:\n```'
+    quotes_out = []
+    for quote in quote_msgs_out['before']:
+        quote_object = await discord_commands.get_message_obj(
+            quote, interaction.channel_id
+        )
+        line = '{}: {}'.format(
+            quote_object.author.name, quote_object.content
+        )
+        line = make_imgs_inline(line, quote_object)
+        complete_quote += line
+        complete_quote += '\n'
+        quotes_out.append(quote_object)
+    complete_quote += '{}: {}\n'.format(
+        main_msg.author.name, main_msg.content
+    )
+    quotes_out.append(main_msg)
+    msgs['actual'] = main_msg.id
+    for quote in quote_msgs_out['after']:
+        quote_object = await discord_commands.get_message_obj(
+            quote, interaction.channel_id
+        )
+        line = '{}: {}'.format(
+            quote_object.author.name, quote_object.content
+        )
+        line = make_imgs_inline(line, quote_object)
+        complete_quote += line
+        complete_quote += '\n'
+        quotes_out.append(quote_object)
+    complete_quote += '```'
+    logger.debug(f'Sending `complete_quote`:\n{complete_quote}')
+    confirm_buttons = ConfirmButtons(
+        yes_label=I18N.t('common.literal_yes_no.lit_yes'),
+        no_label=I18N.t('common.literal_yes_no.lit_no')
+    )
+    await interaction.followup.send(
+        complete_quote, view=confirm_buttons, ephemeral=True
+    )
+    await confirm_buttons.wait()
+    save_quote = None
+    for _btn in confirm_buttons.children:
+        if hasattr(_btn, 'value'):
+            save_quote = _btn.value
+            break
+    # Add the quote
+    if save_quote is True:
+        _uuid = str(uuid.uuid4())
+        quote_to_db = []
+        _quote_order = 1
+        # TODO
+        # Add quote to database in new set
+        logger.debug(
+            'This is the quote info that should be processed:'
+        )
+        for _q in quotes_out:
+            content = _q.content
+            content = make_imgs_inline(content, _q)
+            quote_to_db.append(
+                (_uuid, _q.id, _q.author.id, _q.author.name, content, '', _quote_order, _q.created_at)
+            )
+            _quote_order += 1
+    await db_helper.insert_many_all(
+        template_info=envs.quote_db_schema,
+        inserts=[(_uuid)]
+    )
+    await db_helper.insert_many_all(
+        template_info=envs.quote_content_db_schema,
+        inserts=quote_to_db
+    )
+    return
+
 
 
 async def setup(bot):

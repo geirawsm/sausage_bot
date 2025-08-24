@@ -157,8 +157,22 @@ quote_db_schema = {
     'name': 'quote',
     'items': [
         ['uuid', 'TEXT NOT NULL UNIQUE'],
-        ['quote_text', 'TEXT'],
-        ['datetime', 'TEXT']
+    ],
+    'primary': 'uuid',
+    'autoincrement': False
+}
+
+quote_content_db_schema = {
+    'db_file': str(DB_DIR / 'quote.sqlite'),
+    'name': 'quote_content',
+    'items': [
+        ['quote_uuid', 'TEXT NOT NULL'],
+        ['comment_id', 'INT'],
+        ['author_id', 'INT'],
+        ['content_text', 'TEXT'],
+        ['content_image', 'TEXT'],
+        ['content_order', 'INT'],
+        ['comment_date', 'TEXT']
     ],
     'primary': 'uuid',
     'autoincrement': False

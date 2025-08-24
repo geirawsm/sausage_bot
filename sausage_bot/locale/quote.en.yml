@@ -32,6 +32,7 @@ en:
       desc:
         number: Choose a number if you want a specific quote
       quote_not_exist: 'Quote # %{quote_in} does not exist'
+      quote_db_empty: No quotes in the database
     add:
       cmd: Add a quote
     edit:
