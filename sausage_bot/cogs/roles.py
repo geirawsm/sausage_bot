@@ -2701,6 +2701,8 @@ async def on_member_update(before, after):
         where=('setting', 'unique'),
         single=True
     )
+    if not unique_role:
+        return
     unique_role = unique_role['value']
     logger.debug(f'Got `unique_role`: {unique_role}')
     if not unique_role or unique_role == '':
