@@ -29,64 +29,16 @@ logging_args.add_argument('--log', '-l',
                           action='store_true',
                           default=False,
                           dest='log')
-logging_args.add_argument('--verbose', '-V',
-                          help='Log verbose',
-                          action='store_true',
-                          default=False,
-                          dest='log_verbose')
-logging_args.add_argument('--error', '-e',
-                          help='Log errors',
-                          action='store_true',
-                          default=False,
-                          dest='log_error')
 logging_args.add_argument('--i18n', '-i',
                           help='Log i18n errors',
                           action='store_true',
                           default=False,
                           dest='log_i18n')
-logging_args.add_argument('--log-print', '-lp',
-                          help='Print logging to output',
-                          action='store_true',
-                          default=False,
-                          dest='log_print')
-logging_args.add_argument('--log-file', '-lf',
-                          help='Write log to files',
-                          action='store_true',
-                          default=False,
-                          dest='log_file')
-logging_args.add_argument('--log-database', '-ld',
-                          help='Log database actions',
-                          action='store_true',
-                          default=False,
-                          dest='log_db')
 logging_args.add_argument('--debug', '-d',
                           help='Show debug messages',
                           action='store_true',
                           default=False,
                           dest='debug')
-logging_args.add_argument('--log-slow', '-ls',
-                          help='Wait 3 seconds after each logging',
-                          action='store_true',
-                          default=False,
-                          dest='log_slow')
-logging_args.add_argument('--highlight', '-hl',
-                          help='Highlight chosen text in logging '
-                          'function naming',
-                          action='store',
-                          default=None,
-                          dest='log_highlight')
-logging_args.add_argument('--highlight-color', '-hlc',
-                          help='Chose color to Highlight',
-                          action='store',
-                          default='red',
-                          dest='log_highlight_color')
-logging_args.add_argument('--log-all',
-                          help='Log all levels (log, verbose, log-print, '
-                               'log-database, debug and error)',
-                          action='store_true',
-                          default=False,
-                          dest='log_all')
-
 testing_args = parser.add_argument_group('Testing')
 testing_args.add_argument('--testmode', '-t',
                           help='Run some functions in testmode',
