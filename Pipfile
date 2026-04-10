@@ -31,7 +31,6 @@ tabulate = "*"
 colorlog = "*"
 httpx = "*"
 numpy = "*"
-audioop-lts = "*"
 
 [dev-packages]
 pytest = "*"
