@@ -254,7 +254,6 @@
                 "sha256:fbdd522624141e40948ab3e8cdae6e04c748d78710e9f0f8d4dae2750831de19",
                 "sha256:fd3d4602dc64914d462924a08c1a9816435a2155d74f325853c1f1ac3b2d9800"
             ],
-            "index": "pypi",
             "markers": "python_version >= '3.13'",
             "version": "==0.2.2"
         },
