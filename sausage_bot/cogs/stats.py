@@ -774,10 +774,18 @@ class Stats(commands.Cog):
             if re.match(r'^\d{19}$', str(stats_msg_id)):
                 try:
                     # Edit the stats message if found
-                    stats_msg = await stats_channel.fetch_message(stats_msg_id)
-                    await stats_msg.edit(content=stats_info)
-                    logger.debug('Edited existing stats message')
-                    return
+                    # Retry fetching and editing 3 times
+                    for i in range(3):
+                        try:
+                            stats_msg = await stats_channel.fetch_message(stats_msg_id)
+                            await stats_msg.edit(content=stats_info)
+                            logger.debug("Edited existing stats message")
+                            break
+                        except discord.DiscordServerError:
+                            if i == 2:
+                                raise
+                            await asyncio.sleep(2)  # Wait 2 seconds before retrying
+                        return
                 except discord.errors.NotFound:
                     logger.error(
                         'Could not find msg id `{stats_msg_id}` in channel '
