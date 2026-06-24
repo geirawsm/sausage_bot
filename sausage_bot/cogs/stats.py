@@ -87,16 +87,12 @@ async def hidden_roles_autocomplete(
 
 
 def get_role_numbers(settings_in):
-    "Get roles and number of members"
-    logger.debug(f"settings_in: {settings_in}")
-    logger.debug("hide_empty_roles: {}".format(settings_in["hide_empty_roles"]))
-    logger.debug("hide_bot_roles: {}".format(settings_in["hide_bot_roles"]))
-    roles_info = discord_commands.get_roles(
+    "Get roles from Discord server"
+    logger.debug("Getting info from Discord about roles")
+    return discord_commands.get_roles(
         hide_empties=settings_in["hide_empty_roles"],
         filter_bots=settings_in["hide_bot_roles"],
     )
-    num_members = discord_commands.get_guild().member_count
-    return {"member_count": num_members, "roles": roles_info}
 
 
 def get_stats_codebase():
@@ -498,7 +494,7 @@ class Stats(commands.Cog):
                     return list(stats_hide_roles)
             return None
 
-        async def log_stats():
+        async def log_stats(files_in_codebase, lines_in_codebase, total_members):
             stats_log_inserts = []
             date_exist = await db_helper.get_output(
                 template_info=envs.stats_db_log_schema,
@@ -527,7 +523,7 @@ class Stats(commands.Cog):
                         str(await datetime_handling.get_dt("ISO8601")),
                         files_in_codebase,
                         lines_in_codebase,
-                        members["member_count"],
+                        total_members,
                     )
                 )
                 # Write changes to database
@@ -610,12 +606,10 @@ class Stats(commands.Cog):
             logger.debug(f"Got `stats_channel` {stats_channel} ({type(stats_channel)})")
             # If `stats_msg_id` is not in db, check if `stats_msg` is in db
             # If `stats_msg` is not in db, add `stats_msg_id` to db
+            stats_msg_id = None
             if "stats_msg_id" not in stats_settings:
-                stats_msg_id = None
-                if "stats_msg" not in stats_settings:
-                    # Add new post and update db
-                    stats_msg_id = None
-                elif "stats_msg" in stats_settings:
+                # Add new post and update db
+                if "stats_msg" in stats_settings:
                     stats_msg_id = stats_settings.get("stats_msg")
                     # Change 'stats_msg' to 'stats_msg_id'
                     await db_helper.update_fields(
@@ -694,8 +688,6 @@ class Stats(commands.Cog):
                         template_info=envs.stats_db_settings_schema,
                         inserts=(("stats_msg_id", stats_msg.id)),
                     )
-            else:
-                logger.error("Could not find stats_msg_id")
             return
 
         upd_mins = config.env.int("STATS_LOOP", default=5)
@@ -708,14 +700,15 @@ class Stats(commands.Cog):
         stats_hide_roles = await get_db_hide_roles()
         logger.debug(f"`stats_hide_roles` is {stats_hide_roles}")
         # Get server members
-        members = get_role_numbers(stats_settings)
-        logger.debug(f"Got {len(members)} members")
+        role_numbers = get_role_numbers(stats_settings)
+        logger.debug(f"Got {len(role_numbers)} roles")
+        # Get total number of members
+        if eval(stats_settings["show_members_total"]):
+            total_members = discord_commands.get_guild().member_count
         # Update log database if not already this day
         logger.debug("Logging stats")
-        log_stats = await log_stats()
+        await log_stats(files_in_codebase, lines_in_codebase, total_members)
         # Update the stats-msg
-        if eval(stats_settings["show_members_total"]):
-            total_members = members["member_count"]
         dt_log = await datetime_handling.get_dt("datetimefull")
         stats_info = ""
         logger.debug(
@@ -725,11 +718,47 @@ class Stats(commands.Cog):
             stats_settings["show_role_stats"]
         ):
             roles_members = await tabify(
-                dict_in=members["roles"],
+                dict_in=role_numbers,
                 headers=["Rolle", "Brukere"],
                 hide_roles=stats_hide_roles,
             )
             logger.debug(f"`roles_members`:\n{roles_members}")
+            # Trim roles_members hvis stats_info vil overskride 2000 tegn
+            # Beregn hvor mye plass de andre delene av stats_info tar
+            msg_limit_check = ""
+            members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
+            msg_limit_check += f"### {members_sub}\n"
+            if eval(stats_settings["show_members_total"]):
+                total_members = discord_commands.get_guild().member_count
+                members_num = I18N.t("stats.tasks.update_stats.stats_msg.members_num")
+                msg_limit_check += f"```{members_num}: {total_members}```\n"
+            if eval(stats_settings["show_code_stats"]):
+                code_sub = I18N.t("stats.tasks.update_stats.stats_msg.code_sub")
+                code_files = I18N.t("stats.tasks.update_stats.stats_msg.code_files")
+                code_lines = I18N.t("stats.tasks.update_stats.stats_msg.code_lines")
+                msg_limit_check += (
+                    f"### {code_sub}\n```"
+                    f"{code_files}: {files_in_codebase}\n"
+                    f"{code_lines}: {lines_in_codebase}```\n"
+                )
+            code_last_updated = I18N.t(
+                "stats.tasks.update_stats.stats_msg.code_last_updated"
+            )
+            msg_limit_check += f"```{code_last_updated} {dt_log}```\n"
+            available_space = 1950 - len(msg_limit_check)
+            logger.debug(f"msg_limit_check: {len(msg_limit_check)}")
+            if len(roles_members) > available_space:
+                lines = roles_members.splitlines()
+                while lines and len(f"```{chr(10).join(lines)}```\n") > available_space:
+                    lines.pop()
+                roles_members = "\n".join(lines)
+                # TODO: Denne gir kun 0 linjer etter sjekk åpenbar feil
+                logger.debug(f"Length roles_members after check: {len(roles_members)}")
+                # TODO: i18n
+                await discord_commands.log_to_bot_channel(
+                    "Stats: Length of roles exceeded message limit, auto-truncated it. Maybe check it's settings?"
+                )
+
             members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
             stats_info += f"### {members_sub}\n"
         if eval(stats_settings["show_members_total"]):
