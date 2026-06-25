@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'roles: Administer roles and reaction roles on the server'
+"roles: Administer roles and reaction roles on the server"
+
 import discord
 from discord.ext import commands
 from discord.utils import get
@@ -18,21 +19,17 @@ logger = config.logger
 
 
 class DropdownPermissions(discord.ui.Select):
-    def __init__(
-            self, placeholder_in, options_out, options_in
-    ):
+    def __init__(self, placeholder_in, options_out, options_in):
         super().__init__(
             placeholder=placeholder_in,
             min_values=0,
             max_values=len(options_in),
-            options=options_in
+            options=options_in,
         )
         self.options_out = options_out
         self.options_in = options_in
 
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
+    async def callback(self, interaction: discord.Interaction):
         for opt in self.options_in:
             if opt.label in self.values:
                 opt.default = True
@@ -43,13 +40,13 @@ class DropdownPermissions(discord.ui.Select):
 
 
 class ButtonConfirm(discord.ui.Button):
-    def __init__(self, label):
-        super().__init__(style=discord.ButtonStyle.green, label=label)
+    def __init__(self, label, style, value):
+        super().__init__(label=label, style=style)
+        self.value = value
 
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
-        self.disabled = True
+    async def callback(self, interaction: discord.Interaction):
+        self.value = True
+        # Disable all buttons
         buttons = [x for x in self.view.children]
         for _btn in buttons:
             _btn.disabled = True
@@ -62,9 +59,7 @@ class PermissionsView(discord.ui.View):
         def prep_dropdown(perm_name, permissions_in: dict = None):
             list_out = []
             for perm in envs.SELECT_PERMISSIONS[perm_name]:
-                _desc = I18N.t(
-                    str(f'discord_permissions.{perm_name}.{perm}')
-                )
+                _desc = I18N.t(str(f"discord_permissions.{perm_name}.{perm}"))
                 if len(str(_desc)) >= 100:
                     _desc = f'{str(_desc):.90}...'
                 if isinstance(permissions_in, (dict, list)) and\
