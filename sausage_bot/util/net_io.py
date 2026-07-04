@@ -4,6 +4,7 @@
 import discord
 import re
 import aiohttp
+from urllib.parse import urlparse
 from random import choice
 import requests
 from datetime import datetime
@@ -39,6 +40,26 @@ try:
 except (SpotifyOauthError, ConnectionError) as _error:
     _spotipy = None
     logger.error(f'Error when connecting to Spotify: {_error}')
+
+
+def url_hostname_matches(url_in, domain):
+    '''
+    Safely check if `url_in`'s hostname is `domain` or a subdomain of it.
+
+    This avoids naive substring checks like `'youtube.com' in url`, which
+    can be tricked by URLs such as `https://evil.com/youtube.com` or
+    `https://notyoutube.com.evil.net` (incomplete URL substring
+    sanitization).
+    '''
+    try:
+        hostname = urlparse(url_in).hostname
+    except ValueError:
+        return False
+    if not hostname:
+        return False
+    hostname = hostname.lower()
+    domain = domain.lower()
+    return hostname == domain or hostname.endswith(f'.{domain}')
 
 
 async def fetch_random_user_agent():
@@ -874,7 +895,7 @@ async def get_page_hash(url, debug=False):
         return None
     desc = None
     soup = BeautifulSoup(req, features='html.parser')
-    if desc is None and 'youtube.com' in url:
+    if desc is None and url_hostname_matches(url, 'youtube.com'):
         logger.debug(f'Trying yt check on {url}')
         ydl_opts = {
             'simulate': True,
@@ -885,7 +906,7 @@ async def get_page_hash(url, debug=False):
         with YoutubeDL(ydl_opts) as ydl:
             yt_info = ydl.extract_info(url)
         desc = yt_info['fulltitle']
-    if desc is None and 'open.spotify.com' in url:
+    if desc is None and url_hostname_matches(url, 'open.spotify.com'):
         logger.debug(f'Trying spotify check on {url}')
         try:
             check_if_spotify = soup.find('meta', attrs={'content': 'Spotify'})
