@@ -157,7 +157,8 @@ async def check_feed_validity(url_in, mock_file=None):
         return True
     sample_item = None
     logger.debug(f'Checking `url_in`: {url_in}')
-    if 'acast.com' in url_in and 'feeds.acast.com' not in url_in:
+    if net_io.url_hostname_matches(url_in, 'acast.com') and \
+            not net_io.url_hostname_matches(url_in, 'feeds.acast.com'):
         logger.debug('Found Acast, but not the rss feed. Changing url')
         base_feed_url = 'https://feeds.acast.com/public/shows/{}'
         url_in = re.sub(r'/episodes.*', '', url_in)
