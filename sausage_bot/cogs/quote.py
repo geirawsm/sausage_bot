@@ -12,7 +12,13 @@ from pprint import pformat
 from time import sleep
 import re
 from datetime import datetime, time
+import requests
+import base64
+import binascii
+from io import BytesIO
+from PIL import Image
 
+from sausage_bot.util import datetime_handling
 from sausage_bot.util.args import args
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
@@ -27,16 +33,18 @@ async def get_autopost_time():
     db_settings = await db_helper.get_output(db_in)
     logger.debug('`db_settings` is: {}'.format(db_settings))
     time_out = None
-    for setting in db_settings:
-        if setting['setting'] == 'autopost_time':
-            time_out = setting['value']
-            if time_out in [None, '']:
-                time_out = '12:00:00'
-            time_out = datetime.strptime(time_out, '%H:%M:%S').astimezone().time()
-    logger.debug('`time_out` is: {}'.format(time_out))
-    if time_out in [None, '']:
-        time_out = '12:00:00'
-        time_out = datetime.strptime(time_out, '%H:%M:%S').astimezone().time()
+    if db_settings is not None:
+        for setting in db_settings:
+            if setting.get("setting") == "autopost_time":
+                time_out = setting["value"]
+                if time_out in [None, ""]:
+                    time_out = "12:00:00"
+                time_out = datetime.strptime(
+                    time_out, "%H:%M:%S").astimezone().time()
+    logger.debug("`time_out` is: {}".format(time_out))
+    if time_out in [None, ""]:
+        time_out = "12:00:00"
+        time_out = datetime.strptime(time_out, "%H:%M:%S").astimezone().time()
         await db_helper.update_fields(
             template_info=db_in,
             where=[('setting', 'autopost_time')],
@@ -50,42 +58,6 @@ async def get_autopost_time():
     return time_out
 
 
-class EditButtons(discord.ui.View):
-    def __init__(self, *, timeout=10):
-        super().__init__(timeout=timeout)
-        self.value = None
-
-    @discord.ui.button(
-        label="Yes, edit", style=discord.ButtonStyle.green
-    )
-    async def edit_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        self.value = True
-        # Disable all buttons
-        buttons = [x for x in self.children]
-        for _btn in buttons:
-            _btn.disabled = True
-        # Update message
-        await interaction.response.edit_message(view=self)
-        self.stop()
-
-    @discord.ui.button(
-        label="Do not edit!", style=discord.ButtonStyle.red
-    )
-    async def do_not_edit_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        self.value = False
-        # Disable all buttons
-        buttons = [x for x in self.children]
-        for _btn in buttons:
-            _btn.disabled = True
-        # Update message
-        await interaction.response.edit_message(view=self)
-        self.stop()
-
-
 class ConfirmButtons(discord.ui.View):
     def __init__(
             self, *, timeout=10, yes_label=None, no_label=None
@@ -93,6 +65,7 @@ class ConfirmButtons(discord.ui.View):
         super().__init__(timeout=timeout)
         self.yes_label = yes_label
         self.no_label = no_label
+        self.value = None
 
         self.add_item(ButtonConfirm(label=self.yes_label))
         self.add_item(ButtonDeny(label=self.no_label))
@@ -100,10 +73,8 @@ class ConfirmButtons(discord.ui.View):
 
 class ButtonConfirm(discord.ui.Button):
     def __init__(self, label):
-        super().__init__(
-            label=label,
-            style=discord.ButtonStyle.green
-        )
+        super().__init__(label=label, style=discord.ButtonStyle.green)
+        self.value = None
 
     async def callback(
         self, interaction: discord.Interaction
@@ -121,10 +92,8 @@ class ButtonConfirm(discord.ui.Button):
 
 class ButtonDeny(discord.ui.Button):
     def __init__(self, label):
-        super().__init__(
-            label=label,
-            style=discord.ButtonStyle.red
-        )
+        super().__init__(label=label, style=discord.ButtonStyle.red)
+        self.value = None
 
     async def callback(
         self, interaction: discord.Interaction
@@ -134,277 +103,85 @@ class ButtonDeny(discord.ui.Button):
         buttons = [x for x in self.view.children]
         for _btn in buttons:
             _btn.disabled = True
-        await interaction.response.edit_message(
-            view=self.view
-        )
-        self.view.stop()
-
-
-class EasyButton(discord.ui.Button):
-    def __init__(self, label, color, return_value=None):
-        if color == 'red':
-            style = discord.ButtonStyle.red
-        elif color == 'green':
-            style = discord.ButtonStyle.green
-        super().__init__(style=style, label=label)
-
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
-        self.disabled = True
-        buttons = [x for x in self.view.children]
-        for _btn in buttons:
-            _btn.disabled = True
         await interaction.response.edit_message(view=self.view)
         self.view.stop()
 
 
-class QuoteTextInput(discord.ui.TextInput):
-    def __init__(
-            self, style_in, label_in, default_in=None, required_in=None,
-            placeholder_in=None
-    ):
-        super().__init__(
-            style=style_in,
-            label=label_in,
-            default=default_in,
-            required=required_in,
-            placeholder=placeholder_in
-        )
-
-
-class DropdownQuote(discord.ui.Select):
-    def __init__(
-            self, placeholder_in, msg_type, msgs_in, msgs_out
-    ):
-        super().__init__(
-            placeholder=placeholder_in,
-            min_values=0,
-            max_values=len(msgs_in),
-            options=msgs_in
-        )
-        self.msg_type = msg_type
-        self.msgs_in = msgs_in
-        self.msgs_out = msgs_out
-
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
-        logger.debug(f'Checking for defaults in {self.msg_type} {self.values}')
-        for opt in self.msgs_in:
-            if str(opt.value) in self.values:
-                opt.default = True
+class ModalQuoteAdd(discord.ui.Modal):
+    def prep_dropdown(
+        self, msgs_in: list[discord.Message], defaults: list[int]
+    ) -> list[discord.SelectOption] | None:
+        "Prepare dropdown selections"
+        list_out = []
+        if len(msgs_in) == 0:
+            return None
+        for _msg in msgs_in:
+            oneliner = f"{_msg.author.name}: {_msg.content[:90]}..."
+            logger.debug(f"Checking quote: {oneliner}")
+            if isinstance(defaults, list) and _msg.id in defaults:
+                _default_in = True
             else:
-                opt.default = False
-        self.msgs_out[self.msg_type] = self.values
-        await interaction.response.edit_message(view=self.view)
-
-
-class DropdownQuoteAdd(discord.ui.View):
-    def __init__(self, msgs_in=None):
-        def prep_dropdown(msgs_in: dict = None):
-            list_out = []
-            for _msg in msgs_in:
-                oneliner = f'{_msg.author.name} ({_msg.content})'
-                if len(str(oneliner)) >= 100:
-                    oneliner = f'{str(oneliner):.90}...'
-                list_out.append(
-                    discord.SelectOption(
-                        label=oneliner,
-                        value=_msg.id,
-                        default=False
-                    )
+                _default_in = False
+            if len(str(oneliner)) >= 100:
+                oneliner = f"{str(oneliner):.90}..."
+            list_out.append(
+                discord.SelectOption(
+                    label=oneliner, value=str(_msg.id), default=_default_in
                 )
-            logger.debug(f'This is `list_out`: {list_out}')
-            return list_out
-
-        super().__init__(timeout=180)
-        self.msgs_in = msgs_in
-        self.msgs_out = {'main': None, 'before': [], 'after': []}
-
-        before_quotes = prep_dropdown(self.msgs_in['before'])
-        logger.debug(f'before_quotes is {before_quotes}')
-        after_quotes = prep_dropdown(self.msgs_in['after'])
-        logger.debug(f'after_quotes is {after_quotes}')
-        logger.debug('Prepped quotes for dropdowns')
-        before_dropdown = DropdownQuote(
-            #I18N.t('roles.views.perms.drop_general'),
-            # TODO i18n
-            placeholder_in='BEFORE QUOTES',
-            msg_type='before',
-            msgs_in=before_quotes,
-            msgs_out=self.msgs_out
-        )
-        after_dropdown = DropdownQuote(
-            #I18N.t('roles.views.perms.drop_text'),
-            # TODO i18n
-            placeholder_in='AFTER QUOTES',
-            msg_type='after',
-            msgs_in=after_quotes,
-            msgs_out=self.msgs_out
-        )
-        logger.debug('Adding dropdowns to view')
-
-        self.add_item(before_dropdown)
-        self.add_item(after_dropdown)
-        # TODO i18n
-        self.add_item(ButtonConfirm(label='Yes, save quote'))
-        self.add_item(ButtonDeny(label='No, cancel'))
-
-
-class QuoteAddModal(discord.ui.Modal):
-    def __init__(
-        self, public_in=False, title_in=None, quote_in=None,
-        available_row_id=None
-    ):
-        super().__init__(
-            title=title_in, timeout=120
-        )
-        self.quote_in = quote_in
-        logger.debug(f'self.quote_in: {self.quote_in}')
-        self.available_row_id = available_row_id
-        self.quote_out = {
-            'row_id': None,
-            'uuid': str(uuid.uuid4()) if not quote_in else quote_in[0][1],
-            'quote_text': None,
-            'datetime': None
-        }
-        self.public_in = public_in
-        if public_in in [None, False]:
-            self.public_in_text = I18N.t('common.literal_yes_no.lit_yes')
-        elif public_in is True:
-            self.public_in_text = I18N.t('common.literal_yes_no.lit_no')
-        logger.debug(f'self.public_in: {self.public_in}')
-        logger.debug(f'self.public_in_text: {self.public_in_text}')
-
-        # Create elements
-        num_label = QuoteTextInput(
-            style_in=discord.TextStyle.short,
-            label_in=I18N.t('quote.modals.quote_num'),
-            default_in=self.quote_in[0][0] if self.quote_in else
-            self.available_row_id,
-            required_in=not self.quote_in
-        )
-
-        quote_text = QuoteTextInput(
-            style_in=discord.TextStyle.paragraph,
-            label_in=I18N.t('quote.modals.quote_text'),
-            default_in=self.quote_in[0][2] if self.quote_in else '',
-            required_in=True,
-            placeholder_in='Text'
-        )
-
-        quote_date = QuoteTextInput(
-            style_in=discord.TextStyle.short,
-            label_in=I18N.t('quote.modals.quote_date'),
-            default_in=self.quote_in[0][3] if self.quote_in else '',
-            required_in=False,
-            placeholder_in=I18N.t('quote.modals.date_placeholder')
-        )
-
-        quote_public = QuoteTextInput(
-            style_in=discord.TextStyle.short,
-            label_in=I18N.t('quote.modals.quote_public'),
-            default_in=self.public_in_text
-        )
-
-        self.add_item(num_label)
-        self.add_item(quote_text)
-        self.add_item(quote_date)
-        self.add_item(quote_public)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        self.quote_out['row_id'] = self.children[0].value
-        self.quote_out['quote_text'] = self.children[1].value
-        if self.children[2].value == '':
-            self.quote_out['datetime'] = str(await get_dt(format='ISO8601'))
-        else:
-            self.quote_out['datetime'] = await get_dt(
-                format='ISO8601', dt=self.children[2].value
             )
+        return list_out
 
-        tab_quote = tabulate(
-            [
-                [I18N.t('quote.tab_headers.quote_num'),
-                 self.quote_out['row_id']],
-                [I18N.t('quote.tab_headers.quote'),
-                 self.quote_out['quote_text']],
-                [I18N.t('quote.tab_headers.quote_date'),
-                 await get_dt(
-                     format='datetime', dt=self.quote_out['datetime']
-                )]
-            ], tablefmt='plain'
-        )
-        msg_out = I18N.t(
-            'quote.modals.add.msg_confirm'
-        )
-        if self.children[3].value == I18N.t('common.literal_yes_no.lit_yes'):
-            _ephemeral = False
-        elif self.children[3].value == I18N.t('common.literal_yes_no.lit_no'):
-            _ephemeral = True
-        await interaction.response.send_message(
-            f'{msg_out}:\n```{tab_quote}```',
-            ephemeral=_ephemeral
-        )
-
-    async def on_error(self, interaction: discord.Interaction, error):
-        await interaction.response.send_message(
-            I18N.t('quote.modals.error', error=error),
-            ephemeral=True
-        )
-
-
-class QuoteEditModal(discord.ui.Modal):
     def __init__(
-        self, title_in=None, quote_in=None, available_row_id=None
-    ):
-        super().__init__(
-            title=title_in, timeout=120
+        self,
+        msgs_in: list = [],
+        defaults: list = [],
+        title_in: str = "Dummy title",
+        row_ids: int = 0,
+    ) -> None:
+        super().__init__(title=title_in)
+
+        self.msgs_in = msgs_in
+        self.defaults = defaults
+        self.msgs_out = []
+        self.row_ids = row_ids
+        logger.debug(f"self.msgs_in: {self.msgs_in}")
+        logger.debug(f"self.defaults: {self.defaults}")
+
+        self.quote_prep = self.prep_dropdown(msgs_in, defaults)
+        logger.debug(
+            f"self.quote_prep ({len(self.quote_prep)}: {
+                str(self.quote_prep)[0:500]}"
         )
-        self.quote_in = quote_in
-        logger.debug(f'self.quote_in is: {self.quote_in}')
-        self.available_row_id = available_row_id
-        self.quote_out = {
-            'row_id': quote_in[0]['rowid'],
-            'uuid': str(uuid.uuid4()) if not quote_in else quote_in[0]['uuid'],
-            'quote_text': None,
-            'datetime': None
-        }
-
-        # Create elements
-        quote_text = QuoteTextInput(
-            style_in=discord.TextStyle.paragraph,
-            label_in=I18N.t('quote.modals.quote_text'),
-            default_in=self.quote_in[0]['quote_text'] if self.quote_in else '',
-            required_in=True,
-            placeholder_in='Text'
+        self.quote_dropdown = discord.ui.Select(
+            placeholder="Select quotes...",
+            options=self.quote_prep,
+            max_values=int(len(self.quote_prep) if self.quote_prep else 25),
+            required=True,
+        )
+        self.add_item(
+            discord.ui.Label(text="Quote message",
+                             component=self.quote_dropdown)
         )
 
-        quote_date = QuoteTextInput(
-            style_in=discord.TextStyle.short,
-            label_in=I18N.t('quote.modals.quote_date'),
-            default_in=self.quote_in[0]['datetime'] if self.quote_in else '',
-            required_in=False,
-            placeholder_in=I18N.t('quote.modals.date_placeholder')
-        )
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not self.quote_dropdown.values:
+            await interaction.response.send_message(
+                "You must select a quote!", ephemeral=True
+            )
+        else:
+            self.msgs_out = self.quote_dropdown.values
+            await interaction.response.send_message(
+                # TODO i17n
+                f"Sitat lagret som nr {self.row_ids}!",
+                ephemeral=True,
+            )
+        return
 
-        self.add_item(quote_text)
-        self.add_item(quote_date)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        self.quote_out['row_id'] = self.quote_in[0]['rowid']
-        self.quote_out['quote_text'] = self.children[0].value
-        self.quote_out['datetime'] = self.children[1].value
-
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception
+    ) -> None:
         await interaction.response.send_message(
-            I18N.t('quote.modals.edit.msg_confirm'),
-            ephemeral=True
-        )
-
-    async def on_error(self, interaction: discord.Interaction, error):
-        await interaction.response.send_message(
-            I18N.t('quote.modals.error', error=error),
-            ephemeral=True
+            f"Oops! Something went wrong: {error}", ephemeral=True
         )
 
 
@@ -457,63 +234,13 @@ async def env_settings_autocomplete(
     ][:25]
 
 
-async def get_quote_from_db(quote_number):
-    # If `number` is given, get that specific quote
-    logger.debug(f'Got quote number {quote_number}')
-    quote_row_check = await db_helper.get_row_ids(
-        envs.quote_db_schema, sort=True
-    )
-    logger.debug(f'quote_row_check: {quote_row_check}')
-    if int(quote_number) in quote_row_check:
-        logger.debug('Found quote_number in quote_row_check')
-        db_out = await db_helper.get_output_by_rowid(
-            envs.quote_db_schema,
-            rowid=quote_number
-        )
-    else:
-        db_out = None
-    return db_out
-
-
-def prettify(number: str, text: str, date: str) -> str:
-    '''
-    Prettify a quote before posting
-    #autodoc skip#
-
-    Parameters
-    ------------
-    number: str
-        Quote number
-    text: str
-        Quote text
-    date: str
-        Quote datetime
-
-    Returns
-    ------------
-    str
-        ```
-        #7
-        This is the quote text
-        (Date and time)
-        ```
-    '''
-    logger.debug(f'number: {number}')
-    logger.debug(f'text: {text}')
-    logger.debug(f'date: {date}')
-    out = '```\n#{}\n{}\n({})\n```'.format(
-        number, text, date
-    )
-    return out
-
-
 async def get_random_quote(testmode=False):
-    '''
-    Return rowid, `uuid`, `quote_text` and `datetime`
+    """
+    Return rowid for random quote
     #autodoc skip#
-    '''
+    """
     row_id = await db_helper.get_row_ids(envs.quote_db_schema)
-    if len(row_id) == 0:
+    if row_id is None or len(row_id) == 0:
         return None
     if testmode:
         row_id = row_id[0]
@@ -527,76 +254,301 @@ async def get_random_quote(testmode=False):
     random_quote = await db_helper.get_random_left_exclude_output(
         envs.quote_db_schema,
         envs.quote_db_log_schema,
-        'uuid',
-        ('rowid', 'uuid', 'quote_text', 'datetime')
+        "uuid",
+        ("rowid", "uuid", "datetime"),
     )
-    if len(random_quote) == 0:
+    if random_quote is None or len(random_quote) == 0:
         await db_helper.empty_table(envs.quote_db_log_schema)
         random_quote = await db_helper.get_random_left_exclude_output(
             envs.quote_db_schema,
             envs.quote_db_log_schema,
-            'uuid',
-            ('rowid', 'uuid', 'quote_text', 'datetime')
+            "uuid",
+            ("rowid", "uuid", "datetime"),
         )
     return random_quote
 
 
-async def post_random_quote(interaction, _ephemeral):
-    random_quote = await get_random_quote(testmode=args.testmode)
-    if random_quote is None:
-        logger.debug('No quotes found in database')
-        await interaction.followup.send(
-            I18N.t('quote.commands.post.quote_db_empty'),
-            ephemeral=_ephemeral
-        )
-        return 
-    logger.debug(f'Got `random_quote`: {random_quote}')
-    # Post quote
-    quote_number = random_quote[0][0]
-    quote_text = random_quote[0][2]
-    quote_date = await get_dt(
-        format='datetextfull',
-        dt=random_quote[0][3]
-    )
-    _quote = prettify(quote_number, quote_text, quote_date)
-    logger.debug(f'Posting this quote:\n{_quote}')
-    quote_post = await interaction.followup.send(
-        _quote, ephemeral=_ephemeral
-    )
-    await db_helper.insert_many_some(
-        envs.quote_db_log_schema,
-        ('uuid', 'msg_id'),
-        [
-            (
-                random_quote[0][1],
-                quote_post.id
+async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, channel: int = 0):
+    random_quote_number = await get_random_quote(testmode=args.testmode)
+    if random_quote_number is None or len(random_quote_number) == 0:
+        logger.debug("No quotes found in database")
+        if len(autopost) > 0:
+            await discord_commands.post_to_channel(channel_id=channel, content_in=I18N.t("quote.commands.post.quote_db_empty"))
+        else:
+            await interaction.followup.send(
+                I18N.t("quote.commands.post.quote_db_empty"), ephemeral=_ephemeral
             )
-        ]
+            return
+    logger.debug(f"Got `random_quote_number`: {random_quote_number}")
+    # Post quote
+    random_quote = await db_helper.get_imgs_with_quote(
+        envs.quote_db_schema,
+        where=[("quote.rowid", str(random_quote_number[0][0]))],
     )
+    random_quote = random_quote[0]
+    channel_id = interaction.channel.id if interaction else channel
+    if random_quote is None:
+        if len(autopost) > 0:
+            await discord_commands.post_to_channel(channel_id=channel_id, content_in=I18N.t("quote.commands.list.msg_nonexisting_quote"))
+        else:
+            await interaction.followup.send(
+                I18N.t("quote.commands.list.msg_nonexisting_quote"),
+                ephemeral=_ephemeral,
+            )
+        return
+    elif len(random_quote) == 0:
+        if len(autopost) > 0:
+            # TODO: i18n
+            await discord_commands.post_to_channel(
+                channel_id=channel_id,
+                content_in="No quotes in database",
+            )
+        else:
+            await interaction.followup.send(
+                # TODO: i18n
+                "No quotes in database",
+                ephemeral=_ephemeral,
+            )
+        return
+    if random_quote is not None:
+        quote = random_quote
+        paginated = []
+        msg = ""
+        trigger_pagination = False
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+        if len(autopost) > 0:
+            if autopost["prefix"]:
+                logger.debug("Adding prefix to msg_in")
+                msg_in = "## {}\n`# {} ({})`\n\n".format(
+                    autopost["prefix"], quote["rowid"], quote_dt
+                )
+        else:
+            msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        for _comment_id in quote["comments"]:
+            comment = quote["comments"][_comment_id]
+            msg_in += "`{}: {}`".format(
+                comment["author_backup"],
+                comment["content"]
+            )
+            if len(comment["imgs"]) > 0:
+                logger.debug(f"trigger_pagination is {trigger_pagination}")
+                trigger_pagination = True
+                img_list = []
+                for _img_id in comment["imgs"]:
+                    img = comment["imgs"][_img_id]
+                    img_object = convert_b64_to_img_in_mem(str(img))
+                    img_list.append(img_object)
+                if len(autopost) > 0:
+                    # TODO: i18n
+                    await discord_commands.post_to_channel(
+                        channel_id=channel_id,
+                        content_in=msg_in,
+                        files_in=img_list
+                    )
+                else:
+                    await interaction.followup.send(
+                        msg_in, files=img_list, ephemeral=_ephemeral
+                    )
+                await db_helper.insert_many_all(
+                    envs.quote_db_log_schema,
+                    [
+                        (
+                            quote["uuid"],
+                            channel_id,
+                            str(
+                                await datetime_handling.get_dt(
+                                    format="datetimeobject", no_timezone=True
+                                )
+                            ),
+                        )
+                    ],
+                )
+                msg_in = ""
+                trigger_pagination = False
+            else:
+                if _comment_id != list(quote["comments"])[-1]:
+                    msg_in += "\n"
+        if len(autopost) > 0:
+            if autopost["tag_role"]:
+                logger.debug("Adding tag_role to msg_in")
+                msg_in += "\nPing <@&{}>".format(autopost["tag_role"])
+        if len(msg_in) > 0:
+            if len(autopost) > 0:
+                # TODO: i18n
+                await discord_commands.post_to_channel(
+                    channel_id=channel_id,
+                    content_in=msg_in,
+                )
+            else:
+                await interaction.followup.send(msg_in, ephemeral=_ephemeral)
+            await db_helper.insert_many_all(
+                envs.quote_db_log_schema,
+                [
+                    (
+                        quote["uuid"],
+                        channel_id,
+                        # interaction.channel.id,
+                        str(
+                            await datetime_handling.get_dt(
+                                format="datetimeobject", no_timezone=True
+                            )
+                        ),
+                    )
+                ],
+            )
+            msg_in = ""
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        if len(msg) + len(msg_in) > 1900 or trigger_pagination:
+            logger.debug("paginating after quote_last_key")
+            paginated.append(msg)
+            msg = ""
+        if not trigger_pagination and len(msg) > 0:
+            msg += "\n\n"
+            msg += msg_in
+            if quote == quote_last_key and msg != "":
+                logger.debug("paginating after quote_last_key")
+                paginated.append(msg)
+        trigger_pagination = False
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        logger.debug(f"paginated: {paginated}")
+        if len(paginated) > 0:
+            for page in paginated:
+                if len(autopost) > 0:
+                    # TODO: i18n
+                    await discord_commands.post_to_channel(
+                        channel_id=channel_id,
+                        content_in=str(page),
+                    )
+                else:
+                    await interaction.followup.send(str(page), ephemeral=_ephemeral)
+                await db_helper.insert_many_all(
+                    envs.quote_db_log_schema,
+                    [
+                        (
+                            quote["uuid"],
+                            interaction.channel.id,
+                            str(
+                                await datetime_handling.get_dt(
+                                    format="datetimeobject", no_timezone=True
+                                )
+                            ),
+                        )
+                    ],
+                )
+        return
 
 
 async def post_selected_quote(interaction, _ephemeral, quote_in):
-    quote_out = await get_quote_from_db(quote_in)
-    logger.debug(f'quote_out: {quote_out}')
-    if quote_out:
-        quote_text = quote_out[0]['quote_text']
-        quote_date = await get_dt(
-            format='datetextfull',
-            dt=quote_out[0]['datetime']
-        )
-        _quote = prettify(quote_in, quote_text, quote_date)
+    quote = await db_helper.get_imgs_with_quote(
+        envs.quote_db_schema,
+        where=[("quote.rowid", str(quote_in))],
+    )
+    quote_out = quote[0]
+    if quote_out is None:
         await interaction.followup.send(
-            _quote, ephemeral=_ephemeral
+            I18N.t("quote.commands.list.msg_nonexisting_quote"),
+            ephemeral=_ephemeral,
         )
         return
-    else:
+    elif len(quote_out) == 0:
         await interaction.followup.send(
-            I18N.t(
-                'quote.commands.post.quote_not_exist',
-                quote_in=quote_in
-            ),
-            ephemeral=_ephemeral
+            # TODO: i18n
+            "No quotes in database",
+            ephemeral=_ephemeral,
         )
+        return
+
+    if quote_out is not None:
+        quote = quote_out
+        paginated = []
+        msg = ""
+        trigger_pagination = False
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+        msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        for _comment_id in quote["comments"]:
+            comment = quote["comments"][_comment_id]
+            msg_in += "`{}: {}`".format(comment["author_backup"],
+                                        comment["content"])
+            if len(comment["imgs"]) > 0:
+                logger.debug(f"trigger_pagination is {trigger_pagination}")
+                trigger_pagination = True
+                img_list = []
+                for _img_id in comment["imgs"]:
+                    img = comment["imgs"][_img_id]
+                    img_object = convert_b64_to_img_in_mem(str(img))
+                    img_list.append(img_object)
+                await interaction.followup.send(
+                    msg_in, files=img_list, ephemeral=_ephemeral
+                )
+                await db_helper.insert_many_all(
+                    envs.quote_db_log_schema,
+                    [
+                        (
+                            quote["uuid"],
+                            interaction.channel.id,
+                            str(
+                                await datetime_handling.get_dt(
+                                    format="datetimeobject", no_timezone=True
+                                )
+                            ),
+                        )
+                    ],
+                )
+                msg_in = ""
+                trigger_pagination = False
+            else:
+                if _comment_id != list(quote["comments"])[-1]:
+                    msg_in += "\n"
+        if len(msg_in) > 0:
+            await interaction.followup.send(msg_in, ephemeral=_ephemeral)
+            await db_helper.insert_many_all(
+                envs.quote_db_log_schema,
+                [
+                    (
+                        quote["uuid"],
+                        interaction.channel.id,
+                        str(
+                            await datetime_handling.get_dt(
+                                format="datetimeobject", no_timezone=True
+                            )
+                        ),
+                    )
+                ],
+            )
+            msg_in = ""
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        if len(msg) + len(msg_in) > 1900 or trigger_pagination:
+            logger.debug("paginating after quote_last_key")
+            paginated.append(msg)
+            msg = ""
+        if not trigger_pagination and len(msg) > 0:
+            msg += "\n\n"
+            msg += msg_in
+            if quote == quote_last_key and msg != "":
+                logger.debug("paginating after quote_last_key")
+                paginated.append(msg)
+        trigger_pagination = False
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        logger.debug(f"paginated: {paginated}")
+        if len(paginated) > 0:
+            for page in paginated:
+                await interaction.followup.send(str(page), ephemeral=_ephemeral)
+                await db_helper.insert_many_all(
+                    envs.quote_db_log_schema,
+                    [
+                        (
+                            quote["uuid"],
+                            interaction.channel.id,
+                            str(
+                                await datetime_handling.get_dt(
+                                    format="datetimeobject", no_timezone=True
+                                )
+                            ),
+                        )
+                    ],
+                )
         return
 
 
@@ -667,137 +619,120 @@ class Quotes(commands.Cog):
             await post_selected_quote(interaction, _ephemeral, quote_in)
         return
 
-    @commands.is_owner()
-    @group.command(
-        name="add", description=locale_str(I18N.t('quote.commands.add.cmd'))
+    @ commands.is_owner()
+    @ group.command(
+        name="edit", description=locale_str(I18N.t("quote.commands.edit.cmd"))
     )
-    async def quote_add(
-        self, interaction: discord.Interaction,
-        public: typing.Literal[
-            I18N.t('common.literal_yes_no.lit_yes'),
-            I18N.t('common.literal_yes_no.lit_no')
-        ] = I18N.t('common.literal_yes_no.lit_no')
-    ):
-        'Add a quote'
-        if public == I18N.t('common.literal_yes_no.lit_yes'):
-            _ephemeral = False
-        else:
-            _ephemeral = True
-        # Get available row id
-        _row_ids = await db_helper.get_row_ids(
-            envs.quote_db_schema, sort=True
+    @ describe(quote_in=I18N.t("quote.commands.edit.desc.quote_in"))
+    async def quote_edit(self, interaction: discord.Interaction, quote_in: str):
+        "Edit an existing quote"
+        logger.debug(f"quote_in: ({type(quote_in)}) {quote_in}")
+        quote_from_db = await db_helper.get_imgs_with_quote(
+            envs.quote_db_schema, where=[("quote.rowid", str(quote_in))]
         )
-        logger.debug(f'_row_ids: {_row_ids}')
-        if len(_row_ids) <= 0:
-            last_row_id = 1
-        else:
-            last_row_id = _row_ids[-1] + 1
-        modal_in = QuoteAddModal(
-            public_in=_ephemeral,
-            title_in=I18N.t('quote.modals.add.modal_title'),
-            available_row_id=last_row_id
+        quote_from_db = quote_from_db[0]
+        logger.debug(f"quote_from_db: {quote_from_db}")
+        channel_out = discord_commands.get_current_guild().get_channel(
+            quote_from_db["channel_id"]
         )
-        await interaction.response.send_modal(modal_in)
-        await modal_in.wait()
-        # Parse the quote
-        quote_out = modal_in.quote_out
-        logger.debug(f'quote_out: {quote_out}')
-        # Add the quote
-        await db_helper.insert_many_all(
-            template_info=envs.quote_db_schema,
-            inserts=[
+        msgs = []
+        msg_defaults = [msg_id for msg_id in quote_from_db["comments"]]
+        # Get quote middle message for history fetch
+        middle_msg = await discord_commands.get_message_obj(
+            msg_defaults[len(msg_defaults) // 2], quote_from_db["channel_id"]
+        )
+        # Get quotes before
+        msgs_before = channel_out.history(limit=12, before=middle_msg)
+        async for _msg in msgs_before:
+            msgs.append(_msg)
+        msgs.reverse()
+        msgs.append(middle_msg)
+        msgs_after = channel_out.history(limit=12, after=middle_msg)
+        async for _msg in msgs_after:
+            msgs.append(_msg)
+        editquote_view = ModalQuoteAdd(
+            title_in="Endre sitat", msgs_in=msgs, defaults=msg_defaults
+        )
+        await interaction.response.send_modal(editquote_view)
+        await editquote_view.wait()
+        # Get quotes and add to db
+        quote_msgs_out = editquote_view.msgs_out
+        logger.debug(f"msg_defaults: {msg_defaults}")
+        logger.debug(f"quote_msgs_out: {quote_msgs_out}")
+        # Edit the quote
+        quotes_out = []
+        for quote in quote_msgs_out:
+            quote_object = await discord_commands.get_message_obj(
+                quote, quote_from_db["channel_id"]
+            )
+            quotes_out.append(quote_object)
+        # Remove quote comments
+        quote_comments_remove = list(set(msg_defaults) - set(quote_msgs_out))
+        # Prepare the edited quote
+        prep_quote_to_db = []
+        quote_to_db = []
+        imgs_to_db = []
+        quote_insert_order = 0
+        for quote in sorted(quote_msgs_out):
+            _q_object = await discord_commands.get_message_obj(
+                quote, quote_from_db["channel_id"]
+            )
+            prep_quote_to_db.append(_q_object)
+            content = _q_object.content
+            quote_to_db.append(
                 (
-                    quote_out['uuid'], quote_out['quote_text'],
-                    quote_out['datetime']
+                    quote_from_db["uuid"],
+                    _q_object.id,
+                    _q_object.author.id,
+                    _q_object.author.name,
+                    content,
+                    quote_insert_order,
                 )
-            ]
-        )
-        return
+            )
+            quote_insert_order += 1
+            imgs_in = get_imgs_to_db_format(_q_object)
+            if imgs_in:
+                imgs_to_db += imgs_in
+        # Delete old comments
+        if len(quote_comments_remove) > 0:
+            await db_helper.del_row_by_OR_filter(
+                template_info=envs.quote_content_db_schema,
+                where=[("comment_id", c_id) for c_id in quote_comments_remove],
+            )
+            await db_helper.del_row_by_OR_filter(
+                template_info=envs.quote_img_db_schema,
+                where=[("comment_id", c_id) for c_id in quote_comments_remove],
+            )
 
-    @commands.is_owner()
-    @group.command(
-        name="edit", description=locale_str(I18N.t('quote.commands.edit.cmd'))
-    )
-    @describe(
-        quote_in=I18N.t('quote.commands.edit.desc.quote_in')
-    )
-    async def quote_edit(
-        self, interaction: discord.Interaction, quote_in: str,
-    ):
-        'Edit an existing quote'
-        logger.debug(f'quote_in: ({type(quote_in)}) {quote_in}')
-        quote_from_db = await get_quote_from_db(quote_in)
-        logger.debug(f'quote_from_db: {quote_from_db}')
-        modal_in = QuoteEditModal(
-            title_in=I18N.t('quote.modals.edit.modal_title'),
-            quote_in=quote_from_db
+        # Add new comments
+        await db_helper.insert_many_all(
+            template_info=envs.quote_content_db_schema, inserts=quote_to_db
         )
-        await interaction.response.send_modal(modal_in)
-        await modal_in.wait()
-        update_triggered = False
-        # Check for changes in quote text or quote date
-        if str(
-            quote_from_db[0]['quote_text']
-        ) != str(
-            modal_in.quote_out['quote_text']
-        ) or str(
-            quote_from_db[0]['datetime']
-        ) != str(
-            modal_in.quote_out['datetime']
-        ):
-            update_triggered = True
-        else:
-            logger.error('No changes discovered in quote')
-            await interaction.followup.send(
-                I18N.t('quote.modals.edit.msg_no_change'),
-                ephemeral=True
-            )
-            return
-        if update_triggered:
-            logger.debug(
-                'Discovered changes in quote',
-            )
-            logger.debug(pformat(modal_in.quote_out))
-            # Update quote
-            await db_helper.update_fields(
-                template_info=envs.quote_db_schema,
-                where=[
-                    ('rowid', str(modal_in.quote_out['row_id']))
-                ],
-                updates=[
-                    ('quote_text', modal_in.quote_out['quote_text']),
-                    ('datetime', await get_dt(
-                        format='ISO8601',
-                        dt=modal_in.quote_out['datetime']
-                    ))
-                ]
+        if len(imgs_to_db) > 0:
+            await db_helper.insert_many_all(
+                template_info=envs.quote_img_db_schema, inserts=imgs_to_db
             )
         return
 
-    @commands.is_owner()
-    @group.command(
-        name="delete", description=locale_str(
-            I18N.t('quote.commands.delete.cmd')
-        )
+    @ commands.is_owner()
+    @ group.command(
+        name="delete", description=locale_str(I18N.t("quote.commands.delete.cmd"))
     )
-    @describe(
-        quote_number=I18N.t('quote.commands.delete.desc.quote_number')
-    )
-    async def quote_delete(
-            self, interaction: discord.Interaction,
-            quote_number: str
-    ):
-        'Delete an existing quote'
+    @ describe(quote_number=I18N.t("quote.commands.delete.desc.quote_number"))
+    async def quote_delete(self, interaction: discord.Interaction, quote_number: str):
+        "Delete an existing quote"
         await interaction.response.defer(ephemeral=True)
-        quote_from_db = await get_quote_from_db(quote_number)
-        logger.debug(f'quote_from_db is: {quote_from_db}')
-        if quote_from_db is None:
+        quote_from_db = await db_helper.get_imgs_with_quote(
+            envs.quote_db_schema, where=[("quote.rowid", str(quote_number))]
+        )
+        logger.debug(f"quote_from_db is: {quote_from_db}")
+        if quote_from_db == []:
             await interaction.followup.send(
                 I18N.t(
-                    'quote.commands.delete.msg_nonexisting_quote',
-                    quote_number=quote_number
+                    "quote.commands.delete.msg_nonexisting_quote",
+                    quote_number=quote_number,
                 ),
-                ephemeral=True
+                ephemeral=True,
             )
             return
         quote = quote_from_db[0]
@@ -806,43 +741,77 @@ class Quotes(commands.Cog):
             yes_label=I18N.t('common.literal_yes_no.lit_yes'),
             no_label=I18N.t('common.literal_yes_no.lit_no')
         )
-        tab_quote = tabulate(
-            [
-                [I18N.t('quote.tab_headers.quote_num'), quote['rowid']],
-                [I18N.t('quote.tab_headers.quote'), quote['quote_text']],
-                [I18N.t('quote.tab_headers.quote_date'), await get_dt(
-                    format='datetime',
-                    dt=quote['datetime']
-                )]
-            ], tablefmt='plain'
+        paginated = []
+        msg = ""
+        trigger_pagination = False
+        quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+        msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        for _comment_id in quote["comments"]:
+            comment = quote["comments"][_comment_id]
+            msg_in += "`{}: {}`".format(comment["author_backup"],
+                                        comment["content"])
+            if len(comment["imgs"]) > 0:
+                trigger_pagination = True
+                img_list = []
+                for _img_id in comment["imgs"]:
+                    img = comment["imgs"][_img_id]
+                    img_object = convert_b64_to_img_in_mem(str(img))
+                    img_list.append(img_object)
+                await interaction.followup.send(msg_in, files=img_list, ephemeral=True)
+                msg_in = ""
+                trigger_pagination = False
+            else:
+                if _comment_id != list(quote["comments"])[-1]:
+                    msg_in += "\n"
+        if len(msg_in) > 0:
+            await interaction.followup.send(msg_in, ephemeral=True)
+            msg_in = ""
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        if len(msg) + len(msg_in) > 1900 or trigger_pagination:
+            logger.debug("paginating after quote_last_key")
+            paginated.append(msg)
+            msg = ""
+        if not trigger_pagination and len(msg) > 0:
+            msg += "\n\n"
+            msg += msg_in
+        trigger_pagination = False
+        logger.debug(f"trigger_pagination is {trigger_pagination}")
+        logger.debug(f"paginated: {paginated}")
+        if len(paginated) > 0:
+            for page in paginated:
+                await interaction.followup.send(str(page), ephemeral=True)
+        confirm_buttons = ConfirmButtons(
+            yes_label=I18N.t("common.literal_yes_no.lit_yes"),
+            no_label=I18N.t("common.literal_yes_no.lit_no"),
         )
         await interaction.followup.send(
-            '{}\n```{}```'.format(
-                I18N.t(
-                    'quote.commands.delete.confirm_delete'
-                ),
-                tab_quote
-            ),
+            I18N.t("quote.commands.delete.confirm_delete"),
             view=confirm_buttons,
-            ephemeral=True
+            ephemeral=True,
         )
         await confirm_buttons.wait()
-        logger.debug(f'Got `confirm_buttons.value`: {confirm_buttons.value}')
-        if confirm_buttons.value is True:
-            # Remove the quote
-            await db_helper.del_row_id(
-                envs.quote_db_schema,
-                quote['rowid']
+        btn_values = [ch.value for ch in confirm_buttons.children]
+        logger.debug(f"btn_values is {btn_values}")
+        if False in btn_values:
+            # Confirm not deleting quote
+            # TODO: i18n
+            await interaction.followup.send(
+                "Sletting kansellert",
+                ephemeral=True,
             )
+            return
+        if True in btn_values:
+            # Remove the quote
+            await db_helper.del_row_id(envs.quote_db_schema, quote["rowid"])
             # Confirm that the quote has been deleted
             await interaction.followup.send(
                 I18N.t(
-                    'quote.commands.delete.msg_confirm_delete',
-                    quote_num=quote['rowid']
+                    "quote.commands.delete.msg_confirm_delete",
+                    quote_num=quote["rowid"],
                 ),
                 ephemeral=True
             )
-        elif confirm_buttons.value is False:
+        elif False in btn_values:
             await interaction.followup.send(
                 I18N.t('quote.commands.delete.msg_confirm_not_delete'),
                 ephemeral=True
@@ -852,13 +821,10 @@ class Quotes(commands.Cog):
                 I18N.t('quote.commands.delete.msg_fail'),
                 ephemeral=True
             )
-            return
 
-    @commands.is_owner()
-    @group.command(
-        name="count", description=locale_str(
-            I18N.t('quote.commands.count.cmd')
-        )
+    @ commands.is_owner()
+    @ group.command(
+        name="count", description=locale_str(I18N.t("quote.commands.count.cmd"))
     )
     async def quote_count(self, interaction: discord.Interaction):
         'Count the number of quotes available'
@@ -876,73 +842,77 @@ class Quotes(commands.Cog):
         )
         return
 
-    @commands.is_owner()
-    @group.command(
-        name="list", description=locale_str(
-            I18N.t('quote.commands.list.cmd')
-        )
+    async def prep_quotes_for_posting(self, keyword: str = "", quote_number: int = -1):
+        quote_rowids = await db_helper.get_row_ids(template_info=envs.quote_db_schema)
+        # List based on quote number
+        if quote_number > 0 and keyword == "":
+            logger.debug("Using quote number")
+            quote_in = await db_helper.get_imgs_with_quote(
+                envs.quote_db_schema,
+                where=[("quote.rowid", str(quote_number))],
+            )
+        # List based on keyword
+        elif keyword and quote_number < 0:
+            logger.debug("Using keyword")
+            quote_in = await db_helper.get_imgs_with_quote(
+                envs.quote_db_log_schema,
+                like=[
+                    ("quote_content.author_backup", keyword, "OR"),
+                    ("quote_content.content_text", keyword),
+                ],
+                order_by=[("quote.rowid", "ASC")],
+            )
+        # List all quotes
+        else:
+            if len(quote_rowids) == 0:
+                return []
+            else:
+                logger.debug("List all quotes")
+                confirm_buttons = ConfirmButtons(
+                    yes_label=I18N.t("common.literal_yes_no.lit_yes"),
+                    no_label=I18N.t("common.literal_yes_no.lit_no"),
+                )
+                await interaction.followup.send(
+                    "This will post all {} quotes. Are you sure about this?".format(
+                        len(quote_rowids)
+                    ),
+                    view=confirm_buttons,
+                    ephemeral=True,
+                )
+                await confirm_buttons.wait()
+                btn_values = [ch.value for ch in confirm_buttons.children]
+                logger.debug(f"btn_values is {btn_values}")
+                if True in btn_values:
+                    quote_in = await db_helper.get_imgs_with_quote(
+                        envs.quote_db_log_schema,
+                        order_by=[("quote.rowid", "ASC")],
+                    )
+                if False in btn_values:
+                    return False
+        return quote_in
+
+    @ commands.is_owner()
+    @ group.command(
+        name="list", description=locale_str(I18N.t("quote.commands.list.cmd"))
     )
     async def quote_list(
-        self, interaction: discord.Interaction, keyword: str = None,
-        quote_number: int = None, public: typing.Literal[
-            I18N.t('common.literal_yes_no.lit_yes'),
-            I18N.t('common.literal_yes_no.lit_no')
-        ] = I18N.t('common.literal_yes_no.lit_no'),
-        shortened: bool = False
+        self,
+        interaction: discord.Interaction,
+        keyword: str = "",
+        quote_number: int = -1,
+        public: typing.Literal[
+            I18N.t("common.literal_yes_no.lit_yes"),
+            I18N.t("common.literal_yes_no.lit_no"),
+        ] = I18N.t("common.literal_yes_no.lit_no"),
     ):
-        async def prep_quotes(
-            keyword: str = None,
-            quote_number: int = None,
-            shortened: bool = False
-        ):
-            quotes_out = []
-            if quote_number and not keyword:
-                quote_in = await db_helper.get_output_by_rowid(
-                    template_info=envs.quote_db_schema,
-                    rowid=quote_number
-                )
-            elif keyword and not quote_number:
-                quote_in = await db_helper.get_output(
-                    envs.quote_db_schema,
-                    get_row_ids=True,
-                    rowid_sort=True,
-                    like=('quote_text', keyword) if keyword else None
-                )
-            else:
-                return None
-            logger.debug('Got quotes: {}'.format(quote_in))
-            for _q in quote_in:
-                q_no = _q['rowid']
-                if any(item is None for item in _q):
-                    logger.error(
-                        f'None-values discovered in DB-file (quotes): {_q}'
-                    )
-                    pass
-                else:
-                    if shortened:
-                        q_text = '{}...'.format(
-                            _q['quote_text'][0:100]
-                        ) if len(_q['quote_text']) > 100 else _q['quote_text']
-                    else:
-                        q_text = _q['quote_text']
-                    q_datetime = _q['datetime']
-                    quotes_out.append(
-                        (
-                            q_no, q_text, q_datetime
-                        )
-                    )
-            logger.debug(f'Returning this as `quotes_out`: {quotes_out}')
-            return quotes_out
 
-        if public == I18N.t('common.literal_yes_no.lit_yes'):
+        if public == I18N.t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
-        quote_in = await prep_quotes(
-            keyword=keyword,
-            quote_number=quote_number,
-            shortened=shortened
+        quote_in = await self.prep_quotes_for_posting(
+            keyword=keyword, quote_number=quote_number
         )
         if quote_in is None:
             await interaction.followup.send(
@@ -951,44 +921,80 @@ class Quotes(commands.Cog):
                 ),
                 ephemeral=_ephemeral
             )
-        temp_out = []
-        for quote in quote_in:
-            temp_out.append(
-                (
-                    quote[0], quote[1],
-                    await get_dt(format='datetime', dt=quote[2])
-                )
-            )
-        logger.debug(f'`temp_out` is {temp_out}')
-        paginated = []
-        msg = ''
-        for quote in temp_out:
-            msg_in = f'# {quote[0]}\n{quote[1]}\n({quote[2]})'
-            if quote != temp_out[-1]:
-                msg_in += '\n\n'
-            if len(msg) + len(msg_in) > 1900:
-                paginated.append(msg)
-                msg = ''
-            msg += msg_in
-            if quote == temp_out[-1]:
-                paginated.append(msg)
-        for page in paginated:
+            return
+        elif quote_in is False:
             await interaction.followup.send(
-                f'```{page}```', ephemeral=_ephemeral
+                # TODO: i18n
+                "Quote listing cancelled",
+                ephemeral=_ephemeral,
             )
+            return
+        elif len(quote_in) == 0:
+            await interaction.followup.send(
+                # TODO: i18n
+                "No quotes in database",
+                ephemeral=_ephemeral,
+            )
+            return
+        paginated = []
+        msg = ""
+        trigger_pagination = False
+        quote_last_key = next(reversed(quote_in))
+        for quote in quote_in:
+            logger.debug(f"trigger_pagination is {trigger_pagination}")
+            quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+            msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+            for _comment_id in quote["comments"]:
+                comment = quote["comments"][_comment_id]
+                msg_in += "`{}: {}`".format(
+                    comment["author_backup"], comment["content"]
+                )
+                if len(comment["imgs"]) > 0:
+                    # logger.debug(f"trigger_pagination is {trigger_pagination}")
+                    # trigger_pagination = True
+                    img_list = []
+                    for _img_id in comment["imgs"]:
+                        img = comment["imgs"][_img_id]
+                        img_object = convert_b64_to_img_in_mem(str(img))
+                        img_list.append(img_object)
+                    await interaction.followup.send(
+                        msg_in, files=img_list, ephemeral=_ephemeral
+                    )
+                    msg_in = ""
+                    trigger_pagination = False
+                else:
+                    if _comment_id != list(quote["comments"])[-1]:
+                        msg_in += "\n"
+            if len(msg_in) > 0:
+                await interaction.followup.send(msg_in, ephemeral=_ephemeral)
+                msg_in = ""
+            logger.debug(f"trigger_pagination is {trigger_pagination}")
+            if len(msg) + len(msg_in) > 1900 or trigger_pagination:
+                logger.debug("paginating after quote_last_key")
+                paginated.append(msg)
+                msg = ""
+            if not trigger_pagination and len(msg) > 0:
+                msg += "\n\n"
+                msg += msg_in
+                if quote == quote_last_key and msg != "":
+                    logger.debug("paginating after quote_last_key")
+                    paginated.append(msg)
+            trigger_pagination = False
+            logger.debug(f"trigger_pagination is {trigger_pagination}")
+        logger.debug(f"paginated: {paginated}")
+        if len(paginated) > 0:
+            for page in paginated:
+                await interaction.followup.send(str(page), ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
-    @settings_group.command(
-        name='list',
-        description=locale_str(I18N.t('common.settings.list_settings'))
+    @ commands.is_owner()
+    @ settings_group.command(
+        name="list", description=locale_str(I18N.t("common.settings.list_settings"))
     )
-    async def list_settings(
-        self, interaction: discord.Interaction
-    ):
-        '''
+    async def list_settings(self, interaction: discord.Interaction):
+        """
         List the available settings for this cog
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
             template_info=envs.quote_db_settings_schema,
@@ -1013,15 +1019,10 @@ class Quotes(commands.Cog):
         )
         await interaction.followup.send(content=out, ephemeral=True)
 
-    @commands.is_owner()
-    @discord.app_commands.autocomplete(
-        name_of_setting=settings_db_autocomplete
-    )
-    @settings_group.command(
-        name='change',
-        description=locale_str(
-            I18N.t('common.settings.change_settings')
-        )
+    @ commands.is_owner()
+    @ discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
+    @ settings_group.command(
+        name="change", description=locale_str(I18N.t("common.settings.change_settings"))
     )
     @describe(
         name_of_setting=I18N.t('common.settings.name_of_setting'),
@@ -1133,14 +1134,12 @@ class Quotes(commands.Cog):
         logger.debug(f'Value is {value_in}')
         if value_in.lower() in ['true', 'false']:
             value_in = value_in.capitalize()
-            value_in_check = type(eval('{}({})'.format(
-                settings_types[setting_in], value_in
-            )))
-        elif setting_in == 'channel':
-            _guild = discord_commands.get_guild()
-            channel_object = get(
-                _guild.text_channels, name=str(value_in)
+            value_in_check = type(
+                eval("{}({})".format(settings_types[setting_in], value_in))
             )
+        elif setting_in == "channel":
+            _guild = discord_commands.get_current_guild()
+            channel_object = get(_guild.text_channels, name=str(value_in))
             if channel_object is None:
                 overwrites = {
                     _guild.default_role: discord.PermissionOverwrite(
@@ -1209,21 +1208,14 @@ class Quotes(commands.Cog):
             )
             return
 
-    @commands.is_owner()
-    @discord.app_commands.autocomplete(
-        setting_in=settings_db_autocomplete
+    @ commands.is_owner()
+    @ discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
+    @ settings_group.command(
+        name="remove", description=locale_str(I18N.t("common.settings.remove_setting"))
     )
-    @settings_group.command(
-        name='remove',
-        description=locale_str(I18N.t('common.settings.remove_setting'))
-    )
-    @describe(
-        setting_in=I18N.t('common.settings.setting')
-    )
-    async def remove_setting(
-        self, interaction: discord.Interaction, setting_in: str
-    ):
-        '''
+    @ describe(setting_in=I18N.t("common.settings.setting"))
+    async def remove_setting(self, interaction: discord.Interaction, setting_in: str):
+        """
         Remove a setting for this cog
         '''
         await interaction.response.defer(ephemeral=True)
@@ -1318,22 +1310,27 @@ class Quotes(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        logger.info('Starting autopost quote')
-        Quotes.task_autopost.start()
-        await db_helper.update_fields(
-            template_info=envs.tasks_db_schema,
-            where=[
-                ('cog', 'quotes'),
-                ('task', 'autopost')
-            ],
-            updates=('status', 'started')
-        )
-        await interaction.followup.send(
-            I18N.t(
-                'quote.commands.autopost.start.msg_confirm_ok',
-                time=Quotes.task_autopost.next_iteration.astimezone()
+        logger.info("Starting autopost quote")
+        if Quotes.task_autopost.is_running():
+            # TODO: i18n
+            await interaction.followup.send("Task is already runnning")
+            return
+        else:
+            Quotes.task_autopost.start()
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "quotes"), ("task", "autopost")],
+                updates=("status", "started"),
             )
-        )
+            await interaction.followup.send(
+                I18N.t(
+                    "quote.commands.autopost.start.msg_confirm_ok",
+                    time=await datetime_handling.get_dt(
+                        format="time",
+                        dt=Quotes.task_autopost.next_iteration.astimezone()
+                    )
+                )
+            )
 
     @autopost_group.command(
         name='stop',
@@ -1343,19 +1340,28 @@ class Quotes(commands.Cog):
         self, interaction: discord.Interaction
     ):
         await interaction.response.defer(ephemeral=True)
-        logger.info('Stopping autopost')
-        Quotes.task_autopost.cancel()
-        await db_helper.update_fields(
-            template_info=envs.tasks_db_schema,
-            where=[
-                ('cog', 'quotes'),
-                ('task', 'autopost'),
-            ],
-            updates=('status', 'stopped')
-        )
-        await interaction.followup.send(
-            I18N.t('quote.commands.autopost.stop.msg_confirm_ok')
-        )
+        logger.info("Stopping autopost")
+        if not Quotes.task_autopost.is_running():
+            await interaction.followup.send(
+                # TODO: i18n
+                "Autoposting er allerede stoppet."
+            )
+            return
+        else:
+            Quotes.task_autopost.cancel()
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[
+                    ("cog", "quotes"),
+                    ("task", "autopost"),
+                ],
+                updates=("status", "stopped"),
+            )
+            await interaction.followup.send(
+                # TODO: i18n sjekk at denne stemmer
+                # I18N.t("quote.commands.autopost.stop.msg_confirm_ok")
+                "Autoposting stoppet."
+            )
 
     @autopost_group.command(
         name='restart',
@@ -1446,7 +1452,7 @@ class Quotes(commands.Cog):
         else:
             channel = settings_db_json['channel']
         # Create the channel if it does not exist
-        _guild = discord_commands.get_guild()
+        _guild = discord_commands.get_current_guild()
         overwrites = {
             _guild.default_role: discord.PermissionOverwrite(
                 send_messages=False,
@@ -1489,192 +1495,179 @@ class Quotes(commands.Cog):
                 'disabling autopost task'
             )
             return
-        logger.debug('Got quote, posting it')
-        quote_out = prettify(
-            rand_quote[0][0],
-            rand_quote[0][2],
-            await get_dt(
-                format='datetextfull',
-                dt=rand_quote[0][3]
-            )
-        )
-        if 'autopost_prefix' in settings_db_json:
-            if 'autopost_tag_role' in settings_db_json and\
-                    re.match(
-                        r'\d{19,22}',
-                        settings_db_json['autopost_tag_role']
-                    ):
-                _guild = discord_commands.get_guild()
-                _role = _guild.get_role(
-                    int(settings_db_json['autopost_tag_role'])
-                )
-                quote_out = '# {}\n{}\nPing {}'.format(
-                    settings_db_json['autopost_prefix'],
-                    quote_out,
-                    f'<@&{_role.id}>'
-                )
-            else:
-                quote_out = '# {}\n{}'.format(
-                    settings_db_json['autopost_prefix'],
-                    quote_out
-                )
-        await discord_commands.post_to_channel(
-            channel_id=channel,
-            content_in=quote_out
-        )
+        logger.debug("Got quote, posting it")
+        rand_quote = rand_quote[0]
+        logger.debug(f"rand_quote: {rand_quote}")
+
+        autopost_settings = {
+            "prefix": "",
+            "tag_role": ""
+        }
+
+        if "autopost_prefix" in settings_db_json:
+            autopost_settings["prefix"] = settings_db_json["autopost_prefix"]
+
+        if "autopost_tag_role" in settings_db_json and re.match(
+            r"\d{19,22}", settings_db_json["autopost_tag_role"]
+        ):
+            _guild = discord_commands.get_current_guild()
+            _role = _guild.get_role(
+                int(settings_db_json["autopost_tag_role"]))
+            autopost_settings["tag_role"] = _role.id
+        await post_random_quote(autopost=autopost_settings, channel=channel)
         return
+
+
+def get_imgs_to_db_format(msg: discord.Message):
+    imgs_out = []
+    if len(msg.attachments) > 0:
+        att_counter = 0
+        for att in msg.attachments:
+            if att.url is not None and att.url != "":
+                if att.filename.split(".")[-1] in ["jpg", "png", "gif"]:
+                    logger.debug(f"Found attachment: {att.url}")
+                    att_counter += 1
+                    base_img = convert_img_to_b64(att.url)
+                    imgs_out.append((str(msg.id), att_counter, base_img))
+        return imgs_out
+    else:
+        return None
+
+
+def convert_img_to_b64(image_url: str) -> str | None:
+    """
+    Converts an image from a url to base64-string
+    """
+    try:
+        # Get image from url
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+
+        # Validate image
+        image_data = BytesIO(response.content)
+        with Image.open(image_data) as img:
+            img.verify()
+
+        # Convert image to base64
+        image_data.seek(0)
+        base64_str = base64.b64encode(response.content).decode("utf-8")
+        return base64_str
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Could not fetch URL: {e}")
+    except (IOError, SyntaxError) as e:
+        logger.error(f"The URL does not giva a valid image: {e}")
+    except Exception as e:
+        logger.error(f"Unknown error: {e}")
+
+    return None
+
+
+def convert_b64_to_img_in_mem(b64string: str):
+    """
+    Converts a base64-string to image file
+    """
+    try:
+        image_data = base64.b64decode(b64string)
+        with BytesIO(image_data) as image_binary:
+            discord_file = discord.File(fp=image_binary, filename="image.png")
+            return discord_file
+    except (binascii.Error, ValueError) as e:
+        logger.error(f"Invalid Base64 string: {e}")
+    except (IOError, SyntaxError) as e:
+        logger.error(f"Data is not a valid image: {e}")
+    except Exception as e:
+        logger.error(f"Unknown error: {e}")
+    return None
 
 
 @commands.is_owner()
 @config.bot.tree.context_menu(
-    #name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
-    name='Add quote (better version)'
+    # TODO: i18n
+    # name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
+    name="Add quote"
 )
-async def quote_add_better(
-    interaction: discord.Interaction, message: discord.Message
-):
-    'Add a quote (better version)'
-    def make_imgs_inline(content, msg: discord.Message):
-        if len(msg.attachments) > 0:
-            for att in msg.attachments:
-                att_counter = 0
-                if att.url is not None and att.url != '':
-                    if att.filename.split('.')[-1] in ['jpg', 'png', 'gif']:
-                        logger.debug(f'Found attachment: {att.url}')
-                        att_counter += 1
-                        # TODO i18n
-                        content += ' [Bilde {}]{}'.format(att_counter, att.url)
-                        logger.debug(f'`content` is now: {content}')
-        return content
-
-    await interaction.response.defer(ephemeral=True)
-    # Get available row id
-    _row_ids = await db_helper.get_row_ids(
-        envs.quote_db_schema, sort=True
-    )
-    logger.debug(f'_row_ids: {_row_ids}')
-    if len(_row_ids) <= 0:
-        last_row_id = 1
-    else:
-        last_row_id = _row_ids[-1] + 1
-    ###
-    # Get 10 messages both before and after this quote
-    channel_out = discord_commands.get_guild().get_channel(
-        interaction.channel_id
-    )
-    msgs = {
-        'actual': None,
-        'before': [],
-        'after': []
-    }
+async def quote_add(interaction: discord.Interaction, message: discord.Message):
+    # TODO: i18n
+    "Add a quote"
+    channel_out = interaction.channel
+    msgs = []
+    msg_defaults = []
+    logger.debug("Getting msg history")
     async for msg in channel_out.history(limit=100):
-        if msg.id == message.id:
+        logger.debug(f"msg.id ({msg.id}) vs message.id ({message.id})")
+        if int(msg.id) == int(message.id):
             main_msg = msg
-            msgs['actual'] = main_msg
-    msgs_before = channel_out.history(
-        limit=20, before=main_msg
-    )
-    async for _msg in msgs_before:
-        msgs['before'].append(_msg)
-    msgs['before'].reverse()
-    msgs_after = channel_out.history(
-        limit=20, after=main_msg
-    )
-    async for _msg in msgs_after:
-        msgs['after'].append(_msg)
-    addquote_view = DropdownQuoteAdd(msgs_in=msgs)
-    quote_msg = f'Her er det valgte sitatet: `{main_msg.author}: '\
-        f'{main_msg.content}`\n\nVelg relevante kommentarer før '\
-        'og etter sitatet for å sikre kontekst.'
-    await interaction.followup.send(
-        content=quote_msg,
-        #I18N.t('quote.modals.add.modal_title'),
-        view=addquote_view
-    )
-    await addquote_view.wait()
-    save_quote = None
-    for _btn in addquote_view.children:
-        if hasattr(_btn, 'value'):
-            save_quote = _btn.value
+            msg_defaults.append(main_msg.id)
             break
-    if save_quote is False:
-        logger.debug('Cancelled adding quote')
+        else:
+            main_msg = None
+    if not main_msg:
+        logger.debug("Got no main_msg")
         return
+    msgs_before = channel_out.history(limit=12, before=main_msg)
+    async for _msg in msgs_before:
+        msgs.append(_msg)
+    msgs.reverse()
+    msgs.append(main_msg)
+    msgs_after = channel_out.history(limit=12, after=main_msg)
+    logger.debug(f"msgs is {msgs}")
+    logger.debug(f"msg_defaults is {msg_defaults}")
+    async for _msg in msgs_after:
+        msgs.append(_msg)
+    q_row_ids = len(
+        await db_helper.get_row_ids(template_info=envs.quote_db_schema, sort=True)
+    )
+    addquote_view = ModalQuoteAdd(
+        title_in="Legg til sitat",
+        msgs_in=msgs,
+        defaults=msg_defaults,
+        row_ids=q_row_ids,
+    )
+    await interaction.response.send_modal(addquote_view)
+    await addquote_view.wait()
     # Get quotes and add to db
     quote_msgs_out = addquote_view.msgs_out
-    logger.debug(f'quote_msgs_out: {quote_msgs_out}')
     # TODO i18n
-    complete_quote = 'Here is the quote:\n```'
     quotes_out = []
-    for quote in quote_msgs_out['before']:
+    for quote in quote_msgs_out:
         quote_object = await discord_commands.get_message_obj(
             quote, interaction.channel_id
         )
-        line = '{}: {}'.format(
-            quote_object.author.name, quote_object.content
-        )
-        line = make_imgs_inline(line, quote_object)
-        complete_quote += line
-        complete_quote += '\n'
         quotes_out.append(quote_object)
-    complete_quote += '{}: {}\n'.format(
-        main_msg.author.name, main_msg.content
-    )
-    quotes_out.append(main_msg)
-    msgs['actual'] = main_msg.id
-    for quote in quote_msgs_out['after']:
-        quote_object = await discord_commands.get_message_obj(
-            quote, interaction.channel_id
-        )
-        line = '{}: {}'.format(
-            quote_object.author.name, quote_object.content
-        )
-        line = make_imgs_inline(line, quote_object)
-        complete_quote += line
-        complete_quote += '\n'
-        quotes_out.append(quote_object)
-    complete_quote += '```'
-    logger.debug(f'Sending `complete_quote`:\n{complete_quote}')
-    confirm_buttons = ConfirmButtons(
-        yes_label=I18N.t('common.literal_yes_no.lit_yes'),
-        no_label=I18N.t('common.literal_yes_no.lit_no')
-    )
-    await interaction.followup.send(
-        complete_quote, view=confirm_buttons, ephemeral=True
-    )
-    await confirm_buttons.wait()
-    save_quote = None
-    for _btn in confirm_buttons.children:
-        if hasattr(_btn, 'value'):
-            save_quote = _btn.value
-            break
     # Add the quote
-    if save_quote is True:
-        _uuid = str(uuid.uuid4())
-        quote_to_db = []
-        _quote_order = 1
-        # TODO
-        # Add quote to database in new set
-        logger.debug(
-            'This is the quote info that should be processed:'
-        )
-        for _q in quotes_out:
-            content = _q.content
-            content = make_imgs_inline(content, _q)
-            quote_to_db.append(
-                (_uuid, _q.id, _q.author.id, _q.author.name, content, '', _quote_order, _q.created_at)
+    _uuid = str(uuid.uuid4())
+    quote_to_db = []
+    imgs_to_db = []
+    quote_insert_order = 0
+    for _q in quotes_out:
+        content = _q.content
+        quote_to_db.append(
+            (
+                _uuid,
+                _q.id,
+                _q.author.id,
+                _q.author.name,
+                content,
+                quote_insert_order,
             )
-            _quote_order += 1
+        )
+        quote_insert_order += 1
+        imgs_in = get_imgs_to_db_format(_q)
+        if imgs_in:
+            imgs_to_db += imgs_in
     await db_helper.insert_many_all(
         template_info=envs.quote_db_schema,
-        inserts=[(_uuid)]
+        inserts=[(_uuid, int(interaction.channel_id), main_msg.created_at)],
     )
     await db_helper.insert_many_all(
-        template_info=envs.quote_content_db_schema,
-        inserts=quote_to_db
+        template_info=envs.quote_content_db_schema, inserts=quote_to_db
     )
+    if len(imgs_to_db) > 0:
+        await db_helper.insert_many_all(
+            template_info=envs.quote_img_db_schema, inserts=imgs_to_db
+        )
     return
-
 
 
 async def setup(bot):
@@ -1702,6 +1695,8 @@ async def setup(bot):
         table_in=envs.quote_db_settings_schema,
         inserts=envs.quote_db_settings_schema['inserts']
     )
+    await db_helper.prep_table(table_in=envs.quote_content_db_schema)
+    await db_helper.prep_table(table_in=envs.quote_img_db_schema)
 
     # Change channel name to id
     await db_helper.db_single_channel_name_to_id(
