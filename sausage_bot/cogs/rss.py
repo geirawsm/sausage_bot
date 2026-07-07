@@ -1060,7 +1060,7 @@ class RSSfeed(commands.Cog):
             UUID = feed['uuid']
             FEED_NAME = feed['feed_name']
             CHANNEL = feed['channel']
-            _guild = discord_commands.get_guild()
+            _guild = discord_commands.get_current_guild()
             channel_obj = _guild.get_channel(int(CHANNEL))
             logger.debug(
                 f'Found channel `{channel_obj.name}` in `{FEED_NAME}`'
@@ -1130,7 +1130,7 @@ class RSSfeed(commands.Cog):
                 CHANNEL = spotify_check[feed]['channel']
                 NUM_EPISODES = spotify_check[feed]['num_episodes_new']
                 channel_obj = get(
-                    discord_commands.get_guild().channels,
+                    discord_commands.get_current_guild().channels,
                     id=int(CHANNEL)
                 )
                 logger.debug(
@@ -1175,7 +1175,7 @@ class RSSfeed(commands.Cog):
                 logger.debug(
                     'Found channel `{} ({})` in `{}`'.format(
                         get(
-                            discord_commands.get_guild().channels,
+                            discord_commands.get_current_guild().channels,
                             id=int(CHANNEL)
                         ).name, CHANNEL, FEED_NAME
                     )

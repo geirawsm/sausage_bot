@@ -208,7 +208,7 @@ async def on_ready():
     bot_channel = config.BOT_CHANNEL
     if bot_channel not in discord_commands.get_text_channel_list():
         logger.debug(f"Bot channel `{bot_channel}` does not exist, creating...")
-        guild = discord_commands.get_guild()
+        guild = discord_commands.get_current_guild()
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             guild.me: discord.PermissionOverwrite(read_messages=True),
@@ -260,8 +260,8 @@ async def sync_dev(interaction: discord.Interaction):
     await interaction.followup.send(
         content="✅💭 {}".format(I18N.t("main.commands.syncdev.msg_starting"))
     )
-    config.bot.tree.copy_global_to(guild=discord_commands.get_guild())
-    await config.bot.tree.sync(guild=discord_commands.get_guild())
+    config.bot.tree.copy_global_to(guild=discord_commands.get_current_guild())
+    await config.bot.tree.sync(guild=discord_commands.get_current_guild())
     for command in config.bot.tree.get_commands():
         logger.debug(f"Checking {command.name}")
     await interaction.edit_original_response(

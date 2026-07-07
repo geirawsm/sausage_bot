@@ -134,7 +134,7 @@ class scrape_and_post(commands.Cog):
 
         feed = 'FCB news'
         guild_channels = discord_commands.get_text_channel_list()
-        _guild = discord_commands.get_guild()
+        _guild = discord_commands.get_current_guild()
         FEED_POSTS = barca_news_links()
         if FEED_POSTS is None:
             return

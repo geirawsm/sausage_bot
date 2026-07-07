@@ -27,9 +27,9 @@ async def get_message_obj(
         Channel to get message from (default: None)
     '''
 
-    _guild = get_guild()
-    logger.debug(
-        f'Getting channel with id `{channel_id}` ({type(channel_id)})')
+    _guild = get_current_guild()
+    logger.debug(f"Getting channel with id `{
+                 channel_id}` ({type(channel_id)})")
     _channel = _guild.get_channel(int(channel_id))
     logger.debug(f'Got channel `{_channel}`')
     try:
@@ -41,19 +41,19 @@ async def get_message_obj(
     return msg_out
 
 
-def get_guild():
-    '''
+def get_current_guild():
+    """
     Get the active guild object
     #autodoc skip#
-    '''
+    """
     for guild in config.bot.guilds:
+        logger.debug(f"guild: {guild.name}")
         if str(guild.name).lower() == config.DISCORD_GUILD.lower():
-            logger.debug(f'Got guild {guild} ({type(guild)})')
+            logger.debug(f"Got guild {guild.name} ({type(guild)})")
             return guild
         else:
             logger.error(envs.GUILD_NOT_FOUND.format(
-                str(config.DISCORD_GUILD)
-            ))
+                str(config.DISCORD_GUILD)))
             return None
 
 
@@ -63,7 +63,7 @@ def get_text_channel_list():
     #autodoc skip#
     '''
     channel_dict = {}
-    guild = get_guild()
+    guild = get_current_guild()
     if guild is None:
         return None
     # Get all channels and their IDs
@@ -86,13 +86,13 @@ async def create_missing_channel(
 ):
     logger.debug('Checking if channel {channel exists')
     missing = None
-    _guild = get_guild()
+    _guild = get_current_guild()
     if re.match(r'\d{19,22}', channel):
         if get(_guild.text_channels, id=int(channel)) is None:
             missing = True
-            logger.info(f'Could not find channel with id {channel}')
-    else:
-        if get(_guild.text_channels, name=str(channel)) is None:
+            logger.info(f"Could not find channel with id {channel_id}")
+    if not channel_id and channel_name:
+        if get(_guild.text_channels, name=str(channel_id)) is None:
             missing = True
             logger.info(f'Could not find channel with name {channel}')
     if not missing:
@@ -130,7 +130,7 @@ def get_voice_channel_list():
     #autodoc skip#
     # '''
     channel_dict = {}
-    guild = get_guild()
+    guild = get_current_guild()
     # Get all channels and their IDs
     for channel in guild.voice_channels:
         channel_dict[channel.name] = channel.id
@@ -141,8 +141,8 @@ async def get_scheduled_events():
     '''
     Get all scheduled events from server
     #autodoc skip#
-    '''
-    guild = get_guild()
+    """
+    guild = get_current_guild()
     event_dict = {}
     if guild.scheduled_events is None:
         logger.info(envs.AUTOEVENT_NO_EVENTS_LISTED)
@@ -235,7 +235,7 @@ def get_roles(
     logger.debug(f'hide_roles: {hide_roles} {type(hide_roles)}')
     # Get all roles and their IDs
     roles_dict = {}
-    for role in get_guild().roles:
+    for role in get_current_guild().roles:
         if hide_empties is True and len(role.members) <= 0:
             continue
         if filter_bots and role.is_bot_managed():
@@ -290,7 +290,7 @@ async def replace_post(replace_content, replace_with, channel_in):
     `channel_in` and replace it with `replace_with.`
     #autodoc skip#
     '''
-    _guild = get_guild()
+    _guild = get_current_guild()
     channel_out = _guild.get_channel(int(channel_in))
     async for msg in channel_out.history(limit=30):
         if str(msg.author.id) == config.BOT_ID:
@@ -334,7 +334,7 @@ async def log_to_bot_channel(content_in=None):
     'Messages you want to send directly to a specific channel'
     log_channel = config.BOT_CHANNEL
     logger.debug(f'`log_channel` er {log_channel}')
-    guild = get_guild()
+    guild = get_current_guild()
     channel_out = guild.get_channel(int(get_text_channel_list()[log_channel]))
     msg_out = await channel_out.send(
         content=content_in
@@ -345,7 +345,7 @@ async def log_to_bot_channel(content_in=None):
 def get_user_channel_role_id(id_in):
     if re.match(r'\d{19,22}', id_in):
         object_out = None
-        _guild = get_guild()
+        _guild = get_current_guild()
         # Try user
         object_out = get(
             _guild.members,
@@ -369,7 +369,7 @@ def get_user_channel_role_id(id_in):
 def get_user_channel_role_name(name_in):
     if isinstance(name_in, str):
         object_out = None
-        _guild = get_guild()
+        _guild = get_current_guild()
         # Try user
         object_out = get(
             _guild.members,
@@ -394,25 +394,18 @@ def check_user_channel_role(text_in):
     def check_discord_username(username_in):
         if isinstance(username_in, re.Match):
             username_in = username_in.group(0)
-        logger.debug(f'Got username_in: {username_in}')
-        _user_in = username_in.strip().replace('@', '')\
-            .replace('"', '')
-        logger.debug(f'Stripped and fixed _user_in: {_user_in}')
-        user_obj = get(
-            get_guild().members,
-            name=_user_in
-        )
-        logger.debug(f'Got user_obj: {user_obj}')
+        logger.debug(f"Got username_in: {username_in}")
+        _user_in = username_in.strip().replace("@", "").replace('"', "")
+        logger.debug(f"Stripped and fixed _user_in: {_user_in}")
+        user_obj = get(get_current_guild().members, name=_user_in)
+        logger.debug(f"Got user_obj: {user_obj}")
         return user_obj
 
     def check_similar_discord_usernames(
         username_in, similar_floor=None, similar_roof=None
     ):
-        _members = [
-            member.name for member in
-            get_guild().members
-        ]
-        logger.debug(f'Comparing {username_in} with {_members}')
+        _members = [member.name for member in get_current_guild().members]
+        logger.debug(f"Comparing {username_in} with {_members}")
         similars = file_io.check_similarity(
             username_in, _members,
             ratio_floor=similar_floor,
@@ -423,28 +416,21 @@ def check_user_channel_role(text_in):
     def check_discord_channel(channel_in):
         if isinstance(channel_in, re.Match):
             channel_in = channel_in.group(0)
-        logger.debug(f'Got channel_in: {channel_in}')
-        _channel_in = channel_in.strip().replace('#', '')
-        logger.debug(f'Stripped and fixed _channel_in: {_channel_in}')
-        channel_obj = get(
-            get_guild().channels,
-            name=_channel_in
-        )
-        logger.debug(f'Got channel_obj: {channel_obj}')
+        logger.debug(f"Got channel_in: {channel_in}")
+        _channel_in = channel_in.strip().replace("#", "")
+        logger.debug(f"Stripped and fixed _channel_in: {_channel_in}")
+        channel_obj = get(get_current_guild().channels, name=_channel_in)
+        logger.debug(f"Got channel_obj: {channel_obj}")
         return channel_obj
 
     def check_discord_roles(rolename_in):
         if isinstance(rolename_in, re.Match):
             rolename_in = rolename_in.group(0)
-        logger.debug(f'Got rolename_in: {rolename_in}')
-        _role_in = rolename_in.strip().replace('@', '')\
-            .replace('"', '')
-        logger.debug(f'Stripped and fixed _role_in: {_role_in}')
-        role_obj = get(
-            get_guild().roles,
-            name=_role_in
-        )
-        logger.debug(f'Got role_obj: {role_obj}')
+        logger.debug(f"Got rolename_in: {rolename_in}")
+        _role_in = rolename_in.strip().replace("@", "").replace('"', "")
+        logger.debug(f"Stripped and fixed _role_in: {_role_in}")
+        role_obj = get(get_current_guild().roles, name=_role_in)
+        logger.debug(f"Got role_obj: {role_obj}")
         return role_obj
 
     # Check for @'s (users or roles)

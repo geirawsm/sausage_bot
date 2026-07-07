@@ -72,7 +72,7 @@ async def hidden_roles_autocomplete(
     for i in hidden_roles_in_db:
         temp_hidden_roles[i["role_id"]] = {
             "rowid": i["rowid"],
-            "name": get(discord_commands.get_guild().roles, id=int(i["role_id"])).name,
+            "name": get(discord_commands.get_current_guild().roles, id=int(i["role_id"])).name,
         }
     logger.debug("temp_hidden_roles:\n{pformat(temp_hidden_roles)}")
     return [
@@ -222,7 +222,7 @@ class Stats(commands.Cog):
             populated_roles = []
             for role in hidden_roles_in_db:
                 populated_roles.append(
-                    (get(discord_commands.get_guild().roles, name=role), role)
+                    (get(discord_commands.get_current_guild().roles, name=role), role)
                 )
             out += "\n## {}\n```{}```".format(
                 I18N.t("stats.commands.list.stats_msg_out.sub_hidden"),
@@ -704,7 +704,7 @@ class Stats(commands.Cog):
         logger.debug(f"Got {len(role_numbers)} roles")
         # Get total number of members
         if eval(stats_settings["show_members_total"]):
-            total_members = discord_commands.get_guild().member_count
+            total_members = discord_commands.get_current_guild().member_count
         # Update log database if not already this day
         logger.debug("Logging stats")
         await log_stats(files_in_codebase, lines_in_codebase, total_members)
@@ -729,7 +729,7 @@ class Stats(commands.Cog):
             members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
             msg_limit_check += f"### {members_sub}\n"
             if eval(stats_settings["show_members_total"]):
-                total_members = discord_commands.get_guild().member_count
+                total_members = discord_commands.get_current_guild().member_count
                 members_num = I18N.t("stats.tasks.update_stats.stats_msg.members_num")
                 msg_limit_check += f"```{members_num}: {total_members}```\n"
             if eval(stats_settings["show_code_stats"]):
@@ -783,7 +783,7 @@ class Stats(commands.Cog):
         )
         stats_info += f"```{code_last_updated} {dt_log}```\n"
         logger.debug(f"Trying to post stats to `stats_channel`:\n{stats_info[0:100]}")
-        _guild = discord_commands.get_guild()
+        _guild = discord_commands.get_current_guild()
         check_and_post_to_stats_msg_id = await check_and_post_to_stats_msg_id(
             stats_settings, stats_info
         )

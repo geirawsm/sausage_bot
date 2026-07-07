@@ -32,7 +32,7 @@ async def event_names_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    _guild = discord_commands.get_guild()
+    _guild = discord_commands.get_current_guild()
     logger.debug(f'_guild: {_guild}')
     events = []
     for event in _guild.scheduled_events:
@@ -131,7 +131,7 @@ class AutoEvent(commands.Cog):
                     )
                     with open(autoevent_img, 'rb') as f:
                         image_in = f.read()
-                guild = discord_commands.get_guild()
+                guild = discord_commands.get_current_guild()
                 try:
                     created_event = await guild.create_scheduled_event(
                         name=f'{home} - {away}',
@@ -196,7 +196,7 @@ class AutoEvent(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         event_dict = discord_commands.get_scheduled_events()
         logger.debug(f'Got `event_dict`: {event_dict}')
-        _guild = discord_commands.get_guild()
+        _guild = discord_commands.get_current_guild()
         # Delete all events
         if remove_all == I18N.t('common.literal_yes_no.lit_yes'):
             logger.debug('Got `remove_all`: {}'.format(
@@ -307,7 +307,7 @@ class AutoEvent(commands.Cog):
         '''
         await interaction.response.defer(ephemeral=True)
         # Get event
-        _guild = discord_commands.get_guild()
+        _guild = discord_commands.get_current_guild()
         _event = _guild.get_scheduled_event(int(event))
         epoch_time = await datetime_handling.get_dt(
             format='epoch',

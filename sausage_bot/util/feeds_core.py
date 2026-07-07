@@ -531,7 +531,7 @@ async def get_feed_list(
             paginated.append(table_in)
         return paginated
 
-    _guild = discord_commands.get_guild()
+    _guild = discord_commands.get_current_guild()
     if link_type == I18N.t(
         'youtube.commands.list.literal_link_type.channel'
     ):
