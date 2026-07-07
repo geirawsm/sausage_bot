@@ -316,6 +316,7 @@ async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, chan
                 )
         else:
             msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
             msg_in += "`{}: {}`".format(
@@ -379,7 +380,6 @@ async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, chan
                     (
                         quote["uuid"],
                         channel_id,
-                        # interaction.channel.id,
                         str(
                             await datetime_handling.get_dt(
                                 format="datetimeobject", no_timezone=True
@@ -391,13 +391,12 @@ async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, chan
             msg_in = ""
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         if len(msg) + len(msg_in) > 1900 or trigger_pagination:
-            logger.debug("paginating after quote_last_key")
             paginated.append(msg)
             msg = ""
         if not trigger_pagination and len(msg) > 0:
             msg += "\n\n"
             msg += msg_in
-            if quote == quote_last_key and msg != "":
+            if _comment_id == comment_last_key and msg != "":
                 logger.debug("paginating after quote_last_key")
                 paginated.append(msg)
         trigger_pagination = False
@@ -458,6 +457,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
         msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
             msg_in += "`{}: {}`".format(comment["author_backup"],
@@ -517,8 +517,8 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         if not trigger_pagination and len(msg) > 0:
             msg += "\n\n"
             msg += msg_in
-            if quote == quote_last_key and msg != "":
-                logger.debug("paginating after quote_last_key")
+            if _comment_id == comment_last_key and msg != "":
+                logger.debug("paginating")
                 paginated.append(msg)
         trigger_pagination = False
         logger.debug(f"trigger_pagination is {trigger_pagination}")
@@ -752,7 +752,7 @@ class Quotes(commands.Cog):
             msg_in = ""
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         if len(msg) + len(msg_in) > 1900 or trigger_pagination:
-            logger.debug("paginating after quote_last_key")
+            logger.debug("paginating")
             paginated.append(msg)
             msg = ""
         if not trigger_pagination and len(msg) > 0:
