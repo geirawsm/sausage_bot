@@ -818,7 +818,7 @@ class Quotes(commands.Cog):
         )
         return
 
-    async def prep_quotes_for_posting(self, keyword: str = "", quote_number: int = -1):
+    async def prep_quotes_for_posting(self, interaction: discord.Interaction, keyword: str = "", quote_number: int = -1):
         quote_rowids = await db_helper.get_row_ids(template_info=envs.quote_db_schema)
         # List based on quote number
         if quote_number > 0 and keyword == "":
@@ -888,7 +888,7 @@ class Quotes(commands.Cog):
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         quote_in = await self.prep_quotes_for_posting(
-            keyword=keyword, quote_number=quote_number
+            interaction=interaction, keyword=keyword, quote_number=quote_number
         )
         if quote_in is None:
             await interaction.followup.send(
