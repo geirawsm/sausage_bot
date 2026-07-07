@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'quote: Administer or post quotes'
+"quote: Administer or post quotes"
+
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
@@ -31,7 +32,7 @@ QUOTE_AUTOPOST_TIME = None
 async def get_autopost_time():
     db_in = envs.quote_db_settings_schema
     db_settings = await db_helper.get_output(db_in)
-    logger.debug('`db_settings` is: {}'.format(db_settings))
+    logger.debug("`db_settings` is: {}".format(db_settings))
     time_out = None
     if db_settings is not None:
         for setting in db_settings:
@@ -47,21 +48,17 @@ async def get_autopost_time():
         time_out = datetime.strptime(time_out, "%H:%M:%S").astimezone().time()
         await db_helper.update_fields(
             template_info=db_in,
-            where=[('setting', 'autopost_time')],
-            updates=[('value', str(time_out))]
+            where=[("setting", "autopost_time")],
+            updates=[("value", str(time_out))],
         )
     if time_out is not None:
         time_out = re.search(
-            r'^(\d{2}):(\d{2}):\d{2}$',
-            str(time_out)
-        )
+            r"^(\d{2}):(\d{2}):\d{2}$", str(time_out))
     return time_out
 
 
 class ConfirmButtons(discord.ui.View):
-    def __init__(
-            self, *, timeout=10, yes_label=None, no_label=None
-    ):
+    def __init__(self, *, timeout=60, yes_label=None, no_label=None):
         super().__init__(timeout=timeout)
         self.yes_label = yes_label
         self.no_label = no_label
@@ -76,17 +73,13 @@ class ButtonConfirm(discord.ui.Button):
         super().__init__(label=label, style=discord.ButtonStyle.green)
         self.value = None
 
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
+    async def callback(self, interaction: discord.Interaction):
         self.value = True
         # Disable all buttons
         buttons = [x for x in self.view.children]
         for _btn in buttons:
             _btn.disabled = True
-        await interaction.response.edit_message(
-            view=self.view
-        )
+        await interaction.response.edit_message(view=self.view)
         self.view.stop()
 
 
@@ -95,9 +88,7 @@ class ButtonDeny(discord.ui.Button):
         super().__init__(label=label, style=discord.ButtonStyle.red)
         self.value = None
 
-    async def callback(
-        self, interaction: discord.Interaction
-    ):
+    async def callback(self, interaction: discord.Interaction):
         self.value = False
         # Disable all buttons
         buttons = [x for x in self.view.children]
@@ -190,30 +181,30 @@ async def settings_db_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     settings_in_db = await db_helper.get_output(
-        template_info=envs.quote_db_settings_schema,
-        select=('setting', 'value')
+        template_info=envs.quote_db_settings_schema, select=(
+            "setting", "value")
     )
-    settings_type = envs.quote_db_settings_schema['type_checking']
+    settings_type = envs.quote_db_settings_schema["type_checking"]
     return [
         discord.app_commands.Choice(
-            name='{setting_name} = {object}({value_type})'.format(
-                setting_name=setting['setting'],
-                object='{object_value} ({actual_value}) '.format(
+            name="{setting_name} = {object}({value_type})".format(
+                setting_name=setting["setting"],
+                object="{object_value} ({actual_value}) ".format(
                     object_value=discord_commands.get_user_channel_role_id(
-                        setting['value']
+                        setting["value"]
                     ),
-                    actual_value=setting['value']
-                ) if discord_commands.get_user_channel_role_id(
-                    setting['value']
-                ) is not None
-                else '{} '.format(setting['value']),
-                value_type=settings_type[setting['setting']]
+                    actual_value=setting["value"],
+                )
+                if discord_commands.get_user_channel_role_id(setting["value"])
+                is not None
+                else "{} ".format(setting["value"]),
+                value_type=settings_type[setting["setting"]],
             ),
-            value=str(setting['setting'])
+            value=str(setting["setting"]),
         )
-        for setting in settings_in_db if current.lower() in '{}-{}'.format(
-            setting['setting'], setting['value']
-        ).lower()
+        for setting in settings_in_db
+        if current.lower()
+        in "{}-{}".format(setting["setting"], setting["value"]).lower()
     ][:25]
 
 
@@ -221,16 +212,16 @@ async def env_settings_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    settings_info = envs.quote_db_settings_schema['inserts']
-    settings_type = envs.quote_db_settings_schema['type_checking']
+    settings_info = envs.quote_db_settings_schema["inserts"]
+    settings_type = envs.quote_db_settings_schema["type_checking"]
     return [
         discord.app_commands.Choice(
-            name='{} ({})'.format(
-                settings_info[0], settings_type[settings_info[0]]
-            ), value=str(settings_info[0])
+            name="{} ({})".format(
+                settings_info[0], settings_type[settings_info[0]]),
+            value=str(settings_info[0]),
         )
-        for settings_info in settings_info if current.lower()
-        in settings_info[0].lower()
+        for settings_info in settings_info
+        if current.lower() in settings_info[0].lower()
     ][:25]
 
 
@@ -244,11 +235,11 @@ async def get_random_quote(testmode=False):
         return None
     if testmode:
         row_id = row_id[0]
-        logger.debug(f'Got `row_id`: {row_id}')
+        logger.debug(f"Got `row_id`: {row_id}")
         quote = await db_helper.get_output_by_rowid(
             envs.quote_db_schema,
             rowid=row_id,
-            fields_out=('rowid', 'uuid', 'quote_text', 'datetime')
+            fields_out=("rowid", "uuid", "quote_text", "datetime"),
         )
         return quote
     random_quote = await db_helper.get_random_left_exclude_output(
@@ -553,66 +544,59 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
 
 
 class Quotes(commands.Cog):
-    'Administer or post quotes'
+    "Administer or post quotes"
 
     def __init__(self, bot):
         self.bot = bot
         super().__init__()
 
     group = discord.app_commands.Group(
-        name="quote", description=locale_str(
-            I18N.t('quote.commands.quote.cmd')
-        )
+        name="quote", description=locale_str(I18N.t("quote.commands.quote.cmd"))
     )
 
     server_group = discord.app_commands.Group(
-        name="server_update", description=locale_str(
-            I18N.t('quote.commands.server_update.cmd')
-        ),
-        parent=group
+        name="server_update",
+        description=locale_str(I18N.t("quote.commands.server_update.cmd")),
+        parent=group,
     )
 
     autopost_group = discord.app_commands.Group(
         name="autopost",
-        description=locale_str(
-            I18N.t('quote.commands.autopost.cmd')
-        ),
-        parent=group
+        description=locale_str(I18N.t("quote.commands.autopost.cmd")),
+        parent=group,
     )
 
     settings_group = discord.app_commands.Group(
         name="settings",
-        description=locale_str(
-            I18N.t('quote.commands.settings.cmd')
-        ),
-        parent=group
+        description=locale_str(I18N.t("quote.commands.settings.cmd")),
+        parent=group,
     )
 
-    @group.command(
-        name="post", description=locale_str(I18N.t('quote.commands.post.cmd'))
+    @ group.command(
+        name="post", description=locale_str(I18N.t("quote.commands.post.cmd"))
     )
-    @describe(
-        quote_in=I18N.t('quote.commands.post.desc.number')
-    )
+    @ describe(quote_in=I18N.t("quote.commands.post.desc.number"))
+    @ describe(quote_in=I18N.t("quote.commands.post.desc.number"))
     async def post(
-        self, interaction: discord.Interaction,
+        self,
+        interaction: discord.Interaction,
         quote_in: str = None,
         public: typing.Literal[
-            I18N.t('common.literal_yes_no.lit_yes'),
-            I18N.t('common.literal_yes_no.lit_no')
-        ] = I18N.t('common.literal_yes_no.lit_no')
+            I18N.t("common.literal_yes_no.lit_yes"),
+            I18N.t("common.literal_yes_no.lit_no"),
+        ] = I18N.t("common.literal_yes_no.lit_no"),
     ):
-        '''
+        """
         Post quotes
-        '''
-        if public == I18N.t('common.literal_yes_no.lit_yes'):
+        """
+        if public == I18N.t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
-            logger.debug('No quote number given, posting random quote')
+            logger.debug("No quote number given, posting random quote")
             await post_random_quote(interaction, _ephemeral)
             return
         elif quote_in:
@@ -736,10 +720,10 @@ class Quotes(commands.Cog):
             )
             return
         quote = quote_from_db[0]
-        logger.debug(f'quote is: {quote}')
+        logger.debug(f"quote is: {quote}")
         confirm_buttons = ConfirmButtons(
-            yes_label=I18N.t('common.literal_yes_no.lit_yes'),
-            no_label=I18N.t('common.literal_yes_no.lit_no')
+            yes_label=I18N.t("common.literal_yes_no.lit_yes"),
+            no_label=I18N.t("common.literal_yes_no.lit_no"),
         )
         paginated = []
         msg = ""
@@ -809,17 +793,16 @@ class Quotes(commands.Cog):
                     "quote.commands.delete.msg_confirm_delete",
                     quote_num=quote["rowid"],
                 ),
-                ephemeral=True
+                ephemeral=True,
             )
         elif False in btn_values:
             await interaction.followup.send(
-                I18N.t('quote.commands.delete.msg_confirm_not_delete'),
-                ephemeral=True
+                I18N.t("quote.commands.delete.msg_confirm_not_delete"),
+                ephemeral=True,
             )
         else:
             await interaction.followup.send(
-                I18N.t('quote.commands.delete.msg_fail'),
-                ephemeral=True
+                I18N.t("quote.commands.delete.msg_fail"), ephemeral=True
             )
 
     @ commands.is_owner()
@@ -827,18 +810,11 @@ class Quotes(commands.Cog):
         name="count", description=locale_str(I18N.t("quote.commands.count.cmd"))
     )
     async def quote_count(self, interaction: discord.Interaction):
-        'Count the number of quotes available'
+        "Count the number of quotes available"
         await interaction.response.defer()
-        quote_count = len(
-            await db_helper.get_row_ids(
-                envs.quote_db_schema
-            )
-        )
+        quote_count = len(await db_helper.get_row_ids(envs.quote_db_schema))
         await interaction.followup.send(
-            I18N.t(
-                'quote.commands.count.msg_confirm',
-                num_quotes=quote_count
-            )
+            I18N.t("quote.commands.count.msg_confirm", num_quotes=quote_count)
         )
         return
 
@@ -916,10 +892,8 @@ class Quotes(commands.Cog):
         )
         if quote_in is None:
             await interaction.followup.send(
-                I18N.t(
-                    'quote.commands.list.msg_nonexisting_quote'
-                ),
-                ephemeral=_ephemeral
+                I18N.t("quote.commands.list.msg_nonexisting_quote"),
+                ephemeral=_ephemeral,
             )
             return
         elif quote_in is False:
@@ -997,25 +971,24 @@ class Quotes(commands.Cog):
         """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema,
-            select=('setting', 'value')
+            template_info=envs.quote_db_settings_schema, select=(
+                "setting", "value")
         )
         for setting in enumerate(settings_in_db):
             object = None
-            if re.match(r'\d{19,22}', setting[1]['value']):
+            if re.match(r"\d{19,22}", setting[1]["value"]):
                 object = discord_commands.get_user_channel_role_id(
-                    setting[1]['value']
-                )
+                    setting[1]["value"])
                 if object is not None:
-                    settings_in_db[setting[0]]['value'] =\
-                        f'{object.name} ({object.id})'
+                    settings_in_db[setting[0]]["value"] = f"{
+                        object.name} ({object.id})"
         headers_settings = {
-            'setting': I18N.t('common.settings.setting'),
-            'value': I18N.t('common.settings.value')
+            "setting": I18N.t("common.settings.setting"),
+            "value": I18N.t("common.settings.value"),
         }
-        out = '## {}\n```{}```'.format(
-            I18N.t('stats.commands.list.stats_msg_out.sub_settings'),
-            tabulate(settings_in_db, headers=headers_settings)
+        out = "## {}\n```{}```".format(
+            I18N.t("stats.commands.list.stats_msg_out.sub_settings"),
+            tabulate(settings_in_db, headers=headers_settings),
         )
         await interaction.followup.send(content=out, ephemeral=True)
 
@@ -1024,15 +997,14 @@ class Quotes(commands.Cog):
     @ settings_group.command(
         name="change", description=locale_str(I18N.t("common.settings.change_settings"))
     )
-    @describe(
-        name_of_setting=I18N.t('common.settings.name_of_setting'),
-        value_in=I18N.t('common.settings.value_in')
+    @ describe(
+        name_of_setting=I18N.t("common.settings.name_of_setting"),
+        value_in=I18N.t("common.settings.value_in"),
     )
     async def change_setting(
-        self, interaction: discord.Interaction, name_of_setting: str,
-        value_in: str
+        self, interaction: discord.Interaction, name_of_setting: str, value_in: str
     ):
-        '''
+        """
         Change a setting for this cog
 
         Parameters
@@ -1041,37 +1013,36 @@ class Quotes(commands.Cog):
             The names of the role to change (default: None)
         value_in: str/role
             The value of the settings (default: None)
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema,
-            select=('setting', 'value')
+            template_info=envs.quote_db_settings_schema, select=(
+                "setting", "value")
         )
         settings_from_db = {}
         for setting in settings_in_db:
-            settings_from_db[setting['setting']] = setting['value']
-        logger.debug(f'settings_from_db:\n{pformat(settings_from_db)}')
-        settings_type = envs.quote_db_settings_schema['type_checking']
+            settings_from_db[setting["setting"]] = setting["value"]
+        logger.debug(f"settings_from_db:\n{pformat(settings_from_db)}")
+        settings_type = envs.quote_db_settings_schema["type_checking"]
         setting_type = settings_type[name_of_setting]
-        if setting_type == 'bool':
+        if setting_type == "bool":
             try:
                 value_in = eval(str(value_in).capitalize())
             except NameError as _error:
-                logger.error(f'Invalid input for `value_in`: {_error}')
-                await interaction.followup.send(I18N.t(
-                    'stats.setting_input_reply'
-                ))
+                logger.error(f"Invalid input for `value_in`: {_error}")
+                await interaction.followup.send(I18N.t("stats.setting_input_reply"))
                 return
-        if setting_type == 'role_id':
+        if setting_type == "role_id":
             value_obj = discord_commands.get_user_channel_role_name(value_in)
             value_in = value_obj.id
-            setting_type = 'int'
-        if name_of_setting == 'autopost_time':
-            time_out = datetime.strptime(value_in, '%H:%M:%S').astimezone().time()
+            setting_type = "int"
+        if name_of_setting == "autopost_time":
+            time_out = datetime.strptime(
+                value_in, "%H:%M:%S").astimezone().time()
             await db_helper.update_fields(
                 template_info=envs.quote_db_settings_schema,
-                where=[('setting', name_of_setting)],
-                updates=[('value', str(time_out))]
+                where=[("setting", name_of_setting)],
+                updates=[("value", str(time_out))],
             )
             # Fetch new time and update interval
             QUOTE_AUTOPOST_TIME = await get_autopost_time()
@@ -1079,60 +1050,53 @@ class Quotes(commands.Cog):
                 time=time(
                     hour=int(QUOTE_AUTOPOST_TIME.group(1)),
                     minute=int(QUOTE_AUTOPOST_TIME.group(2)),
-                    tzinfo=config.timezone
+                    tzinfo=config.timezone,
                 )
             )
-        logger.debug(f'`value_in` is {value_in} ({type(value_in)})')
+        logger.debug(f"`value_in` is {value_in} ({type(value_in)})")
         logger.debug(
-            f'`settings_type` is {settings_type[name_of_setting]} '
-            f'({type(settings_type[name_of_setting])})'
+            f"`settings_type` is {settings_type[name_of_setting]} "
+            f"({type(settings_type[name_of_setting])})"
         )
-        if type(value_in) is eval(setting_type) and\
-                name_of_setting != 'autopost_time':
+        if type(value_in) is eval(setting_type) and name_of_setting != "autopost_time":
             await db_helper.update_fields(
                 template_info=envs.quote_db_settings_schema,
-                where=[('setting', name_of_setting)],
-                updates=[('value', value_in)]
+                where=[("setting", name_of_setting)],
+                updates=[("value", value_in)],
             )
         await interaction.followup.send(
-            content=I18N.t('quote.commands.settings.change_confirmed'),
-            ephemeral=True
+            content=I18N.t("quote.commands.settings.change_confirmed"), ephemeral=True
         )
         Quotes.task_autopost.restart()
         return
 
-    @commands.is_owner()
-    @discord.app_commands.autocomplete(
-        setting_in=env_settings_autocomplete
+    @ commands.is_owner()
+    @ discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
+    @ settings_group.command(
+        name="add", description=locale_str(I18N.t("common.settings.add_setting"))
     )
-    @settings_group.command(
-        name='add',
-        description=locale_str(I18N.t('common.settings.add_setting'))
-    )
-    @describe(
-        setting_in=I18N.t('common.settings.setting'),
-        value_in=I18N.t('common.settings.value'),
+    @ describe(
+        setting_in=I18N.t("common.settings.setting"),
+        value_in=I18N.t("common.settings.value"),
     )
     async def add_setting(
-        self, interaction: discord.Interaction,
-        setting_in: str, value_in: str
+        self, interaction: discord.Interaction, setting_in: str, value_in: str
     ):
-        '''
+        """
         Add a setting for this cog
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema,
-            select=('setting', 'value')
+            template_info=envs.quote_db_settings_schema, select=(
+                "setting", "value")
         )
         settings_db_json = file_io.make_db_output_to_json(
-            ['setting', 'value'],
-            settings_in_db
+            ["setting", "value"], settings_in_db
         )
-        settings_types = envs.quote_db_settings_schema['type_checking']
-        logger.debug('settings_db_json is `{}`'.format(settings_db_json))
-        logger.debug(f'Value is {value_in}')
-        if value_in.lower() in ['true', 'false']:
+        settings_types = envs.quote_db_settings_schema["type_checking"]
+        logger.debug("settings_db_json is `{}`".format(settings_db_json))
+        logger.debug(f"Value is {value_in}")
+        if value_in.lower() in ["true", "false"]:
             value_in = value_in.capitalize()
             value_in_check = type(
                 eval("{}({})".format(settings_types[setting_in], value_in))
@@ -1149,62 +1113,58 @@ class Quotes(commands.Cog):
                         use_external_emojis=True,
                         send_messages_in_threads=False,
                         use_external_stickers=True,
-                        create_polls=False
+                        create_polls=False,
                     ),
                     _guild.me: discord.PermissionOverwrite(
-                        send_messages=True,
-                        read_messages=True
-                    )
+                        send_messages=True, read_messages=True
+                    ),
                 }
                 channel_object = await discord_commands.create_missing_channel(
-                    channel=value_in, channel_name=value_in,
-                    topic=I18N.t('quote.commands.settings.add_channel_topic'),
-                    overwrites=overwrites
+                    channel=value_in,
+                    channel_name=value_in,
+                    topic=I18N.t("quote.commands.settings.add_channel_topic"),
+                    overwrites=overwrites,
                 )
             value_in = channel_object.id
             value_in_check = type(value_in)
         else:
             value_in_check = type(value_in)
-        logger.debug(f'Value type is {value_in_check}')
-        logger.debug(f'Setting type is {eval(settings_types[setting_in])}')
-        if settings_db_json is not None and\
-                setting_in in settings_db_json:
+        logger.debug(f"Value type is {value_in_check}")
+        logger.debug(f"Setting type is {eval(settings_types[setting_in])}")
+        if settings_db_json is not None and setting_in in settings_db_json:
             await interaction.followup.send(
-                content=I18N.t(
-                    'quote.commands.settings.add_setting_exist'
-                ),
-                ephemeral=True
+                content=I18N.t("quote.commands.settings.add_setting_exist"),
+                ephemeral=True,
             )
             return
         try:
             if value_in_check is not eval(settings_types[setting_in]):
                 await interaction.followup.send(
                     content=I18N.t(
-                        'quote.commands.settings.add_type_incorrect',
-                        value_in=value_in, value_type=type(value_in),
-                        value_type_check=settings_types[setting_in]
+                        "quote.commands.settings.add_type_incorrect",
+                        value_in=value_in,
+                        value_type=type(value_in),
+                        value_type_check=settings_types[setting_in],
                     ),
-                    ephemeral=True
+                    ephemeral=True,
                 )
                 return
-            elif value_in_check is eval(settings_types[setting_in]) and\
-                    setting_in:
+            elif value_in_check is eval(settings_types[setting_in]) and setting_in:
                 await db_helper.insert_many_all(
                     template_info=envs.quote_db_settings_schema,
-                    inserts=[(setting_in, value_in)]
+                    inserts=[(setting_in, value_in)],
                 )
                 await interaction.followup.send(
-                    content=I18N.t('quote.commands.settings.add_confirmed'),
-                    ephemeral=True
+                    content=I18N.t("quote.commands.settings.add_confirmed"),
+                    ephemeral=True,
                 )
                 sleep(3)
                 Quotes.task_autopost.restart()
                 return
         except Exception as error:
-            logger.error(f'Something went wrong: {error}')
+            logger.error(f"Something went wrong: {error}")
             await interaction.followup.send(
-                content=I18N.t('common.something_wrong', error=error),
-                ephemeral=True
+                content=I18N.t("common.something_wrong", error=error), ephemeral=True
             )
             return
 
@@ -1217,98 +1177,84 @@ class Quotes(commands.Cog):
     async def remove_setting(self, interaction: discord.Interaction, setting_in: str):
         """
         Remove a setting for this cog
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         try:
             await db_helper.del_row_by_AND_filter(
                 template_info=envs.quote_db_settings_schema,
-                where=[('setting', setting_in)]
+                where=[("setting", setting_in)],
             )
             await interaction.followup.send(
-                content=I18N.t('quote.commands.settings.remove_confirmed'),
-                ephemeral=True
+                content=I18N.t("quote.commands.settings.remove_confirmed"),
+                ephemeral=True,
             )
             Quotes.task_autopost.restart()
         except Exception as error:
-            logger.error(f'Error when removing setting: {error}')
+            logger.error(f"Error when removing setting: {error}")
             await interaction.followup.send(
                 content=I18N.t(
-                    'quote.commands.settings.remove_failed',
-                    error=error
-                ),
-                ephemeral=True
+                    "quote.commands.settings.remove_failed", error=error),
+                ephemeral=True,
             )
         return
 
-    @server_group.command(
-        name='start',
-        description=locale_str(I18N.t(
-            'quote.commands.refresh_quote.start.cmd'
-        ))
+    @ server_group.command(
+        name="start",
+        description=locale_str(
+            I18N.t("quote.commands.refresh_quote.start.cmd")),
     )
-    async def refresh_quote_json_start(
-        self, interaction: discord.Interaction
-    ):
+    async def refresh_quote_json_start(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        logger.info('Starting quote refreshing for the webserver')
+        logger.info("Starting quote refreshing for the webserver")
         Quotes.task_update_quote.start()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
-            where=[
-                ('cog', 'quotes'),
-                ('task', 'server_quote')
-            ],
-            updates=('status', 'started')
+            where=[("cog", "quotes"), ("task", "server_quote")],
+            updates=("status", "started"),
         )
         await interaction.followup.send(
-            I18N.t('quote.commands.refresh_quote.start.msg_confirm_ok')
+            I18N.t("quote.commands.refresh_quote.start.msg_confirm_ok")
         )
 
-    @server_group.command(
-        name='stop',
-        description=locale_str(I18N.t('quote.commands.refresh_quote.stop.cmd'))
+    @ server_group.command(
+        name="stop",
+        description=locale_str(
+            I18N.t("quote.commands.refresh_quote.stop.cmd")),
     )
-    async def refresh_quote_json_stop(
-        self, interaction: discord.Interaction
-    ):
+    async def refresh_quote_json_stop(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        logger.info('Stopping quote refreshing for the webserver')
+        logger.info("Stopping quote refreshing for the webserver")
         Quotes.task_update_quote.cancel()
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
-                ('cog', 'quotes'),
-                ('task', 'server_quote'),
+                ("cog", "quotes"),
+                ("task", "server_quote"),
             ],
-            updates=('status', 'stopped')
+            updates=("status", "stopped"),
         )
         await interaction.followup.send(
-            I18N.t('quote.commands.refresh_quote.stop.msg_confirm_ok')
+            I18N.t("quote.commands.refresh_quote.stop.msg_confirm_ok")
         )
 
-    @server_group.command(
-        name='restart',
-        description=locale_str(I18N.t(
-            'quote.commands.refresh_quote.restart.cmd'
-        ))
+    @ server_group.command(
+        name="restart",
+        description=locale_str(
+            I18N.t("quote.commands.refresh_quote.restart.cmd")),
     )
-    async def refresh_quote_json_restart(
-        self, interaction: discord.Interaction
-    ):
+    async def refresh_quote_json_restart(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        logger.info('Quotes server restarted')
+        logger.info("Quotes server restarted")
         Quotes.task_update_quote.restart()
         await interaction.followup.send(
-            I18N.t('quote.commands.refresh_quote.restart.msg_confirm_ok')
+            I18N.t("quote.commands.refresh_quote.restart.msg_confirm_ok")
         )
 
-    @autopost_group.command(
-        name='start',
-        description=locale_str(I18N.t('quote.commands.autopost.start.cmd'))
+    @ autopost_group.command(
+        name="start",
+        description=locale_str(I18N.t("quote.commands.autopost.start.cmd")),
     )
-    async def autopost_quote_start(
-        self, interaction: discord.Interaction
-    ):
+    async def autopost_quote_start(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         logger.info("Starting autopost quote")
         if Quotes.task_autopost.is_running():
@@ -1332,13 +1278,10 @@ class Quotes(commands.Cog):
                 )
             )
 
-    @autopost_group.command(
-        name='stop',
-        description=locale_str(I18N.t('quote.commands.autopost.stop.cmd'))
+    @ autopost_group.command(
+        name="stop", description=locale_str(I18N.t("quote.commands.autopost.stop.cmd"))
     )
-    async def autopost_quote_stop(
-        self, interaction: discord.Interaction
-    ):
+    async def autopost_quote_stop(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         logger.info("Stopping autopost")
         if not Quotes.task_autopost.is_running():
@@ -1363,61 +1306,56 @@ class Quotes(commands.Cog):
                 "Autoposting stoppet."
             )
 
-    @autopost_group.command(
-        name='restart',
-        description=locale_str(I18N.t('quote.commands.autopost.restart.cmd'))
+    @ autopost_group.command(
+        name="restart",
+        description=locale_str(I18N.t("quote.commands.autopost.restart.cmd")),
     )
-    async def autopost_quote_restart(
-        self, interaction: discord.Interaction
-    ):
+    async def autopost_quote_restart(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        logger.info('Autopost restarted')
+        logger.info("Autopost restarted")
         Quotes.task_autopost.restart()
         await interaction.followup.send(
             I18N.t(
-                'quote.commands.autopost.restart.msg_confirm_ok',
-                time=Quotes.task_autopost.next_iteration.astimezone()
+                "quote.commands.autopost.restart.msg_confirm_ok",
+                time=Quotes.task_autopost.next_iteration.astimezone(),
             )
         )
 
     # Tasks
-    @tasks.loop(
-        minutes=config.env.int('QUOTE_LOOP', default=2)
-    )
+    @ tasks.loop(minutes=config.env.int("QUOTE_LOOP", default=2))
     async def task_update_quote():
-        '''
+        """
         Update quotes.json which is used by the web server
-        '''
+        """
         quote_file = envs.quotes_json_file
         quote_file_exist = file_io.file_exist(quote_file)
         if quote_file_exist is True:
             quote_file_in = file_io.read_json(quote_file)
-            logger.debug('quote_file_in: {}'.format(quote_file_in))
+            logger.debug("quote_file_in: {}".format(quote_file_in))
             # Read json, check timestamp
-            _now = await get_dt(format='epoch')
-            logger.debug('_now: {}'.format(_now))
+            _now = await get_dt(format="epoch")
+            logger.debug("_now: {}".format(_now))
             # If older than 2m
-            logger.debug('timestamp + 120: {}'.format(
-                int(quote_file_in['timestamp']) + 120
-            ))
+            logger.debug(
+                "timestamp + 120: {}".format(
+                    int(quote_file_in["timestamp"]) + 120)
+            )
             # If newer than 2m
-            if _now > (int(quote_file_in['timestamp']) + 120):
+            if _now > (int(quote_file_in["timestamp"]) + 120):
                 # Reload from database
                 rand_quote = await db_helper.get_one_random_output(
                     template_info=envs.quote_db_schema,
                 )
                 # Write to quote.json
                 quote_file_in["quote"] = rand_quote
-                quote_file_in["timestamp"] = await get_dt(
-                    format='epoch'
-                )
+                quote_file_in["timestamp"] = await get_dt(format="epoch")
                 file_io.write_json(quote_file, quote_file_in)
                 return
             else:
-                logger.debug('quote_file is newer than 2 minutes')
+                logger.debug("quote_file is newer than 2 minutes")
                 return
         elif quote_file_exist is False:
-            logger.debug('quote_file does not exist')
+            logger.debug("quote_file does not exist")
             # Get quote from database
             rand_quote = await db_helper.get_one_random_output(
                 template_info=envs.quote_db_schema,
@@ -1425,32 +1363,31 @@ class Quotes(commands.Cog):
             quote_to_file = envs.quote_json_template.copy()
             # Add quote and timestamp to quote_to_file
             quote_to_file["quote"] = rand_quote[0]
-            quote_to_file["timestamp"] = await get_dt(format='epoch')
-            logger.debug('Populated quote_to_file: {}'.format(quote_to_file))
+            quote_to_file["timestamp"] = await get_dt(format="epoch")
+            logger.debug("Populated quote_to_file: {}".format(quote_to_file))
             # Write to quote.json
             file_io.write_json(quote_file, quote_to_file)
             return
 
-    @tasks.loop()
+    @ tasks.loop()
     async def task_autopost():
-        logger.info(f'Running autopost task at {QUOTE_AUTOPOST_TIME}')
+        logger.info(f"Running autopost task at {QUOTE_AUTOPOST_TIME}")
         # Get settings
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema,
-            select=('setting', 'value')
+            template_info=envs.quote_db_settings_schema, select=(
+                "setting", "value")
         )
         settings_db_json = file_io.make_db_output_to_json(
-            ['setting', 'value'],
-            settings_in_db
+            ["setting", "value"], settings_in_db
         )
-        logger.info(f'Got settings: {settings_db_json}')
-        if settings_db_json['channel'] is None:
+        logger.info(f"Got settings: {settings_db_json}")
+        if settings_db_json["channel"] is None:
             await discord_commands.log_to_bot_channel(
-                content_in='Channel not set for autoposting quotes'
+                content_in="Channel not set for autoposting quotes"
             )
             return
         else:
-            channel = settings_db_json['channel']
+            channel = settings_db_json["channel"]
         # Create the channel if it does not exist
         _guild = discord_commands.get_current_guild()
         overwrites = {
@@ -1461,38 +1398,38 @@ class Quotes(commands.Cog):
                 use_external_emojis=True,
                 send_messages_in_threads=False,
                 use_external_stickers=True,
-                create_polls=False
+                create_polls=False,
             ),
             _guild.me: discord.PermissionOverwrite(
-                send_messages=True,
-                read_messages=True
-            )
+                send_messages=True, read_messages=True
+            ),
         }
         await discord_commands.create_missing_channel(
-            channel, channel_name='quotes',
-            topic='Posting quotes', overwrites=overwrites
+            channel,
+            channel_name="quotes",
+            topic="Posting quotes",
+            overwrites=overwrites,
         )
         # Load quote from database
         # If in testmode, get the same quote every time
         rand_quote = await get_random_quote(testmode=args.testmode)
-        logger.debug(f'rand_quote is `{rand_quote}`')
+        logger.debug(f"rand_quote is `{rand_quote}`")
         if len(rand_quote) <= 0:
             logger.debug(
-                'No quotes in db, posting to bot log and disabling task'
-            )
+                "No quotes in db, posting to bot log and disabling task")
             await db_helper.update_fields(
                 template_info=envs.tasks_db_schema,
                 where=[
-                    ('cog', 'quotes'),
-                    ('task', 'autopost'),
+                    ("cog", "quotes"),
+                    ("task", "autopost"),
                 ],
-                updates=('status', 'stopped')
+                updates=("status", "stopped"),
             )
             Quotes.task_autopost.stop()
             await discord_commands.log_to_bot_channel(
                 # TODO i18n
-                content_in='No quotes available for autoposting in db, '
-                'disabling autopost task'
+                content_in="No quotes available for autoposting in db, "
+                "disabling autopost task"
             )
             return
         logger.debug("Got quote, posting it")
@@ -1672,28 +1609,25 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
 
 async def setup(bot):
     # Create necessary databases before starting
-    cog_name = 'quote'
+    cog_name = "quote"
     logger.info(envs.COG_STARTING.format(cog_name))
-    logger.debug('Checking db')
+    logger.debug("Checking db")
 
     # Convert json to sqlite db-files if exists
     # Define inserts
     quote_inserts = None
     # Populate the inserts if json file exist
     if file_io.file_exist(envs.quote_file):
-        logger.debug('Found old json file')
+        logger.debug("Found old json file")
         quote_inserts = await db_helper.json_to_db_inserts(cog_name)
 
     quote_prep_is_ok = await db_helper.prep_table(
-        table_in=envs.quote_db_schema,
-        inserts=quote_inserts
+        table_in=envs.quote_db_schema, inserts=quote_inserts
     )
-    await db_helper.prep_table(
-        table_in=envs.quote_db_log_schema
-    )
+    await db_helper.prep_table(table_in=envs.quote_db_log_schema)
     await db_helper.prep_table(
         table_in=envs.quote_db_settings_schema,
-        inserts=envs.quote_db_settings_schema['inserts']
+        inserts=envs.quote_db_settings_schema["inserts"],
     )
     await db_helper.prep_table(table_in=envs.quote_content_db_schema)
     await db_helper.prep_table(table_in=envs.quote_img_db_schema)
@@ -1701,8 +1635,8 @@ async def setup(bot):
     # Change channel name to id
     await db_helper.db_single_channel_name_to_id(
         template_info=envs.quote_db_settings_schema,
-        channel_row='setting',
-        channel_col='value'
+        channel_row="setting",
+        channel_col="value",
     )
 
     # Delete old json files if they exist
@@ -1710,75 +1644,61 @@ async def setup(bot):
         file_io.remove_file(envs.quote_file)
     if quote_prep_is_ok and file_io.file_size(envs.quote_log_file):
         file_io.remove_file(envs.quote_log_file)
-    logger.debug('Registering cog to bot')
+    logger.debug("Registering cog to bot")
     await bot.add_cog(Quotes(bot))
 
     task_list = await db_helper.get_output(
         template_info=envs.tasks_db_schema,
-        select=('task', 'status'),
-        where=('cog', 'quotes')
+        select=("task", "status"),
+        where=("cog", "quotes"),
     )
-    _tasks = ['autopost']
+    _tasks = ["autopost"]
     inserts = []
     for task in _tasks:
-        if task not in [_['task'] for _ in task_list]:
-            inserts.append(('quotes', task, 'stopped'))
+        if task not in [_["task"] for _ in task_list]:
+            inserts.append(("quotes", task, "stopped"))
     if len(inserts) > 0:
         await db_helper.insert_many_all(
-            template_info=envs.tasks_db_schema,
-            inserts=inserts
+            template_info=envs.tasks_db_schema, inserts=inserts
         )
     for task in task_list:
-        if task['task'] == 'server_quote':
-            if task['status'] == 'started':
+        if task["task"] == "server_quote":
+            if task["status"] == "started":
                 logger.debug(
-                    '`{}` is set as `{}`, starting...'.format(
-                        task['task'], task['status']
+                    "`{}` is set as `{}`, starting...".format(
+                        task["task"], task["status"]
                     )
                 )
                 Quotes.task_update_quote.start()
-            elif task['status'] == 'stopped':
-                logger.debug(
-                    '`{}` is set as `{}`'.format(
-                        task['task'], task['status']
-                    )
-                )
+            elif task["status"] == "stopped":
+                logger.debug("`{}` is set as `{}`".format(
+                    task["task"], task["status"]))
                 Quotes.task_update_quote.cancel()
-        if task['task'] == 'autopost':
-            if task['status'] == 'started':
+        if task["task"] == "autopost":
+            if task["status"] == "started":
                 logger.debug(
-                    '`{}` is set as `{}`, starting...'.format(
-                        task['task'], task['status']
+                    "`{}` is set as `{}`, starting...".format(
+                        task["task"], task["status"]
                     )
                 )
                 Quotes.task_autopost.start()
-            elif task['status'] == 'stopped':
-                logger.debug(
-                    '`{}` is set as `{}`'.format(
-                        task['task'], task['status']
-                    )
-                )
+            elif task["status"] == "stopped":
+                logger.debug("`{}` is set as `{}`".format(
+                    task["task"], task["status"]))
                 Quotes.task_autopost.cancel()
 
     global QUOTE_AUTOPOST_TIME
     QUOTE_AUTOPOST_TIME = await get_autopost_time()
-    logger.debug('`QUOTE_AUTOPOST_TIME` is: {}'.format(QUOTE_AUTOPOST_TIME.group(0)))
+    logger.debug("`QUOTE_AUTOPOST_TIME` is: {}".format(
+        QUOTE_AUTOPOST_TIME.group(0)))
     # Parse time from QUOTE_AUTOPOST_TIME
     hour = int(QUOTE_AUTOPOST_TIME.group(1))
     minute = int(QUOTE_AUTOPOST_TIME.group(2))
-    logger.debug(
-        'Parsed hour: {}, minute: {}'.format(hour, minute)
-    )
+    logger.debug("Parsed hour: {}, minute: {}".format(hour, minute))
     # Set the interval for the loop
     Quotes.task_autopost.change_interval(
-        time=time(
-            hour=hour, minute=minute, tzinfo=config.timezone
-        )
+        time=time(hour=hour, minute=minute, tzinfo=config.timezone)
     )
-    logger.debug(
-        'Changed interval to: {}:{}'.format(
-            hour, minute
-        )
-    )
+    logger.debug("Changed interval to: {}:{}".format(hour, minute))
     # Start the loop if needed
     Quotes.task_autopost.restart()
