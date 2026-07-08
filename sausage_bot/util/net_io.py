@@ -884,7 +884,8 @@ async def get_page_hash(url, debug=False):
         }
         with YoutubeDL(ydl_opts) as ydl:
             yt_info = ydl.extract_info(url)
-        desc = yt_info['fulltitle']
+        if yt_info is not None:
+            desc = yt_info['fulltitle']
     if desc is None and 'open.spotify.com' in url:
         logger.debug(f'Trying spotify check on {url}')
         try:

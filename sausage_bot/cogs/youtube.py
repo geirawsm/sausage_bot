@@ -506,7 +506,7 @@ class Youtube(commands.Cog):
                 )
             else:
                 await feeds_core.process_links_for_posting_or_editing(
-                    'youtube', UUID, FEED_POSTS, CHANNEL
+                    FEED_NAME, 'youtube', UUID, FEED_POSTS, CHANNEL
                 )
         logger.info('Done with posting')
         return
