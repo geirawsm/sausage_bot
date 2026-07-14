@@ -4,7 +4,10 @@
 
 import discord
 from discord.ext import commands, tasks
-from discord.app_commands import locale_str, describe
+from discord.app_commands import (
+    locale_str,
+    describe,
+)
 from discord.utils import get
 import uuid
 from tabulate import tabulate

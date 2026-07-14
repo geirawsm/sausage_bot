@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'file_io: File handling functions'
+"file_io: File handling functions"
+
 import os
 import stat
 import json
@@ -18,32 +19,32 @@ def remove_file(filename):
 
 
 def write_file(filename, content_to_write, append=False):
-    '''
+    """
     Write `content_to_write` to the file `filename`
     Appends instead if set to True
-    '''
+    """
     if not isinstance(filename, str):
         filename = str(filename)
     ensure_file(filename)
     if append:
-        with open(filename, 'a') as fout:
+        with open(filename, "a") as fout:
             fout.write(str(content_to_write))
             return True
     else:
-        with open(filename, 'w') as fout:
+        with open(filename, "w") as fout:
             fout.write(str(content_to_write))
             return True
 
 
 def import_file_as_list(file_in):
-    '''
+    """
     Open `file_in`, import it as a list and return ut.
     If this fails, return None.
-    '''
+    """
     file_in = str(file_in)
-    ensure_file(file_in, '[]')
+    ensure_file(file_in, "[]")
     try:
-        with open(file_in, 'r', encoding='utf-8') as f:
+        with open(file_in, "r", encoding="utf-8") as f:
             list_out = eval(str(f.read()))
         return list_out
     except Exception as e:
@@ -52,11 +53,11 @@ def import_file_as_list(file_in):
 
 
 def add_to_list(list_file_in, item_add):
-    'Add `item_add` to a list in file `list_file_in`'
+    "Add `item_add` to a list in file `list_file_in`"
     list_file_in = str(list_file_in)
     if not isinstance(item_add, (str, float, int)):
         return None
-    ensure_file(list_file_in, '[]')
+    ensure_file(list_file_in, "[]")
     opened_list = import_file_as_list(list_file_in)
     opened_list.append(item_add)
     write_file(list_file_in, str(opened_list))
@@ -64,14 +65,14 @@ def add_to_list(list_file_in, item_add):
 
 
 def read_json(json_file):
-    '''
+    """
     Open `json_file` as a JSON and convert to as a dict.
     Returns _file as a dict or an empty dict.
-    '''
+    """
     ensure_file(json_file, {})
     try:
-        with open(json_file, encoding='utf-8') as f:
-            logger.debug('Loaded json file')
+        with open(json_file, encoding="utf-8") as f:
+            logger.debug("Loaded json file")
             return dict(json.load(f))
     except json.JSONDecodeError as e:
         logger.error(f"Error when reading json from {json_file}:\n{e}")
@@ -82,13 +83,13 @@ def read_json(json_file):
 
 
 def read_file(file_in):
-    if str(file_in).split('.')[-1] == 'json':
-        logger.debug('Got a json file')
+    if str(file_in).split(".")[-1] == "json":
+        logger.debug("Got a json file")
         return read_json(file_in)
     else:
         try:
-            with open(file_in, encoding='utf-8') as f:
-                logger.debug('Loaded file')
+            with open(file_in, encoding="utf-8") as f:
+                logger.debug("Loaded file")
                 return f.read()
         except OSError as e:
             logger.error(f"File can't be read {file_in}:\n{e}")
@@ -96,16 +97,16 @@ def read_file(file_in):
 
 
 def write_json(json_file, json_out):
-    'Write `json_out` to `json file`'
-    with open(json_file, 'w') as write_file:
+    "Write `json_out` to `json file`"
+    with open(json_file, "w") as write_file:
         json.dump(json_out, write_file, indent=4, sort_keys=True)
 
 
 def file_size(filename):
-    '''
+    """
     Checks the file size of a file. If it can't find the file it will
     return False
-    '''
+    """
     try:
         _stats = os.stat(filename, follow_symlinks=True)
         return _stats[stat.ST_SIZE]
@@ -114,20 +115,20 @@ def file_size(filename):
 
 
 def folder_size(path_to_folder, human=False):
-    '''
+    """
     Checks the size of files in a folder. If it can't find the folder it will
     return False
-    '''
+    """
     # Check if path exist
-    logger.debug(f'Checking `path_to_folder`: {path_to_folder}')
+    logger.debug(f"Checking `path_to_folder`: {path_to_folder}")
     if file_exist(str(path_to_folder)):
         path_files = os.listdir(path_to_folder)
-        logger.debug(f'Got files: {path_files}')
+        logger.debug(f"Got files: {path_files}")
         temp_size = 0
         for _file in path_files:
-            _size = os.stat(
-                f'{path_to_folder}/{_file}', follow_symlinks=True
-            )[stat.ST_SIZE]
+            _size = os.stat(f"{path_to_folder}/{_file}", follow_symlinks=True)[
+                stat.ST_SIZE
+            ]
             temp_size += _size
         if human:
             return size_in_human(temp_size)
@@ -144,10 +145,10 @@ def size_in_human(num, suffix="B"):
 
 
 def file_exist(filename):
-    '''
+    """
     Checks if the file exist. If it can't find the file it will return
     False
-    '''
+    """
     try:
         os.stat(str(filename), follow_symlinks=True)
         return True
@@ -156,73 +157,69 @@ def file_exist(filename):
 
 
 def file_age(filename):
-    '''
+    """
     Checks the age of a file (today's date - last modified).
     If it can't find the file it will return False
-    '''
+    """
     if not file_size(filename):
         return False
     else:
         m_time = os.path.getmtime(filename)
         now = float(pendulum.now().int_timestamp)
-        logger.debug(f'`now` is {now}')
+        logger.debug(f"`now` is {now}")
         age_in_seconds = int(round(now - m_time, 0))
-        logger.debug(f'`age_in_seconds` is {age_in_seconds}')
+        logger.debug(f"`age_in_seconds` is {age_in_seconds}")
         age = pendulum.duration(seconds=age_in_seconds)
-        logger.debug(
-            'Fil-alder: {}'.format(
-                age.in_words(locale="nb", separator=', ')
-            )
-        )
+        logger.debug("Fil-alder: {}".format(age.in_words(locale="nb", separator=", ")))
         return int(age_in_seconds)
 
 
 def ensure_folder(folder_path: str):
-    '''
+    """
     Create folders in `folder_path` if it doesn't exist
-    '''
+    """
     folder_path = str(folder_path)
     # Make the folders if necessary
     if not os.path.exists(folder_path):
         _dirs = str(folder_path).split(os.sep)
-        _path = ''
+        _path = ""
         for _dir in _dirs:
-            _path += '{}/'.format(_dir)
+            _path += "{}/".format(_dir)
         Path(_path).mkdir(parents=True, exist_ok=True)
 
 
 def ensure_file(file_path_in: str, file_template=False):
-    '''
+    """
     Create file `file_path_in` if it doesn't exist and include the
     `file_template` if provided.
-    '''
+    """
     full_file_path = str(file_path_in).split(os.sep)
-    folder_path = '/'.join(full_file_path[0:-1])
-    folder_path += '/'
+    folder_path = "/".join(full_file_path[0:-1])
+    folder_path += "/"
     file_name = full_file_path[-1]
     # Make the folders if necessary
     if not os.path.exists(file_path_in):
         ensure_folder(folder_path)
     # Ooooh, this is a scary one. Don't overwrite the file unless it's empty
-    logger.debug('{} size: {}'.format(file_name, file_size(file_path_in)))
+    logger.debug("{} size: {}".format(file_name, file_size(file_path_in)))
     # Create the file if it doesn't exist
     if not file_size(file_path_in):
-        logger.debug('File not found, creating: {}'.format(file_path_in))
-        if file_name.split('.')[-1] == 'json':
+        logger.debug("File not found, creating: {}".format(file_path_in))
+        if file_name.split(".")[-1] == "json":
             if file_template:
                 write_json(file_path_in, file_template)
             else:
                 write_json(file_path_in, {})
         else:
-            with open(file_path_in, 'w+') as fout:
+            with open(file_path_in, "w+") as fout:
                 if file_template:
                     fout.write(file_template)
                 else:
-                    fout.write('')
+                    fout.write("")
 
 
 def get_max_item_lengths(headers, dict_in):
-    'Get the maximum lengths for keys in dicts `headers` and `dict_in`'
+    "Get the maximum lengths for keys in dicts `headers` and `dict_in`"
     lengths = {}
     for item in headers:
         lengths[item] = len(item)
@@ -234,10 +231,9 @@ def get_max_item_lengths(headers, dict_in):
 
 
 def check_similarity(
-        input1: str, input2=None, ratio_floor: float = None,
-        ratio_roof: float = None
+    input1: str, input2=None, ratio_floor: float = None, ratio_roof: float = None
 ):
-    '''
+    """
     Check similarities between `input1` and `input2` (str), or `input1` and
     items in `input2` (list). As standard it will check if the similarity
     has a ratio between 95 % and 99.999999999999999999999999995 %. If that
@@ -247,7 +243,7 @@ def check_similarity(
     If `input1` is not a string, it will return None.
     If `input2` is None, or not a string or list, it will return None.
 
-    '''
+    """
 
     def similarity_helper(input1, input2, ratio_floor, ratio_roof):
         ratio = float(SequenceMatcher(a=input1, b=input2).ratio())
@@ -258,30 +254,28 @@ def check_similarity(
             ratio_roof = 0.99999999999999999999999999995
         if ratio_floor <= ratio <= ratio_roof:
             logger.debug(
-                f'These inputs seem similiar (ratio: {ratio}):\n'
-                f'`{input1}` vs `{input2}`'
+                f"These inputs seem similiar (ratio: {ratio}):\n"
+                f"`{input1}` vs `{input2}`"
             )
             return input2
         else:
             logger.debug(
-                f'Not similar, ratio too low or identical (ratio: {ratio}):\n'
-                f'`{input1}` vs `{input2}`'
+                f"Not similar, ratio too low or identical (ratio: {ratio}):\n"
+                f"`{input1}` vs `{input2}`"
             )
             return False
 
     # Stop function if not correct input
     if type(input1) is not str:
-        logger.error('`input1` is not string')
+        logger.error("`input1` is not string")
         return None
     elif input2 is None or not isinstance(input2, (str, list)):
-        logger.error(f'Incorrect input given to `input2`: {input2}')
+        logger.error(f"Incorrect input given to `input2`: {input2}")
         return None
     elif isinstance(input2, list):
         for list_item in input2:
             logger.debug(list_item)
-            _check = similarity_helper(
-                input1, list_item, ratio_floor, ratio_roof
-            )
+            _check = similarity_helper(input1, list_item, ratio_floor, ratio_roof)
             if _check is not False:
                 return _check
         return False
@@ -290,8 +284,8 @@ def check_similarity(
 
 
 def create_necessary_files(file_list):
-    'Get `file_list` (list) and create necessary files before running code'
-    logger.debug('Creating necessary files')
+    "Get `file_list` (list) and create necessary files before running code"
+    logger.debug("Creating necessary files")
     for file in file_list:
         if isinstance(file, tuple):
             ensure_file(file[0], file_template=file[1])
@@ -306,19 +300,19 @@ def create_necessary_files(file_list):
 
 
 def make_db_output_to_json(cols, db_output):
-    '''
+    """
     Make `db_output` into a json file:
 
     json_out = {
         setting1: value1,
         setting2: value2
     }
-    '''
+    """
     # Length check
     if len(db_output) <= 0:
         return None
     if len(cols) != 2:
-        logger.error('Length of `cols` and `db_output` does not match')
+        logger.error("Length of `cols` and `db_output` does not match")
         return None
     json_out = {}
     for item in db_output:
