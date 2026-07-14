@@ -31,6 +31,7 @@ tabulate = "*"
 colorlog = "*"
 httpx = "*"
 numpy = "*"
+rich = "*"
 
 [dev-packages]
 pytest = "*"
@@ -44,4 +45,4 @@ astpretty = "*"
 tabulate = "*"
 
 [requires]
-python_version = "3.12"
+python_version = "3"
