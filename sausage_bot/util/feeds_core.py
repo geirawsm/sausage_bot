@@ -776,7 +776,7 @@ async def log_link(template_info, uuid, feed_link, page_hash):
 
 
 async def process_links_for_posting_or_editing(
-    feed_type: str, uuid, FEED_POSTS, CHANNEL
+    feed_name: str, feed_type: str, uuid, FEED_POSTS, CHANNEL
 ):
     """
     Compare links in `FEED_POSTS` items to posts belonging to `feed` to see
@@ -787,7 +787,8 @@ async def process_links_for_posting_or_editing(
     editing urls with spelling mistakes. If it is similar, but not identical,
     replace the logged link and edit the previous post with the new link.
 
-    `feed`:             Name of the feed to process
+    `feed_name`:        Name of the feed to process
+    `feed_type`:        Should be 'rss', 'youtube' or 'podcast'
     `FEED_POSTS`:       The newly received feed posts
     `CHANNEL`:          Discord channel to post/edit
     """
@@ -857,7 +858,7 @@ async def process_links_for_posting_or_editing(
                     value="[🎧 HØR PÅ EPISODEN 🎧]({})".format(item["link"]),
                     inline=False,
                 )
-                embed.set_author(name=item["feed_name"])
+                embed.set_author(name=feed_name)
                 embed.set_image(url=item["img"])
                 desc_setting = "show_pod_description_in_embed"
                 if (
