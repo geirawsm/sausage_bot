@@ -55,8 +55,6 @@ nb:
     list:
       cmd: Vis sitater
       msg_nonexisting_quote: Quote does not exist
-    server_update:
-      cmd: Oppdater quotes.json for server
     settings:
       cmd: Innstillinger
       change_confirmed: Innstilling endret

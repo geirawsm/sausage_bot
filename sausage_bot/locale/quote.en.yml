@@ -55,8 +55,6 @@ en:
     list:
       cmd: List quotes
       msg_nonexisting_quote: Sitatet eksisterer ikke
-    server_update:
-      cmd: Update quotes.json for server
     settings:
       cmd: Settings
       change_confirmed: Setting changed
