@@ -162,7 +162,7 @@ class ModalQuoteAdd(discord.ui.Modal):
             self.msgs_out = self.quote_dropdown.values
             await interaction.response.send_message(
                 # TODO i17n
-                f"Sitat lagret som nr {self.row_ids}!",
+                f"Sitat lagret som nr {self.row_ids + 1}!",
                 ephemeral=True,
             )
         return
@@ -432,7 +432,7 @@ async def post_random_quote(
 async def post_selected_quote(interaction, _ephemeral, quote_in):
     quote = await db_helper.get_imgs_with_quote(
         envs.quote_db_schema,
-        where=[("quote.rowid", str(quote_in))],
+        where=[("quote.rowid", str(quote_in - 1))],
     )
     quote_out = quote[0]
     if quote_out is None:
@@ -605,7 +605,7 @@ class Quotes(commands.Cog):
         "Edit an existing quote"
         logger.debug(f"quote_in: ({type(quote_in)}) {quote_in}")
         quote_from_db = await db_helper.get_imgs_with_quote(
-            envs.quote_db_schema, where=[("quote.rowid", str(quote_in))]
+            envs.quote_db_schema, where=[("quote.rowid", str(quote_in - 1))]
         )
         quote_from_db = quote_from_db[0]
         logger.debug(f"quote_from_db: {quote_from_db}")
@@ -700,7 +700,7 @@ class Quotes(commands.Cog):
         "Delete an existing quote"
         await interaction.response.defer(ephemeral=True)
         quote_from_db = await db_helper.get_imgs_with_quote(
-            envs.quote_db_schema, where=[("quote.rowid", str(quote_number))]
+            envs.quote_db_schema, where=[("quote.rowid", str(quote_number - 1))]
         )
         logger.debug(f"quote_from_db is: {quote_from_db}")
         if quote_from_db == []:
@@ -822,7 +822,7 @@ class Quotes(commands.Cog):
             logger.debug("Using quote number")
             quote_in = await db_helper.get_imgs_with_quote(
                 envs.quote_db_schema,
-                where=[("quote.rowid", str(quote_number))],
+                where=[("quote.rowid", str(quote_number - 1))],
             )
         # List based on keyword
         elif keyword and quote_number < 0:
