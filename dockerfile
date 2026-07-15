@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 LABEL org.opencontainers.image.authors="geirawsm@pm.me"
 
 WORKDIR /
@@ -6,7 +6,6 @@ WORKDIR /
 COPY / /app/
 WORKDIR /app/
 
-RUN pip install --upgrade pip
 RUN pip install pipenv
 RUN pipenv install --system --deploy --ignore-pipfile
 
@@ -18,11 +17,11 @@ ARG LAST_COMMIT="testcommit"
 ARG LAST_RUN_NUMBER="testrun"
 
 RUN echo \
-    "{\"BRANCH\": \"${BRANCH}\","\
-    "\"LAST_COMMIT_MSG\": \"${LAST_COMMIT_MSG}\","\
-    "\"LAST_COMMIT\": \"${LAST_COMMIT}\","\
-    "\"LAST_RUN_NUMBER\": \"${LAST_RUN_NUMBER}\"}"\
-    > /app/sausage_bot/version.json
+  "{\"BRANCH\": \"${BRANCH}\","\
+  "\"LAST_COMMIT_MSG\": \"${LAST_COMMIT_MSG}\","\
+  "\"LAST_COMMIT\": \"${LAST_COMMIT}\","\
+  "\"LAST_RUN_NUMBER\": \"${LAST_RUN_NUMBER}\"}"\
+  > /app/sausage_bot/version.json
 
 
 # Run bot
