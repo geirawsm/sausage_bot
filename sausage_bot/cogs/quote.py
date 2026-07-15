@@ -43,8 +43,7 @@ async def get_autopost_time():
                 time_out = setting["value"]
                 if time_out in [None, ""]:
                     time_out = "12:00:00"
-                time_out = datetime.strptime(
-                    time_out, "%H:%M:%S").astimezone().time()
+                time_out = datetime.strptime(time_out, "%H:%M:%S").astimezone().time()
     logger.debug("`time_out` is: {}".format(time_out))
     if time_out in [None, ""]:
         time_out = "12:00:00"
@@ -55,8 +54,7 @@ async def get_autopost_time():
             updates=[("value", str(time_out))],
         )
     if time_out is not None:
-        time_out = re.search(
-            r"^(\d{2}):(\d{2}):\d{2}$", str(time_out))
+        time_out = re.search(r"^(\d{2}):(\d{2}):\d{2}$", str(time_out))
     return time_out
 
 
@@ -143,8 +141,7 @@ class ModalQuoteAdd(discord.ui.Modal):
 
         self.quote_prep = self.prep_dropdown(msgs_in, defaults)
         logger.debug(
-            f"self.quote_prep ({len(self.quote_prep)}: {
-                str(self.quote_prep)[0:500]}"
+            f"self.quote_prep ({len(self.quote_prep)}: {str(self.quote_prep)[0:500]}"
         )
         self.quote_dropdown = discord.ui.Select(
             placeholder="Select quotes...",
@@ -153,8 +150,7 @@ class ModalQuoteAdd(discord.ui.Modal):
             required=True,
         )
         self.add_item(
-            discord.ui.Label(text="Quote message",
-                             component=self.quote_dropdown)
+            discord.ui.Label(text="Quote message", component=self.quote_dropdown)
         )
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -184,8 +180,7 @@ async def settings_db_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     settings_in_db = await db_helper.get_output(
-        template_info=envs.quote_db_settings_schema, select=(
-            "setting", "value")
+        template_info=envs.quote_db_settings_schema, select=("setting", "value")
     )
     settings_type = envs.quote_db_settings_schema["type_checking"]
     return [
@@ -219,8 +214,7 @@ async def env_settings_autocomplete(
     settings_type = envs.quote_db_settings_schema["type_checking"]
     return [
         discord.app_commands.Choice(
-            name="{} ({})".format(
-                settings_info[0], settings_type[settings_info[0]]),
+            name="{} ({})".format(settings_info[0], settings_type[settings_info[0]]),
             value=str(settings_info[0]),
         )
         for settings_info in settings_info
@@ -262,12 +256,17 @@ async def get_random_quote(testmode=False):
     return random_quote
 
 
-async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, channel: int = 0):
+async def post_random_quote(
+    interaction=None, _ephemeral=None, autopost={}, channel: int = 0
+):
     random_quote_number = await get_random_quote(testmode=args.testmode)
     if random_quote_number is None or len(random_quote_number) == 0:
         logger.debug("No quotes found in database")
         if len(autopost) > 0:
-            await discord_commands.post_to_channel(channel_id=channel, content_in=I18N.t("quote.commands.post.quote_db_empty"))
+            await discord_commands.post_to_channel(
+                channel_id=channel,
+                content_in=I18N.t("quote.commands.post.quote_db_empty"),
+            )
         else:
             await interaction.followup.send(
                 I18N.t("quote.commands.post.quote_db_empty"), ephemeral=_ephemeral
@@ -283,7 +282,10 @@ async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, chan
     channel_id = interaction.channel.id if interaction else channel
     if random_quote is None:
         if len(autopost) > 0:
-            await discord_commands.post_to_channel(channel_id=channel_id, content_in=I18N.t("quote.commands.list.msg_nonexisting_quote"))
+            await discord_commands.post_to_channel(
+                channel_id=channel_id,
+                content_in=I18N.t("quote.commands.list.msg_nonexisting_quote"),
+            )
         else:
             await interaction.followup.send(
                 I18N.t("quote.commands.list.msg_nonexisting_quote"),
@@ -322,10 +324,7 @@ async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, chan
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
-            msg_in += "`{}: {}`".format(
-                comment["author_backup"],
-                comment["content"]
-            )
+            msg_in += "`{}: {}`".format(comment["author_backup"], comment["content"])
             if len(comment["imgs"]) > 0:
                 logger.debug(f"trigger_pagination is {trigger_pagination}")
                 trigger_pagination = True
@@ -337,9 +336,7 @@ async def post_random_quote(interaction=None, _ephemeral=None, autopost={}, chan
                 if len(autopost) > 0:
                     # TODO: i18n
                     await discord_commands.post_to_channel(
-                        channel_id=channel_id,
-                        content_in=msg_in,
-                        files_in=img_list
+                        channel_id=channel_id, content_in=msg_in, files_in=img_list
                     )
                 else:
                     await interaction.followup.send(
@@ -463,8 +460,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
-            msg_in += "`{}: {}`".format(comment["author_backup"],
-                                        comment["content"])
+            msg_in += "`{}: {}`".format(comment["author_backup"], comment["content"])
             if len(comment["imgs"]) > 0:
                 logger.debug(f"trigger_pagination is {trigger_pagination}")
                 trigger_pagination = True
@@ -569,11 +565,11 @@ class Quotes(commands.Cog):
         parent=group,
     )
 
-    @ group.command(
+    @group.command(
         name="post", description=locale_str(I18N.t("quote.commands.post.cmd"))
     )
-    @ describe(quote_in=I18N.t("quote.commands.post.desc.number"))
-    @ describe(quote_in=I18N.t("quote.commands.post.desc.number"))
+    @describe(quote_in=I18N.t("quote.commands.post.desc.number"))
+    @describe(quote_in=I18N.t("quote.commands.post.desc.number"))
     async def post(
         self,
         interaction: discord.Interaction,
@@ -600,11 +596,11 @@ class Quotes(commands.Cog):
             await post_selected_quote(interaction, _ephemeral, quote_in)
         return
 
-    @ commands.is_owner()
-    @ group.command(
+    @commands.is_owner()
+    @group.command(
         name="edit", description=locale_str(I18N.t("quote.commands.edit.cmd"))
     )
-    @ describe(quote_in=I18N.t("quote.commands.edit.desc.quote_in"))
+    @describe(quote_in=I18N.t("quote.commands.edit.desc.quote_in"))
     async def quote_edit(self, interaction: discord.Interaction, quote_in: str):
         "Edit an existing quote"
         logger.debug(f"quote_in: ({type(quote_in)}) {quote_in}")
@@ -695,11 +691,11 @@ class Quotes(commands.Cog):
             )
         return
 
-    @ commands.is_owner()
-    @ group.command(
+    @commands.is_owner()
+    @group.command(
         name="delete", description=locale_str(I18N.t("quote.commands.delete.cmd"))
     )
-    @ describe(quote_number=I18N.t("quote.commands.delete.desc.quote_number"))
+    @describe(quote_number=I18N.t("quote.commands.delete.desc.quote_number"))
     async def quote_delete(self, interaction: discord.Interaction, quote_number: str):
         "Delete an existing quote"
         await interaction.response.defer(ephemeral=True)
@@ -729,8 +725,7 @@ class Quotes(commands.Cog):
         msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
-            msg_in += "`{}: {}`".format(comment["author_backup"],
-                                        comment["content"])
+            msg_in += "`{}: {}`".format(comment["author_backup"], comment["content"])
             if len(comment["imgs"]) > 0:
                 trigger_pagination = True
                 img_list = []
@@ -802,8 +797,8 @@ class Quotes(commands.Cog):
                 I18N.t("quote.commands.delete.msg_fail"), ephemeral=True
             )
 
-    @ commands.is_owner()
-    @ group.command(
+    @commands.is_owner()
+    @group.command(
         name="count", description=locale_str(I18N.t("quote.commands.count.cmd"))
     )
     async def quote_count(self, interaction: discord.Interaction):
@@ -815,7 +810,12 @@ class Quotes(commands.Cog):
         )
         return
 
-    async def prep_quotes_for_posting(self, interaction: discord.Interaction, keyword: str = "", quote_number: int = -1):
+    async def prep_quotes_for_posting(
+        self,
+        interaction: discord.Interaction,
+        keyword: str = "",
+        quote_number: int = -1,
+    ):
         quote_rowids = await db_helper.get_row_ids(template_info=envs.quote_db_schema)
         # List based on quote number
         if quote_number > 0 and keyword == "":
@@ -864,8 +864,8 @@ class Quotes(commands.Cog):
                     return False
         return quote_in
 
-    @ commands.is_owner()
-    @ group.command(
+    @commands.is_owner()
+    @group.command(
         name="list", description=locale_str(I18N.t("quote.commands.list.cmd"))
     )
     async def quote_list(
@@ -958,8 +958,8 @@ class Quotes(commands.Cog):
                 await interaction.followup.send(str(page), ephemeral=_ephemeral)
         return
 
-    @ commands.is_owner()
-    @ settings_group.command(
+    @commands.is_owner()
+    @settings_group.command(
         name="list", description=locale_str(I18N.t("common.settings.list_settings"))
     )
     async def list_settings(self, interaction: discord.Interaction):
@@ -968,17 +968,14 @@ class Quotes(commands.Cog):
         """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema, select=(
-                "setting", "value")
+            template_info=envs.quote_db_settings_schema, select=("setting", "value")
         )
         for setting in enumerate(settings_in_db):
             object = None
             if re.match(r"\d{19,22}", setting[1]["value"]):
-                object = discord_commands.get_user_channel_role_id(
-                    setting[1]["value"])
+                object = discord_commands.get_user_channel_role_id(setting[1]["value"])
                 if object is not None:
-                    settings_in_db[setting[0]]["value"] = f"{
-                        object.name} ({object.id})"
+                    settings_in_db[setting[0]]["value"] = f"{object.name} ({object.id})"
         headers_settings = {
             "setting": I18N.t("common.settings.setting"),
             "value": I18N.t("common.settings.value"),
@@ -989,12 +986,12 @@ class Quotes(commands.Cog):
         )
         await interaction.followup.send(content=out, ephemeral=True)
 
-    @ commands.is_owner()
-    @ discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
-    @ settings_group.command(
+    @commands.is_owner()
+    @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
+    @settings_group.command(
         name="change", description=locale_str(I18N.t("common.settings.change_settings"))
     )
-    @ describe(
+    @describe(
         name_of_setting=I18N.t("common.settings.name_of_setting"),
         value_in=I18N.t("common.settings.value_in"),
     )
@@ -1013,8 +1010,7 @@ class Quotes(commands.Cog):
         """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema, select=(
-                "setting", "value")
+            template_info=envs.quote_db_settings_schema, select=("setting", "value")
         )
         settings_from_db = {}
         for setting in settings_in_db:
@@ -1034,8 +1030,7 @@ class Quotes(commands.Cog):
             value_in = value_obj.id
             setting_type = "int"
         if name_of_setting == "autopost_time":
-            time_out = datetime.strptime(
-                value_in, "%H:%M:%S").astimezone().time()
+            time_out = datetime.strptime(value_in, "%H:%M:%S").astimezone().time()
             await db_helper.update_fields(
                 template_info=envs.quote_db_settings_schema,
                 where=[("setting", name_of_setting)],
@@ -1067,12 +1062,12 @@ class Quotes(commands.Cog):
         Quotes.task_autopost.restart()
         return
 
-    @ commands.is_owner()
-    @ discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
-    @ settings_group.command(
+    @commands.is_owner()
+    @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
+    @settings_group.command(
         name="add", description=locale_str(I18N.t("common.settings.add_setting"))
     )
-    @ describe(
+    @describe(
         setting_in=I18N.t("common.settings.setting"),
         value_in=I18N.t("common.settings.value"),
     )
@@ -1084,8 +1079,7 @@ class Quotes(commands.Cog):
         """
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema, select=(
-                "setting", "value")
+            template_info=envs.quote_db_settings_schema, select=("setting", "value")
         )
         settings_db_json = file_io.make_db_output_to_json(
             ["setting", "value"], settings_in_db
@@ -1165,12 +1159,12 @@ class Quotes(commands.Cog):
             )
             return
 
-    @ commands.is_owner()
-    @ discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
-    @ settings_group.command(
+    @commands.is_owner()
+    @discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
+    @settings_group.command(
         name="remove", description=locale_str(I18N.t("common.settings.remove_setting"))
     )
-    @ describe(setting_in=I18N.t("common.settings.setting"))
+    @describe(setting_in=I18N.t("common.settings.setting"))
     async def remove_setting(self, interaction: discord.Interaction, setting_in: str):
         """
         Remove a setting for this cog
@@ -1189,8 +1183,7 @@ class Quotes(commands.Cog):
         except Exception as error:
             logger.error(f"Error when removing setting: {error}")
             await interaction.followup.send(
-                content=I18N.t(
-                    "quote.commands.settings.remove_failed", error=error),
+                content=I18N.t("quote.commands.settings.remove_failed", error=error),
                 ephemeral=True,
             )
         return
@@ -1218,12 +1211,12 @@ class Quotes(commands.Cog):
                     "quote.commands.autopost.start.msg_confirm_ok",
                     time=await datetime_handling.get_dt(
                         format="time",
-                        dt=Quotes.task_autopost.next_iteration.astimezone()
-                    )
+                        dt=Quotes.task_autopost.next_iteration.astimezone(),
+                    ),
                 )
             )
 
-    @ autopost_group.command(
+    @autopost_group.command(
         name="stop", description=locale_str(I18N.t("quote.commands.autopost.stop.cmd"))
     )
     async def autopost_quote_stop(self, interaction: discord.Interaction):
@@ -1251,7 +1244,7 @@ class Quotes(commands.Cog):
                 "Autoposting stoppet."
             )
 
-    @ autopost_group.command(
+    @autopost_group.command(
         name="restart",
         description=locale_str(I18N.t("quote.commands.autopost.restart.cmd")),
     )
@@ -1271,8 +1264,7 @@ class Quotes(commands.Cog):
         logger.info(f"Running autopost task at {QUOTE_AUTOPOST_TIME}")
         # Get settings
         settings_in_db = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema, select=(
-                "setting", "value")
+            template_info=envs.quote_db_settings_schema, select=("setting", "value")
         )
         settings_db_json = file_io.make_db_output_to_json(
             ["setting", "value"], settings_in_db
@@ -1312,8 +1304,7 @@ class Quotes(commands.Cog):
         rand_quote = await get_random_quote(testmode=args.testmode)
         logger.debug(f"rand_quote is `{rand_quote}`")
         if len(rand_quote) <= 0:
-            logger.debug(
-                "No quotes in db, posting to bot log and disabling task")
+            logger.debug("No quotes in db, posting to bot log and disabling task")
             await db_helper.update_fields(
                 template_info=envs.tasks_db_schema,
                 where=[
@@ -1333,10 +1324,7 @@ class Quotes(commands.Cog):
         rand_quote = rand_quote[0]
         logger.debug(f"rand_quote: {rand_quote}")
 
-        autopost_settings = {
-            "prefix": "",
-            "tag_role": ""
-        }
+        autopost_settings = {"prefix": "", "tag_role": ""}
 
         if "autopost_prefix" in settings_db_json:
             autopost_settings["prefix"] = settings_db_json["autopost_prefix"]
@@ -1345,8 +1333,7 @@ class Quotes(commands.Cog):
             r"\d{19,22}", settings_db_json["autopost_tag_role"]
         ):
             _guild = discord_commands.get_current_guild()
-            _role = _guild.get_role(
-                int(settings_db_json["autopost_tag_role"]))
+            _role = _guild.get_role(int(settings_db_json["autopost_tag_role"]))
             autopost_settings["tag_role"] = _role.id
         await post_random_quote(autopost=autopost_settings, channel=channel)
         return
@@ -1568,14 +1555,12 @@ async def setup(bot):
                 )
                 Quotes.task_autopost.start()
             elif task["status"] == "stopped":
-                logger.debug("`{}` is set as `{}`".format(
-                    task["task"], task["status"]))
+                logger.debug("`{}` is set as `{}`".format(task["task"], task["status"]))
                 Quotes.task_autopost.cancel()
 
     global QUOTE_AUTOPOST_TIME
     QUOTE_AUTOPOST_TIME = await get_autopost_time()
-    logger.debug("`QUOTE_AUTOPOST_TIME` is: {}".format(
-        QUOTE_AUTOPOST_TIME.group(0)))
+    logger.debug("`QUOTE_AUTOPOST_TIME` is: {}".format(QUOTE_AUTOPOST_TIME.group(0)))
     # Parse time from QUOTE_AUTOPOST_TIME
     hour = int(QUOTE_AUTOPOST_TIME.group(1))
     minute = int(QUOTE_AUTOPOST_TIME.group(2))
