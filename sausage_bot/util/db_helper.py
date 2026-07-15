@@ -117,27 +117,32 @@ async def add_missing_db_setup(template_info, dict_in: dict = None):
     # Add existing inserts in columns where they don't exist yet
     temp_inserts = []
     if inserts is not None and len(inserts) > 0:
-        logger.debug('`inserts` has length')
-        db_out = await get_output(
-            template_info=template_info,
-            select=('setting', 'value')
-        )
-        db_out_cols = [col['setting'] for col in db_out]
         logger.debug(f"Got `inserts`: {inserts}")
-        logger.debug(f'Got `db_out`: {db_out}')
-        for insert in inserts:
-            add_to_temp = None
-            if (insert[0] not in db_out_cols) or insert[0] in db_out and\
-                    db_out[db_out_cols.index(insert[0])] is None:
-                add_to_temp = True
-            if add_to_temp:
-                temp_inserts.append(tuple(insert))
-        logger.debug(f'temp_inserts: {temp_inserts}')
+        try:
+            db_out = await get_output(
+                template_info=template_info, select=("setting", "value")
+            )
+            logger.debug(f"Got `db_out`: {db_out}")
+            db_out_cols = [col["setting"] for col in db_out]
+            for insert in inserts:
+                add_to_temp = None
+                if (
+                    (insert[0] not in db_out_cols)
+                    or insert[0] in db_out
+                    and db_out[db_out_cols.index(insert[0])] is None
+                ):
+                    add_to_temp = True
+                if add_to_temp:
+                    temp_inserts.append(tuple(insert))
+            inserts = temp_inserts
+        except:
+            pass
+        logger.debug(f"Sending inserts: {inserts}")
     if len(temp_inserts) > 0:
         await insert_many_some(
             template_info=template_info,
-            rows=tuple(item[0] for item in template_info['items']),
-            inserts=temp_inserts
+            rows=tuple(item[0] for item in template_info["items"]),
+            inserts=inserts,
         )
     return dict_in
 
@@ -331,8 +336,8 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str):
             logger.debug("channel is not an id, searching for name...")
             try:
                 channel_id = get(
-                    discord_commands.get_guild().text_channels,
-                    name=row_item['channel']
+                    discord_commands.get_current_guild().text_channels,
+                    name=row_item["channel"],
                 ).id
                 logger.debug(f"Found channel id: {channel_id}")
                 row_item["channel_new"] = channel_id
@@ -384,8 +389,7 @@ async def db_single_channel_name_to_id(
         logger.debug("channel is not an id, searching for name...")
         try:
             channel_id = get(
-                discord_commands.get_guild().text_channels,
-                name=channel_in
+                discord_commands.get_current_guild().text_channels, name=channel_in
             ).id
         except Exception as e:
             # TODO i18n
@@ -904,12 +908,18 @@ async def update_fields(template_info, where=None, updates: list = None):
 
 
 async def get_output(
-    template_info, where: tuple = None, like: tuple = None,
-    not_like: tuple = None, select: tuple = None, order_by: list = None,
-    get_row_ids: bool = False, rowid_sort: bool = False,
-    single: bool = None, as_settings_json: bool = False
+    template_info,
+    where: tuple = (),
+    like: tuple | list = (),
+    not_like: tuple | list = (),
+    select: tuple = (),
+    order_by: list = [],
+    get_row_ids: bool = False,
+    rowid_sort: bool = False,
+    single: bool = False,
+    as_settings_json: bool = False,
 ):
-    '''
+    """
     Get output from a SELECT query from a specified
     `template_info[table_name]`, with WHERE-filtering the `where` and
     ORDER BY `order_by` (if given).
@@ -943,93 +953,78 @@ async def get_output(
     as_settings_json: bool
         Return output as json instead of dict
         Only works for tables with two columns
-    '''
-    def parse_wheres(where):
-        if not isinstance(where, tuple):
-            return None
-        # If length of where is 3, then it contains an operator
-        if len(where) == 3:
-            print(where[2].lower())
-            if where[2].lower() in ['none', 'null', '0', 'false']:
-                cmd = f" {where[0]} {where[1]} NULL"
-            else:
-                cmd = f" LOWER({where[0]}) {where[1]} LOWER('{where[2]}')"
-        # If length of where is 2, then it contains only col name and value
-        elif len(where) == 2:
-            cmd = f" LOWER({where[0]}) = LOWER('{where[1]}')"
-        else:
-            logger.error('Error with input, returning None')
-            return None
-        return cmd
+    """
 
-    db_file = template_info['db_file']
-    logger.debug(f'Opening `{db_file}`')
-    table_name = template_info['name']
-    _cmd = 'SELECT '
+    db_file = template_info["db_file"]
+    logger.debug(f"Opening `{db_file}`")
+    table_name = template_info["name"]
+    _cmd = "SELECT "
     if get_row_ids:
-        _cmd += 'rowid, '
-    if select is None:
-        _cmd += '*'
-    elif isinstance(select, tuple) and\
-            len(select) > 1:
-        _cmd += ', '.join(field for field in select)
+        _cmd += "rowid, "
+    if isinstance(select, tuple) and len(select) == 0:
+        _cmd += "*"
+    elif isinstance(select, tuple) and len(select) > 1:
+        _cmd += ", ".join(field for field in select)
     elif isinstance(select, str):
         _cmd += select
-    _cmd += f' FROM {table_name}'
-    logger.debug(f'where: {where}')
-    logger.debug(f'like: {like}')
-    logger.debug(f'not_like: {not_like}')
-    if where is not None:
-        if 'where' not in _cmd.lower():
+    _cmd += f" FROM {table_name}"
+    logger.debug(f"where: {where}")
+    logger.debug(f"like: {like}")
+    logger.debug(f"not_like: {not_like}")
+    if where:
+        _cmd += " WHERE"
+        if isinstance(where[0], str):
+            _cmd += f" {where[0]} = '{where[1]}'"
+        elif isinstance(where[0], tuple):
+            for item in where:
+                if len(item) == 3:
+                    if item == where[-1]:
+                        _cmd += f" {item[0]} = '{item[1]}'"
+                    else:
+                        _cmd += f" {item[0]} = '{item[1]}' {item[2]}"
+                elif len(item) == 2:
+                    _cmd += f" {item[0]} = '{item[1]}'"
+                    if item != where[-1]:
+                        _cmd += " AND "
+    logger.debug("_cmd after where: {}".format(_cmd))
+    if like:
+        if not where:
             _cmd += " WHERE"
-        else:
-            _cmd += ' AND'
-        if isinstance(where, tuple):
-            logger.debug(f'`where` is tuple: {where}')
-            _cmd += parse_wheres(where)
-        elif isinstance(where, list) and isinstance(where[0], tuple):
-            logger.debug(f'`where` is tuple inside a list: {where}')
-            for _where in where:
-                _cmd += parse_wheres(_where)
-                if _where[0] != where[-1][0]:
-                    _cmd += ' AND'
-    if like is not None:
-        if 'where' not in _cmd.lower():
-            _cmd += " WHERE"
-        else:
-            _cmd += ' AND'
-        if isinstance(like, tuple):
-            logger.debug(f'`like` is tuple: {like}')
+        if isinstance(like[0], str):
             _cmd += f" {like[0]} LIKE '%{like[1]}%'"
-        elif isinstance(like, list) and isinstance(like[0], tuple):
-            logger.debug(f'`like` is tuple inside a list: {like}')
-            for id in like:
-                _cmd += f" {id[0]} LIKE '%{id[1]}%'"
-                if id != like[-1]:
-                    _cmd += ' AND'
-    if not_like is not None:
-        if 'where' not in _cmd.lower():
+        elif isinstance(like[0], tuple):
+            for item in like:
+                if len(item) == 3:
+                    _cmd += f" {item[0]} LIKE '%{item[1]}%' {item[2]}"
+                elif len(item) == 2:
+                    _cmd += f" {item[0]} LIKE '%{item[1]}%'"
+                    if item != like[-1]:
+                        _cmd += " AND "
+    logger.debug("_cmd after like: {}".format(_cmd))
+    if not_like:
+        if not where:
             _cmd += " WHERE "
         else:
-            _cmd += ' AND'
+            _cmd += " AND"
         if isinstance(not_like, tuple):
-            logger.debug(f'`not_like` is tuple: {not_like}')
+            logger.debug(f"`not_like` is tuple: {not_like}")
             _cmd += f" {not_like[0]} NOT LIKE '%{not_like[1]}%'"
         elif isinstance(not_like, list) and isinstance(not_like[0], tuple):
-            logger.debug(f'`not_like` is tuple inside a list: {not_like}')
+            logger.debug(f"`not_like` is tuple inside a list: {not_like}")
             for id in not_like:
                 _cmd += f" {id[0]} NOT LIKE '%{id[1]}%'"
                 if id != not_like[-1]:
-                    _cmd += ' AND'
-    if order_by is not None:
-        _cmd += ' ORDER BY '
-        _cmd += ', ' .join(f'{order[0]} {order[1]}' for order in order_by)
-    if rowid_sort:
-        if order_by is None:
-            _cmd += ' ORDER BY rowid'
-        if order_by is not None:
-            _cmd += ', rowid'
-    logger.debug(f'Using this query: {_cmd}')
+                    _cmd += " AND"
+    logger.debug("_cmd after not_like: {}".format(_cmd))
+    if order_by or rowid_sort:
+        _cmd += " ORDER BY "
+        if order_by:
+            _cmd += ", ".join(f"{order[0]} {order[1]}" for order in order_by)
+        elif rowid_sort:
+            _cmd += ", rowid"
+        else:
+            logger.error("Error with setting sort order!")
+    logger.debug(f"Using this query: {_cmd}")
     try:
         async with aiosqlite.connect(db_file) as db:
             db.row_factory = aiosqlite.Row
@@ -1037,7 +1032,7 @@ async def get_output(
             if single:
                 out = await out.fetchone()
                 if out is None:
-                    return None
+                    return {}
                 else:
                     return dict(out)
             else:
@@ -1045,20 +1040,19 @@ async def get_output(
                 if as_settings_json:
                     out_dict = {}
                     for item in out:
-                        out_dict[item['setting']] = item['value']
+                        out_dict[item["setting"]] = item["value"]
                     return out_dict
-            logger.debug(f'Returning {len(out)} items from from db')
+            logger.debug(f"Returning {len(out)} items from from db")
             return out
     except aiosqlite.OperationalError as e:
-        logger.error(f'Error: {e}')
-        return None
+        logger.error(f"Error: {e}")
+        return {}
 
 
 async def get_random_left_exclude_output(
-    template_info_1, template_info_2, key: str = None,
-    select: tuple = None
+    template_info_1, template_info_2, key: str = None, select: tuple = ()
 ):
-    '''
+    """
     Get output from the following query:
 
         SELECT `select`
@@ -1075,25 +1069,24 @@ async def get_random_left_exclude_output(
     ------------
     tuple
         ()
-    '''
-    db_file = template_info_1['db_file']
-    table_name1 = template_info_1['name']
-    table_name2 = template_info_2['name']
-    _cmd = 'SELECT '
-    if select is None:
-        _cmd += '*'
-    elif isinstance(select, tuple) and\
-            len(select) > 1:
-        _cmd += ', '.join(f'A.{field}' for field in select)
+    """
+    db_file = template_info_1["db_file"]
+    table_name1 = template_info_1["name"]
+    table_name2 = template_info_2["name"]
+    _cmd = "SELECT "
+    if len(select) == 0 or select is None:
+        _cmd += "*"
+    elif isinstance(select, tuple) and len(select) > 1:
+        _cmd += ", ".join(f"A.{field}" for field in select)
     elif isinstance(select, str):
         _cmd += select
-    _cmd += f' FROM {table_name1} A'
-    _cmd += f' LEFT JOIN {table_name2} B ON'
-    _cmd += f' A.{key} = B.{key}'
-    _cmd += f' WHERE B.{key} IS NULL'
-    _cmd += ' ORDER BY RANDOM()'
-    _cmd += ' LIMIT 1'
-    logger.debug(f'Using this query: {_cmd}')
+    _cmd += f" FROM {table_name1} A"
+    _cmd += f" LEFT JOIN {table_name2} B ON"
+    _cmd += f" A.{key} = B.{key}"
+    _cmd += f" WHERE B.{key} IS NULL"
+    _cmd += " ORDER BY RANDOM()"
+    _cmd += " LIMIT 1"
+    logger.debug(f"Using this query: {_cmd}")
     try:
         async with aiosqlite.connect(db_file) as db:
             out = await db.execute(_cmd)
@@ -1104,55 +1097,72 @@ async def get_random_left_exclude_output(
 
 
 async def get_combined_output(
-    template_info_1, template_info_2, key: str = None,
-    select: list = None, where: list = None, group_by: str = None,
-    order_by: list = None
+    template_info_1: dict,
+    template_info_2: dict,
+    key: str = "",
+    select: list | tuple = [],
+    where: list | tuple = [],
+    group_by: str = "",
+    order_by: list | tuple = [],
+    get_row_ids: bool = False,
+    rowid_sort: bool = False,
 ):
-    '''
+    """
     Get output from the following query:
 
         SELECT `select`
         FROM `template_info_1[table_name] A`
         INNER JOIN `template_info_2[table_name]` B
         ON A.`key` = B.`key`
-        WHERE `where[0]` = `where[1]`
+        WHERE `where[0]` = `where[1]` or WHERE `where[0][0]` = `where[0][1]` AND `where[1][0]` = `where[1][1]`
         GROUP BY `group_by`
         ORDER BY `order_by` (tuples in list)
-    '''
-    db_file = template_info_1['db_file']
-    table_name1 = template_info_1['name']
-    table_name2 = template_info_2['name']
-    logger.debug('Getting combined info from `{}` and `{}`'.format(
-        table_name1, table_name2
-    ))
-    _cmd = 'SELECT '
-    if select is None or len(select) == 0:
-        _cmd += '*'
-    elif isinstance(select, list) and\
-            len(select) > 1:
-        _cmd += ', '.join(f'{field}' for field in select)
+    """
+    db_file = template_info_1["db_file"]
+    table_name1 = template_info_1["name"]
+    table_name2 = template_info_2["name"]
+    logger.debug(
+        "Getting combined info from `{}` and `{}`".format(table_name1, table_name2)
+    )
+    _cmd = "SELECT "
+    if get_row_ids:
+        _cmd += "A.rowid"
+    if len(select) == 0:
+        if get_row_ids:
+            _cmd += ", "
+        _cmd += "*"
+    elif isinstance(select, list) and len(select) > 1:
+        _cmd += ", ".join(f"{field}" for field in select)
     elif isinstance(select, str):
         _cmd += select
     if group_by:
-        _cmd += ', COUNT(*)'
-    _cmd += f' FROM {table_name1} A'
-    _cmd += f' INNER JOIN {table_name2} B ON'
-    _cmd += f' A.{key} = B.{key}'
+        _cmd += ", COUNT(*)"
+    _cmd += f" FROM {table_name1} A"
+    _cmd += f" INNER JOIN {table_name2} B ON"
+    _cmd += f" A.{key} = B.{key}"
     if where:
-        if isinstance(where, tuple):
-            _cmd += f" WHERE {where[0]} = '{where[1]}'"
-        elif isinstance(where, list):
-            _cmd += " WHERE "
+        _cmd += " WHERE"
+        if isinstance(where[0], str):
+            _cmd += f" {where[0]} = '{where[1]}'"
+        elif isinstance(where[0], tuple):
             for item in where:
-                _cmd += f"{item[0]} = '{item[1]}'"
-                if item != where[-1]:
-                    _cmd += ' AND '
+                if len(item) == 3:
+                    _cmd += f" {item[0]} = '{item[1]}' {item[2]}"
+                elif len(item) == 2:
+                    _cmd += f" {item[0]} = '{item[1]}'"
+                    if item != where[-1]:
+                        _cmd += " AND "
     if group_by:
         _cmd += f" GROUP BY {group_by}"
-    if order_by:
-        _cmd += ' ORDER BY '
-        _cmd += ', ' .join(f'{order[0]} {order[1]}' for order in order_by)
-    logger.debug(f'Using this query: {_cmd}')
+    if order_by or rowid_sort:
+        _cmd += " ORDER BY "
+        if order_by:
+            _cmd += ", ".join(f"{order[0]} {order[1]}" for order in order_by)
+        elif rowid_sort:
+            _cmd += ", A.rowid"
+        else:
+            logger.error("Error with setting sort order!")
+    logger.debug(f"Using this query: {_cmd}")
     try:
         async with aiosqlite.connect(db_file) as db:
             db.row_factory = aiosqlite.Row
@@ -1161,6 +1171,96 @@ async def get_combined_output(
             return out
     except aiosqlite.OperationalError:
         return None
+
+
+async def get_imgs_with_quote(
+    template_info,
+    where: list | tuple = [],
+    like: list | tuple = [],
+    order_by: list | tuple = [],
+):
+    db_file = template_info["db_file"]
+    sql_query = (
+        "SELECT quote.rowid, quote.uuid, quote.channel_id,"
+        " quote.datetime, quote_content.comment_id,"
+        " quote_content.author_id, quote_content.author_backup,"
+        " quote_content.content_text, quote_content.content_order,"
+        " quote_img.img_no, quote_img.base64 as img_base64"
+        " FROM quote INNER JOIN quote_content"
+        " ON quote.uuid = quote_content.uuid"
+        " LEFT JOIN quote_img ON quote_content.comment_id = quote_img.comment_id"
+    )
+    if where:
+        sql_query += " WHERE"
+        if isinstance(where[0], str):
+            sql_query += f" {where[0]} = '{where[1]}'"
+        elif isinstance(where[0], tuple):
+            for item in where:
+                if len(item) == 3:
+                    sql_query += f" {item[0]} = '{item[1]}' {item[2]}"
+                elif len(item) == 2:
+                    sql_query += f" {item[0]} = '{item[1]}'"
+                    if item != where[-1]:
+                        sql_query += " AND "
+    if like:
+        if not where:
+            sql_query += " WHERE"
+        if isinstance(like[0], str):
+            sql_query += f" {like[0]} LIKE '%{like[1]}%'"
+        elif isinstance(like[0], tuple):
+            for item in like:
+                if len(item) == 3:
+                    sql_query += f" {item[0]} LIKE '%{item[1]}%' {item[2]}"
+                elif len(item) == 2:
+                    sql_query += f" {item[0]} LIKE '%{item[1]}%'"
+                    if item != like[-1]:
+                        sql_query += " AND "
+    if order_by:
+        sql_query += " ORDER BY "
+        sql_query += ", ".join(f"{order[0]} {order[1]}" for order in order_by)
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            db.row_factory = aiosqlite.Row
+            out = await db.execute(sql_query)
+            rows = [dict(row) for row in await out.fetchall()]
+            quotes = {}
+            for row in rows:
+                uid = row["uuid"]
+                if uid not in quotes:
+                    quotes[uid] = {
+                        k: v
+                        for k, v in row.items()
+                        if k
+                        not in (
+                            "img_no",
+                            "img_base64",
+                            "comment_id",
+                            "author_id",
+                            "author_backup",
+                            "content_text",
+                            "content_order",
+                        )
+                    }
+                if "comments" not in quotes[uid]:
+                    quotes[uid]["comments"] = {}
+                cid = row["comment_id"]
+                if cid not in quotes[uid]["comments"]:
+                    quotes[uid]["comments"][cid] = {}
+                    quotes[uid]["comments"][cid]["author_id"] = row["author_id"]
+                    quotes[uid]["comments"][cid]["author_backup"] = row["author_backup"]
+                    quotes[uid]["comments"][cid]["author_backup"] = row["author_backup"]
+                    quotes[uid]["comments"][cid]["content"] = row["content_text"]
+                    quotes[uid]["comments"][cid]["content_order"] = row["content_order"]
+                    quotes[uid]["comments"][cid]["imgs"] = {}
+                if row["img_no"] is not None:
+                    quotes[uid]["comments"][cid]["imgs"][row["img_no"]] = row[
+                        "img_base64"
+                    ]
+            return list(quotes.values())
+
+    except aiosqlite.OperationalError:
+        logger.error("Error when fetching img quotes")
+        return []
 
 
 async def empty_table(template_info):
@@ -1182,9 +1282,7 @@ async def empty_table(template_info):
             return None
 
 
-async def get_one_random_output(
-    template_info, fields_out: tuple = None
-):
+async def get_one_random_output(template_info, fields_out: tuple):
     """
     Get output from the following query:
 
@@ -1196,7 +1294,7 @@ async def get_one_random_output(
     db_file = template_info["db_file"]
     table_name1 = template_info["name"]
     _cmd = "SELECT "
-    if fields_out is None:
+    if len(fields_out):
         _cmd += "*"
     elif isinstance(fields_out, tuple) and len(fields_out) > 1:
         _cmd += ", ".join(f"A.{field}" for field in fields_out)
@@ -1215,9 +1313,7 @@ async def get_one_random_output(
         return None
 
 
-async def get_output_by_rowid(
-    template_info, rowid: str = None, fields_out: tuple = None
-):
+async def get_output_by_rowid(template_info, rowid: int = -1, fields_out=None):
     """
     Get a unique output from the following query:
 
@@ -1231,7 +1327,7 @@ async def get_output_by_rowid(
     if fields_out is None:
         _cmd += "rowid, *"
     elif isinstance(fields_out, tuple) and len(fields_out) > 1:
-        _cmd += ', '.join(f'A.{field}' for field in fields_out)
+        _cmd += ", ".join(f"{field}" for field in fields_out)
     elif isinstance(fields_out, str):
         _cmd += fields_out
     _cmd += f" FROM {table_name}"
@@ -1248,10 +1344,10 @@ async def get_output_by_rowid(
         return None
 
 
-async def get_row_ids(template_info, sort=False):
+async def get_row_ids(template_info, sort=False) -> list:
     db_file = template_info["db_file"]
     table_name = template_info["name"]
-    _cmd = f'SELECT rowid FROM {table_name}'
+    _cmd = f"SELECT rowid, uuid FROM {table_name}"
     if sort:
         _cmd += " ORDER BY rowid"
     logger.debug(f"Using this query: {_cmd}")
@@ -1260,9 +1356,8 @@ async def get_row_ids(template_info, sort=False):
             out = await db.execute(_cmd)
             out = await out.fetchall()
             return [id[0] for id in out]
-            return out
     except aiosqlite.OperationalError:
-        return None
+        return []
 
 
 async def del_row_id(template_info, numbers):
@@ -1308,20 +1403,18 @@ async def del_row_ids(template_info, numbers=None):
             return None
 
 
-async def del_row_by_OR_filters(
-        template_info, where=None
-):
-    '''
+async def del_row_by_OR_filter(template_info, where=None):
+    """
     Delete using the following query:
 
         DELETE FROM `template_info[table_name]`
         WHERE `where[0]` = `where[1]`
 
     Additional WHEREs uses OR
-    '''
-    db_file = template_info['db_file']
-    table_name = template_info['name']
-    _cmd = f'DELETE FROM {table_name} '
+    """
+    db_file = template_info["db_file"]
+    table_name = template_info["name"]
+    _cmd = f"DELETE FROM {table_name} "
     if isinstance(where, tuple):
         _cmd += f" WHERE {where[0]} = '{where[1]}'"
     elif isinstance(where, list):
@@ -1329,18 +1422,18 @@ async def del_row_by_OR_filters(
         for id in where:
             _cmd += f"{id[0]} = '{id[1]}'"
             if id != where[-1]:
-                _cmd += ' OR '
-    logger.debug(f'Using this query: {_cmd}')
+                _cmd += " OR "
+    logger.debug(f"Using this query: {_cmd}")
     if args.not_write_database:
-        logger.debug('`not_write_database` activated')
+        logger.debug("`not_write_database` activated")
     elif not args.not_write_database:
         try:
             async with aiosqlite.connect(db_file) as db:
                 await db.execute(_cmd)
                 await db.commit()
-            logger.debug('Done and commited!')
+            logger.debug("Done and commited!")
         except aiosqlite.OperationalError as e:
-            logger.error(f'Error: {e}')
+            logger.error(f"Error: {e}")
             return None
 
 

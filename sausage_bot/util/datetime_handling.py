@@ -18,7 +18,7 @@ tz = config.timezone
 locale = config.locale
 
 
-async def make_dt(date_in):
+async def make_dt(date_in, no_timezone=False):
     """
     Make a datetime-object from string input
 
@@ -52,6 +52,8 @@ async def make_dt(date_in):
         logger.error(f"Error: {e}")
         tz = "UTC"
         locale = "en"
+    if no_timezone:
+        tz = "UTC"
     logger.debug(f"tz is {tz}")
     logger.debug(f"language/locale is {locale}")
     if any(marker in str(date_in) for marker in ["Z", "T", "+"]):
@@ -141,7 +143,7 @@ async def make_dt(date_in):
             return None
 
 
-async def get_dt(format="epoch", sep=".", dt=False):
+async def get_dt(format="epoch", sep=".", dt=False, no_timezone=False):
     """
     Get a datetime object in preferred dateformat.
 
@@ -203,17 +205,15 @@ async def get_dt(format="epoch", sep=".", dt=False):
     if isinstance(dt, datetime.datetime):
         logger.debug("Input is a datetime object")
         dt = await make_dt(str(dt))
-        dt = await make_dt(str(dt))
     if isinstance(dt, str):
         logger.debug("Input is a string")
-        dt = await make_dt(dt)
         dt = await make_dt(dt)
         if dt is None:
             print("Can't process date `{}`. Aborting.".format(dt))
             return None
     elif not dt:
         logger.debug("No input detected, getting `now()`")
-        dt = pendulum.now(tz)
+        dt = pendulum.now("UTC" if no_timezone else tz)
     # Make sure correct timezone is used in input
     if format == "date":
         return dt.format(f"DD{sep}MM{sep}YYYY")
@@ -259,19 +259,24 @@ def change_dt(pendulum_object_in, change=None, count=None, unit=None):
     """
     Take a pendulum datetime object and change it relatively
 
-    `pendulum_object_in`: The object to change
-
-    `change`: Accepts `add` or `remove`
-
-    `count`: How many `units` to change
-
-    `unit`: Unit to change. Accepted units are `years`, `months`, `days`,
-        `hours`, `minutes` and `seconds`"""
+        `pendulum_object_in`: The object to change
+        `change`: Accepts `add` or `remove`
+        `count`: How many `units` to change
+        `unit`: Unit to change. Accepted units are `years`, `months`, `days`,
+                `hours`, `minutes` and `seconds`
+    """
     if change is None or unit is None or count is None:
         logger.info(I18N.t("common.too_few_arguments"))
         return None
     accepted_units = [
-        "years", "months", "days", "hours", "minutes", "seconds"
+        "years",
+        "months",
+        "days",
+        "hours",
+        "hrs",
+        "minutes",
+        "mins",
+        "seconds",
     ]
     if unit not in accepted_units:
         logger.info(f"Unit `{unit}` is not accepted")
@@ -279,6 +284,10 @@ def change_dt(pendulum_object_in, change=None, count=None, unit=None):
     if not isinstance(count, (int, float)):
         logger.info(f"Count `{count}` is not a number")
         return None
+    if unit == "hrs":
+        unit = "hours"
+    elif unit == "mins":
+        unit = "minutes"
     p = pendulum_object_in  # noqa: F841
     if change == "add":
         return eval(f"p.add({unit}={count})")

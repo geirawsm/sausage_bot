@@ -17,6 +17,72 @@ from . import envs
 from . import logger
 
 
+def ensure_file(file_path_in: str, file_template=False):
+    def ensure_folder(folder_path: str):
+        """
+        Create folders in `folder_path` if it doesn't exist
+        """
+        folder_path = str(folder_path)
+        # Make the folders if necessary
+        if not os.path.exists(folder_path):
+            _dirs = str(folder_path).split(os.sep)
+            _path = ""
+            for _dir in _dirs:
+                _path += "{}/".format(_dir)
+            Path(_path).mkdir(parents=True, exist_ok=True)
+
+    full_file_path = str(file_path_in).split(os.sep)
+    folder_path = "/".join(full_file_path[0:-1])
+    folder_path += "/"
+    # Make the folders if necessary
+    ensure_folder(folder_path)
+    try:
+        os.stat(str(file_path_in), follow_symlinks=True)
+        file_exist = True
+    except FileNotFoundError:
+        file_exist = False
+    if not file_exist:
+        with open(file_path_in, "w+") as fout:
+            if file_template:
+                fout.write(file_template)
+            else:
+                fout.write("")
+
+
+# Create necessary files before starting
+print("Ensuring env file")
+ensure_file(envs.env_file, envs.env_template)
+
+try:
+    env = Env()
+    env.read_env(path=envs.env_file)
+    # Set basic env values
+    DISCORD_TOKEN = env("DISCORD_TOKEN", default=None)
+    DISCORD_GUILD = env("DISCORD_GUILD", default=None)
+    BOT_ID = env("BOT_ID", default=None)
+    PREFIX = env("PREFIX", default="!")
+    BOT_CHANNEL = env("BOT_DUMP_CHANNEL", default="bot-log")
+    TIMEZONE = env("TIMEZONE", default="UTC")
+    LANGUAGE = env("LANGUAGE", default="en")
+    LOG_ROTATION_DAYS = env("LOG_ROTATION_DAYS", default=10)
+    ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
+    SPOTIFY_ID = env("SPOTIFY_ID", default=None)
+    SPOTIFY_SECRET = env("SPOTIFY_SECRET", default=None)
+    SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default=None)
+    STATS_LOOP = env.int("STATS_LOOP", default=10)
+    YT_LOOP = env.int("YT_LOOP", default=15)
+    RSS_LOOP = env.int("RSS_LOOP", default=15)
+    POD_LOOP = env.int("POD_LOOP", default=15)
+    FCB_LOOP = env.int("FCB_LOOP", default=60)
+    INVITATION_CHANNEL = env.int("INVITATION_CHANNEL", default="general")
+    if any(envvar is None for envvar in [DISCORD_TOKEN, DISCORD_GUILD, BOT_ID]):
+        print("Something is wrong with the env file.")
+        exit()
+except EnvError as e:
+    logger.error(f"You need to set environment variables for the bot to work: {e}")
+    exit()
+
+
 logger.configure_logging(
     to_file=True,
 )
@@ -76,70 +142,6 @@ check_and_create_folders = [envs.DB_DIR, envs.LOG_DIR, envs.DATA_DIR]
 for folder in check_and_create_folders:
     with suppress(FileExistsError):
         os.makedirs(folder)
-
-
-def ensure_file(file_path_in: str, file_template=False):
-    def ensure_folder(folder_path: str):
-        """
-        Create folders in `folder_path` if it doesn't exist
-        """
-        folder_path = str(folder_path)
-        # Make the folders if necessary
-        if not os.path.exists(folder_path):
-            _dirs = str(folder_path).split(os.sep)
-            _path = ""
-            for _dir in _dirs:
-                _path += "{}/".format(_dir)
-            Path(_path).mkdir(parents=True, exist_ok=True)
-
-    full_file_path = str(file_path_in).split(os.sep)
-    folder_path = "/".join(full_file_path[0:-1])
-    folder_path += "/"
-    # Make the folders if necessary
-    ensure_folder(folder_path)
-    try:
-        os.stat(str(file_path_in), follow_symlinks=True)
-        file_exist = True
-    except FileNotFoundError:
-        file_exist = False
-    if not file_exist:
-        with open(file_path_in, "w+") as fout:
-            if file_template:
-                fout.write(file_template)
-            else:
-                fout.write("")
-
-
-# Create necessary files before starting
-logger.debug("Ensuring env file")
-ensure_file(envs.env_file, envs.env_template)
-
-try:
-    env = Env()
-    env.read_env(path=envs.env_file)
-    # Set basic env values
-    DISCORD_TOKEN = env("DISCORD_TOKEN", default=None)
-    DISCORD_GUILD = env("DISCORD_GUILD", default=None)
-    BOT_ID = env("BOT_ID", default=None)
-    PREFIX = env("PREFIX", default="!")
-    BOT_CHANNEL = env("BOT_DUMP_CHANNEL", default="bot-log")
-    TIMEZONE = env("TIMEZONE", default="UTC")
-    LANGUAGE = env("LANGUAGE", default="en")
-    ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
-    SPOTIFY_ID = env("SPOTIFY_ID", default=None)
-    SPOTIFY_SECRET = env("SPOTIFY_SECRET", default=None)
-    SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default=None)
-    STATS_LOOP = env.int("STATS_LOOP", default=10)
-    YT_LOOP = env.int("YT_LOOP", default=15)
-    RSS_LOOP = env.int("RSS_LOOP", default=15)
-    POD_LOOP = env.int("POD_LOOP", default=15)
-    FCB_LOOP = env.int("FCB_LOOP", default=60)
-    if any(envvar is None for envvar in [DISCORD_TOKEN, DISCORD_GUILD, BOT_ID]):
-        print("Something is wrong with the env file.")
-        exit()
-except EnvError as e:
-    logger.error(f"You need to set environment variables for the bot to work: {e}")
-    exit()
 
 
 try:

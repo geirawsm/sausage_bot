@@ -107,7 +107,7 @@ class ColorFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def configure_logging(console_level=None, file_level=None, to_file=False):
+def configure_logging(console_level=None, file_level=None, to_file=False, log_days=10):
     logger = logging.getLogger()
     logger.setLevel(console_level if console_level is not None else logging.DEBUG)
     console_handler = logging.StreamHandler()
@@ -116,13 +116,13 @@ def configure_logging(console_level=None, file_level=None, to_file=False):
     logger.addHandler(console_handler)
 
     if to_file:
-        ensure_file(envs.LOG_DIR / "bot.log")
+        ensure_file(str(envs.LOG_DIR / "bot.log"))
         file_handler = TimedRotatingFileHandler(
             filename=envs.LOG_DIR / "bot.log",
             when="midnight",
             encoding="UTF-8",
-            delay=0,
-            backupCount=10,
+            delay=False,
+            backupCount=log_days,
         )
         file_handler.setLevel(file_level if file_level is not None else logging.DEBUG)
         file_formatter = logging.Formatter(

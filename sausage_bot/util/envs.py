@@ -10,9 +10,9 @@ from sausage_bot.util.args import args
 ROOT_DIR = Path(__file__).resolve().parent.parent
 COGS_DIR = ROOT_DIR / "cogs"
 if args.data_dir:
-    DATA_DIR = Path(args.data_dir).resolve()
+    DATA_DIR = Path(ROOT_DIR / args.data_dir).resolve()
 else:
-    DATA_DIR = ROOT_DIR / 'data'
+    DATA_DIR = ROOT_DIR / "data"
 JSON_DIR = DATA_DIR / "json"
 if args.db_dir:
     DB_DIR = Path(args.db_dir).resolve()
@@ -24,6 +24,8 @@ TEMP_DIR = ROOT_DIR / "tempfiles"
 MERMAID_DIR = ROOT_DIR / "docs" / "mermaid_charts"
 LOCALE_DIR = ROOT_DIR / "locale"
 TESTPARSE_DIR = ROOT_DIR / "test/test_parse"
+EXTERNAL_DIR = ROOT_DIR / "external_files"
+EXT_TEMP_DIR = ROOT_DIR / "external_files" / "temp_files"
 
 # Relative paths
 COGS_REL_DIR = "sausage_bot.cogs"
@@ -47,6 +49,7 @@ youtube_feeds_logs_file = JSON_DIR / "yt-feeds-log.json"
 scrape_logs_file = JSON_DIR / "scrape-log.json"
 quote_file = JSON_DIR / "quotes.json"
 quote_log_file = JSON_DIR / "quotes-log.json"
+quote_temp_img = TEMP_DIR / "quote_temp_img.png"
 dilemmas_file = JSON_DIR / "dilemmas.json"
 dilemmas_log_file = JSON_DIR / "dilemmas-log.json"
 cogs_status_file = JSON_DIR / "cogs_status.json"
@@ -139,42 +142,88 @@ dilemmas_db_log_schema = {
     "items": [["id", " TEXT NOT NULL"], ["msg_id", " TEXT"]],
 }
 
+# Invitations
+invitations_db_schema = {
+    "db_file": str(DB_DIR / "invitations.sqlite"),
+    "name": "invitations",
+    "items": [
+        ["invitation_uuid", "TEXT NOT NULL"],
+        ["contest_uuid", "TEXT NOT NULL"],
+        ["invite_id", "TEXT"],
+        ["user_id", "TEXT"],
+    ],
+    "primary": "invitation_uuid",
+}
+
+invitations_db_contest_schema = {
+    "db_file": str(DB_DIR / "invitations.sqlite"),
+    "name": "contest",
+    "items": [
+        ["contest_uuid", "TEXT NOT NULL"],
+        ["contest_name", "TEXT"],
+        ["start_datetime", "TEXT"],
+        ["stop_datetime", "TEXT"],
+        ["channel_id", "INT"],
+        ["start_msg", "TEXT"],
+        ["active", "INT"],
+        ["done", "INT"],
+    ],
+    "primary": "contest_uuid",
+}
+
+invitations_db_log_schema = {
+    "db_file": str(DB_DIR / "invitations.sqlite"),
+    "name": "log",
+    "items": [
+        ["invite_id", "TEXT NOT NULL"],
+        ["visitor_id", "TEXT"],
+        ["datetime", "TEXT"],
+    ],
+    "primary": "invite_id",
+}
+
 # Quote
 quote_db_schema = {
-    'db_file': str(DB_DIR / 'quote.sqlite'),
-    'name': 'quote',
-    'items': [
-        ['uuid', 'TEXT NOT NULL UNIQUE'],
+    "db_file": str(DB_DIR / "quote.sqlite"),
+    "name": "quote",
+    "items": [
+        ["uuid", "TEXT NOT NULL UNIQUE"],
+        ["channel_id", "INT"],
+        ["datetime", "TEXT"],
     ],
-    'primary': 'uuid',
-    'autoincrement': False
+    "primary": "uuid",
+    "autoincrement": False,
 }
 
 quote_content_db_schema = {
-    'db_file': str(DB_DIR / 'quote.sqlite'),
-    'name': 'quote_content',
-    'items': [
-        ['quote_uuid', 'TEXT NOT NULL'],
-        ['comment_id', 'INT'],
-        ['author_id', 'INT'],
-        ['content_text', 'TEXT'],
-        ['content_image', 'TEXT'],
-        ['content_order', 'INT'],
-        ['comment_date', 'TEXT']
+    "db_file": str(DB_DIR / "quote.sqlite"),
+    "name": "quote_content",
+    "items": [
+        ["uuid", "TEXT NOT NULL"],
+        ["comment_id", "INT"],
+        ["author_id", "INT"],
+        ["author_backup", "TEXT"],
+        ["content_text", "TEXT"],
+        ["content_order", "INT"],
     ],
-    'primary': 'uuid',
-    'autoincrement': False
+}
+
+quote_img_db_schema = {
+    "db_file": str(DB_DIR / "quote.sqlite"),
+    "name": "quote_img",
+    "items": [
+        ["comment_id", "INT"],
+        ["img_no", "INT"],
+        ["base64", "TEXT"],
+    ],
 }
 
 quote_db_log_schema = {
-    'db_file': str(DB_DIR / 'quote.sqlite'),
-    'name': 'log',
-    'items': [
-        ['uuid', 'TEXT NOT NULL'],
-        ['msg_id', 'TEXT']
-    ],
-    'primary': None,
-    'autoincrement': False
+    "db_file": str(DB_DIR / "quote.sqlite"),
+    "name": "log",
+    "items": [["uuid", "TEXT NOT NULL"], ["channel_id", "INT"], ["datetime", "TEXT"]],
+    "primary": None,
+    "autoincrement": False,
 }
 
 quote_db_settings_schema = {
