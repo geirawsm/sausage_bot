@@ -27,8 +27,7 @@ async def get_message_obj(msg_id: int, channel_id: int) -> dict:
     """
 
     _guild = get_current_guild()
-    logger.debug(f"Getting channel with id `{
-                 channel_id}` ({type(channel_id)})")
+    logger.debug(f"Getting channel with id `{channel_id}` ({type(channel_id)})")
     _channel = _guild.get_channel(int(channel_id))
     logger.debug(f"Got channel `{_channel}`")
     try:
@@ -53,8 +52,7 @@ def get_current_guild():
             logger.debug(f"Got guild {guild.name} ({type(guild)})")
             return guild
         else:
-            logger.error(envs.GUILD_NOT_FOUND.format(
-                str(config.DISCORD_GUILD)))
+            logger.error(envs.GUILD_NOT_FOUND.format(str(config.DISCORD_GUILD)))
             return None
 
 
@@ -239,8 +237,7 @@ def get_roles(hide_empties=None, filter_bots=None, hide_roles=None):
             "is_default": role.is_default(),
             "bot_managed": role.is_bot_managed(),
         }
-    logger.debug("Got these roles: {}".format(
-        ", ".join(name for name in roles_dict)))
+    logger.debug("Got these roles: {}".format(", ".join(name for name in roles_dict)))
     return roles_dict
 
 
@@ -255,7 +252,9 @@ async def post_to_channel(
         embed_in = discord.Embed.from_dict(embed_in)
     channel_out = config.bot.get_channel(int(channel_id))
     try:
-        msg_out = await channel_out.send(content=content_in, embed=embed_in, files=files_in, view=view)
+        msg_out = await channel_out.send(
+            content=content_in, embed=embed_in, files=files_in, view=view
+        )
         return msg_out
     except discord.errors.HTTPException as e:
         logger.error(
@@ -392,8 +391,7 @@ def check_user_channel_role(text_in):
         return role_obj
 
     # Check for @'s (users or roles)
-    _users = re.finditer(
-        r"\"(?<!<)@([\w\-_\' ]+)\"|(?<!<)@[\w\-_\']+", text_in)
+    _users = re.finditer(r"\"(?<!<)@([\w\-_\' ]+)\"|(?<!<)@[\w\-_\']+", text_in)
     username_errors = []
     for _user in _users:
         logger.debug(f"`_user`: {_user.group(0)}")
@@ -437,8 +435,7 @@ def check_user_channel_role(text_in):
         for _user in enumerate(username_errors):
             logger.debug(f"Checking {_user[1].group(0)} ({_user})")
             logger.debug("Check as a user")
-            user_check = _user[1].group(0).strip().replace(
-                "@", "").replace('"', "")
+            user_check = _user[1].group(0).strip().replace("@", "").replace('"', "")
             similar_users = check_similar_discord_usernames(
                 username_in=user_check, similar_floor=0.7, similar_roof=0.95
             )
@@ -452,13 +449,11 @@ def check_user_channel_role(text_in):
                 username_errors.pop(_user[0])
             else:
                 logger.debug("Check as a role")
-                role_check = _user[1].group(0).strip().replace(
-                    "@", "").replace('"', "")
+                role_check = _user[1].group(0).strip().replace("@", "").replace('"', "")
                 role_obj = check_discord_roles(role_check)
                 logger.debug(f"Want to replace `{str(role_obj)}`")
                 text_in = text_in.replace(
-                    str(_user[1].group(0)).strip(
-                    ), "<@&{}>".format(role_obj.id)
+                    str(_user[1].group(0)).strip(), "<@&{}>".format(role_obj.id)
                 )
                 username_errors.pop(_user[0])
     return {
