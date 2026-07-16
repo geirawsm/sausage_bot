@@ -41,8 +41,7 @@ async def make_dt(date_in, no_timezone=False):
         async with aiosqlite.connect(envs.locale_db_schema["db_file"]) as db:
             db.row_factory = aiosqlite.Row
             out = await db.execute(
-                "SELECT setting, value FROM {};".format(
-                    envs.locale_db_schema["name"])
+                "SELECT setting, value FROM {};".format(envs.locale_db_schema["name"])
             )
             db_in = [dict(row) for row in await out.fetchall()]
         locale_db = file_io.make_db_output_to_json(["setting", "value"], db_in)
@@ -98,8 +97,7 @@ async def make_dt(date_in, no_timezone=False):
                     all(len(timeunit) == 2 for timeunit in d_split[0:2])
                     and len(d_split[3]) == 4
                 ):
-                    d_split[3] = "{} {}".format(
-                        d_split[3][0:2], d_split[3][2:4])
+                    d_split[3] = "{} {}".format(d_split[3][0:2], d_split[3][2:4])
                     if len(d_split[2]) == 2:
                         d_split[2] = "20{}".format(d_split[2])
                     d = d_split
@@ -133,8 +131,7 @@ async def make_dt(date_in, no_timezone=False):
                     and len(d_split[6]) == 3
                 ):
                     d = d_split
-                    date_in = f"{d[0]} {d[1]} {d[2]} {
-                        d[3]} {d[4]} {d[5]} {d[6]}"
+                    date_in = f"{d[0]} {d[1]} {d[2]} {d[3]} {d[4]} {d[5]} {d[6]}"
                     return pendulum.from_format(date_in, "YYYY MM DD HH mm ss SSS")
             else:
                 return None
@@ -189,8 +186,7 @@ async def get_dt(format="epoch", sep=".", dt=False, no_timezone=False):
         async with aiosqlite.connect(envs.locale_db_schema["db_file"]) as db:
             db.row_factory = aiosqlite.Row
             out = await db.execute(
-                "SELECT setting, value FROM {};".format(
-                    envs.locale_db_schema["name"])
+                "SELECT setting, value FROM {};".format(envs.locale_db_schema["name"])
             )
             db_in = [dict(row) for row in await out.fetchall()]
         locale_db = file_io.make_db_output_to_json(["setting", "value"], db_in)
