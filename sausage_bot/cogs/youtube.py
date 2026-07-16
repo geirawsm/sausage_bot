@@ -439,19 +439,26 @@ class Youtube(commands.Cog):
             FEED_POSTS = await feeds_core.get_feed_links(
                 feed_type="youtube", feed_info=feed
             )
-            if FEED_POSTS is not None:
+            if FEED_POSTS is None or isinstance(FEED_POSTS, int):
+                logger.info(f"Feed {FEED_NAME} returned {FEED_POSTS}")
+                await db_helper.update_fields(
+                    template_info=envs.youtube_db_schema,
+                    where=("uuid", UUID),
+                    updates=("status_url", envs.CHANNEL_STATUS_ERROR)
+                )
+                await discord_commands.log_to_bot_channel(
+                    I18N.t(
+                        "youtube.tasks.log_error",
+                        feed_name=FEED_NAME, return_value=str(FEED_POSTS)
+                    )
+                )
+            else:
                 logger.debug(
                     "Got {} items for `FEED_POSTS`: {}".format(
                         len(FEED_POSTS),
                         ", ".join([pod_ep["title"] for pod_ep in FEED_POSTS[0:3]]),
                     )
                 )
-            if FEED_POSTS is None:
-                logger.info(f"{feed}: this feed returned NoneType.")
-                await discord_commands.log_to_bot_channel(
-                    I18N.t("youtube.tasks.log_error", feed_name=FEED_NAME)
-                )
-            else:
                 await feeds_core.process_links_for_posting_or_editing(
                     FEED_NAME, "youtube", UUID, FEED_POSTS, CHANNEL
                 )

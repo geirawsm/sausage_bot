@@ -60,4 +60,4 @@ nb:
         channel: Kanal
         playlist: Spilleliste
   tasks:
-    log_error: '%{feed_name} returnerte NoneType'
+    log_error: 'Feeden `%{feed_name}` returnerer `%{return_value}`. Sjekk loggfilene.'

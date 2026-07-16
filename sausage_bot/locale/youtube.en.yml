@@ -60,4 +60,4 @@ en:
         channel: Channel
         playlist: Playlist
   tasks:
-    log_error: '%{feed_name} returned NoneType'
+    log_error: 'Feed `%{feed_name}` returned `%{return_value}`. Check the logs.'

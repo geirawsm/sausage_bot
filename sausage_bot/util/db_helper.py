@@ -990,6 +990,8 @@ async def get_output(
     if like:
         if not where:
             _cmd += " WHERE"
+        else:
+            _cmd += " AND"
         if isinstance(like[0], str):
             _cmd += f" {like[0]} LIKE '%{like[1]}%'"
         elif isinstance(like[0], tuple):

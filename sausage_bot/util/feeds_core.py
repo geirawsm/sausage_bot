@@ -500,29 +500,28 @@ async def get_feed_links(feed_type, feed_info):
         URL = feed_info["url"]
     # Get the url and make it parseable
     if feed_type in ["rss", "youtube"]:
-        req = await net_io.get_link(URL)
-        if isinstance(req, int):
-            return req
-        if req is not None or not isinstance(req, int):
-            filters_db = await db_helper.get_output(
-                template_info=feed_db_filter,
-                select=("allow_or_deny", "filter"),
-                where=[("uuid", UUID)],
+        req = await net_io.get_link(URL, status_out=True)
+        if req["status"] != 200:
+            logger.error(f"Got HTTP status {req['status']} for {URL}")
+            return req["status"]
+        filters_db = await db_helper.get_output(
+            template_info=feed_db_filter,
+            select=("allow_or_deny", "filter"),
+            where=[("uuid", UUID)],
+        )
+        log_db = await db_helper.get_output(
+            template_info=feed_db_log, where=[("uuid", UUID)]
+        )
+        links_out = await get_items_from_rss(
+            req=req["content"], url=URL, filters_in=filters_db, log_in=log_db,
+            num_items=5
+        )
+        logger.debug(
+            "Got {} items from `get_items_from_rss`".format(
+                len(links_out) if links_out is not None else 0
             )
-            log_db = await db_helper.get_output(
-                template_info=feed_db_log, where=[("uuid", UUID)]
-            )
-            links_out = await get_items_from_rss(
-                req=req, url=URL, filters_in=filters_db, log_in=log_db, num_items=5
-            )
-            logger.debug(
-                "Got {} items from `get_items_from_rss`".format(
-                    len(links_out) if links_out is not None else 0
-                )
-            )
-            return links_out
-        else:
-            return
+        )
+        return links_out
 
 
 async def get_feed_list(
