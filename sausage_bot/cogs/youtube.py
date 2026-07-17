@@ -444,12 +444,13 @@ class Youtube(commands.Cog):
                 await db_helper.update_fields(
                     template_info=envs.youtube_db_schema,
                     where=("uuid", UUID),
-                    updates=("status_url", envs.CHANNEL_STATUS_ERROR)
+                    updates=("status_url", envs.CHANNEL_STATUS_ERROR),
                 )
                 await discord_commands.log_to_bot_channel(
                     I18N.t(
                         "youtube.tasks.log_error",
-                        feed_name=FEED_NAME, return_value=str(FEED_POSTS)
+                        feed_name=FEED_NAME,
+                        return_value=str(FEED_POSTS),
                     )
                 )
             else:

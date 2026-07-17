@@ -563,7 +563,10 @@ async def reaction_msgs_roles_autocomplete(
                 reaction["name"].lower(),
                 _guild.get_channel(int(reaction["channel"])).name.lower(),
                 str(
-                    get(discord_commands.get_current_guild().roles, id=int(reaction["role"]))
+                    get(
+                        discord_commands.get_current_guild().roles,
+                        id=int(reaction["role"]),
+                    )
                 ).lower(),
             ),
             # A dirty little hack here, returning msg_id, role and emoji as
@@ -1315,7 +1318,8 @@ class Autoroles(commands.Cog):
             for reaction in db_reactions:
                 if re.match(r"\d{19,22}", reaction["role"]):
                     role = get(
-                        discord_commands.get_current_guild().roles, id=int(reaction["role"])
+                        discord_commands.get_current_guild().roles,
+                        id=int(reaction["role"]),
                     )
                     role_name = role.name
                     role_id = role.id
@@ -1324,7 +1328,8 @@ class Autoroles(commands.Cog):
                     role_id = reaction["role"]
                 if re.match(r"\d{19,22}", reaction["emoji"]):
                     emoji = get(
-                        discord_commands.get_current_guild().emojis, id=int(reaction["emoji"])
+                        discord_commands.get_current_guild().emojis,
+                        id=int(reaction["emoji"]),
                     )
                     emoji_name = emoji.name
                     emoji_id = emoji.id
@@ -1472,7 +1477,9 @@ class Autoroles(commands.Cog):
             if re.match(r"<.*\b(\d+)>", combo[1]):
                 emoji_out = combo[1]
             elif re.match(r"(\d+)", combo[1]):
-                emoji_out = get(discord_commands.get_current_guild().emojis, id=int(combo[1]))
+                emoji_out = get(
+                    discord_commands.get_current_guild().emojis, id=int(combo[1])
+                )
             else:
                 emoji_out = combo[1]
             if len(desc_out) > 0:
@@ -1585,7 +1592,6 @@ class Autoroles(commands.Cog):
             )
             dupl_msg += ":"
             _guild = discord_commands.get_current_guild()
-            dupl_msg += ":"
             for item in duplicates:
                 # Convert role
                 role_out = get(_guild.roles, id=int(item[0]))
@@ -1780,7 +1786,9 @@ class Autoroles(commands.Cog):
         )
         # Sync settings
         await sync_reaction_message_from_settings(msg_id_or_name=msg_id, sort=sort)
-        _role_name = get(discord_commands.get_current_guild().roles, id=int(role_id)).name
+        _role_name = get(
+            discord_commands.get_current_guild().roles, id=int(role_id)
+        ).name
         await interaction.followup.send(
             I18N.t("roles.commands.remove_role.msg_confirm", rolename=_role_name),
             ephemeral=True,
@@ -2042,7 +2050,9 @@ class Autoroles(commands.Cog):
         temp_settings_db = settings_db.copy()
         logger.debug(f"temp_settings_db:\n{pformat(temp_settings_db)}")
         for setting in temp_settings_db:
-            _role = get(discord_commands.get_current_guild().roles, id=int(setting["value"]))
+            _role = get(
+                discord_commands.get_current_guild().roles, id=int(setting["value"])
+            )
             setting["role"] = _role
         logger.debug(f"temp_settings_db: {temp_settings_db}")
         _settings = tabulate(
@@ -2191,7 +2201,8 @@ async def on_raw_reaction_add(payload):
                 if str(incoming_emoji) == str(reaction["emoji"]):
                     await _guild.get_member(payload.user_id).add_roles(
                         get(
-                            discord_commands.get_current_guild().roles, id=int(reaction["role"])
+                            discord_commands.get_current_guild().roles,
+                            id=int(reaction["role"]),
                         ),
                         reason=I18N.t("roles.on_raw_reaction_add.channel_log_confirm"),
                     )

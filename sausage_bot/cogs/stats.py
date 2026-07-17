@@ -72,7 +72,9 @@ async def hidden_roles_autocomplete(
     for i in hidden_roles_in_db:
         temp_hidden_roles[i["role_id"]] = {
             "rowid": i["rowid"],
-            "name": get(discord_commands.get_current_guild().roles, id=int(i["role_id"])).name,
+            "name": get(
+                discord_commands.get_current_guild().roles, id=int(i["role_id"])
+            ).name,
         }
     logger.debug("temp_hidden_roles:\n{pformat(temp_hidden_roles)}")
     return [

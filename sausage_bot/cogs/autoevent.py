@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'''
+"""
 autoevent: This cog can take links to soccer games on predefined sites,
 and turn them into an event for the server.
-'''
+"""
+
 import discord
 from discord.ext import commands
 from discord.app_commands import locale_str, describe
@@ -20,9 +21,7 @@ from sausage_bot.util.i18n import I18N
 logger = config.logger
 
 # Create necessary folders before starting
-check_and_create_folders = [
-    envs.STATIC_DIR
-]
+check_and_create_folders = [envs.STATIC_DIR]
 for folder in check_and_create_folders:
     with suppress(FileExistsError):
         os.makedirs(folder)
@@ -33,108 +32,109 @@ async def event_names_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     _guild = discord_commands.get_current_guild()
-    logger.debug(f'_guild: {_guild}')
+    logger.debug(f"_guild: {_guild}")
     events = []
     for event in _guild.scheduled_events:
         events.append((event.name, event.id))
-    logger.debug(f'events: {events}')
+    logger.debug(f"events: {events}")
     return [
         discord.app_commands.Choice(name=str(event[0]), value=str(event[1]))
-        for event in events if current.lower() in event[0].lower()
+        for event in events
+        if current.lower() in event[0].lower()
     ][:25]
 
 
 class AutoEvent(commands.Cog):
-    '#autodoc skip#'
+    "#autodoc skip#"
 
     def __init__(self, bot):
         self.bot = bot
         super().__init__()
 
     group = discord.app_commands.Group(
-        name="autoevent", description=locale_str(
-            I18N.t('autoevent.commands.autoevent.cmd')
-        )
+        name="autoevent",
+        description=locale_str(I18N.t("autoevent.commands.autoevent.cmd")),
     )
 
     @commands.is_owner()
     @group.command(
-        name="add", description=locale_str(
-            I18N.t('autoevent.commands.add.cmd')
-        )
+        name="add", description=locale_str(I18N.t("autoevent.commands.add.cmd"))
     )
     @describe(
-        url=I18N.t('autoevent.commands.add.desc.url'),
-        channel=I18N.t('autoevent.commands.add.desc.channel'),
-        text=I18N.t('autoevent.commands.add.desc.text'),
-        event_image=I18N.t('autoevent.commands.add.desc.event_image')
+        url=I18N.t("autoevent.commands.add.desc.url"),
+        channel=I18N.t("autoevent.commands.add.desc.channel"),
+        text=I18N.t("autoevent.commands.add.desc.text"),
+        event_image=I18N.t("autoevent.commands.add.desc.event_image"),
     )
     async def event_add(
-        self, interaction: discord.Interaction, url: str,
-        channel: discord.VoiceChannel, text: str = None,
-        event_image: discord.Attachment = None
+        self,
+        interaction: discord.Interaction,
+        url: str,
+        channel: discord.VoiceChannel,
+        text: str = None,
+        event_image: discord.Attachment = None,
     ):
-        '''
+        """
         Add a scheduled event
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         if url is None:
             # Delete command message
-            await interaction.followup.send(
-                I18N.t('common.too_few_arguments')
-            )
+            await interaction.followup.send(I18N.t("common.too_few_arguments"))
             return
         else:
             scraped_info = await net_io.parse(url)
             if scraped_info is None:
-                logger.debug('scrape is NOT ok')
+                logger.debug("scrape is NOT ok")
             else:
-                logger.debug('scrape is ok, this is the output:\n{}'.format(
-                    scraped_info
-                ))
+                logger.debug(
+                    "scrape is ok, this is the output:\n{}".format(scraped_info)
+                )
                 scr = scraped_info
                 # Start creating the event
-                _t = scr['teams']
-                home = _t['home']
-                away = _t['away']
-                tournament = scr['tournament']
-                tv = scr['tv']
-                stadium = scr['stadium']
-                _dt = scr['datetime']
-                start_text = _dt['start_dt'].format(
-                    'd. MMMM, HH:mm', locale=datetime_handling.locale
+                _t = scr["teams"]
+                home = _t["home"]
+                away = _t["away"]
+                tournament = scr["tournament"]
+                tv = scr["tv"]
+                stadium = scr["stadium"]
+                _dt = scr["datetime"]
+                start_text = _dt["start_dt"].format(
+                    "d. MMMM, HH:mm", locale=datetime_handling.locale
                 )
-                rel_start = _dt['rel_start']
-                start_event = _dt['start_event']
-                end_dt = _dt['end_dt']
+                rel_start = _dt["rel_start"]
+                start_event = _dt["start_event"]
+                end_dt = _dt["end_dt"]
                 desc_tournament = I18N.t(
-                    'autoevent.commands.add.description.tournament')
-                desc_tv = I18N.t('autoevent.commands.add.description.tv')
-                desc_when = I18N.t('autoevent.commands.add.description.when')
-                desc_where = I18N.t('autoevent.commands.add.description.where')
-                desc_reminder = I18N.t(
-                    'autoevent.commands.add.description.reminder')
-                description = f'{desc_tournament}: {tournament}\n'\
-                    f'{desc_when}: {start_text} ({rel_start})'
+                    "autoevent.commands.add.description.tournament"
+                )
+                desc_tv = I18N.t("autoevent.commands.add.description.tv")
+                desc_when = I18N.t("autoevent.commands.add.description.when")
+                desc_where = I18N.t("autoevent.commands.add.description.where")
+                desc_reminder = I18N.t("autoevent.commands.add.description.reminder")
+                description = (
+                    f"{desc_tournament}: {tournament}\n"
+                    f"{desc_when}: {start_text} ({rel_start})"
+                )
                 if tv is not None:
-                    description += f'\n{desc_tv}: {tv}'
+                    description += f"\n{desc_tv}: {tv}"
                 if stadium is not None:
-                    description += f'\n{desc_where}: {stadium}'
-                description += f'\n\n{desc_reminder}'
+                    description += f"\n{desc_where}: {stadium}"
+                description += f"\n\n{desc_reminder}"
                 if text:
-                    description += f'\n\n{text}'
+                    description += f"\n\n{text}"
                 if event_image:
                     image_in = await event_image.read()
                 else:
                     autoevent_img = envs.STATIC_DIR / config.env.str(
-                        'AUTOEVENT_EVENT_IMAGE', default='autoevent_img.png'
+                        "AUTOEVENT_EVENT_IMAGE", default="autoevent_img.png"
                     )
-                    with open(autoevent_img, 'rb') as f:
+                    with open(autoevent_img, "rb") as f:
                         image_in = f.read()
                 guild = discord_commands.get_current_guild()
                 try:
                     created_event = await guild.create_scheduled_event(
-                        name=f'{home} - {away}',
+                        name=f"{home} - {away}",
                         description=description,
                         channel=channel,
                         entity_type=discord.EntityType.voice,
@@ -142,48 +142,44 @@ class AutoEvent(commands.Cog):
                         start_time=start_event,
                         end_time=end_dt,
                         privacy_level=discord.PrivacyLevel(2),
-                        reason=I18N.t('autoevent.commands.add.log_confirm')
-                    )
-                    await interaction.followup.send(
-                        I18N.t('autoevent.commands.add.msg_confirm',
-                               home=home,
-                               away=away,
-                               id=created_event.id
-                               ),
-                        ephemeral=True
-                    )
-                except (discord.HTTPException) as e:
-                    logger.error('Got an error when posting event: {}'.format(
-                        e.text)
+                        reason=I18N.t("autoevent.commands.add.log_confirm"),
                     )
                     await interaction.followup.send(
                         I18N.t(
-                            'autoevent.commands.add.msg_failed',
-                            error_in=e.text
+                            "autoevent.commands.add.msg_confirm",
+                            home=home,
+                            away=away,
+                            id=created_event.id,
                         ),
-                        ephemeral=True
+                        ephemeral=True,
+                    )
+                except discord.HTTPException as e:
+                    logger.error("Got an error when posting event: {}".format(e.text))
+                    await interaction.followup.send(
+                        I18N.t("autoevent.commands.add.msg_failed", error_in=e.text),
+                        ephemeral=True,
                     )
                     return
 
     @commands.is_owner()
     @discord.app_commands.autocomplete(event=event_names_autocomplete)
     @group.command(
-        name="remove", description=locale_str(
-            I18N.t('autoevent.commands.remove.cmd')
-        )
+        name="remove", description=locale_str(I18N.t("autoevent.commands.remove.cmd"))
     )
     @describe(
-        event=I18N.t('autoevent.commands.remove.desc.event'),
-        remove_all=I18N.t('autoevent.commands.remove.desc.remove_all')
+        event=I18N.t("autoevent.commands.remove.desc.event"),
+        remove_all=I18N.t("autoevent.commands.remove.desc.remove_all"),
     )
     async def event_remove(
-        self, interaction: discord.Interaction,
+        self,
+        interaction: discord.Interaction,
         remove_all: typing.Literal[
-            I18N.t('common.literal_yes_no.lit_yes'),
-            I18N.t('common.literal_yes_no.lit_no')
-        ] = None, event: str = None
+            I18N.t("common.literal_yes_no.lit_yes"),
+            I18N.t("common.literal_yes_no.lit_no"),
+        ] = None,
+        event: str = None,
     ):
-        '''
+        """
         Removes a scheduled event that has not started yet
 
         Parameters
@@ -192,131 +188,120 @@ class AutoEvent(commands.Cog):
             The  event to remove (default: None)
         remove_all:
             Use if you want to remove all events
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         event_dict = discord_commands.get_scheduled_events()
-        logger.debug(f'Got `event_dict`: {event_dict}')
+        logger.debug(f"Got `event_dict`: {event_dict}")
         _guild = discord_commands.get_current_guild()
         # Delete all events
-        if remove_all == I18N.t('common.literal_yes_no.lit_yes'):
-            logger.debug('Got `remove_all`: {}'.format(
-                I18N.t('common.literal_yes_no.lit_yes')
-            ))
+        if remove_all == I18N.t("common.literal_yes_no.lit_yes"):
+            logger.debug(
+                "Got `remove_all`: {}".format(I18N.t("common.literal_yes_no.lit_yes"))
+            )
             for event in event_dict:
-                _id = event_dict[event]['id']
+                _id = event_dict[event]["id"]
                 # Delete event
                 _event = _guild.get_scheduled_event(int(_id))
                 await _event.delete()
             await interaction.followup.send(
-                I18N.t('autoevent.commands.remove.msg_all_confirm')
+                I18N.t("autoevent.commands.remove.msg_all_confirm")
             )
         elif event is not None:
             # Delete event
             _event = _guild.get_scheduled_event(int(event))
             await _event.delete()
             await interaction.followup.send(
-                I18N.t('autoevent.commands.remove.msg_one_confirm')
+                I18N.t("autoevent.commands.remove.msg_one_confirm")
             )
         else:
-            logger.error('No event given')
+            logger.error("No event given")
             await interaction.followup.send(
-                I18N.t('autoevent.commands.remove.msg_no_event')
+                I18N.t("autoevent.commands.remove.msg_no_event")
             )
 
         return
 
     @commands.is_owner()
     @group.command(
-        name="list", description=locale_str(
-            I18N.t('autoevent.commands.list.cmd')
-        )
+        name="list", description=locale_str(I18N.t("autoevent.commands.list.cmd"))
     )
     async def list_events(self, interaction: discord.Interaction):
-        '''
+        """
         Lists all the planned events: `!autoevent list`
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         events = await discord_commands.get_sorted_scheduled_events()
         if events is None:
-            msg_out = I18N.t('autoevent.commands.list.msg_no_events')
+            msg_out = I18N.t("autoevent.commands.list.msg_no_events")
         else:
             msg_out = events
-        await interaction.followup.send(
-            msg_out
-        )
+        await interaction.followup.send(msg_out)
 
     @commands.is_owner()
     @group.command(
-        name="sync", description=locale_str(
-            I18N.t('autoevent.commands.sync.cmd')
-        )
+        name="sync", description=locale_str(I18N.t("autoevent.commands.sync.cmd"))
     )
     @describe(
-        sync_time=I18N.t('autoevent.commands.sync.desc.sync_time'),
-        countdown=I18N.t('autoevent.commands.sync.desc.countdown')
+        sync_time=I18N.t("autoevent.commands.sync.desc.sync_time"),
+        countdown=I18N.t("autoevent.commands.sync.desc.countdown"),
     )
     async def event_sync(
-        self, interaction: discord.Interaction, sync_time: str,
-        countdown: int
+        self, interaction: discord.Interaction, sync_time: str, countdown: int
     ):
-        '''
+        """
         Create a timer in the active channel to make it easier for
         people attending an event to sync something that they're
         watching
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         # Check that `sync_time` is a decent time
-        re_check = re.match(r'^(\d{1,2})[-:.,;_]+(\d{1,2})', str(sync_time))
+        re_check = re.match(r"^(\d{1,2})[-:.,;_]+(\d{1,2})", str(sync_time))
         if re_check:
             timer_epoch = await datetime_handling.get_dt()
             timer_epoch += int(countdown)
-            rel_start = f'<t:{timer_epoch}:R>'
+            rel_start = f"<t:{timer_epoch}:R>"
             timer_msg = await interaction.followup.send(
-                I18N.t('autoevent.commands.sync.msg_confirm',
-                       time1=re_check.group(1),
-                       time2=re_check.group(2),
-                       rel_start=rel_start
-                       )
+                I18N.t(
+                    "autoevent.commands.sync.msg_confirm",
+                    time1=re_check.group(1),
+                    time2=re_check.group(2),
+                    rel_start=rel_start,
+                )
             )
             await asyncio.sleep(int(countdown))
             await timer_msg.delete()
         else:
             await interaction.followup.send(
-                I18N.t('autoevent.commands.sync.not_correct_format'),
-                ephemeral=True
+                I18N.t("autoevent.commands.sync.not_correct_format"), ephemeral=True
             )
         return
 
     @commands.is_owner()
     @discord.app_commands.autocomplete(event=event_names_autocomplete)
     @group.command(
-        name="announce", description=locale_str(
-            I18N.t('autoevent.commands.announce.cmd')
-        )
+        name="announce",
+        description=locale_str(I18N.t("autoevent.commands.announce.cmd")),
     )
     @describe(
-        event=locale_str(I18N.t('autoevent.commands.announce.desc.event')),
-        channel=locale_str(I18N.t('autoevent.commands.announce.desc.channel'))
+        event=locale_str(I18N.t("autoevent.commands.announce.desc.event")),
+        channel=locale_str(I18N.t("autoevent.commands.announce.desc.channel")),
     )
     async def event_announce(
-        self, interaction: discord.Interaction, event: str,
-        channel: discord.TextChannel
+        self, interaction: discord.Interaction, event: str, channel: discord.TextChannel
     ):
-        '''
+        """
         Announce an event in a specific channel
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
         # Get event
         _guild = discord_commands.get_current_guild()
         _event = _guild.get_scheduled_event(int(event))
         epoch_time = await datetime_handling.get_dt(
-            format='epoch',
-            dt=_event.start_time.astimezone()
+            format="epoch", dt=_event.start_time.astimezone()
         )
-        rel_start = f'<t:{epoch_time}:R>'
+        rel_start = f"<t:{epoch_time}:R>"
         announce_text = I18N.t(
-            'autoevent.commands.announce.annouce_text',
-            rel_start=rel_start
+            "autoevent.commands.announce.annouce_text", rel_start=rel_start
         )
         try:
             # Announce to channel
@@ -325,32 +310,21 @@ class AutoEvent(commands.Cog):
             await channel.send(announce_text)
             await channel.send(_event.url)
             await interaction.followup.send(
-                I18N.t(
-                    'autoevent.commands.announce.msg_confirm',
-                    channel=channel.name
-                ),
-                ephemeral=True
+                I18N.t("autoevent.commands.announce.msg_confirm", channel=channel.name),
+                ephemeral=True,
             )
         except discord.Forbidden:
             await interaction.followup.send(
                 I18N.t(
-                    'autoevent.commands.announce.msg_forbidden',
-                    channel=channel.name
+                    "autoevent.commands.announce.msg_forbidden", channel=channel.name
                 ),
-                ephemeral=True
+                ephemeral=True,
             )
         except Exception as _error:
-            logger.error(
-                'An error occurred when announcing event: {}'.format(
-                    _error
-                )
-            )
+            logger.error("An error occurred when announcing event: {}".format(_error))
             await interaction.followup.send(
-                I18N.t(
-                    'autoevent.commands.announce.msg_error',
-                    error=_error
-                ),
-                ephemeral=True
+                I18N.t("autoevent.commands.announce.msg_error", error=_error),
+                ephemeral=True,
             )
         return
 
