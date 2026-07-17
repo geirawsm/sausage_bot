@@ -31,7 +31,7 @@ nb:
       cmd: Post et sitat
       desc:
         number: Velg et nummer hvis du vil ha et spesifikt sitat
-      quote_not_exist: 'Sitat nummer %{quote_in} finnes ikke'
+      quote_not_exist: "Sitat nummer %{quote_in} finnes ikke"
       quote_db_empty: Ingen sitater i databasen
     add:
       cmd: Legg til sitat
@@ -44,14 +44,14 @@ nb:
       cmd: Slett sitat
       desc:
         quote_number: Sitat-nummer som skal slettes
-      confirm_delete: 'Er du sikker på at du vil slette følgende sitat?'
-      msg_confirm_delete: 'Slettet sitat nummer %{quote_num}'
+      confirm_delete: "Er du sikker på at du vil slette dette sitatet?"
+      msg_confirm_delete: "Slettet sitat nummer %{quote_num}"
       msg_confirm_not_delete: Sitat ikke slettet
       msg_fail: Sitatet slettes ikke, sjekk logger
-      msg_nonexisting_quote: 'Sitat nr %{quote_number} eksisterer ikke'
+      msg_nonexisting_quote: "Sitat nr %{quote_number} eksisterer ikke"
     count:
       cmd: Tell antall sitater
-      msg_confirm: 'Jeg har for øyeblikket %{num_quotes} sitater i databasen'
+      msg_confirm: "Jeg har for øyeblikket %{num_quotes} sitater i databasen"
     list:
       cmd: Vis sitater
       msg_nonexisting_quote: Quote does not exist
@@ -77,4 +77,4 @@ nb:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
       msg_no_change: Ingen endringer gjort
-    error: 'Fikk følgende feil: %{error}'
+    error: "Fikk følgende feil: %{error}"

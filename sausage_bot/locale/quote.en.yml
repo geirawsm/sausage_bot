@@ -31,7 +31,7 @@ en:
       cmd: Post a quote
       desc:
         number: Choose a number if you want a specific quote
-      quote_not_exist: 'Quote # %{quote_in} does not exist'
+      quote_not_exist: "Quote # %{quote_in} does not exist"
       quote_db_empty: No quotes in the database
     add:
       cmd: Add a quote
@@ -44,14 +44,14 @@ en:
       cmd: Delete a quote
       desc:
         quote_number: Quote number to delete
-      confirm_delete: 'Are you sure you want to delete the following quote?'
-      msg_confirm_delete: 'Deleted quote # %{quote_num}'
+      confirm_delete: "Are you sure you want to delete this quote?"
+      msg_confirm_delete: "Deleted quote # %{quote_num}"
       msg_confirm_not_delete: Quote not deleted
       msg_fail: Will not delete quote, check logs
       msg_nonexisting_quote: 'Quote \#%{quote_number} does not exist'
     count:
       cmd: Count the number of quotes
-      msg_confirm: 'I currently have %{num_quotes} quotes in my database'
+      msg_confirm: "I currently have %{num_quotes} quotes in my database"
     list:
       cmd: List quotes
       msg_nonexisting_quote: Sitatet eksisterer ikke
@@ -77,4 +77,4 @@ en:
       modal_title: Edit quote
       msg_confirm: Quote edited
       msg_no_change: No changes made
-    error: 'Got error: %{error}'
+    error: "Got error: %{error}"
