@@ -109,6 +109,7 @@ class ColorFormatter(logging.Formatter):
 
 def configure_logging(console_level=None, file_level=None, to_file=False, log_days=10):
     logger = logging.getLogger()
+    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     logger.setLevel(console_level if console_level is not None else logging.DEBUG)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)

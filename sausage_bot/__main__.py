@@ -10,6 +10,7 @@ from pendulum import timezones as p_timezones
 import asyncio
 import aiosqlite
 from sys import argv, executable
+import os
 
 from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
@@ -22,9 +23,22 @@ logger = config.logger
 
 async def reload_cogs():
     logger.debug("Reloading cogs")
-    for cog in config.bot.cogs:
-        logger.info("Reloading cog: {}".format(cog))
-        await config.bot.reload_extension(f"cogs/{cog}")
+    for filename in os.listdir(envs.COGS_DIR):
+        if filename.endswith(".py") and not filename.startswith("_"):
+            cog_name = filename[:-3]
+            is_loaded = "{}.{}".format(
+                envs.COGS_REL_DIR, f"{cog_name}" in config.bot.extensions
+            )
+            if is_loaded:
+                await config.bot.unload_extension(
+                    "{}.{}".format(envs.COGS_REL_DIR, f"{cog_name}")
+                )
+    for filename in os.listdir(envs.COGS_DIR):
+        if filename.endswith(".py") and not filename.startswith("_"):
+            cog_name = filename[:-3]
+            await config.bot.load_extension(
+                "{}.{}".format(envs.COGS_REL_DIR, f"{cog_name}")
+            )
 
 
 @tasks.loop(hours=1)
