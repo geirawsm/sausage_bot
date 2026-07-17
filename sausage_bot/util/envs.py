@@ -475,6 +475,7 @@ GUILD_NOT_FOUND = "Fant ikke serveren {}, dobbeltsjekk navnet i .env"
 
 # COG - GENERIC MESSAGES
 COG_STARTING = "Starting cog: `{}`"
+COG_STARTED = "Started cog: `{}`"
 
 # COG
 

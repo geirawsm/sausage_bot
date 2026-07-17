@@ -183,6 +183,7 @@ async def setup(bot):
 
     logger.info(envs.COG_STARTING.format('barca_news'))
     await bot.add_cog(scrape_and_post(bot))
+    logger.info(envs.COG_STARTED.format("barca_news"))
     task_list = await get_tasks()
     logger.debug(f'Got `task_list`: {task_list}')
     if task_list is None or len(task_list) <= 0:

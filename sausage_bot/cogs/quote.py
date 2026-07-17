@@ -1530,6 +1530,7 @@ async def setup(bot):
         file_io.remove_file(envs.quote_log_file)
     logger.debug("Registering cog to bot")
     await bot.add_cog(Quotes(bot))
+    logger.info(envs.COG_STARTED.format(cog_name))
 
     task_list = await db_helper.get_output(
         template_info=envs.tasks_db_schema,

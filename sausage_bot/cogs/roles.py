@@ -2144,6 +2144,7 @@ async def setup(bot):
         )
     logger.debug("Registering cog to bot")
     await bot.add_cog(Autoroles(bot))
+    logger.info(envs.COG_STARTED.format(cog_name))
 
 
 # Maintain reaction roles

@@ -356,6 +356,8 @@ class AutoEvent(commands.Cog):
 
 
 async def setup(bot):
-    logger.info(envs.COG_STARTING.format('autoevent'))
+    cog_name = "autoevent"
+    logger.info(envs.COG_STARTING.format(cog_name))
     # Starting the cog
     await bot.add_cog(AutoEvent(bot))
+    logger.info(envs.COG_STARTED.format(cog_name))

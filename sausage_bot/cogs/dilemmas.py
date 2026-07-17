@@ -157,3 +157,4 @@ async def setup(bot):
         file_io.remove_file(envs.dilemmas_log_file)
     logger.debug('Registering cog to bot')
     await bot.add_cog(Dilemmas(bot))
+    logger.info(envs.COG_STARTED.format(cog_name))
