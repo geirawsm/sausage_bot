@@ -80,11 +80,11 @@ async def get_link(url=None, mock_file=None, status_out=None):
         logger.debug(f"Trying `url`: {url}")
         session = aiohttp.ClientSession()
         # Get random user agent
-        #        rand_user_agent = get_random_user_agent()
-        #        logger.debug(f'Using user-agent: {rand_user_agent}')
-        #        headers = {'user-agent': rand_user_agent}
-        #        async with session.get(url, headers=headers) as resp:
-        async with session.get(url) as resp:
+        rand_user_agent = get_random_user_agent()
+        logger.debug(f"Using user-agent: {rand_user_agent}")
+        headers = {"user-agent": rand_user_agent}
+        # async with session.get(url) as resp:
+        async with session.get(url, headers=headers) as resp:
             url_status = resp.status
             logger.debug(f"Got status: {url_status}")
             content_out = await resp.text()
