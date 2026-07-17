@@ -135,8 +135,8 @@ async def add_missing_db_setup(template_info, dict_in: dict = None):
                 if add_to_temp:
                     temp_inserts.append(tuple(insert))
             inserts = temp_inserts
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Got following error: {e}")
         logger.debug(f"Sending inserts: {inserts}")
     if len(temp_inserts) > 0:
         await insert_many_some(

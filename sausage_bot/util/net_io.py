@@ -46,9 +46,9 @@ async def fetch_random_user_agent():
     if config.SCRAPEOPS_API_KEY is None:
         logger.error("SCRAPEOPS_API_KEY is not set")
         return
-    # Get new headers if the file is older than 6 hours or does not exist
+    # Get new headers if the file is older than 1 hour or does not exist
     if (
-        file_io.file_age(envs.TEMP_DIR / "headers.json") > 60 * 60 * 6
+        file_io.file_age(envs.TEMP_DIR / "headers.json") > 60 * 60
         or file_io.file_exist(envs.TEMP_DIR / "headers.json") is False
     ):
         logger.debug("Headers file is older than an hour or does not exist")
@@ -886,7 +886,7 @@ async def get_page_hash(url, debug=False):
         file_io.write_file(envs.LOG_DIR / "HTTP_files" / f"{dt}.html", soup)
     if desc is None:
         hash = desc
-        logger.debug(f"Using desc: {desc[0:200]}")
+        logger.debug(f"Using hash: {hash}")
     elif desc is not None:
         logger.debug(f"Got `desc`: {desc[0:200]}")
         hash = md5(str(desc).encode("utf-8")).hexdigest()

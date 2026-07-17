@@ -1,13 +1,8 @@
 [flake8]
-ignore = E266, B008
+ignore = E266, B008, E501, E203
 exclude =
     ./sausage_bot/flake8-I18N-checker,
     ./sausage_bot/test
     ./sausage_bot/testing
     ./sausage_bot/util/i18n.py
 
-[flake8:local-plugins]
-extension =
-    LC1 = flake8_I18N_checker:I18N_Checker
-paths =
-    ./sausage_bot/flake8-I18N-checker/

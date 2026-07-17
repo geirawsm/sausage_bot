@@ -9,7 +9,6 @@ from tabulate import tabulate
 from pendulum import timezones as p_timezones
 import asyncio
 import aiosqlite
-from sys import argv, executable
 import os
 
 from sausage_bot.util.args import args
@@ -300,7 +299,7 @@ async def synclocal(ctx):
         content="✅💭 {}".format(I18N.t("main.commands.synclocal.msg_cont_copy"))
     )
     # logger.debug('Copying global commands...')
-    # config.bot.tree.copy_global_to(guild=ctx.guild)
+    config.bot.tree.copy_global_to(guild=ctx.guild)
     # for command in config.bot.tree.get_commands():
     #    logger.debug(f'Checking {command.name}')
     logger.debug("Syncing...")
@@ -624,7 +623,6 @@ asyncio.run(
         table_in=envs.locale_db_schema, inserts=envs.locale_db_schema["inserts"]
     )
 )
-
 try:
     config.bot.run(config.DISCORD_TOKEN)
 except Exception as _error:
