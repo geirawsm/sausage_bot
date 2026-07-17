@@ -27,6 +27,7 @@ from sausage_bot.util.args import args
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
+from sausage_bot.util.logger import truncate_for_log
 
 logger = config.logger
 QUOTE_AUTOPOST_TIME = None
@@ -696,11 +697,12 @@ class Quotes(commands.Cog):
         name="delete", description=locale_str(I18N.t("quote.commands.delete.cmd"))
     )
     @describe(quote_number=I18N.t("quote.commands.delete.desc.quote_number"))
-    async def quote_delete(self, interaction: discord.Interaction, quote_number: str):
+    async def quote_delete(self, interaction: discord.Interaction, quote_number: int):
         "Delete an existing quote"
+        quote_number = int(quote_number)
         await interaction.response.defer(ephemeral=True)
         quote_from_db = await db_helper.get_imgs_with_quote(
-            envs.quote_db_schema, where=[("quote.rowid", str(quote_number - 1))]
+            envs.quote_db_schema, where=[("quote.rowid", str(quote_number))]
         )
         logger.debug(f"quote_from_db is: {truncate_for_log(quote_from_db)}")
         if quote_from_db == []:
