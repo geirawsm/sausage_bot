@@ -702,7 +702,7 @@ class Quotes(commands.Cog):
         quote_from_db = await db_helper.get_imgs_with_quote(
             envs.quote_db_schema, where=[("quote.rowid", str(quote_number - 1))]
         )
-        logger.debug(f"quote_from_db is: {quote_from_db}")
+        logger.debug(f"quote_from_db is: {truncate_for_log(quote_from_db)}")
         if quote_from_db == []:
             await interaction.followup.send(
                 I18N.t(
@@ -713,7 +713,7 @@ class Quotes(commands.Cog):
             )
             return
         quote = quote_from_db[0]
-        logger.debug(f"quote is: {quote}")
+        logger.debug(f"quote is: {truncate_for_log(quote)}")
         confirm_buttons = ConfirmButtons(
             yes_label=I18N.t("common.literal_yes_no.lit_yes"),
             no_label=I18N.t("common.literal_yes_no.lit_no"),

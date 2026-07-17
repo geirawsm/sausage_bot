@@ -10,6 +10,24 @@ import json
 from sausage_bot.util import envs
 
 
+def truncate_for_log(data, max_len=100):
+    """
+    Returns a copy of `data` where all string values longer than
+    `max_len` characters are cut and marked with '...'.
+    Works recursively on dict, list and tuple.
+    """
+    if isinstance(data, str):
+        if len(data) > max_len:
+            return f"{data[:max_len]}... [truncated, {len(data)} chars total]"
+        return data
+    elif isinstance(data, dict):
+        return {k: truncate_for_log(v, max_len) for k, v in data.items()}
+    elif isinstance(data, (list, tuple)):
+        return [truncate_for_log(v, max_len) for v in data]
+    else:
+        return data
+
+
 def file_size(filename):
     """
     Checks the file size of a file. If it can't find the file it will
