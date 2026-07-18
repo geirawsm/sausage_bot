@@ -279,7 +279,7 @@ async def post_random_quote(
         envs.quote_db_schema,
         where=[("quote.rowid", str(random_quote_number[0][0]))],
     )
-    random_quote = random_quote[0]
+    logger.debug(f"random_quote: {random_quote}")
     channel_id = interaction.channel.id if interaction else channel
     if random_quote is None:
         if len(autopost) > 0:
@@ -307,6 +307,7 @@ async def post_random_quote(
                 ephemeral=_ephemeral,
             )
         return
+    random_quote = random_quote[0]
     if random_quote is not None:
         quote = random_quote
         paginated = []
@@ -325,11 +326,11 @@ async def post_random_quote(
         if len(autopost) > 0:
             if autopost["prefix"]:
                 logger.debug("Adding prefix to msg_in")
-                msg_in = "## {}\n`# {} - #{} ({})`\n\n".format(
+                msg_in = "## {}\n`# {} - #{}, {}`\n\n".format(
                     autopost["prefix"], quote["rowid"], quote_channel, quote_dt
                 )
         else:
-            msg_in = "`# {} - #{} ({})`\n\n".format(
+            msg_in = "`# {} - #{}, {}`\n\n".format(
                 quote["rowid"], quote_channel, quote_dt
             )
         comment_last_key = next(reversed(quote["comments"]))
@@ -443,23 +444,16 @@ async def post_random_quote(
 async def post_selected_quote(interaction, _ephemeral, quote_in):
     quote = await db_helper.get_imgs_with_quote(
         envs.quote_db_schema,
-        where=[("quote.rowid", str(quote_in - 1))],
+        where=[("quote.rowid", int(quote_in))],
     )
-    quote_out = quote[0]
-    if quote_out is None:
+    logger.debug(f"quote: {quote}")
+    if len(quote) == 0:
         await interaction.followup.send(
             I18N.t("quote.commands.list.msg_nonexisting_quote"),
             ephemeral=_ephemeral,
         )
         return
-    elif len(quote_out) == 0:
-        await interaction.followup.send(
-            # TODO: i18n
-            "No quotes in database",
-            ephemeral=_ephemeral,
-        )
-        return
-
+    quote_out = quote[0]
     if quote_out is not None:
         quote = quote_out
         paginated = []
@@ -475,7 +469,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
             quote_channel = quote["channel_backup"]
         else:
             quote_channel = quote_channel_object.name
-        msg_in = "`# {} - #{} ({})`\n\n".format(quote["rowid"], quote_channel, quote_dt)
+        msg_in = "`# {} - #{}, {}`\n\n".format(quote["rowid"], quote_channel, quote_dt)
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
@@ -624,7 +618,7 @@ class Quotes(commands.Cog):
         "Edit an existing quote"
         logger.debug(f"quote_in: ({type(quote_in)}) {quote_in}")
         quote_from_db = await db_helper.get_imgs_with_quote(
-            envs.quote_db_schema, where=[("quote.rowid", str(quote_in - 1))]
+            envs.quote_db_schema, where=[("quote.rowid", int(quote_in) - 1)]
         )
         quote_from_db = quote_from_db[0]
         logger.debug(f"quote_from_db: {quote_from_db}")
