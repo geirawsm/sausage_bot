@@ -189,6 +189,7 @@ quote_db_schema = {
     "items": [
         ["uuid", "TEXT NOT NULL UNIQUE"],
         ["channel_id", "INT"],
+        ["channel_backup", "TEXT"],
         ["datetime", "TEXT"],
     ],
     "primary": "uuid",

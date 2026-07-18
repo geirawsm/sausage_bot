@@ -1184,7 +1184,7 @@ async def get_imgs_with_quote(
     db_file = template_info["db_file"]
     sql_query = (
         "SELECT quote.rowid, quote.uuid, quote.channel_id,"
-        " quote.datetime, quote_content.comment_id,"
+        " quote.channel_backup, quote.datetime, quote_content.comment_id,"
         " quote_content.author_id, quote_content.author_backup,"
         " quote_content.content_text, quote_content.content_order,"
         " quote_img.img_no, quote_img.base64 as img_base64"

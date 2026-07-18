@@ -314,14 +314,24 @@ async def post_random_quote(
         trigger_pagination = False
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+        quote_channel = ""
+        quote_channel_object = get(
+            interaction.guild.text_channels, id=int(quote["channel_id"])
+        )
+        if quote_channel_object is None:
+            quote_channel = quote["channel_backup"]
+        else:
+            quote_channel = quote_channel_object.name
         if len(autopost) > 0:
             if autopost["prefix"]:
                 logger.debug("Adding prefix to msg_in")
-                msg_in = "## {}\n`# {} ({})`\n\n".format(
-                    autopost["prefix"], quote["rowid"], quote_dt
+                msg_in = "## {}\n`# {} - #{} ({})`\n\n".format(
+                    autopost["prefix"], quote["rowid"], quote_channel, quote_dt
                 )
         else:
-            msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+            msg_in = "`# {} - #{} ({})`\n\n".format(
+                quote["rowid"], quote_channel, quote_dt
+            )
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
@@ -457,7 +467,15 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         trigger_pagination = False
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
-        msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        quote_channel = ""
+        quote_channel_object = get(
+            interaction.guild.text_channels, id=int(quote["channel_id"])
+        )
+        if quote_channel_object is None:
+            quote_channel = quote["channel_backup"]
+        else:
+            quote_channel = quote_channel_object.name
+        msg_in = "`# {} - #{} ({})`\n\n".format(quote["rowid"], quote_channel, quote_dt)
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
@@ -1455,7 +1473,7 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
     quotes_out = []
     for quote in quote_msgs_out:
         quote_object = await discord_commands.get_message_obj(
-            quote, interaction.channel_id
+            quote, interaction.channel.id
         )
         quotes_out.append(quote_object)
     # Add the quote
@@ -1481,7 +1499,14 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
             imgs_to_db += imgs_in
     await db_helper.insert_many_all(
         template_info=envs.quote_db_schema,
-        inserts=[(_uuid, int(interaction.channel_id), main_msg.created_at)],
+        inserts=[
+            (
+                _uuid,
+                int(interaction.channel.id),
+                str(interaction.channel.name),
+                main_msg.created_at,
+            )
+        ],
     )
     await db_helper.insert_many_all(
         template_info=envs.quote_content_db_schema, inserts=quote_to_db
