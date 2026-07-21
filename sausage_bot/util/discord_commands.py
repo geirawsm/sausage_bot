@@ -91,7 +91,7 @@ async def create_missing_channel(
         if get(_guild.text_channels, id=int(channel_id)) is None:
             missing = True
             logger.info(f"Could not find channel with id {channel_id}")
-    if not channel_id and channel_name:
+    elif not channel_id and channel_name:
         if get(_guild.text_channels, name=str(channel_id)) is None:
             missing = True
             logger.info(f"Could not find channel with name {channel_id}")

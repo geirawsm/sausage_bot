@@ -30,7 +30,6 @@ from sausage_bot.util.i18n import I18N
 from sausage_bot.util.logger import truncate_for_log
 
 logger = config.logger
-QUOTE_AUTOPOST_TIME = None
 
 
 async def get_autopost_time():
@@ -161,11 +160,13 @@ class ModalQuoteAdd(discord.ui.Modal):
             )
         else:
             self.msgs_out = self.quote_dropdown.values
-            await interaction.response.send_message(
+            if self.row_ids == 0:
                 # TODO i17n
-                f"Sitat lagret som nr {self.row_ids + 1}!",
-                ephemeral=True,
-            )
+                msg_out = f"Endring lagret!"
+            else:
+                # TODO i17n
+                msg_out = f"Sitat lagret som nr {self.row_ids + 1}!",
+            await interaction.response.send_message(msg_out, ephemeral=True)
         return
 
     async def on_error(
@@ -315,10 +316,24 @@ async def post_random_quote(
         trigger_pagination = False
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+        # Get max len of author
+        author_max_len = 0
+        for comment in quote["comments"]:
+            if len(quote["comments"][comment]["author_backup"]) > author_max_len:
+                author_max_len = len(quote["comments"][comment]["author_backup"])
         quote_channel = ""
-        quote_channel_object = get(
-            interaction.guild.text_channels, id=int(quote["channel_id"])
-        )
+        if interaction:
+            quote_channel_object = get(
+                interaction.guild.text_channels, id=int(quote["channel_id"])
+            )
+        elif channel:
+            _guild = discord_commands.get_current_guild()
+            quote_channel_object = get(
+                _guild.text_channels, id=int(quote["channel_id"])
+            )
+        else:
+            # TODO: i18n
+            await discord_commands.log_to_bot_channel("Error when getting channel for autopost, check logs")
         if quote_channel_object is None:
             quote_channel = quote["channel_backup"]
         else:
@@ -336,7 +351,8 @@ async def post_random_quote(
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
-            msg_in += "`{}: {}`".format(comment["author_backup"], comment["content"])
+            _author = comment["author_backup"].ljust(author_max_len, " ")
+            msg_in += "`{}: {}`".format(_author, comment["content"])
             if len(comment["imgs"]) > 0:
                 logger.debug(f"trigger_pagination is {trigger_pagination}")
                 trigger_pagination = True
@@ -461,6 +477,11 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         trigger_pagination = False
         logger.debug(f"trigger_pagination is {trigger_pagination}")
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
+        # Get max len of author
+        author_max_len = 0
+        for comment in quote["comments"]:
+            if len(quote["comments"][comment]["author_backup"]) > author_max_len:
+                author_max_len = len(quote["comments"][comment]["author_backup"])
         quote_channel = ""
         quote_channel_object = get(
             interaction.guild.text_channels, id=int(quote["channel_id"])
@@ -473,7 +494,8 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
-            msg_in += "`{}: {}`".format(comment["author_backup"], comment["content"])
+            _author = comment["author_backup"].ljust(author_max_len, " ")
+            msg_in += "`{}: {}`".format(_author, comment["content"])
             if len(comment["imgs"]) > 0:
                 logger.debug(f"trigger_pagination is {trigger_pagination}")
                 trigger_pagination = True
@@ -618,7 +640,7 @@ class Quotes(commands.Cog):
         "Edit an existing quote"
         logger.debug(f"quote_in: ({type(quote_in)}) {quote_in}")
         quote_from_db = await db_helper.get_imgs_with_quote(
-            envs.quote_db_schema, where=[("quote.rowid", int(quote_in) - 1)]
+            envs.quote_db_schema, where=[("quote.rowid", int(quote_in))]
         )
         quote_from_db = quote_from_db[0]
         logger.debug(f"quote_from_db: {quote_from_db}")
@@ -736,7 +758,15 @@ class Quotes(commands.Cog):
         msg = ""
         trigger_pagination = False
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
-        msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+        quote_channel = ""
+        quote_channel_object = get(
+            interaction.guild.text_channels, id=int(quote["channel_id"])
+        )
+        if quote_channel_object is None:
+            quote_channel = quote["channel_backup"]
+        else:
+            quote_channel = quote_channel_object.name
+        msg_in = "`# {} - #{}, {}`\n\n".format(quote["rowid"], quote_channel, quote_dt)
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
             msg_in += "`{}: {}`".format(comment["author_backup"], comment["content"])
@@ -828,27 +858,20 @@ class Quotes(commands.Cog):
         self,
         interaction: discord.Interaction,
         keyword: str = "",
-        quote_number: int = -1,
     ):
         quote_rowids = await db_helper.get_row_ids(template_info=envs.quote_db_schema)
-        # List based on quote number
-        if quote_number > 0 and keyword == "":
-            logger.debug("Using quote number")
-            quote_in = await db_helper.get_imgs_with_quote(
-                envs.quote_db_schema,
-                where=[("quote.rowid", str(quote_number - 1))],
-            )
         # List based on keyword
-        elif keyword and quote_number < 0:
+        if keyword:
             logger.debug("Using keyword")
             quote_in = await db_helper.get_imgs_with_quote(
-                envs.quote_db_log_schema,
+                envs.quote_content_db_schema,
                 like=[
                     ("quote_content.author_backup", keyword, "OR"),
                     ("quote_content.content_text", keyword),
                 ],
                 order_by=[("quote.rowid", "ASC")],
             )
+            return quote_in
         # List all quotes
         else:
             if len(quote_rowids) == 0:
@@ -871,12 +894,12 @@ class Quotes(commands.Cog):
                 logger.debug(f"btn_values is {btn_values}")
                 if True in btn_values:
                     quote_in = await db_helper.get_imgs_with_quote(
-                        envs.quote_db_log_schema,
+                        envs.quote_content_db_schema,
                         order_by=[("quote.rowid", "ASC")],
                     )
+                    return quote_in
                 if False in btn_values:
                     return False
-        return quote_in
 
     @commands.is_owner()
     @group.command(
@@ -886,7 +909,6 @@ class Quotes(commands.Cog):
         self,
         interaction: discord.Interaction,
         keyword: str = "",
-        quote_number: int = -1,
         public: typing.Literal[
             I18N.t("common.literal_yes_no.lit_yes"),
             I18N.t("common.literal_yes_no.lit_no"),
@@ -899,7 +921,7 @@ class Quotes(commands.Cog):
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
         quote_in = await self.prep_quotes_for_posting(
-            interaction=interaction, keyword=keyword, quote_number=quote_number
+            interaction=interaction, keyword=keyword
         )
         if quote_in is None:
             await interaction.followup.send(
@@ -928,15 +950,29 @@ class Quotes(commands.Cog):
         for quote in quote_in:
             logger.debug(f"trigger_pagination is {trigger_pagination}")
             quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
-            msg_in = "`# {} ({})`\n".format(quote["rowid"], quote_dt)
+            # Get max len of author
+            author_max_len = 0
+            for comment in quote["comments"]:
+                if len(quote["comments"][comment]["author_backup"]) > author_max_len:
+                    author_max_len = len(quote["comments"][comment]["author_backup"])
+            quote_channel = ""
+            quote_channel_object = get(
+                interaction.guild.text_channels, id=int(quote["channel_id"])
+            )
+            if quote_channel_object is None:
+                quote_channel = quote["channel_backup"]
+            else:
+                quote_channel = quote_channel_object.name
+            msg_in = "`# {} - #{}, {}`\n\n".format(
+                quote["rowid"], quote_channel, quote_dt
+            )
             for _comment_id in quote["comments"]:
                 comment = quote["comments"][_comment_id]
-                msg_in += "`{}: {}`".format(
-                    comment["author_backup"], comment["content"]
-                )
+                _author = comment["author_backup"].ljust(author_max_len, " ")
+                msg_in += "`{}: {}`".format(_author, comment["content"])
                 if len(comment["imgs"]) > 0:
-                    # logger.debug(f"trigger_pagination is {trigger_pagination}")
-                    # trigger_pagination = True
+                    logger.debug(f"trigger_pagination is {trigger_pagination}")
+                    trigger_pagination = True
                     img_list = []
                     for _img_id in comment["imgs"]:
                         img = comment["imgs"][_img_id]
@@ -1044,7 +1080,7 @@ class Quotes(commands.Cog):
             value_in = value_obj.id
             setting_type = "int"
         if name_of_setting == "autopost_time":
-            time_out = datetime.strptime(value_in, "%H:%M:%S").astimezone().time()
+            time_out = datetime.strptime(value_in, "%H:%M").astimezone().time()
             await db_helper.update_fields(
                 template_info=envs.quote_db_settings_schema,
                 where=[("setting", name_of_setting)],
@@ -1337,12 +1373,9 @@ class Quotes(commands.Cog):
         logger.debug("Got quote, posting it")
         rand_quote = rand_quote[0]
         logger.debug(f"rand_quote: {rand_quote}")
-
         autopost_settings = {"prefix": "", "tag_role": ""}
-
         if "autopost_prefix" in settings_db_json:
             autopost_settings["prefix"] = settings_db_json["autopost_prefix"]
-
         if "autopost_tag_role" in settings_db_json and re.match(
             r"\d{19,22}", settings_db_json["autopost_tag_role"]
         ):
@@ -1558,6 +1591,22 @@ async def setup(bot):
         select=("task", "status"),
         where=("cog", "quotes"),
     )
+
+    global QUOTE_AUTOPOST_TIME
+    QUOTE_AUTOPOST_TIME = await get_autopost_time()
+    logger.debug("`QUOTE_AUTOPOST_TIME` is: {}".format(QUOTE_AUTOPOST_TIME.group(0)))
+    # Parse time from QUOTE_AUTOPOST_TIME
+    hour = int(QUOTE_AUTOPOST_TIME.group(1))
+    minute = int(QUOTE_AUTOPOST_TIME.group(2))
+    logger.debug("Parsed hour: {}, minute: {}".format(hour, minute))
+    # Set the interval for the loop
+    Quotes.task_autopost.change_interval(
+        time=time(hour=hour, minute=minute, tzinfo=config.timezone)
+    )
+    logger.info("Changed interval to: {}:{}".format(hour, minute))
+    # Start the loop if needed
+    Quotes.task_autopost.restart()
+
     _tasks = ["autopost"]
     inserts = []
     for task in _tasks:
@@ -1579,18 +1628,3 @@ async def setup(bot):
             elif task["status"] == "stopped":
                 logger.debug("`{}` is set as `{}`".format(task["task"], task["status"]))
                 Quotes.task_autopost.cancel()
-
-    global QUOTE_AUTOPOST_TIME
-    QUOTE_AUTOPOST_TIME = await get_autopost_time()
-    logger.debug("`QUOTE_AUTOPOST_TIME` is: {}".format(QUOTE_AUTOPOST_TIME.group(0)))
-    # Parse time from QUOTE_AUTOPOST_TIME
-    hour = int(QUOTE_AUTOPOST_TIME.group(1))
-    minute = int(QUOTE_AUTOPOST_TIME.group(2))
-    logger.debug("Parsed hour: {}, minute: {}".format(hour, minute))
-    # Set the interval for the loop
-    Quotes.task_autopost.change_interval(
-        time=time(hour=hour, minute=minute, tzinfo=config.timezone)
-    )
-    logger.debug("Changed interval to: {}:{}".format(hour, minute))
-    # Start the loop if needed
-    Quotes.task_autopost.restart()

@@ -1177,21 +1177,33 @@ async def get_combined_output(
 
 async def get_imgs_with_quote(
     template_info,
+    select: list | tuple = [],
     where: list | tuple = [],
     like: list | tuple = [],
     order_by: list | tuple = [],
 ):
     db_file = template_info["db_file"]
-    sql_query = (
-        "SELECT quote.rowid, quote.uuid, quote.channel_id,"
-        " quote.channel_backup, quote.datetime, quote_content.comment_id,"
-        " quote_content.author_id, quote_content.author_backup,"
-        " quote_content.content_text, quote_content.content_order,"
-        " quote_img.img_no, quote_img.base64 as img_base64"
-        " FROM quote INNER JOIN quote_content"
-        " ON quote.uuid = quote_content.uuid"
+    # sql_query = (
+    #     "SELECT quote.rowid, quote.uuid, quote.channel_id,"
+    #     " quote.channel_backup, quote.datetime, quote_content.comment_id,"
+    #     " quote_content.author_id, quote_content.author_backup,"
+    #     " quote_content.content_text, quote_content.content_order,"
+    #     " quote_img.img_no, quote_img.base64 as img_base64"
+    #     " FROM quote INNER JOIN quote_content"
+    #     " ON quote.uuid = quote_content.uuid"
+    #     " LEFT JOIN quote_img ON quote_content.comment_id = quote_img.comment_id"
+    # )
+    sql_query = "SELECT "
+    if len(select) > 0:
+        for _sel in select:
+            sql_query += _sel
+            if _sel != select[-1]:
+                sql_query += ", "
+    else:
+        sql_query += "quote.rowid, quote.*, quote_content.*, quote_img.* "
+    sql_query += "FROM quote INNER JOIN quote_content" \
+        " ON quote.uuid = quote_content.uuid" \
         " LEFT JOIN quote_img ON quote_content.comment_id = quote_img.comment_id"
-    )
     if where:
         sql_query += " WHERE"
         if isinstance(where[0], str):
@@ -1235,7 +1247,7 @@ async def get_imgs_with_quote(
                         if k
                         not in (
                             "img_no",
-                            "img_base64",
+                            "quote_img.img_base64",
                             "comment_id",
                             "author_id",
                             "author_backup",
@@ -1259,7 +1271,6 @@ async def get_imgs_with_quote(
                         "img_base64"
                     ]
             return list(quotes.values())
-
     except aiosqlite.OperationalError:
         logger.error("Error when fetching img quotes")
         return []
