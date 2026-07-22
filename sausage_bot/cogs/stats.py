@@ -264,30 +264,37 @@ class Stats(commands.Cog):
         logger.debug(f"settings_from_db:\n{pformat(settings_from_db)}")
         settings_type = envs.stats_db_settings_schema["type_checking"]
         for setting in settings_from_db:
-            if settings_type[setting] == "bool":
-                try:
-                    value_in = eval(str(value_in).capitalize())
-                except NameError as _error:
-                    logger.error(f"Invalid input for `value_in`: {_error}")
-                    await interaction.followup.send(I18N.t("stats.setting_input_reply"))
-                    return
-            logger.debug(f"`value_in` is {value_in} ({type(value_in)})")
-            logger.debug(
-                f"`settings_type` is {settings_type[setting]} "
-                f"({type(settings_type[setting])})"
-            )
-            if type(value_in) is eval(settings_type[setting]):
-                await db_helper.update_fields(
-                    template_info=envs.stats_db_settings_schema,
-                    where=[("setting", name_of_setting)],
-                    updates=[("value", value_in)],
+            if setting == name_of_setting:
+                if settings_type[setting] == "bool":
+                    logger.info("settings_type is bool, yay!")
+                    if value_in.lower() in ["true", "false"]:
+                        logger.debug(f"Changing as bool: {value_in}")
+                        value_in = str(value_in).capitalize()
+                        logger.debug(f"Changing as bool: {value_in}")
+                    else:
+                        logger.error(f"Invalid input for `value_in`: {_error}")
+                        await interaction.followup.send(
+                            I18N.t("stats.setting_input_reply")
+                        )
+                        return
+                if type(eval(value_in)) is eval(settings_type[setting]):
+                    await db_helper.update_fields(
+                        template_info=envs.stats_db_settings_schema,
+                        where=[("setting", name_of_setting)],
+                        updates=[("value", value_in)],
+                    )
+                logger.debug(f"`value_in` is {value_in} ({type(value_in)})")
+                logger.debug(
+                    f"`settings_type` is {settings_type[setting]} "
+                    f"({type(settings_type[setting])})"
                 )
-            await interaction.followup.send(
-                content=I18N.t("stats.commands.change.update_confirmed"), ephemeral=True
-            )
-            Stats.task_update_stats.restart()
-            break
-        return
+                await interaction.followup.send(
+                    content=I18N.t("stats.commands.change.update_confirmed"),
+                    ephemeral=True,
+                )
+                Stats.task_update_stats.restart()
+                break
+            return
 
     @commands.is_owner()
     @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
@@ -538,8 +545,8 @@ class Stats(commands.Cog):
             if isinstance(dict_in, dict):
                 logger.debug(
                     "Checking `sort_abc` ({}) and `sort_321` ({})".format(
-                        eval(stats_settings["sort_roles_abc"]),
-                        eval(stats_settings["sort_roles_321"]),
+                        eval(stats_settings["sort_roles_abc"].capitalize()),
+                        eval(stats_settings["sort_roles_321"].capitalize()),
                     )
                 )
                 if not eval(stats_settings["sort_roles_abc"]) and not eval(
@@ -754,7 +761,6 @@ class Stats(commands.Cog):
                 while lines and len(f"```{chr(10).join(lines)}```\n") > available_space:
                     lines.pop()
                 roles_members = "\n".join(lines)
-                # TODO: Denne gir kun 0 linjer etter sjekk åpenbar feil
                 logger.debug(f"Length roles_members after check: {len(roles_members)}")
                 # TODO: i18n
                 await discord_commands.log_to_bot_channel(
