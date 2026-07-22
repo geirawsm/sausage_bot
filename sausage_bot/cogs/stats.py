@@ -272,7 +272,7 @@ class Stats(commands.Cog):
                         value_in = str(value_in).capitalize()
                         logger.debug(f"Changing as bool: {value_in}")
                     else:
-                        logger.error(f"Invalid input for `value_in`: {_error}")
+                        logger.error(f"Invalid input for `value_in`")
                         await interaction.followup.send(
                             I18N.t("stats.setting_input_reply")
                         )

@@ -816,7 +816,7 @@ class Quotes(commands.Cog):
             # Confirm not deleting quote
             # TODO: i18n
             await interaction.followup.send(
-                "Sletting kansellert",
+                "Delete cancelled",
                 ephemeral=True,
             )
             return
