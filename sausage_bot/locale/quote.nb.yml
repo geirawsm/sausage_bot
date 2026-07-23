@@ -3,6 +3,8 @@ nb:
     quote_num: Sitat nr
     quote: Sitat
     quote_date: Dato
+  common:
+    quote_db_empty: Ingen sitater i databasen
   commands:
     refresh_quote:
       start:
@@ -16,12 +18,17 @@ nb:
         msg_confirm_ok: Sitat oppdatering startet på nytt
     autopost:
       cmd: Autopost sitater
+      errors:
+        channel_error: Feil ved henting av kanal for autopost, sjekk logger
+        no_quotes_stop_task: Ingen sitater tilgjengelig for autoposting i databasen, stopper autopostdisabling autoposting
       start:
         cmd: Start autopost
         msg_confirm_ok: Autoposting startet, neste post kommer %{time}
+        msg_already_running: Oppgaven kjører allerede
       stop:
         cmd: Stopp autopost
         msg_confirm_ok: Autoposting stoppet, neste post kommer %{time}
+        msg_already_stopped: Autoposting er allerede stoppet
       restart:
         cmd: Restart autopost
         msg_confirm_ok: Autoposting restartet
@@ -32,7 +39,6 @@ nb:
       desc:
         number: Velg et nummer hvis du vil ha et spesifikt sitat
       quote_not_exist: "Sitat nummer %{quote_in} finnes ikke"
-      quote_db_empty: Ingen sitater i databasen
     add:
       cmd: Legg til sitat
     edit:
@@ -54,7 +60,8 @@ nb:
       msg_confirm: "Jeg har for øyeblikket %{num_quotes} sitater i databasen"
     list:
       cmd: Vis sitater
-      msg_nonexisting_quote: Quote does not exist
+      msg_nonexisting_quote: Sitatet eksisterer ikke
+      msg_listing_cancelled: Listing av sitater stoppet
     settings:
       cmd: Innstillinger
       change_confirmed: Innstilling endret
@@ -73,8 +80,16 @@ nb:
     add:
       modal_title: Legg til sitat
       msg_confirm: La til følgende sitat
+      msg_request_quote: Du må velge et sitat
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
       msg_no_change: Ingen endringer gjort
     error: "Fikk følgende feil: %{error}"
+  context_menu:
+    add_quote:
+      name: Legg til sitat
+      not_bot: Message was not written by the bot
+      edit_confirm: Message was edited
+      edit_confirm_with_errors: ", but some tagging failed: %{errors}"
+      edit_error: "Error when editing, check logs"

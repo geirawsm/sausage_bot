@@ -156,16 +156,15 @@ class ModalQuoteAdd(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         if not self.quote_dropdown.values:
             await interaction.response.send_message(
-                "You must select a quote!", ephemeral=True
+                I18N.t("quote.modals.add.msg_request_quote"),
+                ephemeral=True
             )
         else:
             self.msgs_out = self.quote_dropdown.values
             if self.row_ids == 0:
-                # TODO i17n
-                msg_out = f"Endring lagret!"
+                msg_out = I18N.t("quote.modals.add.msg_confirm")
             else:
-                # TODO i17n
-                msg_out = f"Sitat lagret som nr {self.row_ids + 1}!",
+                msg_out = (f"Sitat lagret som nr {self.row_ids + 1}!",)
             await interaction.response.send_message(msg_out, ephemeral=True)
         return
 
@@ -173,7 +172,8 @@ class ModalQuoteAdd(discord.ui.Modal):
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
         await interaction.response.send_message(
-            f"Oops! Something went wrong: {error}", ephemeral=True
+            I18N.t("quote.modals.error", error=error),
+            ephemeral=True
         )
 
 
@@ -267,7 +267,7 @@ async def post_random_quote(
         if len(autopost) > 0:
             await discord_commands.post_to_channel(
                 channel_id=channel,
-                content_in=I18N.t("quote.commands.post.quote_db_empty"),
+                content_in=I18N.t("quote.common.quote_db_empty"),
             )
         else:
             await interaction.followup.send(
@@ -296,15 +296,13 @@ async def post_random_quote(
         return
     elif len(random_quote) == 0:
         if len(autopost) > 0:
-            # TODO: i18n
             await discord_commands.post_to_channel(
                 channel_id=channel_id,
-                content_in="No quotes in database",
+                content_in=I18N.t("quote.common.quote_db_empty"),
             )
         else:
             await interaction.followup.send(
-                # TODO: i18n
-                "No quotes in database",
+                I18N.t("quote.common.quote_db_empty"),
                 ephemeral=_ephemeral,
             )
         return
@@ -332,8 +330,9 @@ async def post_random_quote(
                 _guild.text_channels, id=int(quote["channel_id"])
             )
         else:
-            # TODO: i18n
-            await discord_commands.log_to_bot_channel("Error when getting channel for autopost, check logs")
+            await discord_commands.log_to_bot_channel(
+                I18N.t("quote.autopost.errors.channel_error")
+            )
         if quote_channel_object is None:
             quote_channel = quote["channel_backup"]
         else:
@@ -362,7 +361,6 @@ async def post_random_quote(
                     img_object = convert_b64_to_img_in_mem(str(img))
                     img_list.append(img_object)
                 if len(autopost) > 0:
-                    # TODO: i18n
                     await discord_commands.post_to_channel(
                         channel_id=channel_id, content_in=msg_in, files_in=img_list
                     )
@@ -395,7 +393,6 @@ async def post_random_quote(
                 msg_in += "\nPing <@&{}>".format(autopost["tag_role"])
         if len(msg_in) > 0:
             if len(autopost) > 0:
-                # TODO: i18n
                 await discord_commands.post_to_channel(
                     channel_id=channel_id,
                     content_in=msg_in,
@@ -433,7 +430,6 @@ async def post_random_quote(
         if len(paginated) > 0:
             for page in paginated:
                 if len(autopost) > 0:
-                    # TODO: i18n
                     await discord_commands.post_to_channel(
                         channel_id=channel_id,
                         content_in=str(page),
@@ -814,9 +810,8 @@ class Quotes(commands.Cog):
         logger.debug(f"btn_values is {btn_values}")
         if False in btn_values:
             # Confirm not deleting quote
-            # TODO: i18n
             await interaction.followup.send(
-                "Delete cancelled",
+                I18N.t("quote.delete.msg_confirm_not_delete")
                 ephemeral=True,
             )
             return
@@ -931,15 +926,13 @@ class Quotes(commands.Cog):
             return
         elif quote_in is False:
             await interaction.followup.send(
-                # TODO: i18n
-                "Quote listing cancelled",
+                I18N.t("quote.commands.list.msg_listing_cancelled"),
                 ephemeral=_ephemeral,
             )
             return
         elif len(quote_in) == 0:
             await interaction.followup.send(
-                # TODO: i18n
-                "No quotes in database",
+                I18N.t("quote.common.quote_db_empty"),
                 ephemeral=_ephemeral,
             )
             return
@@ -1246,8 +1239,9 @@ class Quotes(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         logger.info("Starting autopost quote")
         if Quotes.task_autopost.is_running():
-            # TODO: i18n
-            await interaction.followup.send("Task is already runnning")
+            await interaction.followup.send(
+                I18N.t("quote.commands.autopost.start.msg_already_running"),
+            )
             return
         else:
             Quotes.task_autopost.start()
@@ -1274,8 +1268,7 @@ class Quotes(commands.Cog):
         logger.info("Stopping autopost")
         if not Quotes.task_autopost.is_running():
             await interaction.followup.send(
-                # TODO: i18n
-                "Autoposting er allerede stoppet."
+                I18N.t("quote.commands.autopost.stop.msg_already_stopped")
             )
             return
         else:
@@ -1289,9 +1282,7 @@ class Quotes(commands.Cog):
                 updates=("status", "stopped"),
             )
             await interaction.followup.send(
-                # TODO: i18n sjekk at denne stemmer
-                # I18N.t("quote.commands.autopost.stop.msg_confirm_ok")
-                "Autoposting stoppet."
+                I18N.t("quote.commands.autopost.stop.msg_confirm_ok")
             )
 
     @autopost_group.command(
@@ -1365,9 +1356,7 @@ class Quotes(commands.Cog):
             )
             Quotes.task_autopost.stop()
             await discord_commands.log_to_bot_channel(
-                # TODO i18n
-                content_in="No quotes available for autoposting in db, "
-                "disabling autopost task"
+                content_in=I18N.t("quote.commands.autopost.errors.no_quotes_stop_task")
             )
             return
         logger.debug("Got quote, posting it")
@@ -1451,12 +1440,9 @@ def convert_b64_to_img_in_mem(b64string: str):
 
 @commands.is_owner()
 @config.bot.tree.context_menu(
-    # TODO: i18n
-    # name=locale_str(I18N.t('main.context_menu.edit_msg.name'))
-    name="Add quote"
+    name=locale_str(I18N.t("quote.context_menu.add_quote.name"))
 )
 async def quote_add(interaction: discord.Interaction, message: discord.Message):
-    # TODO: i18n
     "Add a quote"
     channel_out = interaction.channel
     msgs = []
@@ -1496,7 +1482,6 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
     await addquote_view.wait()
     # Get quotes and add to db
     quote_msgs_out = addquote_view.msgs_out
-    # TODO i18n
     quotes_out = []
     for quote in quote_msgs_out:
         quote_object = await discord_commands.get_message_obj(

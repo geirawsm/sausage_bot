@@ -3,6 +3,8 @@ en:
     quote_num: Quote no.
     quote: Quote
     quote_date: Date
+  common:
+    quote_db_empty: No quotes in the database
   commands:
     refresh_quote:
       start:
@@ -16,12 +18,17 @@ en:
         msg_confirm_ok: Quote refreshing restarted
     autopost:
       cmd: Autopost quotes
+      errors:
+        channel_error: Error when getting channel for autopost, check logs
+        no_quotes_stop_task: No quotes available for autoposting in db, disabling autoposting
       start:
         cmd: Start autoposting
         msg_confirm_ok: Autoposting started, next posting is at %{time}
+        msg_already_running: Task is already running
       stop:
         cmd: Stop autoposting
         msg_confirm_ok: Autoposting stopped
+        msg_already_stopped: Autoposting already stopped
       restart:
         cmd: Restart autoposting
         msg_confirm_ok: Autoposting restarted, next posting is at %{time}
@@ -32,7 +39,6 @@ en:
       desc:
         number: Choose a number if you want a specific quote
       quote_not_exist: "Quote # %{quote_in} does not exist"
-      quote_db_empty: No quotes in the database
     add:
       cmd: Add a quote
     edit:
@@ -54,7 +60,8 @@ en:
       msg_confirm: "I currently have %{num_quotes} quotes in my database"
     list:
       cmd: List quotes
-      msg_nonexisting_quote: Sitatet eksisterer ikke
+      msg_nonexisting_quote: Quote does not exist
+      msg_listing_cancelled: Quote listing cancelled
     settings:
       cmd: Settings
       change_confirmed: Setting changed
@@ -73,8 +80,16 @@ en:
     add:
       modal_title: Add quote
       msg_confirm: Added this quote
+      msg_request_quote: You must select a quote
     edit:
       modal_title: Edit quote
       msg_confirm: Quote edited
       msg_no_change: No changes made
     error: "Got error: %{error}"
+  context_menu:
+    add_quote:
+      name: Add quote
+      not_bot: Message was not written by the bot
+      edit_confirm: Message was edited
+      edit_confirm_with_errors: ", but some tagging failed: %{errors}"
+      edit_error: "Error when editing, check logs"
