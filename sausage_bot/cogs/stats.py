@@ -254,6 +254,13 @@ class Stats(commands.Cog):
         value_in: str
             The value of the settings (default: None)
         """
+
+        def bool_switch(bool_input):
+            if bool_input.lower() == "true":
+                return "False"
+            elif bool_input.lower() == "false":
+                return "True"
+
         await interaction.response.defer(ephemeral=True)
         settings_in_db = await db_helper.get_output(
             template_info=envs.stats_db_settings_schema, select=("setting", "value")
@@ -264,37 +271,57 @@ class Stats(commands.Cog):
         logger.debug(f"settings_from_db:\n{pformat(settings_from_db)}")
         settings_type = envs.stats_db_settings_schema["type_checking"]
         for setting in settings_from_db:
+            logger.debug(f"Checking '{name_of_setting}' against '{setting}'")
             if setting == name_of_setting:
                 if settings_type[setting] == "bool":
-                    logger.info("settings_type is bool, yay!")
                     if value_in.lower() in ["true", "false"]:
-                        logger.debug(f"Changing as bool: {value_in}")
                         value_in = str(value_in).capitalize()
                         logger.debug(f"Changing as bool: {value_in}")
                     else:
-                        logger.error(f"Invalid input for `value_in`")
+                        logger.error(f"Invalid input for value_in: {value_in}")
                         await interaction.followup.send(
                             I18N.t("stats.setting_input_reply")
                         )
                         return
-                if type(eval(value_in)) is eval(settings_type[setting]):
+                # Sorting should actually behave like a switch, so if abc is
+                # True, then 321 will turn False, and vice versa
+                if setting in ["sort_roles_abc", "sort_roles_321"]:
+                    if setting == "sort_roles_abc":
+                        await db_helper.update_fields(
+                            template_info=envs.stats_db_settings_schema,
+                            where=[("setting", "sort_roles_abc")],
+                            updates=[("value", value_in)],
+                        )
+                        await db_helper.update_fields(
+                            template_info=envs.stats_db_settings_schema,
+                            where=[("setting", "sort_roles_321")],
+                            updates=[("value", bool_switch((value_in)))],
+                        )
+                    elif setting == "sort_roles_321":
+                        await db_helper.update_fields(
+                            template_info=envs.stats_db_settings_schema,
+                            where=[("setting", "sort_roles_321")],
+                            updates=[("value", value_in)],
+                        )
+                        await db_helper.update_fields(
+                            template_info=envs.stats_db_settings_schema,
+                            where=[("setting", "sort_roles_abc")],
+                            updates=[("value", bool_switch((value_in)))],
+                        )
+                elif type(eval(value_in)) is eval(settings_type[setting]):
+                    logger.debug(f"Updating '{setting}' with '{value_in}'")
                     await db_helper.update_fields(
                         template_info=envs.stats_db_settings_schema,
                         where=[("setting", name_of_setting)],
                         updates=[("value", value_in)],
                     )
-                logger.debug(f"`value_in` is {value_in} ({type(value_in)})")
-                logger.debug(
-                    f"`settings_type` is {settings_type[setting]} "
-                    f"({type(settings_type[setting])})"
-                )
                 await interaction.followup.send(
                     content=I18N.t("stats.commands.change.update_confirmed"),
                     ephemeral=True,
                 )
                 Stats.task_update_stats.restart()
                 break
-            return
+        return
 
     @commands.is_owner()
     @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
