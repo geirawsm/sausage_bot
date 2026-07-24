@@ -57,13 +57,13 @@ jobs:
         with:
           images: ${{secrets.DOCKER_USER}}/sausage_bot
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - name: Build and push version
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           file: ./dockerfile
-          tags: ${{secrets.DOCKER_USER}}/sausage_bot:latest
+          tags: ${{secrets.DOCKER_USER}}/sausage_bot:main_${{ github.run_number }}
           labels: |
             Branch=${{ github.ref_name }}
             Last commit_msg=${{ github.event.head_commit.message }}
