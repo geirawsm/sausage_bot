@@ -28,8 +28,8 @@ spotipy = "*"
 tabulate = "*"
 tabulated = "*"
 tqdm = ">=4.66.3"
-yt-dlp = ">=2024.04.09"
 pillow = "*"
+yt-dlp = {extras = ["default"], version = "*"}
 
 [dev-packages]
 astpretty = "*"
