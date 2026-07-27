@@ -57,13 +57,17 @@ jobs:
         with:
           images: ${{secrets.DOCKER_USER}}/sausage_bot
 
+      - name: Set current datetime
+        id: datetime
+        run: echo "NOW=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+
       - name: Build and push version
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           file: ./dockerfile
-          tags: ${{secrets.DOCKER_USER}}/sausage_bot:main_${{ github.run_number }}
+          tags: ${{secrets.DOCKER_USER}}/sausage_bot:${{ github.ref_name }}_$NOW
           labels: |
             Branch=${{ github.ref_name }}
             Last commit_msg=${{ github.event.head_commit.message }}
