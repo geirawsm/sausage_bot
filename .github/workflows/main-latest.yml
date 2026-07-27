@@ -1,4 +1,4 @@
-name: Build, test and deploy bot
+name: Build, test and deploy bot - main latest
 
 on:
   push:
