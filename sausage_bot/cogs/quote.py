@@ -156,8 +156,7 @@ class ModalQuoteAdd(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         if not self.quote_dropdown.values:
             await interaction.response.send_message(
-                I18N.t("quote.modals.add.msg_request_quote"),
-                ephemeral=True
+                I18N.t("quote.modals.add.msg_request_quote"), ephemeral=True
             )
         else:
             self.msgs_out = self.quote_dropdown.values
@@ -172,8 +171,7 @@ class ModalQuoteAdd(discord.ui.Modal):
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
         await interaction.response.send_message(
-            I18N.t("quote.modals.error", error=error),
-            ephemeral=True
+            I18N.t("quote.modals.error", error=error), ephemeral=True
         )
 
 
@@ -811,7 +809,7 @@ class Quotes(commands.Cog):
         if False in btn_values:
             # Confirm not deleting quote
             await interaction.followup.send(
-                I18N.t("quote.delete.msg_confirm_not_delete")
+                I18N.t("quote.delete.msg_confirm_not_delete"),
                 ephemeral=True,
             )
             return
