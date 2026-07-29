@@ -57,7 +57,11 @@ en:
       msg_nonexisting_quote: 'Quote \#%{quote_number} does not exist'
     count:
       cmd: Count the number of quotes
-      msg_confirm: "I currently have %{num_quotes} quotes in my database"
+      msg_confirm:
+        zero: I currently have no quotes in my database
+        one: I currently have %{count} quote in my database
+        few: I currently have %{count} quotes in my database
+        many: I currently have %{count} quotes in my database
     list:
       cmd: List quotes
       msg_nonexisting_quote: Quote does not exist

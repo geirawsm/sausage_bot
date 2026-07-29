@@ -330,9 +330,7 @@ async def post_random_quote(
             if len(quote["comments"][comment]["author_backup"]) > author_max_len:
                 author_max_len = len(quote["comments"][comment]["author_backup"])
         quote_channel = ""
-        quote_channel_object = get(
-            guild.text_channels, id=int(quote["channel_id"])
-        )
+        quote_channel_object = get(guild.text_channels, id=int(quote["channel_id"]))
         if quote_channel_object is None:
             quote_channel = quote["channel_backup"]
         else:
@@ -871,12 +869,14 @@ class Quotes(commands.Cog):
         "Count the number of quotes available"
         await interaction.response.defer()
         quote_count = len(
-            await db_helper.get_row_ids(
-                envs.quote_db_schema, guild_id=interaction.guild.id
+            await db_helper.get_output(
+                template_info=envs.quote_db_schema,
+                select=("uuid"),
+                guild_id=interaction.guild.id,
             )
         )
         await interaction.followup.send(
-            I18N.t("quote.commands.count.msg_confirm", num_quotes=quote_count)
+            I18N.t("quote.commands.count.msg_confirm", count=quote_count)
         )
         return
 
@@ -1649,9 +1649,7 @@ async def ensure_guild_quote_tables(guild):
         inserts=envs.quote_db_settings_schema["inserts"],
         guild_id=guild.id,
     )
-    await db_helper.prep_table(
-        table_in=envs.quote_content_db_schema, guild_id=guild.id
-    )
+    await db_helper.prep_table(table_in=envs.quote_content_db_schema, guild_id=guild.id)
     await db_helper.prep_table(table_in=envs.quote_img_db_schema, guild_id=guild.id)
 
     # Change channel name to id
