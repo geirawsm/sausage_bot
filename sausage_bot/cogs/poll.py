@@ -111,6 +111,7 @@ class MakePoll(commands.Cog):
                     0,
                 )
             ],
+            guild_id=interaction.guild.id,
         )
         random_emojis = [
             "📺",
@@ -153,6 +154,7 @@ class MakePoll(commands.Cog):
                 envs.poll_db_alternatives_schema,
                 ("uuid", "emoji", "input", "count"),
                 alts_db,
+                guild_id=interaction.guild.id,
             )
             # Post info about when the post is coming
             if dt_post is None:
@@ -211,6 +213,7 @@ class MakePoll(commands.Cog):
             template_info=envs.poll_db_polls_schema,
             where=("uuid", _uuid),
             updates=[("status_wait_post", 1)],
+            guild_id=interaction.guild.id,
         )
         await asyncio.sleep(post_wait)
         post_text = pendulum.now("local").format("DD.MM.YY, HH:mm")
@@ -231,13 +234,17 @@ class MakePoll(commands.Cog):
             template_info=envs.poll_db_polls_schema,
             where=("uuid", _uuid),
             updates=[("msg_id", poll_msg.id), ("status_posted", 1)],
+            guild_id=interaction.guild.id,
         )
         for reaction in reactions:
             logger.debug(f"Adding emoji {reaction}")
             await poll_msg.add_reaction(reaction)
         logger.debug("Waiting to lock...")
         await db_helper.update_fields(
-            envs.poll_db_polls_schema, ("uuid", _uuid), [("status_wait_lock", 1)]
+            envs.poll_db_polls_schema,
+            ("uuid", _uuid),
+            [("status_wait_lock", 1)],
+            guild_id=interaction.guild.id,
         )
         logger.debug(f"dt_post: {dt_post}")
         logger.debug(f"dt_lock: {dt_lock}")
@@ -255,6 +262,7 @@ class MakePoll(commands.Cog):
                         envs.poll_db_alternatives_schema,
                         [("uuid", _uuid), ("emoji", react.emoji)],
                         [("count", int(react.count - 1))],
+                        guild_id=interaction.guild.id,
                     )
                     break
         sorted_reacts = await db_helper.get_output(
@@ -262,6 +270,7 @@ class MakePoll(commands.Cog):
             where=[("uuid", _uuid)],
             select=("input", "count"),
             order_by=[("count", "DESC")],
+            guild_id=interaction.guild.id,
         )
         # Remove old poll_msg
         await poll_msg.delete()
@@ -282,7 +291,10 @@ class MakePoll(commands.Cog):
         )
         await channel.send(embed=embed_json)
         await db_helper.update_fields(
-            envs.poll_db_polls_schema, ("uuid", _uuid), [("status_locked", 1)]
+            envs.poll_db_polls_schema,
+            ("uuid", _uuid),
+            [("status_locked", 1)],
+            guild_id=interaction.guild.id,
         )
 
 
@@ -290,8 +302,17 @@ async def setup(bot):
     cog_name = "poll"
     logger.info(envs.COG_STARTING.format(cog_name))
     logger.debug("Checking db")
-    await db_helper.prep_table(envs.poll_db_polls_schema)
-    await db_helper.prep_table(envs.poll_db_alternatives_schema)
+
+    approved_guilds = await db_helper.get_output(
+        envs.guilds_db_schema, where=("status", "approved")
+    )
+    for guild_row in approved_guilds:
+        guild = config.bot.get_guild(int(guild_row["guild_id"]))
+        if guild is None:
+            continue
+        await db_helper.prep_table(envs.poll_db_polls_schema, guild_id=guild.id)
+        await db_helper.prep_table(envs.poll_db_alternatives_schema, guild_id=guild.id)
+
     logger.debug("Registering cog to bot")
     await bot.add_cog(MakePoll(bot))
     logger.info(envs.COG_STARTED.format(cog_name))

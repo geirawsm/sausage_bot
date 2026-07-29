@@ -31,7 +31,7 @@ async def event_names_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    _guild = discord_commands.get_current_guild()
+    _guild = interaction.guild
     logger.debug(f"_guild: {_guild}")
     events = []
     for event in _guild.scheduled_events:
@@ -131,7 +131,7 @@ class AutoEvent(commands.Cog):
                     )
                     with open(autoevent_img, "rb") as f:
                         image_in = f.read()
-                guild = discord_commands.get_current_guild()
+                guild = interaction.guild
                 try:
                     created_event = await guild.create_scheduled_event(
                         name=f"{home} - {away}",
@@ -190,9 +190,9 @@ class AutoEvent(commands.Cog):
             Use if you want to remove all events
         """
         await interaction.response.defer(ephemeral=True)
-        event_dict = discord_commands.get_scheduled_events()
+        _guild = interaction.guild
+        event_dict = await discord_commands.get_scheduled_events(_guild)
         logger.debug(f"Got `event_dict`: {event_dict}")
-        _guild = discord_commands.get_current_guild()
         # Delete all events
         if remove_all == I18N.t("common.literal_yes_no.lit_yes"):
             logger.debug(
@@ -230,7 +230,7 @@ class AutoEvent(commands.Cog):
         Lists all the planned events: `!autoevent list`
         """
         await interaction.response.defer(ephemeral=True)
-        events = await discord_commands.get_sorted_scheduled_events()
+        events = await discord_commands.get_sorted_scheduled_events(interaction.guild)
         if events is None:
             msg_out = I18N.t("autoevent.commands.list.msg_no_events")
         else:
@@ -294,7 +294,7 @@ class AutoEvent(commands.Cog):
         """
         await interaction.response.defer(ephemeral=True)
         # Get event
-        _guild = discord_commands.get_current_guild()
+        _guild = interaction.guild
         _event = _guild.get_scheduled_event(int(event))
         epoch_time = await datetime_handling.get_dt(
             format="epoch", dt=_event.start_time.astimezone()

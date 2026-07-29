@@ -9,7 +9,7 @@ import typing
 from time import sleep
 from yt_dlp import YoutubeDL
 
-from sausage_bot.util import config, envs, feeds_core, file_io
+from sausage_bot.util import config, envs, feeds_core
 from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.i18n import I18N
 
@@ -23,7 +23,9 @@ async def feed_name_autocomplete(
     feed_names = [
         name["feed_name"]
         for name in await db_helper.get_output(
-            template_info=envs.youtube_db_schema, select=("feed_name")
+            template_info=envs.youtube_db_schema,
+            select=("feed_name"),
+            guild_id=interaction.guild.id,
         )
     ]
     return [
@@ -42,6 +44,7 @@ async def youtube_filter_autocomplete(
         key="uuid",
         select=["feed_name", "allow_or_deny", "filter"],
         order_by=[("allow_or_deny", "ASC"), ("filter", "ASC")],
+        guild_id=interaction.guild.id,
     )
     filters = []
     for filter in db_filters:
@@ -160,6 +163,7 @@ class Youtube(commands.Cog):
                 AUTHOR,
                 youtube_info["channel_id"],
                 youtube_info["id"],
+                guild_id=interaction.guild.id,
             )
         else:
             await feeds_core.add_to_feed_db(
@@ -170,15 +174,17 @@ class Youtube(commands.Cog):
                 AUTHOR,
                 youtube_info["channel_id"],
                 None,
+                guild_id=interaction.guild.id,
             )
         await discord_commands.log_to_bot_channel(
+            interaction.guild,
             I18N.t(
                 "youtube.commands.add.log_feed_confirm",
                 user=AUTHOR,
                 feed_name=feed_name,
                 yt_link=youtube_link,
                 channel=channel.name,
-            )
+            ),
         )
         await interaction.followup.send(
             I18N.t(
@@ -206,6 +212,7 @@ class Youtube(commands.Cog):
             select=("uuid"),
             where=(("feed_name", feed_name)),
             single=True,
+            guild_id=interaction.guild.id,
         )
         if _uuid is None:
             logger.debug(f"The feed `{feed_name}` does not exist")
@@ -217,15 +224,16 @@ class Youtube(commands.Cog):
             )
             return
         removal = await feeds_core.remove_feed_from_db(
-            feed_type="youtube", feed_name=feed_name
+            feed_type="youtube", feed_name=feed_name, guild_id=interaction.guild.id
         )
         if removal:
             await discord_commands.log_to_bot_channel(
+                interaction.guild,
                 I18N.t(
                     "youtube.commands.remove.log_feed_removed",
                     feed_name=feed_name,
                     user_name=AUTHOR,
-                )
+                ),
             )
             await interaction.followup.send(
                 I18N.t("youtube.commands.remove.msg_feed_removed", feed_name=feed_name)
@@ -240,6 +248,7 @@ class Youtube(commands.Cog):
             )
             # Also log and send error to either a bot-channel or admin
             await discord_commands.log_to_bot_channel(
+                interaction.guild,
                 I18N.t(
                     "youtube.commands.remove.log_feed_remove_failed",
                     user_name=AUTHOR,
@@ -278,10 +287,13 @@ class Youtube(commands.Cog):
             select=("uuid"),
             where=(("feed_name", feed_name)),
             single=True,
+            guild_id=interaction.guild.id,
         )
         _inserts = [(_uuid, allow_deny, filter)]
         adding_filter = await db_helper.insert_many_all(
-            template_info=envs.youtube_db_filter_schema, inserts=_inserts
+            template_info=envs.youtube_db_filter_schema,
+            inserts=_inserts,
+            guild_id=interaction.guild.id,
         )
         if adding_filter:
             await interaction.followup.send(
@@ -321,10 +333,12 @@ class Youtube(commands.Cog):
             select=("uuid"),
             where=(("feed_name", feed_name)),
             single=True,
+            guild_id=interaction.guild.id,
         )
         removing_filter = await db_helper.del_row_by_AND_filter(
             template_info=envs.youtube_db_filter_schema,
             where=(("uuid", _uuid), ("filter", filter_in)),
+            guild_id=interaction.guild.id,
         )
         if removing_filter:
             await interaction.followup.send(
@@ -366,12 +380,14 @@ class Youtube(commands.Cog):
         await interaction.response.defer()
         if list_type == I18N.t("youtube.commands.list.literal_list_type.added"):
             formatted_list = await feeds_core.get_feed_list(
+                guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
                 list_type=list_type.lower(),
                 link_type=link_type,
             )
         elif list_type == I18N.t("youtube.commands.list.literal_list_type.filter"):
             formatted_list = await feeds_core.get_feed_list(
+                guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
                 db_filter_in=envs.youtube_db_filter_schema,
                 list_type=list_type.lower(),
@@ -379,7 +395,9 @@ class Youtube(commands.Cog):
             )
         else:
             formatted_list = await feeds_core.get_feed_list(
-                envs.youtube_db_schema, link_type=link_type
+                guild=interaction.guild,
+                db_in=envs.youtube_db_schema,
+                link_type=link_type,
             )
         if formatted_list is not None:
             page_counter = 0
@@ -414,55 +432,69 @@ class Youtube(commands.Cog):
     @tasks.loop(minutes=config.YT_LOOP, reconnect=True)
     async def task_post_videos():
         logger.info("Starting `post_videos`")
-        # Start processing feeds
-        feeds = await db_helper.get_output(
-            template_info=envs.youtube_db_schema,
-            order_by=[("feed_name", "DESC")],
-            where=[
-                ("status_url", envs.FEEDS_URL_SUCCESS),
-                ("status_channel", envs.CHANNEL_STATUS_SUCCESS),
-            ],
+        approved_guilds = await db_helper.get_output(
+            envs.guilds_db_schema, where=("status", "approved")
         )
-        if len(feeds) == 0 or feeds is None:
-            logger.info("Couldn't find any Youtube feeds")
-            return
-        logger.debug("Got these feeds:")
-        for feed in feeds:
-            logger.debug("- {}".format(feed["feed_name"]))
-        # Start processing per feed settings
-        for feed in feeds:
-            UUID = feed["uuid"]
-            FEED_NAME = feed["feed_name"]
-            CHANNEL = feed["channel"]
-            logger.info(f"Checking {FEED_NAME}")
-            logger.debug(f"Found channel `{CHANNEL}` in `{FEED_NAME}`")
-            FEED_POSTS = await feeds_core.get_feed_links(
-                feed_type="youtube", feed_info=feed
-            )
-            if FEED_POSTS is None or isinstance(FEED_POSTS, int):
-                logger.info(f"Feed {FEED_NAME} returned {FEED_POSTS}")
-                await db_helper.update_fields(
+        for guild_row in approved_guilds:
+            guild = config.bot.get_guild(int(guild_row["guild_id"]))
+            if guild is None:
+                logger.debug(f"Guild `{guild_row['guild_id']}` not in cache, skipping")
+                continue
+            async with db_helper.guild_locale_context(guild.id):
+                # Start processing feeds
+                feeds = await db_helper.get_output(
                     template_info=envs.youtube_db_schema,
-                    where=("uuid", UUID),
-                    updates=("status_url", envs.CHANNEL_STATUS_ERROR),
+                    order_by=[("feed_name", "DESC")],
+                    where=[
+                        ("status_url", envs.FEEDS_URL_SUCCESS),
+                        ("status_channel", envs.CHANNEL_STATUS_SUCCESS),
+                    ],
+                    guild_id=guild.id,
                 )
-                await discord_commands.log_to_bot_channel(
-                    I18N.t(
-                        "youtube.tasks.log_error",
-                        feed_name=FEED_NAME,
-                        return_value=str(FEED_POSTS),
+                if len(feeds) == 0 or feeds is None:
+                    logger.debug(f"Couldn't find any Youtube feeds for `{guild.name}`")
+                    continue
+                logger.debug(f"Got these feeds for `{guild.name}`:")
+                for feed in feeds:
+                    logger.debug("- {}".format(feed["feed_name"]))
+                # Start processing per feed settings
+                for feed in feeds:
+                    UUID = feed["uuid"]
+                    FEED_NAME = feed["feed_name"]
+                    CHANNEL = feed["channel"]
+                    logger.info(f"Checking {FEED_NAME}")
+                    logger.debug(f"Found channel `{CHANNEL}` in `{FEED_NAME}`")
+                    FEED_POSTS = await feeds_core.get_feed_links(
+                        feed_type="youtube", feed_info=feed, guild_id=guild.id
                     )
-                )
-            else:
-                logger.debug(
-                    "Got {} items for `FEED_POSTS`: {}".format(
-                        len(FEED_POSTS),
-                        ", ".join([pod_ep["title"] for pod_ep in FEED_POSTS[0:3]]),
-                    )
-                )
-                await feeds_core.process_links_for_posting_or_editing(
-                    FEED_NAME, "youtube", UUID, FEED_POSTS, CHANNEL
-                )
+                    if FEED_POSTS is None or isinstance(FEED_POSTS, int):
+                        logger.info(f"Feed {FEED_NAME} returned {FEED_POSTS}")
+                        await db_helper.update_fields(
+                            template_info=envs.youtube_db_schema,
+                            where=("uuid", UUID),
+                            updates=("status_url", envs.CHANNEL_STATUS_ERROR),
+                            guild_id=guild.id,
+                        )
+                        await discord_commands.log_to_bot_channel(
+                            guild,
+                            I18N.t(
+                                "youtube.tasks.log_error",
+                                feed_name=FEED_NAME,
+                                return_value=str(FEED_POSTS),
+                            ),
+                        )
+                    else:
+                        logger.debug(
+                            "Got {} items for `FEED_POSTS`: {}".format(
+                                len(FEED_POSTS),
+                                ", ".join(
+                                    [pod_ep["title"] for pod_ep in FEED_POSTS[0:3]]
+                                ),
+                            )
+                        )
+                        await feeds_core.process_links_for_posting_or_editing(
+                            FEED_NAME, "youtube", UUID, FEED_POSTS, CHANNEL, guild
+                        )
         logger.info("Done with posting")
         return
 
@@ -473,54 +505,30 @@ class Youtube(commands.Cog):
         await config.bot.wait_until_ready()
 
 
-async def setup(bot):
-    # Create necessary databases before starting
-    cog_name = "youtube"
-    logger.info(envs.COG_STARTING.format(cog_name))
-    logger.debug("Checking db")
-    # Convert json to sqlite db-files if exists
-
-    # Define inserts
-    youtube_inserts = None
-    youtube_prep_is_ok = None
-    youtube_log_prep_is_ok = None
-    # Populate the inserts if feed and logs json files exist
-    if file_io.file_exist(envs.youtube_feeds_file) and file_io.file_exist(
-        envs.youtube_feeds_logs_file
-    ):
-        logger.debug("Found old json file - feeds")
-        youtube_inserts = await db_helper.json_to_db_inserts(cog_name)
-    logger.debug(f"Got these inserts:\n{youtube_inserts}")
-
-    logger.debug("Youtube db does not exist")
-    youtube_prep_is_ok = await db_helper.prep_table(
-        table_in=envs.youtube_db_schema,
-        inserts=youtube_inserts["feeds"]
-        if youtube_inserts is not None
-        else youtube_inserts,
+async def ensure_guild_youtube_tables(guild):
+    """
+    Prep this guild's Youtube tables, and fix up any legacy channel-name
+    data. Safe to call repeatedly (idempotent).
+    #autodoc skip#
+    """
+    await db_helper.prep_table(table_in=envs.youtube_db_schema, guild_id=guild.id)
+    await db_helper.prep_table(
+        table_in=envs.youtube_db_filter_schema, guild_id=guild.id
     )
-    youtube_filter_prep_is_ok = await db_helper.prep_table(
-        envs.youtube_db_filter_schema,
-        youtube_inserts["filter"] if youtube_inserts is not None else youtube_inserts,
-    )
-    youtube_log_prep_is_ok = await db_helper.prep_table(
-        envs.youtube_db_log_schema,
-        youtube_inserts["logs"] if youtube_inserts is not None else youtube_inserts,
-    )
-    logger.debug(f"`youtube_prep_is_ok` is {youtube_prep_is_ok}")
-    logger.debug(f"`youtube_filter_prep_is_ok` is {youtube_filter_prep_is_ok}")
-    logger.debug(f"`youtube_log_prep_is_ok` is {youtube_log_prep_is_ok}")
+    await db_helper.prep_table(table_in=envs.youtube_db_log_schema, guild_id=guild.id)
     missing_tbl_cols = {}
     missing_tbl_cols = await db_helper.add_missing_db_setup(
-        envs.youtube_db_schema, missing_tbl_cols
+        envs.youtube_db_schema, missing_tbl_cols, guild_id=guild.id
     )
     missing_tbl_cols = await db_helper.add_missing_db_setup(
-        envs.youtube_db_filter_schema, missing_tbl_cols
+        envs.youtube_db_filter_schema, missing_tbl_cols, guild_id=guild.id
     )
     missing_tbl_cols = await db_helper.add_missing_db_setup(
-        envs.youtube_db_log_schema, missing_tbl_cols
+        envs.youtube_db_log_schema, missing_tbl_cols, guild_id=guild.id
     )
-    logger.debug(f"`missing_tbl_cols` is {missing_tbl_cols}")
+    logger.debug(
+        f"youtube db for `{guild.name}`: `missing_tbl_cols` is {missing_tbl_cols}"
+    )
     if any(len(missing_tbl_cols[table]) > 0 for table in missing_tbl_cols):
         missing_tbl_cols_text = ""
         for _tbl in missing_tbl_cols:
@@ -530,18 +538,33 @@ async def setup(bot):
             if _tbl != list(missing_tbl_cols.keys())[-1]:
                 missing_tbl_cols_text += "\n\n"
         await discord_commands.log_to_bot_channel(
-            "Missing columns in rss db: {}\n"
-            "Make sure to populate missing information".format(missing_tbl_cols_text)
+            guild,
+            "Missing columns in youtube db: {}\n"
+            "Make sure to populate missing information".format(missing_tbl_cols_text),
         )
     # Change channel name to id
     await db_helper.db_channel_names_to_ids(
-        template_info=envs.youtube_db_schema, id_col="uuid", channel_col="channel"
+        template_info=envs.youtube_db_schema,
+        id_col="uuid",
+        channel_col="channel",
+        guild=guild,
     )
-    # Delete old json files if they are not necessary anymore
-    if youtube_prep_is_ok:
-        file_io.remove_file(envs.youtube_feeds_file)
-    if youtube_log_prep_is_ok:
-        file_io.remove_file(envs.youtube_feeds_logs_file)
+
+
+async def setup(bot):
+    cog_name = "youtube"
+    logger.info(envs.COG_STARTING.format(cog_name))
+    logger.debug("Checking db")
+
+    approved_guilds = await db_helper.get_output(
+        envs.guilds_db_schema, where=("status", "approved")
+    )
+    for guild_row in approved_guilds:
+        guild = config.bot.get_guild(int(guild_row["guild_id"]))
+        if guild is None:
+            continue
+        await ensure_guild_youtube_tables(guild)
+
     logger.debug("Registering cog to bot")
     await bot.add_cog(Youtube(bot))
     logger.info(envs.COG_STARTED.format(cog_name))

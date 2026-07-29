@@ -120,28 +120,38 @@ class scrape_and_post(commands.Cog):
             return links
 
         feed = "FCB news"
-        guild_channels = discord_commands.get_text_channel_list()
-        _guild = discord_commands.get_current_guild()
         FEED_POSTS = barca_news_links()
         if FEED_POSTS is None:
             return
         if len(FEED_POSTS) < 1:
             logger.info(f"{feed}: this feed is empty")
             return
-        else:
-            logger.info(f"{feed}: `FEED_POSTS` are good:\n### {FEED_POSTS} ###")
+        logger.info(f"{feed}: `FEED_POSTS` are good:\n### {FEED_POSTS} ###")
+        approved_guilds = await db_helper.get_output(
+            envs.guilds_db_schema, where=("status", "approved")
+        )
+        for guild_row in approved_guilds:
+            guild = config.bot.get_guild(int(guild_row["guild_id"]))
+            if guild is None:
+                continue
+            guild_channels = discord_commands.get_text_channel_list(guild)
             for team in FEED_POSTS:
                 channel_name = team_channel_defaults[team.upper()]
                 if channel_name not in guild_channels:
                     error_msg = f"Could not find channel `{channel_name}` in guild"
                     logger.error(error_msg)
                     # TODO i18n
-                    await discord_commands.log_to_bot_channel(error_msg)
-                    return
-                CHANNEL = _guild.get_channel(guild_channels[channel_name]).id
+                    await discord_commands.log_to_bot_channel(guild, error_msg)
+                    continue
+                CHANNEL = guild.get_channel(guild_channels[channel_name]).id
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
-                        "rss", "BARCA", FEED_POSTS[team], CHANNEL
+                        feed_name=f"{feed} - {team}",
+                        feed_type="rss",
+                        uuid=f"barca_{team}",
+                        FEED_POSTS=FEED_POSTS[team],
+                        CHANNEL=CHANNEL,
+                        guild=guild,
                     )
                 except AttributeError as e:
                     logger.error(str(e))

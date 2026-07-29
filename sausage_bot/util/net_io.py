@@ -118,7 +118,7 @@ async def get_link(url=None, mock_file=None, status_out=None):
         return content_out
 
 
-async def check_spotify_podcast(url, mock_file=None):
+async def check_spotify_podcast(url, mock_file=None, guild=None):
     logger.debug("Checking podcast...")
     if mock_file:
         logger.debug("Found mock file, returning it")
@@ -126,7 +126,7 @@ async def check_spotify_podcast(url, mock_file=None):
     if _spotipy is None:
         _spotipy_error = "Spotipy has no credentials. Check README"
         logger.error(_spotipy_error)
-        await discord_commands.log_to_bot_channel(_spotipy_error)
+        await discord_commands.log_to_bot_channel(guild, _spotipy_error)
         return None
     try:
         logger.debug(f"Looking up show ({url})...")
@@ -137,7 +137,7 @@ async def check_spotify_podcast(url, mock_file=None):
         return False
 
 
-async def check_for_new_spotify_podcast_episodes():
+async def check_for_new_spotify_podcast_episodes(guild):
     """
     Create a dict of Spotify podcasts that have more available episodes
     than registered in the db
@@ -146,7 +146,7 @@ async def check_for_new_spotify_podcast_episodes():
     if _spotipy is None:
         _spotipy_error = "Spotipy has no credentials. Check README"
         logger.error(_spotipy_error)
-        await discord_commands.log_to_bot_channel(_spotipy_error)
+        await discord_commands.log_to_bot_channel(guild, _spotipy_error)
         return None
     spotify_feeds = await db_helper.get_output(
         template_info=envs.rss_db_schema,
@@ -158,6 +158,7 @@ async def check_for_new_spotify_podcast_episodes():
             ("feed_type", "podcast"),
         ],
         like=("url", "spotify.com/show/"),
+        guild_id=guild.id,
     )
     checklist = {}
     if len(spotify_feeds) == 0:
@@ -196,11 +197,11 @@ async def check_for_new_spotify_podcast_episodes():
                 feed["feed_name"]
             )
             logger.error(_msg)
-            await discord_commands.log_to_bot_channel(_msg)
+            await discord_commands.log_to_bot_channel(guild, _msg)
     return checklist
 
 
-async def check_other_podcast_episodes():
+async def check_other_podcast_episodes(guild):
     podcast_feeds = await db_helper.get_output(
         template_info=envs.rss_db_schema,
         select=("uuid", "feed_name", "url", "channel"),
@@ -211,6 +212,7 @@ async def check_other_podcast_episodes():
             ("feed_type", "podcast"),
         ],
         not_like=("url", "spotify.com/show/"),
+        guild_id=guild.id,
     )
     checklist = {}
     if len(podcast_feeds) == 0:
@@ -225,7 +227,7 @@ async def check_other_podcast_episodes():
     return checklist
 
 
-async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None):
+async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None, guild=None):
     """
     Returns a dict with filters_db, log_db and items.
     Items is a list of dicts with the following keys:
@@ -235,7 +237,7 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None):
     if _spotipy is None:
         _spotipy_error = "Spotipy has no credentials. Check README"
         logger.info(_spotipy_error)
-        await discord_commands.log_to_bot_channel(_spotipy_error)
+        await discord_commands.log_to_bot_channel(guild, _spotipy_error)
         return None
     logger.debug("Getting show info...")
     _show = _spotipy.show(feed_id)
@@ -244,10 +246,11 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None):
         template_info=envs.rss_db_filter_schema,
         select=("allow_or_deny", "filter"),
         where=[("uuid", uuid)],
+        guild_id=guild.id,
     )
     logger.debug("Getting DB log")
     log_db = await db_helper.get_output(
-        template_info=envs.rss_db_log_schema, where=[("uuid", uuid)]
+        template_info=envs.rss_db_log_schema, where=[("uuid", uuid)], guild_id=guild.id
     )
     episodes = _show["episodes"]["items"]
     if isinstance(num_items, int) and num_items > 0:
@@ -289,10 +292,10 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None):
             items_info["feed_name"], e
         )
         logger.error(_msg)
-        await discord_commands.log_to_bot_channel(_msg)
+        await discord_commands.log_to_bot_channel(guild, _msg)
 
 
-async def get_other_podcast_links(req, url, uuid, num_items=None):
+async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
     """
     Returns a dict with filters_db, log_db and items.
     Items is a list of dicts with the following keys:
@@ -321,12 +324,14 @@ async def get_other_podcast_links(req, url, uuid, num_items=None):
         template_info=envs.rss_db_filter_schema,
         select=("allow_or_deny", "filter"),
         where=[("uuid", uuid)],
+        guild_id=guild.id,
     )
     logger.debug("Getting DB log")
     log_db = await db_helper.get_output(
         template_info=envs.rss_db_log_schema,
         select=("url", "hash"),
         where=[("uuid", uuid)],
+        guild_id=guild.id,
     )
     items_out = {"filters": filters_db, "items": [], "log": log_db}
     feed_name = soup.find("channel").find("title").text
@@ -385,7 +390,7 @@ async def get_other_podcast_links(req, url, uuid, num_items=None):
                 if temp_info["link"] is None or temp_info["link"] == "":
                     _msg = "No link found for item: {}".format(temp_info["title"])
                     logger.error(_msg)
-                    await discord_commands.log_to_bot_channel(_msg)
+                    await discord_commands.log_to_bot_channel(guild, _msg)
                     continue
                 if temp_info["link"] is not None or temp_info["link"] != "":
                     temp_info["hash"] = await get_page_hash(temp_info["link"])
@@ -401,7 +406,7 @@ async def get_other_podcast_links(req, url, uuid, num_items=None):
                 items_info["feed_name"], e
             )
             logger.error(_msg)
-            await discord_commands.log_to_bot_channel(_msg)
+            await discord_commands.log_to_bot_channel(guild, _msg)
 
 
 def filter_links(items):

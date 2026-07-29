@@ -6,16 +6,16 @@ import pendulum
 import re
 import datetime
 import asyncio
-import aiosqlite
 
-from sausage_bot.util import config, envs, file_io
+from sausage_bot.util import config, guild_context
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
-# Set correct timezone and locale
-tz = config.timezone
-locale = config.locale
+# Static fallback timezone/locale, used only when no guild context is
+# active. Per-guild timezone/locale is resolved via `guild_context`, set
+# by `db_helper.guild_locale_context()` for the duration of a command or
+# background-task iteration - see that function's docstring.
 
 
 async def make_dt(date_in, no_timezone=False):
@@ -36,21 +36,8 @@ async def make_dt(date_in, no_timezone=False):
     - 2022-05-17 11:22:00.987
     - 1652779320
     """
-    db_in = None
-    try:
-        async with aiosqlite.connect(envs.locale_db_schema["db_file"]) as db:
-            db.row_factory = aiosqlite.Row
-            out = await db.execute(
-                "SELECT setting, value FROM {};".format(envs.locale_db_schema["name"])
-            )
-            db_in = [dict(row) for row in await out.fetchall()]
-        locale_db = file_io.make_db_output_to_json(["setting", "value"], db_in)
-        tz = locale_db.get("timezone", "UTC")
-        locale = locale_db.get("language", "en")
-    except aiosqlite.OperationalError as e:
-        logger.error(f"Error: {e}")
-        tz = "UTC"
-        locale = "en"
+    tz = guild_context.current_timezone.get()
+    locale = guild_context.current_locale.get()
     if no_timezone:
         tz = "UTC"
     logger.debug(f"tz is {tz}")
@@ -181,29 +168,16 @@ async def get_dt(format="epoch", sep=".", dt=False, no_timezone=False):
     ISO8601             YYYY-MM-DD HH:MM:SS.SSS
     datetimeobject      datetime object
     """
-    db_in = None
-    try:
-        async with aiosqlite.connect(envs.locale_db_schema["db_file"]) as db:
-            db.row_factory = aiosqlite.Row
-            out = await db.execute(
-                "SELECT setting, value FROM {};".format(envs.locale_db_schema["name"])
-            )
-            db_in = [dict(row) for row in await out.fetchall()]
-        locale_db = file_io.make_db_output_to_json(["setting", "value"], db_in)
-        tz = locale_db.get("timezone", "UTC")
-        locale = locale_db.get("language", "en")
-    except aiosqlite.OperationalError as e:
-        logger.error(f"Error: {e}")
-        tz = "UTC"
-        locale = "en"
+    tz = guild_context.current_timezone.get()
+    locale = guild_context.current_locale.get()
     logger.debug(f"tz is {tz}")
     logger.debug(f"language/locale is {locale}")
     if isinstance(dt, datetime.datetime):
         logger.debug("Input is a datetime object")
-        dt = await make_dt(str(dt))
+        dt = await make_dt(str(dt), no_timezone=no_timezone)
     if isinstance(dt, str):
         logger.debug("Input is a string")
-        dt = await make_dt(dt)
+        dt = await make_dt(dt, no_timezone=no_timezone)
         if dt is None:
             print("Can't process date `{}`. Aborting.".format(dt))
             return None
