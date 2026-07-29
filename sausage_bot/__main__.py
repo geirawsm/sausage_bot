@@ -5,6 +5,7 @@
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str
+from discord.utils import get
 from tabulate import tabulate
 from pendulum import timezones as p_timezones
 import os
@@ -193,6 +194,30 @@ async def timezones_autocomplete(
         discord.app_commands.Choice(name=timezone, value=timezone)
         for timezone in p_timezones()
         if current.lower() in timezone.lower()
+    ][:25]
+
+
+async def pending_guilds_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    pending_guilds_db = await db_helper.get_output(
+        template_info=envs.guilds_db_schema,
+        where=[("status", "pending")],
+        order_by=[("guild_name", "ASC")],
+    )
+    temp_guilds = pending_guilds_db.copy()
+    for guild in temp_guilds:
+        list_num = pending_guilds_db.index(guild)
+        temp_guilds[list_num]["name"] = guild["guild_name"]
+        logger.debug(f"`pending_guilds_db`: {pending_guilds_db}")
+    return [
+        discord.app_commands.Choice(
+            name="{}".format(guild["guild_name"]),
+            value=guild["guild_id"],
+        )
+        for guild in temp_guilds
+        if current.lower() in "{} ({})".format(guild["guild_name"], guild["guild_id"])
     ][:25]
 
 
@@ -390,8 +415,9 @@ def _in_admin_guild(interaction: discord.Interaction) -> bool:
 
 @commands.is_owner()
 @config.bot.tree.command(
-    name="approve-guild", description=locale_str(I18N.t("main.owner_only"))
+    name="approve_guild", description=locale_str(I18N.t("main.owner_only"))
 )
+@discord.app_commands.autocomplete(guild_id=pending_guilds_autocomplete)
 async def approve_guild(interaction: discord.Interaction, guild_id: str):
     "#autodoc skip#"
     await interaction.response.defer(ephemeral=True)
@@ -401,15 +427,9 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
             "This command can only be used in the admin guild.", ephemeral=True
         )
         return
-    row = await db_helper.get_output(
-        envs.guilds_db_schema, where=("guild_id", guild_id), single=True
+    pending_guilds_db = await db_helper.get_output(
+        envs.guilds_db_schema, select=("guild_name"), where=[("guild_id", guild_id)]
     )
-    if not row:
-        # TODO i18n
-        await interaction.followup.send(
-            f"No guild registered with ID `{guild_id}`.", ephemeral=True
-        )
-        return
     now = await get_dt(format="ISO8601")
     await db_helper.update_fields(
         envs.guilds_db_schema,
@@ -427,15 +447,18 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
     )
     # TODO i18n
     await interaction.followup.send(
-        f"✅ Approved guild `{row['guild_name']}` (`{guild_id}`).", ephemeral=True
+        f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
+        ephemeral=True,
     )
 
 
 @commands.is_owner()
 @config.bot.tree.command(
-    name="list-pending-guilds", description=locale_str(I18N.t("main.owner_only"))
+    name="list_guilds", description=locale_str(I18N.t("main.owner_only"))
 )
-async def list_pending_guilds(interaction: discord.Interaction):
+async def list_guilds(
+    interaction: discord.Interaction,
+):
     "#autodoc skip#"
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
@@ -444,20 +467,31 @@ async def list_pending_guilds(interaction: discord.Interaction):
             "This command can only be used in the admin guild.", ephemeral=True
         )
         return
-    pending = await db_helper.get_output(
-        envs.guilds_db_schema, where=("status", "pending")
+    guilds = await db_helper.get_output(
+        envs.guilds_db_schema,
+        select=("guild_name", "status", "joined_at", "approved_at", "approved_by"),
+        order_by=[("guild_name", "ASC")],
     )
-    if not pending:
-        # TODO i18n
-        await interaction.followup.send("No guilds pending approval.", ephemeral=True)
-        return
+    for guild in guilds:
+        if guild["approved_by"] not in [None, ""]:
+            guild["approved_by"] = get(
+                interaction.guild.members, id=int(guild["approved_by"])
+            )
+        if guild["approved_at"] not in [None, ""]:
+            guild["approved_at"] = await get_dt(
+                dt=guild["approved_at"], format="datetime"
+            )
+        if guild["joined_at"] not in [None, ""]:
+            guild["joined_at"] = await get_dt(dt=guild["joined_at"], format="datetime")
     text_out = "```{}```".format(
         tabulate(
-            pending,
+            guilds,
             headers={
-                "guild_id": "Guild ID",
                 "guild_name": "Name",
+                "status": "Status",
                 "joined_at": "Joined",
+                "approved_at": "Approved",
+                "approved_by": "Approved by",
             },
         )
     )
