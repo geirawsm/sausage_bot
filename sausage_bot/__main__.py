@@ -444,7 +444,9 @@ async def list_pending_guilds(interaction: discord.Interaction):
             "This command can only be used in the admin guild.", ephemeral=True
         )
         return
-    pending = await db_helper.get_output(envs.guilds_db_schema, where=("status", "pending"))
+    pending = await db_helper.get_output(
+        envs.guilds_db_schema, where=("status", "pending")
+    )
     if not pending:
         # TODO i18n
         await interaction.followup.send("No guilds pending approval.", ephemeral=True)
@@ -760,6 +762,129 @@ async def timezone(interaction: discord.Interaction, timezone: str):
         "Set timezone to `{}`".format(timezone),
         ephemeral=True,
     )
+    return
+
+
+def _has_manage_bot_profile_permission(interaction: discord.Interaction) -> bool:
+    "#autodoc skip#"
+    perms = interaction.user.guild_permissions
+    return perms.administrator or perms.manage_nicknames
+
+
+@config.bot.tree.command(
+    name="set_profile",
+    description=locale_str(I18N.t("main.commands.set_profile.command")),
+)
+async def set_profile(
+    interaction: discord.Interaction,
+    nickname: str = None,
+    avatar: discord.Attachment = None,
+    banner: discord.Attachment = None,
+    bio: str = None,
+):
+    """
+    Change the bot's nickname, avatar, banner or bio in this server.
+    Requires the Administrator or Manage Nicknames permission.
+
+    Parameters
+    ------------
+    nickname: str
+        New nickname for the bot in this server (default: None)
+    avatar: discord.Attachment
+        New per-server avatar image for the bot (default: None)
+    banner: discord.Attachment
+        New per-server banner image for the bot (default: None)
+    bio: str
+        New per-server bio/about-me for the bot (default: None)
+    """
+    if not _has_manage_bot_profile_permission(interaction):
+        await interaction.response.send_message(
+            I18N.t("main.commands.set_profile.msg_no_permission"), ephemeral=True
+        )
+        return
+    if nickname is None and avatar is None and banner is None and bio is None:
+        await interaction.response.send_message(
+            I18N.t("common.too_few_arguments"), ephemeral=True
+        )
+        return
+    await interaction.response.defer(ephemeral=True)
+    edits = {}
+    if nickname is not None:
+        edits["nick"] = nickname
+    if avatar is not None:
+        edits["avatar"] = await avatar.read()
+    if banner is not None:
+        edits["banner"] = await banner.read()
+    if bio is not None:
+        edits["bio"] = bio
+    try:
+        await interaction.guild.me.edit(**edits)
+        await interaction.followup.send(
+            I18N.t("main.commands.set_profile.msg_confirm"), ephemeral=True
+        )
+    except discord.HTTPException as _error:
+        await interaction.followup.send(
+            I18N.t("main.commands.set_profile.msg_failed", error=_error), ephemeral=True
+        )
+    return
+
+
+@config.bot.tree.command(
+    name="reset_profile",
+    description=locale_str(I18N.t("main.commands.reset_profile.command")),
+)
+async def reset_profile(
+    interaction: discord.Interaction,
+    nickname: bool = False,
+    avatar: bool = False,
+    banner: bool = False,
+    bio: bool = False,
+):
+    """
+    Reset the bot's nickname, avatar, banner or bio in this server.
+    Requires the Administrator or Manage Nicknames permission.
+
+    Parameters
+    ------------
+    nickname: bool
+        Reset nickname (default: False)
+    avatar: bool
+        Reset avatar (default: False)
+    banner: bool
+        Reset banner (default: False)
+    bio: bool
+        Reset bio (default: False)
+    """
+    if not _has_manage_bot_profile_permission(interaction):
+        await interaction.response.send_message(
+            I18N.t("main.commands.reset_profile.msg_no_permission"), ephemeral=True
+        )
+        return
+    if nickname is False and avatar is False and banner is False and bio is False:
+        await interaction.response.send_message(
+            I18N.t("common.too_few_arguments"), ephemeral=True
+        )
+        return
+    await interaction.response.defer(ephemeral=True)
+    edits = {}
+    if nickname is True:
+        edits["nick"] = None
+    if avatar is True:
+        edits["avatar"] = None
+    if banner is True:
+        edits["banner"] = None
+    if bio is True:
+        edits["bio"] = None
+    try:
+        await interaction.guild.me.edit(**edits)
+        await interaction.followup.send(
+            I18N.t("main.commands.reset_profile.msg_confirm"), ephemeral=True
+        )
+    except discord.HTTPException as _error:
+        await interaction.followup.send(
+            I18N.t("main.commands.reset_profile.msg_failed", error=_error),
+            ephemeral=True,
+        )
     return
 
 
