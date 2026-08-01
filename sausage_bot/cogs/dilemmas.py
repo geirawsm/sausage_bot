@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord.app_commands import locale_str, describe
 import uuid
 
-from sausage_bot.util import config, envs, db_helper
+from sausage_bot.util import config, envs, db_helper, discord_commands
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
@@ -74,7 +74,7 @@ class Dilemmas(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="add", description=locale_str(I18N.t("dilemmas.commands.add.cmd"))
     )

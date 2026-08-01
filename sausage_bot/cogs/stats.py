@@ -467,6 +467,7 @@ class Stats(commands.Cog):
         parent=stats_group,
     )
 
+    @discord_commands.is_owner_or_manage_guild()
     @stats_posting_group.command(
         name="start", description=locale_str(I18N.t("stats.commands.start.command"))
     )
@@ -489,6 +490,7 @@ class Stats(commands.Cog):
         )
         await interaction.followup.send(I18N.t("stats.commands.start.confirm_started"))
 
+    @discord_commands.is_owner_or_manage_guild()
     @stats_posting_group.command(
         name="stop", description=locale_str(I18N.t("stats.commands.stop.command"))
     )
@@ -523,7 +525,7 @@ class Stats(commands.Cog):
             await discord_commands.remove_stats_post(interaction.guild, stats_channel)
         await interaction.followup.send(I18N.t("stats.commands.stop.confirm_stopped"))
 
-    @commands.is_owner()
+    @discord_commands.is_owner()
     @stats_posting_group.command(
         name="restart", description=locale_str(I18N.t("stats.commands.restart.command"))
     )
@@ -538,7 +540,7 @@ class Stats(commands.Cog):
         Stats.task_update_stats.restart()
         await interaction.followup.send(I18N.t("stats.commands.restart.log_restarted"))
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @stats_settings_group.command(
         name="list", description=locale_str(I18N.t("stats.commands.list.command"))
     )
@@ -583,7 +585,7 @@ class Stats(commands.Cog):
             )
         await interaction.followup.send(content=out, ephemeral=True)
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
     @stats_settings_group.command(
         name="change", description=locale_str(I18N.t("stats.commands.change.command"))
@@ -680,7 +682,7 @@ class Stats(commands.Cog):
                 break
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
     @stats_settings_group.command(
         name="add", description=locale_str(I18N.t("stats.commands.add.command"))
@@ -750,7 +752,7 @@ class Stats(commands.Cog):
             )
             return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
     @stats_settings_group.command(
         name="remove", description=locale_str(I18N.t("stats.commands.remove.command"))
@@ -779,7 +781,7 @@ class Stats(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @stats_group.command(
         name="hide_roles_add",
         description=locale_str(I18N.t("stats.commands.hide_roles_add.command")),
@@ -829,7 +831,7 @@ class Stats(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(hidden_roles=hidden_roles_autocomplete)
     @stats_group.command(
         name="hide_roles_remove",

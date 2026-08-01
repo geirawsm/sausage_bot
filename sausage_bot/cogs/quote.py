@@ -636,7 +636,7 @@ class Quotes(commands.Cog):
             await post_selected_quote(interaction, _ephemeral, quote_in)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="edit", description=locale_str(I18N.t("quote.commands.edit.cmd"))
     )
@@ -743,7 +743,7 @@ class Quotes(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="delete", description=locale_str(I18N.t("quote.commands.delete.cmd"))
     )
@@ -861,7 +861,7 @@ class Quotes(commands.Cog):
                 I18N.t("quote.commands.delete.msg_fail"), ephemeral=True
             )
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="count", description=locale_str(I18N.t("quote.commands.count.cmd"))
     )
@@ -931,7 +931,7 @@ class Quotes(commands.Cog):
                 if False in btn_values:
                     return False
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="list", description=locale_str(I18N.t("quote.commands.list.cmd"))
     )
@@ -1036,7 +1036,7 @@ class Quotes(commands.Cog):
                 await interaction.followup.send(str(page), ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @settings_group.command(
         name="list", description=locale_str(I18N.t("common.settings.list_settings"))
     )
@@ -1068,7 +1068,7 @@ class Quotes(commands.Cog):
         )
         await interaction.followup.send(content=out, ephemeral=True)
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
     @settings_group.command(
         name="change", description=locale_str(I18N.t("common.settings.change_settings"))
@@ -1143,7 +1143,7 @@ class Quotes(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
     @settings_group.command(
         name="add", description=locale_str(I18N.t("common.settings.add_setting"))
@@ -1241,7 +1241,7 @@ class Quotes(commands.Cog):
             )
             return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
     @settings_group.command(
         name="remove", description=locale_str(I18N.t("common.settings.remove_setting"))
@@ -1270,6 +1270,7 @@ class Quotes(commands.Cog):
             )
         return
 
+    @discord_commands.is_owner_or_manage_guild()
     @autopost_group.command(
         name="start",
         description=locale_str(I18N.t("quote.commands.autopost.start.cmd")),
@@ -1308,6 +1309,7 @@ class Quotes(commands.Cog):
             )
         )
 
+    @discord_commands.is_owner_or_manage_guild()
     @autopost_group.command(
         name="stop", description=locale_str(I18N.t("quote.commands.autopost.stop.cmd"))
     )
@@ -1337,7 +1339,7 @@ class Quotes(commands.Cog):
             I18N.t("quote.commands.autopost.stop.msg_confirm_ok")
         )
 
-    @commands.is_owner()
+    @discord_commands.is_owner()
     @autopost_group.command(
         name="restart",
         description=locale_str(I18N.t("quote.commands.autopost.restart.cmd")),
@@ -1541,7 +1543,7 @@ def convert_b64_to_img_in_mem(b64string: str):
     return None
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.context_menu(
     name=locale_str(I18N.t("quote.context_menu.add_quote.name"))
 )

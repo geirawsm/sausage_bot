@@ -768,7 +768,7 @@ class Autoroles(commands.Cog):
         name="emojis", description=locale_str(I18N.t("roles.group.emojis"))
     )
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="info", description=locale_str(I18N.t("roles.commands.role_info.cmd"))
     )
@@ -849,7 +849,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="list", description=locale_str(I18N.t("roles.commands.list.cmd"))
     )
@@ -951,7 +951,7 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(f"{page}", ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="add", description=locale_str(I18N.t("roles.commands.add_role.cmd"))
     )
@@ -1025,7 +1025,7 @@ class Autoroles(commands.Cog):
             return
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="remove", description=locale_str(I18N.t("roles.commands.remove_role.cmd"))
     )
@@ -1042,7 +1042,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="edit", description=locale_str(I18N.t("roles.commands.edit_role.cmd"))
     )
@@ -1116,7 +1116,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @emojis_group.command(
         name="add", description=locale_str(I18N.t("roles.commands.add_emoji.cmd"))
     )
@@ -1158,7 +1158,7 @@ class Autoroles(commands.Cog):
             )
             return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @emojis_group.command(
         name="remove", description=locale_str(I18N.t("roles.commands.remove_emoji.cmd"))
     )
@@ -1186,7 +1186,7 @@ class Autoroles(commands.Cog):
             )
             return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(emoji=emojis_autocomplete)
     @emojis_group.command(
         name="edit", description=locale_str(I18N.t("roles.commands.edit_emoji.cmd"))
@@ -1235,7 +1235,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(emoji=emojis_autocomplete)
     @emojis_group.command(
         name="info", description=locale_str(I18N.t("roles.commands.emoji_info.cmd"))
@@ -1295,7 +1295,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @describe(reaction_msg=I18N.t("roles.commands.react_list.desc.reaction_msg"))
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @roles_reaction_group.command(
@@ -1563,7 +1563,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_add_group.command(
         name="role",
         description=locale_str(I18N.t("roles.commands.add_reaction_role.cmd")),
@@ -1638,7 +1638,7 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(dupl_msg, ephemeral=True)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @describe(reaction_msg=I18N.t("roles.commands.sync.desc.reaction_msg"))
     @roles_reaction_group.command(
@@ -1664,7 +1664,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @describe(reaction_msg=I18N.t("roles.commands.sort.desc.reaction_msg"))
     @roles_reaction_group.command(name="sort")
@@ -1698,7 +1698,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_remove_group.command(
         name="message", description="Remove a reaction message"
     )
@@ -1738,7 +1738,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(I18N.t("roles.commands.remove_msg.msg_confirm"))
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_group.command(
         name="edit",
         description=locale_str(I18N.t("roles.commands.edit_reaction_msg.cmd")),
@@ -1808,7 +1808,7 @@ class Autoroles(commands.Cog):
         await _msg.edit(content=content)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_remove_group.command(
         name="role", description=locale_str(I18N.t("roles.commands.remove_role.cmd"))
     )
@@ -1842,7 +1842,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_move_group.command(
         name="role",
         description=locale_str(I18N.t("roles.commands.move_reaction_role.cmd")),
@@ -1926,7 +1926,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_group.command(
         name="reorder", description=locale_str(I18N.t("roles.commands.reorder.cmd"))
     )
@@ -2028,7 +2028,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
         name="add", description=locale_str(I18N.t("roles.commands.add_settings.cmd"))
     )
@@ -2077,7 +2077,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name="remove",
@@ -2100,7 +2100,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
         name="list", description=locale_str(I18N.t("roles.commands.list_settings.cmd"))
     )
@@ -2130,7 +2130,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(f"```{_settings}```")
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name="edit", description=locale_str(I18N.t("roles.commands.edit_settings.cmd"))

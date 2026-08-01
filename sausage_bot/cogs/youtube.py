@@ -85,6 +85,7 @@ class Youtube(commands.Cog):
         parent=youtube_group,
     )
 
+    @discord_commands.is_owner_or_manage_guild()
     @youtube_posting_group.command(
         name="start", description=locale_str(I18N.t("youtube.commands.start.cmd"))
     )
@@ -104,6 +105,7 @@ class Youtube(commands.Cog):
         )
         await interaction.followup.send(I18N.t("youtube.commands.start.msg_confirm"))
 
+    @discord_commands.is_owner_or_manage_guild()
     @youtube_posting_group.command(
         name="stop", description=locale_str(I18N.t("youtube.commands.stop.cmd"))
     )
@@ -122,6 +124,7 @@ class Youtube(commands.Cog):
         )
         await interaction.followup.send(I18N.t("youtube.commands.stop.msg_confirm"))
 
+    @discord_commands.is_owner()
     @youtube_posting_group.command(
         name="restart", description=locale_str(I18N.t("youtube.commands.restart.cmd"))
     )
@@ -136,7 +139,7 @@ class Youtube(commands.Cog):
         Youtube.task_post_videos.restart()
         await interaction.followup.send(I18N.t("youtube.commands.restart.msg_confirm"))
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_group.command(
         name="add", description=locale_str(I18N.t("youtube.commands.add.cmd"))
@@ -206,7 +209,7 @@ class Youtube(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_group.command(
         name="remove", description=locale_str(I18N.t("youtube.commands.remove.cmd"))
@@ -268,7 +271,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_filter_group.command(
         name="add", description=locale_str(I18N.t("youtube.commands.filter_add.cmd"))
@@ -321,7 +324,7 @@ class Youtube(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=youtube_filter_autocomplete)
     @youtube_filter_group.command(

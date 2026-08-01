@@ -56,7 +56,7 @@ class AutoEvent(commands.Cog):
         description=locale_str(I18N.t("autoevent.commands.autoevent.cmd")),
     )
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="add", description=locale_str(I18N.t("autoevent.commands.add.cmd"))
     )
@@ -161,7 +161,7 @@ class AutoEvent(commands.Cog):
                     )
                     return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(event=event_names_autocomplete)
     @group.command(
         name="remove", description=locale_str(I18N.t("autoevent.commands.remove.cmd"))
@@ -221,7 +221,7 @@ class AutoEvent(commands.Cog):
 
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="list", description=locale_str(I18N.t("autoevent.commands.list.cmd"))
     )
@@ -237,7 +237,7 @@ class AutoEvent(commands.Cog):
             msg_out = events
         await interaction.followup.send(msg_out)
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @group.command(
         name="sync", description=locale_str(I18N.t("autoevent.commands.sync.cmd"))
     )
@@ -276,7 +276,7 @@ class AutoEvent(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(event=event_names_autocomplete)
     @group.command(
         name="announce",

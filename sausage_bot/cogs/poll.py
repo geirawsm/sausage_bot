@@ -11,7 +11,7 @@ import re
 import pendulum
 import uuid
 
-from sausage_bot.util import db_helper, envs, config
+from sausage_bot.util import db_helper, envs, config, discord_commands
 from sausage_bot.util import datetime_handling
 from sausage_bot.util.i18n import I18N
 
@@ -26,7 +26,7 @@ class MakePoll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.command(
         name="poll", description=locale_str(I18N.t("poll.commands.poll.cmd"))
     )

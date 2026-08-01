@@ -271,6 +271,7 @@ class RSSfeed(commands.Cog):
         parent=rss_group,
     )
 
+    @discord_commands.is_owner_or_manage_guild()
     @rss_posting_group.command(
         name="start", description=locale_str(I18N.t("rss.commands.start.cmd"))
     )
@@ -283,6 +284,7 @@ class RSSfeed(commands.Cog):
         msg = await control_posting(feed_type, "start", guild_id=interaction.guild.id)
         await interaction.followup.send(msg)
 
+    @discord_commands.is_owner_or_manage_guild()
     @rss_posting_group.command(
         name="stop", description=locale_str(I18N.t("rss.commands.stop.cmd"))
     )
@@ -295,6 +297,7 @@ class RSSfeed(commands.Cog):
         msg = await control_posting(feed_type, "stop", guild_id=interaction.guild.id)
         await interaction.followup.send(msg)
 
+    @discord_commands.is_owner()
     @rss_posting_group.command(
         name="restart", description=locale_str(I18N.t("rss.commands.restart.cmd"))
     )
@@ -307,7 +310,7 @@ class RSSfeed(commands.Cog):
         msg = await control_posting(feed_type, "restart", guild_id=interaction.guild.id)
         await interaction.followup.send(msg)
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_group.command(
         name="add", description=locale_str(I18N.t("rss.commands.add.cmd"))
@@ -364,7 +367,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_group.command(
         name="remove", description=locale_str(I18N.t("rss.commands.remove.cmd"))
@@ -407,7 +410,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_group.command(
         name="edit", description=locale_str(I18N.t("rss.commands.edit.cmd"))
@@ -464,7 +467,7 @@ class RSSfeed(commands.Cog):
         await interaction.followup.send(changes_out, ephemeral=True)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_filter_group.command(
         name="add", description=locale_str(I18N.t("rss.commands.filter_add.cmd"))
@@ -518,7 +521,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=rss_filter_autocomplete)
     @rss_filter_group.command(
@@ -559,7 +562,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=rss_settings_autocomplete)
     @rss_settings_group.command(
         name="change", description=locale_str(I18N.t("rss.commands.setting.cmd"))
@@ -620,7 +623,7 @@ class RSSfeed(commands.Cog):
                 break
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @rss_group.command(
         name="list", description=locale_str(I18N.t("rss.commands.list.cmd"))
     )
@@ -670,7 +673,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_uuid_autocomplete)
     @rss_group.command(
         name="test_feed", description=locale_str(I18N.t("rss.commands.test.cmd"))
@@ -779,7 +782,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
         name="add", description=locale_str(I18N.t("rss.commands.add.cmd"))
@@ -843,7 +846,7 @@ class RSSfeed(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
         name="remove", description=locale_str(I18N.t("rss.commands.remove.cmd"))
@@ -888,7 +891,7 @@ class RSSfeed(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
         name="edit", description=locale_str(I18N.t("rss.commands.edit.cmd"))
@@ -947,7 +950,7 @@ class RSSfeed(commands.Cog):
         await interaction.followup.send(changes_out, ephemeral=True)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @podcast_group.command(
         name="list", description=locale_str(I18N.t("rss.commands.list.cmd"))
     )

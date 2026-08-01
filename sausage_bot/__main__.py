@@ -415,7 +415,7 @@ sync_group = discord.app_commands.Group(
 )
 
 
-@commands.is_owner()
+@discord_commands.is_owner()
 @sync_group.command(name="global", description=locale_str(I18N.t("main.owner_only")))
 async def sync_global(interaction: discord.Interaction):
     await config.bot.tree.sync()
@@ -437,7 +437,7 @@ async def sync_global(interaction: discord.Interaction):
     return
 
 
-@commands.is_owner()
+@discord_commands.is_owner()
 @config.bot.tree.command(
     name="syncdev",
     description=locale_str(I18N.t("main.owner_only")),
@@ -461,7 +461,7 @@ def _in_admin_guild(interaction: discord.Interaction) -> bool:
     return str(interaction.guild_id) == str(config.ADMIN_GUILD_ID)
 
 
-@commands.is_owner()
+@discord_commands.is_owner()
 @config.bot.tree.command(
     name="approve_guild", description=locale_str(I18N.t("main.owner_only"))
 )
@@ -501,7 +501,7 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
     )
 
 
-@commands.is_owner()
+@discord_commands.is_owner()
 @config.bot.tree.command(
     name="list_guilds", description=locale_str(I18N.t("main.owner_only"))
 )
@@ -622,7 +622,6 @@ async def clear_locals(ctx):
     )
 
 
-@commands.is_owner()
 @config.bot.tree.command(
     name="version", description=locale_str(I18N.t("main.commands.version.command"))
 )
@@ -646,7 +645,6 @@ async def get_version(interaction: discord.Interaction):
 
 
 # Commands
-@commands.is_owner()
 @config.bot.tree.command(
     name="ping", description=locale_str(I18N.t("main.commands.ping.command"))
 )
@@ -657,7 +655,7 @@ async def ping(interaction: discord.Interaction):
     )
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_has_permission("manage_messages")
 @config.bot.tree.command(
     name="delete", description=locale_str(I18N.t("main.commands.delete.command"))
 )
@@ -678,7 +676,7 @@ async def delete(interaction: discord.Interaction, amount: int):
     return
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_has_permission("kick_members")
 @config.bot.tree.command(
     name="kick", description=locale_str(I18N.t("main.commands.kick.command"))
 )
@@ -710,7 +708,7 @@ async def kick(
         )
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_has_permission("ban_members")
 @config.bot.tree.command(
     name="ban", description=locale_str(I18N.t("main.commands.ban.command"))
 )
@@ -746,7 +744,7 @@ async def ban(
         )
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
     name="say", description=locale_str(I18N.t("main.commands.say.command"))
 )
@@ -774,7 +772,7 @@ async def say(
     return
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
     name="tasks", description=locale_str(I18N.t("main.commands.tasks.command"))
 )
@@ -901,7 +899,7 @@ async def language(interaction: discord.Interaction, language: str):
     return
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
     name="timezone", description=locale_str(I18N.t("main.owner_only"))
 )
@@ -1046,7 +1044,7 @@ async def reset_profile(
     return
 
 
-@commands.is_owner()
+@discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.context_menu(
     name=locale_str(I18N.t("main.context_menu.edit_msg.name"))
 )

@@ -36,6 +36,7 @@ class scrape_and_post(commands.Cog):
         name="barca", description="Administer Barcelona-scraping"
     )
 
+    @discord_commands.is_owner_or_manage_guild()
     @fcb_group.command(name="start", description="Start posting")
     async def barca_posting_start(self, interaction: discord.Interaction):
         "Enable Barca posting for this guild."
@@ -49,6 +50,7 @@ class scrape_and_post(commands.Cog):
         )
         await interaction.followup.send("Barca posting started")
 
+    @discord_commands.is_owner_or_manage_guild()
     @fcb_group.command(name="stop", description="Stop posting")
     async def barca_posting_stop(self, interaction: discord.Interaction):
         "Disable Barca posting for this guild."
