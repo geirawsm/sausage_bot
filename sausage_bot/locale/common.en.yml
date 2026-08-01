@@ -1,5 +1,7 @@
 en:
   too_few_arguments: Too few arguments given to command
+  msg_no_manage_guild_permission: You need to be the bot owner or have the required permission on this server to use this command
+  msg_owner_only: This command can only be used by the bot owner
   literal_yes_no:
     lit_yes: Yes
     lit_no: No

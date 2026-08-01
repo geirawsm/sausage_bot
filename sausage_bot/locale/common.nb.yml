@@ -1,5 +1,7 @@
 nb:
   too_few_arguments: Du har gitt for få argumenter til kommandoen
+  msg_no_manage_guild_permission: Du må være bot-eieren eller ha nødvendig tilgang på denne serveren for å bruke denne kommandoen
+  msg_owner_only: Denne kommandoen kan bare brukes av bot-eieren
   literal_yes_no:
     lit_yes: Ja
     lit_no: Nei

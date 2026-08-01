@@ -35,7 +35,13 @@ en:
         error_sending: "Error when sending comment to %{channel}: %{error}"
         error_both_args: Both `message_id` and `reply` were provided, please only use one
     tasks:
-      command: List tasks and their status
+      command: List this server's own posting tasks and their status
+    tasks_global:
+      command: "List every approved server's posting tasks and their status (admin guild only)"
+      msg_not_admin_guild: This command can only be used in the admin guild.
+      msg_empty: No posting tasks found for any approved server.
+    version:
+      command: Show the bot's current version and branch info
     ping:
       command: Check latency
     kick:
