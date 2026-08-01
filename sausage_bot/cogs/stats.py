@@ -192,12 +192,11 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
     """
     Update interesting stats in a channel post and write the info to
     the log db, for `guild`. The channel is defined in that guild's
-    stats settings db.
+    stats settings db. The caller (`task_update_stats`) is responsible
+    for checking whether stats posting is enabled for this guild.
     #autodoc skip#
     """
     stats_settings = await get_db_settings(guild)
-    if str(stats_settings.get("stats_posting_enabled", "False")).lower() != "true":
-        return
 
     async def tabify(dict_in: dict, headers: list, hide_roles: list = None):
         text_out = ""
@@ -256,19 +255,23 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
 
     async def check_and_post_to_stats_msg_id(stats_settings, stats_info):
         # Get `stats_msg_id` from db to update stats post
-        if isinstance(stats_settings.get("channel"), str):
+        channel_setting = stats_settings.get("channel")
+        if channel_setting is not None and not re.match(r"^\d+$", str(channel_setting)):
+            # `channel` setting is still a channel name (not migrated to
+            # an id yet) - try to resolve and persist it, then re-read
+            # the fresh value instead of the now-stale `stats_settings`.
             await db_helper.db_single_channel_name_to_id(
                 template_info=envs.stats_db_settings_schema,
                 channel_row="setting",
                 channel_col="value",
                 guild=guild,
             )
-            stats_channel = guild.get_channel(int(stats_settings.get("channel")))
-        elif isinstance(stats_settings.get("channel"), int):
-            stats_channel = guild.get_channel(int(stats_settings.get("channel")))
-        else:
+            stats_settings = await get_db_settings(guild)
+            channel_setting = stats_settings.get("channel")
+        if channel_setting is None or not re.match(r"^\d+$", str(channel_setting)):
             logger.error("`stats_channel` is not a channel")
             return None
+        stats_channel = guild.get_channel(int(channel_setting))
         logger.debug(f"Got `stats_channel` {stats_channel} ({type(stats_channel)})")
         # If `stats_msg_id` is not in db, check if `stats_msg` is in db
         # If `stats_msg` is not in db, add `stats_msg_id` to db
@@ -471,7 +474,7 @@ class Stats(commands.Cog):
         """
         Enable stats posting for this guild. The background loop itself
         is shared, always-running infrastructure (like rss/youtube) -
-        this just flips this guild's own `stats_posting_enabled` setting.
+        this just flips this guild's own `tasks_db_schema` row.
         """
         await interaction.response.defer(ephemeral=True)
         logger.info(
@@ -479,9 +482,9 @@ class Stats(commands.Cog):
             f"{I18N.t('stats.commands.start.log_started')}"
         )
         await db_helper.update_fields(
-            template_info=envs.stats_db_settings_schema,
-            where=[("setting", "stats_posting_enabled")],
-            updates=[("value", "True")],
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "stats"), ("task", "post_stats")],
+            updates=("status", "started"),
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(I18N.t("stats.commands.start.confirm_started"))
@@ -500,9 +503,9 @@ class Stats(commands.Cog):
             f"{I18N.t('stats.commands.stop.log_stopped')}"
         )
         await db_helper.update_fields(
-            template_info=envs.stats_db_settings_schema,
-            where=[("setting", "stats_posting_enabled")],
-            updates=[("value", "False")],
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "stats"), ("task", "post_stats")],
+            updates=("status", "stopped"),
             guild_id=interaction.guild.id,
         )
         if remove_post.lower() == "yes":
@@ -861,8 +864,8 @@ class Stats(commands.Cog):
     async def task_update_stats():
         """
         Shared, always-running loop (like rss/youtube). Every tick, checks
-        each approved guild's own `stats_posting_enabled` setting and
-        updates that guild's stats post if enabled.
+        each approved guild's own `tasks_db_schema` row (cog="stats",
+        task="post_stats") and updates that guild's stats post if enabled.
         """
         approved_guilds = await db_helper.get_output(
             envs.guilds_db_schema, where=("status", "approved")
@@ -875,6 +878,15 @@ class Stats(commands.Cog):
         for guild_row in approved_guilds:
             guild = config.bot.get_guild(int(guild_row["guild_id"]))
             if guild is None:
+                continue
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "stats"), ("task", "post_stats")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
                 continue
             async with db_helper.guild_locale_context(guild.id):
                 await update_guild_stats(guild, files_in_codebase, lines_in_codebase)
@@ -922,10 +934,14 @@ async def ensure_guild_stats_tables(guild):
     )
     if channel_name_to_id is None:
         logger.error(f"Stats channel not found for `{guild.name}`, disabling posting")
+        # Make sure this guild's `tasks_db_schema` rows exist before
+        # writing to them - `ensure_guild_tasks_rows` is idempotent, so
+        # this is safe to call regardless of call order in `setup()`.
+        await db_helper.ensure_guild_tasks_rows(guild.id)
         await db_helper.update_fields(
-            template_info=envs.stats_db_settings_schema,
-            where=[("setting", "stats_posting_enabled")],
-            updates=[("value", "False")],
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "stats"), ("task", "post_stats")],
+            updates=("status", "stopped"),
             guild_id=guild.id,
         )
 
@@ -943,33 +959,15 @@ async def setup(bot):
         if guild is None:
             continue
         await ensure_guild_stats_tables(guild)
+        await db_helper.ensure_guild_tasks_rows(guild.id)
 
     logger.debug("Registering cog to bot")
     await bot.add_cog(Stats(bot))
     logger.info(envs.COG_STARTED.format(cog_name))
 
-    task_list = await db_helper.get_output(
-        template_info=envs.tasks_db_schema,
-        select=("task", "status"),
-        where=("cog", "stats"),
-    )
-    if len(task_list) == 0:
-        await db_helper.insert_many_all(
-            template_info=envs.tasks_db_schema,
-            inserts=(("stats", "post_stats", "stopped")),
-        )
-    for task in task_list:
-        if task["task"] == "post_stats":
-            if task["status"] == "started":
-                logger.debug(
-                    "`{}` is set as `{}`, starting...".format(
-                        task["task"], task["status"]
-                    )
-                )
-                Stats.task_update_stats.start()
-            elif task["status"] == "stopped":
-                logger.debug("`{}` is set as `{}`".format(task["task"], task["status"]))
-                Stats.task_update_stats.cancel()
+    # Shared, always-running loop - each tick checks every guild's own
+    # tasks_db_schema row to decide whether to process that guild.
+    Stats.task_update_stats.start()
 
 
 async def teardown(bot):

@@ -143,19 +143,28 @@ roles_template = {
 }
 
 # Cogs.env
-# Global (not per-guild): tracks the state of the background task loops
-# themselves (e.g. "is the RSS posting loop running"). One loop iterates
-# all approved guilds internally, so this is process-level, not guild data.
+# Guild-scoped: tracks, per guild, whether each background posting task
+# is enabled for that guild ("started"/"stopped"). The background loops
+# themselves are shared, always-running infrastructure (one loop iterates
+# all approved guilds internally) - this table only controls whether a
+# given guild is opted in to that loop's processing on a given tick. A
+# missing row is treated the same as "stopped" (safe opt-in default).
 tasks_db_schema = {
-    "db_file": str(DB_DIR / "tasks.sqlite"),
-    "scope": "global",
+    "db_file": "tasks.sqlite",
     "name": "tasks",
     "items": [
         ["cog", "TEXT NOT NULL"],
         ["task", "TEXT NOT NULL"],
         ["status", "TEXT NOT NULL"],
     ],
-    "inserts": [["rss", "post_feeds", "stopped"], ["rss", "post_podcasts", "stopped"]],
+    "inserts": [
+        ["rss", "post_feeds", "stopped"],
+        ["rss", "post_podcasts", "stopped"],
+        ["youtube", "post_videos", "stopped"],
+        ["stats", "post_stats", "stopped"],
+        ["barca_news", "post_news", "stopped"],
+        ["quotes", "autopost", "stopped"],
+    ],
 }
 
 # Poll
@@ -295,14 +304,12 @@ quote_db_settings_schema = {
         ["autopost_prefix", "Dagens sitat!"],
         ["autopost_tag_role", ""],
         ["autopost_time", ""],
-        ["autopost_enabled", "False"],
     ],
     "type_checking": {
         "channel": "int",
         "autopost_prefix": "str",
         "autopost_tag_role": "role_id",
         "autopost_time": "str",
-        "autopost_enabled": "bool",
     },
 }
 
@@ -365,7 +372,6 @@ stats_db_settings_schema = {
         ["sort_roles_321", "False"],
         ["sort_min_role_members", -1],
         ["hide_empty_roles", "False"],
-        ["stats_posting_enabled", "False"],
     ],
     "type_checking": {
         "channel": "str",
@@ -378,7 +384,6 @@ stats_db_settings_schema = {
         "sort_roles_321": "bool",
         "sort_roles_abc": "bool",
         "stats_msg_id": "str",
-        "stats_posting_enabled": "bool",
     },
 }
 

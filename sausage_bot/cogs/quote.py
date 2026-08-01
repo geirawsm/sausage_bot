@@ -1278,26 +1278,26 @@ class Quotes(commands.Cog):
         """
         Enable autopost for this guild. The background loop itself is
         shared, always-running infrastructure (like rss/youtube) - this
-        just flips this guild's own `autopost_enabled` setting.
+        just flips this guild's own `tasks_db_schema` row.
         """
         await interaction.response.defer(ephemeral=True)
         logger.info(f"Enabling autopost quote for `{interaction.guild.name}`")
-        enabled = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema,
-            where=("setting", "autopost_enabled"),
-            select=("value"),
+        task_status = await db_helper.get_output(
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "quotes"), ("task", "autopost")],
+            select=("status"),
             single=True,
             guild_id=interaction.guild.id,
         )
-        if enabled and str(enabled.get("value")).lower() == "true":
+        if task_status.get("status") == "started":
             await interaction.followup.send(
                 I18N.t("quote.commands.autopost.start.msg_already_running"),
             )
             return
         await db_helper.update_fields(
-            template_info=envs.quote_db_settings_schema,
-            where=[("setting", "autopost_enabled")],
-            updates=[("value", "True")],
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "quotes"), ("task", "autopost")],
+            updates=("status", "started"),
             guild_id=interaction.guild.id,
         )
         _autopost_time = await get_autopost_time(interaction.guild.id)
@@ -1315,22 +1315,22 @@ class Quotes(commands.Cog):
         "Disable autopost for this guild."
         await interaction.response.defer(ephemeral=True)
         logger.info(f"Disabling autopost quote for `{interaction.guild.name}`")
-        enabled = await db_helper.get_output(
-            template_info=envs.quote_db_settings_schema,
-            where=("setting", "autopost_enabled"),
-            select=("value"),
+        task_status = await db_helper.get_output(
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "quotes"), ("task", "autopost")],
+            select=("status"),
             single=True,
             guild_id=interaction.guild.id,
         )
-        if not enabled or str(enabled.get("value")).lower() != "true":
+        if task_status.get("status") != "started":
             await interaction.followup.send(
                 I18N.t("quote.commands.autopost.stop.msg_already_stopped")
             )
             return
         await db_helper.update_fields(
-            template_info=envs.quote_db_settings_schema,
-            where=[("setting", "autopost_enabled")],
-            updates=[("value", "False")],
+            template_info=envs.tasks_db_schema,
+            where=[("cog", "quotes"), ("task", "autopost")],
+            updates=("status", "stopped"),
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
@@ -1362,8 +1362,9 @@ class Quotes(commands.Cog):
     async def task_autopost():
         """
         Shared, always-running loop (like rss/youtube). Every 5 minutes,
-        checks each approved guild's own `autopost_enabled`/`autopost_time`
-        settings and posts a quote if this tick falls in that guild's
+        checks each approved guild's own `tasks_db_schema` row (cog=
+        "quotes", task="autopost") and, if enabled, its `autopost_time`
+        setting - posting a quote if this tick falls in that guild's
         target 5-minute window, in that guild's own timezone.
         """
         approved_guilds = await db_helper.get_output(
@@ -1372,6 +1373,15 @@ class Quotes(commands.Cog):
         for guild_row in approved_guilds:
             guild = config.bot.get_guild(int(guild_row["guild_id"]))
             if guild is None:
+                continue
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "quotes"), ("task", "autopost")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
                 continue
             async with db_helper.guild_locale_context(guild.id):
                 settings_in_db = await db_helper.get_output(
@@ -1382,10 +1392,6 @@ class Quotes(commands.Cog):
                 settings_db_json = file_io.make_db_output_to_json(
                     ["setting", "value"], settings_in_db
                 )
-                if str(settings_db_json.get("autopost_enabled", "False")).lower() != (
-                    "true"
-                ):
-                    continue
                 if settings_db_json.get("channel") is None:
                     logger.debug(f"No autopost channel set for `{guild.name}`")
                     continue
@@ -1438,9 +1444,9 @@ class Quotes(commands.Cog):
                         f"No quotes in db for `{guild.name}`, disabling autopost"
                     )
                     await db_helper.update_fields(
-                        template_info=envs.quote_db_settings_schema,
-                        where=[("setting", "autopost_enabled")],
-                        updates=[("value", "False")],
+                        template_info=envs.tasks_db_schema,
+                        where=[("cog", "quotes"), ("task", "autopost")],
+                        updates=("status", "stopped"),
                         guild_id=guild.id,
                     )
                     await discord_commands.log_to_bot_channel(
@@ -1674,35 +1680,12 @@ async def setup(bot):
         if guild is None:
             continue
         await ensure_guild_quote_tables(guild)
+        await db_helper.ensure_guild_tasks_rows(guild.id)
 
     logger.debug("Registering cog to bot")
     await bot.add_cog(Quotes(bot))
     logger.info(envs.COG_STARTED.format(cog_name))
 
-    task_list = await db_helper.get_output(
-        template_info=envs.tasks_db_schema,
-        select=("task", "status"),
-        where=("cog", "quotes"),
-    )
-
-    _tasks = ["autopost"]
-    inserts = []
-    for task in _tasks:
-        if task not in [_["task"] for _ in task_list]:
-            inserts.append(("quotes", task, "stopped"))
-    if len(inserts) > 0:
-        await db_helper.insert_many_all(
-            template_info=envs.tasks_db_schema, inserts=inserts
-        )
-    for task in task_list:
-        if task["task"] == "autopost":
-            if task["status"] == "started":
-                logger.debug(
-                    "`{}` is set as `{}`, starting...".format(
-                        task["task"], task["status"]
-                    )
-                )
-                Quotes.task_autopost.start()
-            elif task["status"] == "stopped":
-                logger.debug("`{}` is set as `{}`".format(task["task"], task["status"]))
-                Quotes.task_autopost.cancel()
+    # Shared, always-running loop - each tick checks every guild's own
+    # tasks_db_schema row to decide whether to process that guild.
+    Quotes.task_autopost.start()

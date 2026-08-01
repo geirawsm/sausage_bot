@@ -14,6 +14,81 @@ from sausage_bot.util.i18n import I18N
 logger = config.logger
 
 
+class OwnerOnlyCheckFailure(discord.app_commands.CheckFailure):
+    """
+    Raised by `is_owner()` when the invoking user is not the bot owner.
+    A dedicated subclass of `discord.app_commands.CheckFailure` so the
+    tree-level error handler in `__main__.py` can reply with a precise
+    "bot owner only" message instead of the more general
+    `common.msg_no_manage_guild_permission` used for the other checks.
+    #autodoc skip#
+    """
+
+
+def is_owner_or_manage_guild():
+    """
+    App command check: allow the bot owner, or anyone with the "Manage
+    Server" (`manage_guild`) permission in the guild the command is used
+    in. Used to gate per-guild posting-task controls (start/stop for
+    rss/youtube/stats/barca_news/quotes) so server admins can manage
+    their own guild's background posting without needing bot-owner
+    access. A `discord.app_commands.CheckFailure` raised by this is
+    caught by the tree-level error handler in `__main__.py`, which
+    replies with `common.msg_no_manage_guild_permission`.
+    #autodoc skip#
+    """
+
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if await interaction.client.is_owner(interaction.user):
+            return True
+        return interaction.user.guild_permissions.manage_guild
+
+    return discord.app_commands.check(predicate)
+
+
+def is_owner():
+    """
+    App command check: allow only the bot owner. `discord.ext.commands`'
+    own `commands.is_owner()` only works as a check on prefix commands -
+    it silently does nothing useful on `app_commands` (slash commands),
+    so this is the slash-command-safe equivalent for genuine bot-/
+    cross-guild-administration commands (sync, guild approval, global
+    task control, and the shared background loops' `*_restart`
+    commands). Raises `OwnerOnlyCheckFailure` (a `CheckFailure`
+    subclass) on rejection, rather than just returning `False`, so the
+    tree-level error handler in `__main__.py` can reply with a precise
+    "bot owner only" message.
+    #autodoc skip#
+    """
+
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if await interaction.client.is_owner(interaction.user):
+            return True
+        raise OwnerOnlyCheckFailure()
+
+    return discord.app_commands.check(predicate)
+
+
+def is_owner_or_has_permission(permission: str):
+    """
+    App command check: allow the bot owner, or anyone with the named
+    Discord permission (e.g. `"kick_members"`, `"ban_members"`,
+    `"manage_messages"`) in the guild the command is used in. Used for
+    real member-/message-moderation commands, which should be gated on
+    Discord's own precise moderation permissions rather than the
+    broader `manage_guild`. A `discord.app_commands.CheckFailure` raised
+    by this is caught by the tree-level error handler in `__main__.py`.
+    #autodoc skip#
+    """
+
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if await interaction.client.is_owner(interaction.user):
+            return True
+        return getattr(interaction.user.guild_permissions, permission, False)
+
+    return discord.app_commands.check(predicate)
+
+
 async def get_message_obj(guild: discord.Guild, msg_id: int, channel_id: int) -> dict:
     """
     Get a message object

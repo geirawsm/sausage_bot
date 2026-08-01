@@ -89,13 +89,18 @@ class Youtube(commands.Cog):
         name="start", description=locale_str(I18N.t("youtube.commands.start.cmd"))
     )
     async def youtube_posting_start(self, interaction: discord.Interaction):
+        """
+        Enable video posting for this guild. The background loop itself
+        is shared, always-running infrastructure - this just flips this
+        guild's own `tasks_db_schema` row.
+        """
         await interaction.response.defer(ephemeral=True)
-        logger.info("Task started")
-        Youtube.task_post_videos.start()
+        logger.info(f"Enabling video posting for `{interaction.guild.name}`")
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[("cog", "youtube"), ("task", "post_videos")],
             updates=("status", "started"),
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send(I18N.t("youtube.commands.start.msg_confirm"))
 
@@ -103,9 +108,9 @@ class Youtube(commands.Cog):
         name="stop", description=locale_str(I18N.t("youtube.commands.stop.cmd"))
     )
     async def youtube_posting_stop(self, interaction: discord.Interaction):
+        "Disable video posting for this guild."
         await interaction.response.defer(ephemeral=True)
-        logger.info("Task stopped")
-        Youtube.task_post_videos.cancel()
+        logger.info(f"Disabling video posting for `{interaction.guild.name}`")
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -113,6 +118,7 @@ class Youtube(commands.Cog):
                 ("cog", "youtube"),
             ],
             updates=("status", "stopped"),
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send(I18N.t("youtube.commands.stop.msg_confirm"))
 
@@ -120,8 +126,13 @@ class Youtube(commands.Cog):
         name="restart", description=locale_str(I18N.t("youtube.commands.restart.cmd"))
     )
     async def youtube_posting_restart(self, interaction: discord.Interaction):
+        """
+        Restart the shared background video-posting loop (all guilds).
+        Useful for troubleshooting - not guild-scoped, since the loop
+        itself is shared infrastructure.
+        """
         await interaction.response.defer(ephemeral=True)
-        logger.info("Task restarted")
+        logger.info("Video posting loop restarted")
         Youtube.task_post_videos.restart()
         await interaction.followup.send(I18N.t("youtube.commands.restart.msg_confirm"))
 
@@ -440,6 +451,18 @@ class Youtube(commands.Cog):
             if guild is None:
                 logger.debug(f"Guild `{guild_row['guild_id']}` not in cache, skipping")
                 continue
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "youtube"), ("task", "post_videos")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
+                logger.debug(
+                    f"`post_videos` is not enabled for `{guild.name}`, skipping"
+                )
+                continue
             async with db_helper.guild_locale_context(guild.id):
                 # Start processing feeds
                 feeds = await db_helper.get_output(
@@ -564,33 +587,15 @@ async def setup(bot):
         if guild is None:
             continue
         await ensure_guild_youtube_tables(guild)
+        await db_helper.ensure_guild_tasks_rows(guild.id)
 
     logger.debug("Registering cog to bot")
     await bot.add_cog(Youtube(bot))
     logger.info(envs.COG_STARTED.format(cog_name))
 
-    task_list = await db_helper.get_output(
-        template_info=envs.tasks_db_schema,
-        select=("task", "status"),
-        where=("cog", "youtube"),
-    )
-    if len(task_list) == 0:
-        await db_helper.insert_many_all(
-            template_info=envs.tasks_db_schema,
-            inserts=(("youtube", "post_videos", "stopped")),
-        )
-    for task in task_list:
-        if task["task"] == "post_videos":
-            if task["status"] == "started":
-                logger.debug(
-                    "`{}` is set as `{}`, starting...".format(
-                        task["task"], task["status"]
-                    )
-                )
-                Youtube.task_post_videos.start()
-            elif task["status"] == "stopped":
-                logger.debug("`{}` is set as `{}`".format(task["task"], task["status"]))
-                Youtube.task_post_videos.cancel()
+    # Shared, always-running loop - each tick checks every guild's own
+    # tasks_db_schema row to decide whether to process that guild.
+    Youtube.task_post_videos.start()
 
 
 async def teardown(bot):

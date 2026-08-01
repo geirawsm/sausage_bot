@@ -168,7 +168,17 @@ async def rss_settings_autocomplete(
     ][:25]
 
 
-async def control_posting(feed_type, action):
+async def control_posting(feed_type, action, guild_id=None):
+    """
+    `action` is "start"/"stop": flip `guild_id`'s own `tasks_db_schema`
+    row(s) for `feed_type` ("feeds"/"podcasts"/"ALL") - the shared
+    background loops keep running and simply skip guilds whose row says
+    "stopped" on their next tick.
+
+    `action` is "restart": actually restarts the shared loop object(s)
+    themselves, which affects every guild's processing, not just
+    `guild_id` - see `feeds_posting_restart` (owner-only).
+    """
     feed_type_in = []
     failed_list = []
     feed_statuses = []
@@ -186,7 +196,18 @@ async def control_posting(feed_type, action):
     for feed_type in feed_type_in:
         if action in actions:
             try:
-                eval("RSSfeed.task_post_{}.{}()".format(feed_type, action))
+                if action == "restart":
+                    eval("RSSfeed.task_post_{}.restart()".format(feed_type))
+                else:
+                    await db_helper.update_fields(
+                        template_info=envs.tasks_db_schema,
+                        where=[
+                            ("cog", "rss"),
+                            ("task", "post_{}".format(feed_type)),
+                        ],
+                        updates=("status", actions[action]["status_update"]),
+                        guild_id=guild_id,
+                    )
                 feed_statuses.append(
                     {"feed_type": feed_type, "status": actions[action]["status_update"]}
                 )
@@ -197,23 +218,11 @@ async def control_posting(feed_type, action):
                     )
                 )
                 failed_list.append(feed_type)
-    # Update status in db
     if len(feed_statuses) > 0:
         for feed_type in feed_statuses:
-            if feed_type["status"] in ["started", "stopped"]:
-                await db_helper.update_fields(
-                    template_info=envs.tasks_db_schema,
-                    where=[
-                        ("cog", "rss"),
-                        ("task", "post_{}".format(feed_type["feed_type"])),
-                    ],
-                    updates=("status", feed_type["status"]),
-                )
-                logger.info(
-                    "Task {}: {}".format(feed_type["feed_type"], feed_type["status"])
-                )
-            else:
-                logger.debug("Restarting service, no need to update db")
+            logger.info(
+                "Task {}: {}".format(feed_type["feed_type"], feed_type["status"])
+            )
         feed_types = ", ".join(feed_type["feed_type"] for feed_type in feed_statuses)
     if len(failed_list) > 0:
         failed_list_text = ", ".join(failed_list)
@@ -271,7 +280,7 @@ class RSSfeed(commands.Cog):
         feed_type: typing.Literal["feeds", "podcasts", "ALL"],
     ):
         await interaction.response.defer(ephemeral=True)
-        msg = await control_posting(feed_type, "start")
+        msg = await control_posting(feed_type, "start", guild_id=interaction.guild.id)
         await interaction.followup.send(msg)
 
     @rss_posting_group.command(
@@ -283,7 +292,7 @@ class RSSfeed(commands.Cog):
         feed_type: typing.Literal["feeds", "podcasts", "ALL"],
     ):
         await interaction.response.defer(ephemeral=True)
-        msg = await control_posting(feed_type, "stop")
+        msg = await control_posting(feed_type, "stop", guild_id=interaction.guild.id)
         await interaction.followup.send(msg)
 
     @rss_posting_group.command(
@@ -295,7 +304,7 @@ class RSSfeed(commands.Cog):
         feed_type: typing.Literal["feeds", "podcasts", "ALL"],
     ):
         await interaction.response.defer(ephemeral=True)
-        msg = await control_posting(feed_type, "restart")
+        msg = await control_posting(feed_type, "restart", guild_id=interaction.guild.id)
         await interaction.followup.send(msg)
 
     @commands.is_owner()
@@ -1000,6 +1009,16 @@ class RSSfeed(commands.Cog):
             if guild is None:
                 logger.debug(f"Guild `{guild_row['guild_id']}` not in cache, skipping")
                 continue
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "rss"), ("task", "post_feeds")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
+                logger.debug(f"`post_feeds` is not enabled for `{guild.name}`, skipping")
+                continue
             async with db_helper.guild_locale_context(guild.id):
                 # Start processing feeds
                 feeds = await db_helper.get_output(
@@ -1078,6 +1097,18 @@ class RSSfeed(commands.Cog):
             guild = config.bot.get_guild(int(guild_row["guild_id"]))
             if guild is None:
                 logger.debug(f"Guild `{guild_row['guild_id']}` not in cache, skipping")
+                continue
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "rss"), ("task", "post_podcasts")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
+                logger.debug(
+                    f"`post_podcasts` is not enabled for `{guild.name}`, skipping"
+                )
                 continue
             async with db_helper.guild_locale_context(guild.id):
                 # Check for new episodes of Spotify podcasts
@@ -1262,58 +1293,19 @@ async def setup(bot):
         if guild is None:
             continue
         await ensure_guild_rss_tables(guild)
+        await db_helper.ensure_guild_tasks_rows(guild.id)
 
     logger.debug("Registering cog to bot")
     await bot.add_cog(RSSfeed(bot))
     logger.info(envs.COG_STARTED.format(cog_name))
 
-    task_list = await db_helper.get_output(
-        template_info=envs.tasks_db_schema,
-        select=("task", "status"),
-        where=("cog", "rss"),
-    )
-    _inserts = envs.tasks_db_schema["inserts"]
-    task_check = [task["task"] for task in task_list]
-    if len(task_list) < len(_inserts):
-        for _ins in _inserts:
-            if _ins[1] in task_check:
-                _inserts.remove(_ins)
-        await db_helper.insert_many_all(
-            template_info=envs.tasks_db_schema, inserts=(_inserts)
-        )
-    for task in task_list:
-        logger.debug(f"Checking task: {task}")
-        if task["task"] == "post_feeds":
-            if task["status"] == "started":
-                logger.debug(
-                    "`{task}` is set as `{status}`, starting...".format(
-                        task=task["task"], status=task["status"]
-                    )
-                )
-                RSSfeed.task_post_feeds.start()
-            elif task["status"] == "stopped":
-                logger.debug(
-                    "`{task}` is set as `{status}`".format(
-                        task=task["task"], status=task["status"]
-                    )
-                )
-                RSSfeed.task_post_feeds.cancel()
-        if task["task"] == "post_podcasts":
-            if task["status"] == "started":
-                logger.debug(
-                    "`{task}` is set as `{status}`, starting...".format(
-                        task=task["task"], status=task["status"]
-                    )
-                )
-                RSSfeed.task_post_podcasts.start()
-            elif task["status"] == "stopped":
-                logger.debug(
-                    "`{task}` is set as `{status}`".format(
-                        task=task["task"], status=task["status"]
-                    )
-                )
-                RSSfeed.task_post_podcasts.cancel()
+    # The loops are shared, always-running infrastructure - each tick
+    # checks every guild's own tasks_db_schema row to decide whether to
+    # process that guild (see task_post_feeds/task_post_podcasts above).
+    RSSfeed.task_post_feeds.start()
+    RSSfeed.task_post_podcasts.start()
 
 
 async def teardown(bot):
     RSSfeed.task_post_feeds.cancel()
+    RSSfeed.task_post_podcasts.cancel()

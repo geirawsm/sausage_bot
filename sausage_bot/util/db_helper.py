@@ -60,6 +60,37 @@ async def is_guild_approved(guild_id) -> bool:
     return bool(row) and row.get("status") == "approved"
 
 
+async def ensure_guild_tasks_rows(guild_id) -> None:
+    """
+    Create `envs.tasks_db_schema`'s table for `guild_id` if missing, and
+    insert any of its canonical `(cog, task, "stopped")` rows that this
+    guild doesn't already have (new/never-seen (cog, task) pairs only -
+    existing rows, including ones a guild has flipped to "started", are
+    left untouched). Every guild is opt-in "stopped" by default.
+
+    Not implemented via `prep_table(..., inserts=...)` /
+    `add_missing_db_setup()`: that helper's missing-row detection assumes
+    a two-column `setting`/`value` schema, which `tasks_db_schema`
+    (`cog`/`task`/`status`) is not - using it here would silently
+    re-insert every canonical row on every call.
+    #autodoc skip#
+    """
+    await prep_table(envs.tasks_db_schema, guild_id=guild_id)
+    existing = await get_output(
+        envs.tasks_db_schema, select=("cog", "task"), guild_id=guild_id
+    )
+    existing_pairs = {(row["cog"], row["task"]) for row in existing}
+    missing = [
+        list(insert)
+        for insert in envs.tasks_db_schema["inserts"]
+        if (insert[0], insert[1]) not in existing_pairs
+    ]
+    if len(missing) > 0:
+        await insert_many_all(
+            template_info=envs.tasks_db_schema, inserts=missing, guild_id=guild_id
+        )
+
+
 def db_exist(db_file_in, guild_id=None):
     db_path = envs.resolve_db_file(db_file_in, guild_id)
     file_io.ensure_folder(Path(db_path).parent)

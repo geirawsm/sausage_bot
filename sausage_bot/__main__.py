@@ -255,6 +255,10 @@ async def register_guild(guild: discord.Guild):
         guild_id=guild.id,
     )
     if is_admin_guild:
+        # The admin guild is auto-approved and never goes through
+        # `/approve-guild`, so it needs its posting-task rows prepped
+        # here instead - `/approve-guild` does the same for other guilds.
+        await db_helper.ensure_guild_tasks_rows(guild.id)
         logger.info(f"Registered admin guild `{guild.name}` ({guild.id})")
     else:
         logger.info(f"Registered new pending guild `{guild.name}` ({guild.id})")
@@ -321,8 +325,9 @@ async def on_ready():
 
     logger.debug("Checking guild registry db")
     await db_helper.prep_table(envs.guilds_db_schema)
-    logger.debug("Checking cog tasks db")
-    await db_helper.prep_table(envs.tasks_db_schema)
+    # `tasks_db_schema` is guild-scoped (see envs.py) - it is prepped per
+    # guild in `register_guild()`/`approve_guild()` below and defensively
+    # again in each posting cog's own `setup()`.
     logger.debug("Deleting old json files")
     if file_io.file_size(envs.cogs_status_file):
         logger.debug("Found old json file")
@@ -360,6 +365,49 @@ async def on_ready():
                 overwrites=overwrites,
             )
         channel_out.set_permissions()
+
+
+@config.bot.tree.error
+async def on_app_command_error(
+    interaction: discord.Interaction, error: discord.app_commands.AppCommandError
+):
+    """
+    Tree-wide error handler. Only meaningfully handles
+    `discord.app_commands.CheckFailure` (raised by e.g.
+    `discord_commands.is_owner()`, `is_owner_or_manage_guild()`, or
+    `is_owner_or_has_permission()`) by replying with a "no permission"
+    message - everything else falls back to the default behaviour (log
+    and ignore), same as before this handler existed.
+    `discord_commands.OwnerOnlyCheckFailure` (raised by `is_owner()`) is
+    checked first, since it's a subclass of the generic
+    `CheckFailure`, so it gets its own more precise message.
+    #autodoc skip#
+    """
+    if isinstance(error, discord_commands.OwnerOnlyCheckFailure):
+        msg = I18N.t("common.msg_owner_only")
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(msg, ephemeral=True)
+            else:
+                await interaction.response.send_message(msg, ephemeral=True)
+        except discord.errors.HTTPException as _error:
+            logger.error(f"Could not send permission check error message: {_error}")
+        return
+    if isinstance(error, discord.app_commands.CheckFailure):
+        msg = I18N.t("common.msg_no_manage_guild_permission")
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(msg, ephemeral=True)
+            else:
+                await interaction.response.send_message(msg, ephemeral=True)
+        except discord.errors.HTTPException as _error:
+            logger.error(f"Could not send permission check error message: {_error}")
+        return
+    command = interaction.command
+    if command is not None:
+        logger.error(f"Ignoring exception in command `{command.name}`: {error}")
+    else:
+        logger.error(f"Ignoring exception in command tree: {error}")
 
 
 sync_group = discord.app_commands.Group(
@@ -445,6 +493,7 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
         inserts=envs.locale_db_schema["inserts"],
         guild_id=guild_id,
     )
+    await db_helper.ensure_guild_tasks_rows(guild_id)
     # TODO i18n
     await interaction.followup.send(
         f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
@@ -575,7 +624,7 @@ async def clear_locals(ctx):
 
 @commands.is_owner()
 @config.bot.tree.command(
-    name="version", description=locale_str(I18N.t("main.owner_only"))
+    name="version", description=locale_str(I18N.t("main.commands.version.command"))
 )
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -731,12 +780,14 @@ async def say(
 )
 async def get_tasks_list(interaction: discord.Interaction):
     """
-    Get a pretty list of all the tasks
+    Get a pretty list of this guild's own posting tasks and their status.
     #autodoc skip#
     """
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
     tasks_in_db = await db_helper.get_output(
-        template_info=envs.tasks_db_schema, order_by=[("cog", "ASC"), ("task", "ASC")]
+        template_info=envs.tasks_db_schema,
+        order_by=[("cog", "ASC"), ("task", "ASC")],
+        guild_id=interaction.guild.id,
     )
     logger.debug(f"Got this from `tasks_in_db`: {tasks_in_db}")
     text_out = "```{}```".format(
@@ -749,7 +800,80 @@ async def get_tasks_list(interaction: discord.Interaction):
     return
 
 
-@commands.is_owner()
+@discord_commands.is_owner()
+@config.bot.tree.command(
+    name="tasks-global",
+    description=locale_str(I18N.t("main.commands.tasks_global.command")),
+)
+async def get_tasks_global_list(interaction: discord.Interaction):
+    """
+    Get a pretty, aggregated list of every approved guild's posting
+    tasks and their status. Admin-guild only.
+    #autodoc skip#
+    """
+    await interaction.response.defer(ephemeral=True)
+    if not _in_admin_guild(interaction):
+        await interaction.followup.send(
+            I18N.t("main.commands.tasks_global.msg_not_admin_guild"), ephemeral=True
+        )
+        return
+    approved_guilds = await db_helper.get_output(
+        envs.guilds_db_schema,
+        select=("guild_id", "guild_name"),
+        where=("status", "approved"),
+        order_by=[("guild_name", "ASC")],
+    )
+    rows = []
+    for guild_row in approved_guilds:
+        guild_tasks = await db_helper.get_output(
+            template_info=envs.tasks_db_schema,
+            order_by=[("cog", "ASC"), ("task", "ASC")],
+            guild_id=guild_row["guild_id"],
+        )
+        for task in guild_tasks:
+            rows.append(
+                {
+                    "guild_name": guild_row["guild_name"],
+                    "cog": task["cog"],
+                    "task": task["task"],
+                    "status": task["status"],
+                }
+            )
+    if len(rows) == 0:
+        await interaction.followup.send(
+            I18N.t("main.commands.tasks_global.msg_empty"), ephemeral=True
+        )
+        return
+    table_text = tabulate(
+        rows,
+        headers={
+            "guild_name": "Guild",
+            "cog": "Cog",
+            "task": "Task",
+            "status": "Status",
+        },
+    )
+    # Discord messages are capped at 2000 chars - split on line
+    # boundaries and repeat the header/separator (the first two lines of
+    # `tabulate`'s output) on every page.
+    lines = table_text.split("\n")
+    header = "\n".join(lines[0:2])
+    pages = []
+    current_page = header
+    for line in lines[2:]:
+        candidate = f"{current_page}\n{line}"
+        if len(candidate) + 6 > 2000:
+            pages.append(current_page)
+            current_page = f"{header}\n{line}"
+        else:
+            current_page = candidate
+    pages.append(current_page)
+    for page in pages:
+        await interaction.followup.send(f"```{page}```", ephemeral=True)
+    return
+
+
+@discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
     name="language", description=locale_str(I18N.t("main.owner_only"))
 )
