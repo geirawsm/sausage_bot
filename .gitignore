@@ -16,8 +16,11 @@ sausage_bot/tempfiles/*
 sausage_bot/version.json
 .cache
 .flake8
+.DS_Store
 sausage_bot/test/test_parse/*
 /sausage_bot/flake8-I18N-checker/build/lib
 /sausage_bot/flake8-I18N-checker/cool_module.py
 /sausage_bot/flake8-I18N-checker/flake8_I18N_checker.egg-info
 /sausage_bot/flake8-I18N-checker/make_flattened_yaml.py
+/.claude
+/graphify-out
