@@ -24,3 +24,4 @@ sausage_bot/test/test_parse/*
 /sausage_bot/flake8-I18N-checker/make_flattened_yaml.py
 /.claude
 /graphify-out
+/CLAUDE.md
