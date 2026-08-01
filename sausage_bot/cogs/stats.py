@@ -222,9 +222,7 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
                 logger.debug(f"Sorting roles alphabetically: {list(dict_in)[0:4]}")
             elif eval(stats_settings["sort_roles_321"]):
                 dict_in = dict(
-                    sorted(
-                        dict_in.items(), key=lambda x: x[1]["members"], reverse=True
-                    )
+                    sorted(dict_in.items(), key=lambda x: x[1]["members"], reverse=True)
                 )
                 logger.debug(
                     f"Sorting roles by number of members: {list(dict_in)[0:4]}"
