@@ -34,6 +34,8 @@ COGS_REL_DIR = "sausage_bot.cogs"
 test_xml_good = TESTPARSE_DIR / "feed_good_angrymetalguy.xml"
 test_xml_bad1 = TESTPARSE_DIR / "feed_bad_angrymetalguy.xml"
 test_xml_bad2 = TESTPARSE_DIR / "feed_bad_bbc.html"
+test_xml_podcast = TESTPARSE_DIR / "feed_podcast_omny.xml"
+test_xml_news_single_audio = TESTPARSE_DIR / "feed_news_single_audio.xml"
 test_nifs_json_good = TESTPARSE_DIR / "nifs.json"
 test_vglive_json_good = TESTPARSE_DIR / "vglive.json"
 test_vglive_tv_json_good = TESTPARSE_DIR / "vglive_tv.json"
@@ -487,6 +489,35 @@ FEEDS_URL_ERROR_LIMIT = 3
 FEEDS_URL_SUCCESS = "OK"
 CHANNEL_STATUS_ERROR = "Failed"
 CHANNEL_STATUS_SUCCESS = "OK"
+
+# PODCAST DETECTION
+# Namespace every podcast feed following the Apple Podcasts spec declares
+ITUNES_NAMESPACE = "http://www.itunes.com/dtds/podcast-1.0.dtd"
+# Channel level tags that in practice only podcast feeds carry
+PODCAST_CHANNEL_TAGS = (
+    "itunes:category",
+    "itunes:type",
+    "itunes:owner",
+    "itunes:author",
+    "itunes:explicit",
+    "itunes:image",
+)
+# Used when an aggregator serves a generic mime type on its enclosures
+PODCAST_MEDIA_EXTENSIONS = (
+    ".mp3",
+    ".m4a",
+    ".aac",
+    ".ogg",
+    ".opus",
+    ".wav",
+    ".flac",
+    ".mp4",
+    ".m4v",
+)
+# Share of items that must carry a media enclosure before a feed counts
+# as a podcast. The lower ratio applies when iTunes signals back it up.
+PODCAST_RATIO_ALONE = 0.8
+PODCAST_RATIO_WITH_SIGNALS = 0.5
 
 # COG - YOUTUBE
 YOUTUBE_RSS_LINK = "https://www.youtube.com/feeds/videos.xml?channel_id={}"

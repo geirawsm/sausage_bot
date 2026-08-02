@@ -204,7 +204,15 @@ async def get_items_from_rss(
         logger.error(f"Error when reading `soup` from {url}: {e}")
         return None
     items_out = {"filters": filters_in, "items": [], "log": log_in}
+    # Feed level info, so items get the same shape as the ones coming out
+    # of `net_io.get_spotify_podcast_links` and
+    # `net_io.get_other_podcast_links`
+    feed_name, feed_description, feed_img = net_io.get_channel_info(soup)
     items_info = {
+        "feed_name": feed_name,
+        "feed_description": feed_description,
+        "feed_img": feed_img,
+        "feed_uuid": None,
         "type": "",
         "title": "",
         "description": "",
@@ -213,7 +221,8 @@ async def get_items_from_rss(
         "img": "",
     }
     # Gets podcast feed
-    if soup.find("enclosure") and "audio" in soup.find("enclosure")["type"]:
+    podcast_status, _ratio, _signals = net_io.is_podcast_feed(soup)
+    if podcast_status:
         logger.debug("Found podcast feed")
         if isinstance(num_items, int) and num_items > 0:
             all_items = soup.find_all("item")[0:num_items]
@@ -243,10 +252,10 @@ async def get_items_from_rss(
                 else item.find("link")
             )
             item_img = item.find("itunes:image")
-            if item_img:
+            if item_img and item_img.get("href"):
                 temp_info["img"] = item_img["href"]
             else:
-                temp_info["img"] = soup.find("channel").find("itunes:image")["href"]
+                temp_info["img"] = feed_img
             items_out["items"].append(temp_info)
     # Gets Youtube feed
     elif soup.find("yt:channelId"):
@@ -844,7 +853,10 @@ async def process_links_for_posting_or_editing(
             logger.debug(
                 f"Found item:\n{pformat(item)}",
             )
-            if isinstance(item, dict) and item["type"] == "podcast":
+            # Whether this is a podcast is decided by the feed's type in
+            # the db, not by the item itself. A feed registered as `rss`
+            # is never posted as a podcast even if it carries audio.
+            if feed_type == "podcast" and isinstance(item, dict):
                 embed_color = await net_io.extract_color_from_image_url(item["img"])
                 embed = discord.Embed(
                     title=item["title"],
@@ -865,7 +877,8 @@ async def process_links_for_posting_or_editing(
                     and FEED_SETTINGS[desc_setting].lower() == "true"
                 ):
                     logger.debug("Descriptions enabled")
-                    embed.set_footer(text=item["feed_description"])
+                    if item.get("feed_description"):
+                        embed.set_footer(text=item["feed_description"])
                 logger.debug(f"Sending this embed to channel:\n{pformat(embed)}")
                 episode_msg = await discord_commands.post_to_channel(
                     CHANNEL, embed_in=embed
@@ -880,7 +893,8 @@ async def process_links_for_posting_or_editing(
                     view = discord.ui.View(timeout=None)
                     view.add_item(
                         DynamicRatingSelect(
-                            show_uuid=item["feed_uuid"], episode_uuid=item["hash"]
+                            show_uuid=item.get("feed_uuid") or uuid,
+                            episode_uuid=item["hash"],
                         )
                     )
                     await discord_commands.post_to_channel(CHANNEL, view=view)
@@ -892,12 +906,11 @@ async def process_links_for_posting_or_editing(
                     logger.debug("Discussion enabled")
                     # Create a thread for discussion
                     ep_name = "Diskusjon: {} - {}".format(
-                        item["feed_name"], item["title"]
+                        item.get("feed_name") or feed_name, item["title"]
                     )
                     if len(ep_name) > 100:
                         ep_name = ep_name[0:90]
                         ep_name += "..."
-                    print(len(ep_name), ep_name)
                     await episode_msg.create_thread(
                         name=ep_name, auto_archive_duration=10080
                     )
