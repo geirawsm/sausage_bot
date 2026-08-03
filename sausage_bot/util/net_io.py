@@ -118,6 +118,104 @@ async def get_link(url=None, mock_file=None, status_out=None):
         return content_out
 
 
+def enclosure_is_media(tag):
+    "Check whether an `enclosure`/`media:content` tag points at audio or video"
+    mime = str(tag.get("type") or "").lower()
+    if mime.startswith(("audio/", "video/")):
+        return True
+    # Some aggregators serve a generic mime type, so fall back on the
+    # file extension of the url
+    url = str(tag.get("url") or "").lower().split("?")[0]
+    return url.endswith(envs.PODCAST_MEDIA_EXTENSIONS)
+
+
+def is_podcast_feed(soup):
+    """
+    Decide whether a parsed feed is a podcast feed.
+
+    A feed counts as a podcast when most of its items are episodes, that
+    is when they carry an audio or video enclosure. The iTunes namespace
+    and channel level tags are supporting evidence, so feeds with badly
+    labelled enclosures are still recognized, but they can never on
+    their own turn a news feed into a podcast. That matters because
+    ordinary news feeds regularly carry a single audio enclosure.
+
+    Returns a tuple of `(is_podcast, ratio, signals)`.
+    """
+    items = soup.find_all("item") or soup.find_all("entry")
+    if not items:
+        return False, 0.0, []
+    # How many of the items are actually episodes?
+    with_media = 0
+    for item in items:
+        media = item.find_all("enclosure") + item.find_all("media:content")
+        if any(enclosure_is_media(tag) for tag in media):
+            with_media += 1
+    ratio = with_media / len(items)
+    # Look for podcast namespaces and channel level tags
+    signals = []
+    root = soup.find("rss") or soup.find("feed")
+    if root:
+        namespaces = [
+            value for key, value in root.attrs.items() if key.startswith("xmlns")
+        ]
+        if envs.ITUNES_NAMESPACE in namespaces:
+            signals.append("itunes-ns")
+        if any("podcastindex.org/namespace" in value for value in namespaces):
+            signals.append("podcast-ns")
+    channel = soup.find("channel") or root
+    if channel:
+        for tag_name in envs.PODCAST_CHANNEL_TAGS:
+            if channel.find(tag_name, recursive=False):
+                signals.append(tag_name)
+    podcast_status = ratio >= envs.PODCAST_RATIO_ALONE or (
+        ratio >= envs.PODCAST_RATIO_WITH_SIGNALS and len(signals) > 0
+    )
+    logger.debug(
+        "Podcast check: {} (ratio {:.2f} of {} items, signals: {})".format(
+            podcast_status, ratio, len(items), ", ".join(signals) or "none"
+        )
+    )
+    return podcast_status, ratio, signals
+
+
+def get_channel_info(soup):
+    """
+    Get feed level title, description and image from a feed's `channel`,
+    tolerating feeds that leave any of them out.
+
+    Returns a tuple of `(feed_name, feed_description, feed_img)`.
+    """
+    channel = soup.find("channel") or soup.find("feed")
+    if channel is None:
+        return None, None, None
+
+    def get_text(tag_name):
+        tag = channel.find(tag_name, recursive=False)
+        if tag is None or not tag.text:
+            return None
+        return tag.text.strip()
+
+    feed_name = get_text("title")
+    feed_description = (
+        get_text("description") or get_text("itunes:summary") or get_text("subtitle")
+    )
+    feed_img = None
+    itunes_img = channel.find("itunes:image", recursive=False)
+    if itunes_img is not None and itunes_img.get("href"):
+        feed_img = itunes_img["href"]
+    else:
+        # Fall back on the plain RSS `image` element
+        img_tag = channel.find("image", recursive=False)
+        if img_tag is not None:
+            url_tag = img_tag.find("url")
+            if url_tag is not None and url_tag.text:
+                feed_img = url_tag.text.strip()
+            elif img_tag.get("href"):
+                feed_img = img_tag["href"]
+    return feed_name, feed_description, feed_img
+
+
 async def check_spotify_podcast(url, mock_file=None, guild=None):
     logger.debug("Checking podcast...")
     if mock_file:
