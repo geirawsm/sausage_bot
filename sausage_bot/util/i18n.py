@@ -6,42 +6,38 @@ import os
 import re
 import discord
 from discord import app_commands
-import aiosqlite
-import asyncio
 import i18n as _i18n
 
-from . import envs, file_io, config
+from . import envs, file_io, config, guild_context
 
 logger = config.logger
 
 _i18n.load_path.append(envs.LOCALE_DIR)
 _i18n.set("fallback", "en")
+# Static default locale, used only when no guild context is active (e.g.
+# during startup logging, before any guild's settings have been loaded).
+# Per-guild locale is resolved via `guild_context.current_locale`, set by
+# `db_helper.guild_locale_context()` - see that function's docstring.
+_i18n.set("locale", "en")
 
 
-# Get locale from db
-async def get_locale():
-    try:
-        async with aiosqlite.connect(envs.locale_db_schema["db_file"]) as db:
-            db.row_factory = aiosqlite.Row
-            out = await db.execute(
-                "SELECT setting, value FROM {};".format(envs.locale_db_schema["name"])
-            )
-            db_in = [dict(row) for row in await out.fetchall()]
-        locale_db = file_io.make_db_output_to_json(["setting", "value"], db_in)
-        return locale_db.get("language", "en")
-    except aiosqlite.OperationalError as e:
-        logger.error("Could not get locale from db: {}".format(e))
-        return "en"
+class _I18NProxy:
+    """
+    Thin wrapper around the `i18n` package that makes `.t()` guild-aware
+    without requiring every call site in the codebase to pass a `locale`
+    kwarg explicitly. Everything except `.t()` is delegated straight
+    through to the underlying library.
+    """
+
+    def t(self, *args, **kwargs):
+        kwargs.setdefault("locale", guild_context.current_locale.get())
+        return _i18n.t(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(_i18n, name)
 
 
-locale_in = asyncio.run(get_locale())
-logger.info(f"Got locale `{locale_in}`")
-
-_i18n.set("locale", locale_in)
-
-I18N = _i18n
-
-logger = config.logger
+I18N = _I18NProxy()
 
 # Clean i18n log file before starting
 _logfilename = envs.LOG_DIR / "i18n.log"
@@ -97,22 +93,3 @@ def available_languages():
         if lang_check and lang_check not in lang_list:
             lang_list.append(lang_check)
     return lang_list
-
-
-async def set_language(lang: str):
-    if lang in available_languages():
-        I18N.set("locale", lang)
-        db_info = envs.locale_db_schema
-        table_name = db_info["name"]
-        _cmd = "UPDATE {} SET {} = '{}' WHERE setting = 'language';".format(
-            table_name, "value", lang
-        )
-        try:
-            async with aiosqlite.connect(db_info["db_file"]) as db:
-                await db.execute(_cmd)
-                await db.commit()
-            logger.debug("Done and commited!")
-        except aiosqlite.OperationalError as e:
-            logger.error(f"Error: {e}")
-            return None
-        I18N.reload_everything()

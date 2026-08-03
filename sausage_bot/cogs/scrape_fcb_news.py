@@ -36,23 +36,26 @@ class scrape_and_post(commands.Cog):
         name="barca", description="Administer Barcelona-scraping"
     )
 
+    @discord_commands.is_owner_or_manage_guild()
     @fcb_group.command(name="start", description="Start posting")
     async def barca_posting_start(self, interaction: discord.Interaction):
+        "Enable Barca posting for this guild."
         await interaction.response.defer(ephemeral=True)
-        logger.info("Task started")
-        scrape_and_post.post_fcb_news.start()
+        logger.info(f"Enabling barca posting for `{interaction.guild.name}`")
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[("cog", "barca_news"), ("task", "post_news")],
             updates=("status", "started"),
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send("Barca posting started")
 
+    @discord_commands.is_owner_or_manage_guild()
     @fcb_group.command(name="stop", description="Stop posting")
     async def barca_posting_stop(self, interaction: discord.Interaction):
+        "Disable Barca posting for this guild."
         await interaction.response.defer(ephemeral=True)
-        logger.info("Task stopped")
-        scrape_and_post.post_fcb_news.cancel()
+        logger.info(f"Disabling barca posting for `{interaction.guild.name}`")
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
             where=[
@@ -60,6 +63,7 @@ class scrape_and_post(commands.Cog):
                 ("task", "post_news"),
             ],
             updates=("status", "stopped"),
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send("Barca posting stopped")
 
@@ -120,28 +124,50 @@ class scrape_and_post(commands.Cog):
             return links
 
         feed = "FCB news"
-        guild_channels = discord_commands.get_text_channel_list()
-        _guild = discord_commands.get_current_guild()
         FEED_POSTS = barca_news_links()
         if FEED_POSTS is None:
             return
         if len(FEED_POSTS) < 1:
             logger.info(f"{feed}: this feed is empty")
             return
-        else:
-            logger.info(f"{feed}: `FEED_POSTS` are good:\n### {FEED_POSTS} ###")
+        logger.info(f"{feed}: `FEED_POSTS` are good:\n### {FEED_POSTS} ###")
+        approved_guilds = await db_helper.get_output(
+            envs.guilds_db_schema, where=("status", "approved")
+        )
+        for guild_row in approved_guilds:
+            guild = config.bot.get_guild(int(guild_row["guild_id"]))
+            if guild is None:
+                continue
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "barca_news"), ("task", "post_news")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
+                logger.debug(
+                    f"`post_news` is not enabled for `{guild.name}`, skipping"
+                )
+                continue
+            guild_channels = discord_commands.get_text_channel_list(guild)
             for team in FEED_POSTS:
                 channel_name = team_channel_defaults[team.upper()]
                 if channel_name not in guild_channels:
                     error_msg = f"Could not find channel `{channel_name}` in guild"
                     logger.error(error_msg)
                     # TODO i18n
-                    await discord_commands.log_to_bot_channel(error_msg)
-                    return
-                CHANNEL = _guild.get_channel(guild_channels[channel_name]).id
+                    await discord_commands.log_to_bot_channel(guild, error_msg)
+                    continue
+                CHANNEL = guild.get_channel(guild_channels[channel_name]).id
                 try:
                     await feeds_core.process_links_for_posting_or_editing(
-                        "rss", "BARCA", FEED_POSTS[team], CHANNEL
+                        feed_name=f"{feed} - {team}",
+                        feed_type="rss",
+                        uuid=f"barca_{team}",
+                        FEED_POSTS=FEED_POSTS[team],
+                        CHANNEL=CHANNEL,
+                        guild=guild,
                     )
                 except AttributeError as e:
                     logger.error(str(e))
@@ -155,41 +181,23 @@ class scrape_and_post(commands.Cog):
 
 
 async def setup(bot):
-    async def get_tasks():
-        return await db_helper.get_output(
-            template_info=envs.tasks_db_schema,
-            select=("task", "status"),
-            where=("cog", "barca_news"),
-        )
-
     logger.info(envs.COG_STARTING.format("barca_news"))
+
+    approved_guilds = await db_helper.get_output(
+        envs.guilds_db_schema, where=("status", "approved")
+    )
+    for guild_row in approved_guilds:
+        guild = config.bot.get_guild(int(guild_row["guild_id"]))
+        if guild is None:
+            continue
+        await db_helper.ensure_guild_tasks_rows(guild.id)
+
     await bot.add_cog(scrape_and_post(bot))
     logger.info(envs.COG_STARTED.format("barca_news"))
-    task_list = await get_tasks()
-    logger.debug(f"Got `task_list`: {task_list}")
-    if task_list is None or len(task_list) <= 0:
-        await db_helper.insert_many_all(
-            template_info=envs.tasks_db_schema,
-            inserts=(("barca_news", "post_news", "stopped")),
-        )
-        task_list = await get_tasks()
-    for task in task_list:
-        logger.debug(f"Checking task: {task}")
-        if task["task"] == "post_news":
-            if task["status"] == "started":
-                logger.debug(
-                    "`{}` is set as `{}`, stopping...".format(
-                        task["task"], task["status"]
-                    )
-                )
-                scrape_and_post.post_fcb_news.start()
-            elif task["status"] == "stopped":
-                logger.debug(
-                    "`{}` is set as `{}`, starting...".format(
-                        task["task"], task["status"]
-                    )
-                )
-                scrape_and_post.post_fcb_news.cancel()
+
+    # Shared, always-running loop - each tick checks every guild's own
+    # tasks_db_schema row to decide whether to process that guild.
+    scrape_and_post.post_fcb_news.start()
 
 
 def teardown(bot):

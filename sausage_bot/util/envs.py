@@ -21,6 +21,38 @@ else:
 LOG_DIR = DATA_DIR / "logs"
 STATIC_DIR = DATA_DIR / "static"
 TEMP_DIR = ROOT_DIR / "tempfiles"
+GUILDS_DB_FILE = str(DB_DIR / "guilds.sqlite")
+
+
+def guild_db_dir(guild_id) -> Path:
+    "Return the per-guild database directory, e.g. data/db/guild_<id>/"
+    return DB_DIR / f"guild_{guild_id}"
+
+
+def resolve_db_file(template_info: dict, guild_id=None) -> str:
+    """
+    Resolve a schema's "db_file" into an actual path to connect to.
+
+    Globally scoped schemas (`"scope": "global"`) already hold a full path.
+    Guild-scoped schemas (the default) hold a bare filename that must be
+    joined with the given guild's own database directory.
+    """
+    if template_info.get("scope") == "global":
+        return template_info["db_file"]
+    if guild_id is None:
+        raise ValueError(
+            "guild_id is required for guild-scoped table "
+            f"'{template_info.get('name')}'"
+        )
+    return str(guild_db_dir(guild_id) / template_info["db_file"])
+
+
+# DB schema convention: "db_file" is a relative filename resolved against
+# guild_db_dir(guild_id) at query time (db_helper needs a guild_id to use
+# these). A schema marked "scope": "global" is the exception - its "db_file"
+# is a full path under DB_DIR directly, used for bot-wide data like the
+# guild registry itself, which cannot be scoped to a guild it describes.
+
 MERMAID_DIR = ROOT_DIR / "docs" / "mermaid_charts"
 LOCALE_DIR = ROOT_DIR / "locale"
 TESTPARSE_DIR = ROOT_DIR / "test/test_parse"
@@ -63,13 +95,36 @@ roles_settings_file = JSON_DIR / "roles_settings.json"
 env_template = """
 # Basic settings
 DISCORD_TOKEN=
-DISCORD_GUILD=
 BOT_ID=
 PREFIX=
 LOCALE=
 BOT_DUMP_CHANNEL=bot
 WATCHING=
+
+# Multi-guild settings
+# ADMIN_GUILD_ID is the bot's home guild - it is auto-approved and never
+# needs to go through the /approve-guild flow. New-guild notifications and
+# the /approve-guild command are used from ADMIN_CHANNEL_ID in that guild.
+ADMIN_GUILD_ID=
+ADMIN_CHANNEL_ID=
 """
+
+# Guilds registry (global - not scoped to a guild, this IS the list of guilds)
+guilds_db_schema = {
+    "db_file": GUILDS_DB_FILE,
+    "scope": "global",
+    "name": "guilds",
+    "items": [
+        ["guild_id", "TEXT NOT NULL UNIQUE"],
+        ["guild_name", "TEXT"],
+        ["status", "TEXT NOT NULL"],  # pending | approved | removed
+        ["joined_at", "TEXT"],
+        ["approved_by", "TEXT"],
+        ["approved_at", "TEXT"],
+    ],
+    "primary": "guild_id",
+    "autoincrement": False,
+}
 
 # Stats
 stats_template = {
@@ -90,20 +145,33 @@ roles_template = {
 }
 
 # Cogs.env
+# Guild-scoped: tracks, per guild, whether each background posting task
+# is enabled for that guild ("started"/"stopped"). The background loops
+# themselves are shared, always-running infrastructure (one loop iterates
+# all approved guilds internally) - this table only controls whether a
+# given guild is opted in to that loop's processing on a given tick. A
+# missing row is treated the same as "stopped" (safe opt-in default).
 tasks_db_schema = {
-    "db_file": str(DB_DIR / "tasks.sqlite"),
+    "db_file": "tasks.sqlite",
     "name": "tasks",
     "items": [
         ["cog", "TEXT NOT NULL"],
         ["task", "TEXT NOT NULL"],
         ["status", "TEXT NOT NULL"],
     ],
-    "inserts": [["rss", "post_feeds", "stopped"], ["rss", "post_podcasts", "stopped"]],
+    "inserts": [
+        ["rss", "post_feeds", "stopped"],
+        ["rss", "post_podcasts", "stopped"],
+        ["youtube", "post_videos", "stopped"],
+        ["stats", "post_stats", "stopped"],
+        ["barca_news", "post_news", "stopped"],
+        ["quotes", "autopost", "stopped"],
+    ],
 }
 
 # Poll
 poll_db_polls_schema = {
-    "db_file": str(DB_DIR / "poll.sqlite"),
+    "db_file": "poll.sqlite",
     "name": "poll",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -120,7 +188,7 @@ poll_db_polls_schema = {
 }
 
 poll_db_alternatives_schema = {
-    "db_file": str(DB_DIR / "poll.sqlite"),
+    "db_file": "poll.sqlite",
     "name": "poll_alternatives",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -132,21 +200,21 @@ poll_db_alternatives_schema = {
 
 # Dilemmas
 dilemmas_db_schema = {
-    "db_file": str(DB_DIR / "dilemmas.sqlite"),
+    "db_file": "dilemmas.sqlite",
     "name": "dilemmas",
     "items": [["id", "TEXT NOT NULL"], ["dilemmas_text", "TEXT"]],
     "primary": "id",
 }
 
 dilemmas_db_log_schema = {
-    "db_file": str(DB_DIR / "dilemmas.sqlite"),
+    "db_file": "dilemmas.sqlite",
     "name": "log",
     "items": [["id", " TEXT NOT NULL"], ["msg_id", " TEXT"]],
 }
 
 # Invitations
 invitations_db_schema = {
-    "db_file": str(DB_DIR / "invitations.sqlite"),
+    "db_file": "invitations.sqlite",
     "name": "invitations",
     "items": [
         ["invitation_uuid", "TEXT NOT NULL"],
@@ -158,7 +226,7 @@ invitations_db_schema = {
 }
 
 invitations_db_contest_schema = {
-    "db_file": str(DB_DIR / "invitations.sqlite"),
+    "db_file": "invitations.sqlite",
     "name": "contest",
     "items": [
         ["contest_uuid", "TEXT NOT NULL"],
@@ -174,7 +242,7 @@ invitations_db_contest_schema = {
 }
 
 invitations_db_log_schema = {
-    "db_file": str(DB_DIR / "invitations.sqlite"),
+    "db_file": "invitations.sqlite",
     "name": "log",
     "items": [
         ["invite_id", "TEXT NOT NULL"],
@@ -186,7 +254,7 @@ invitations_db_log_schema = {
 
 # Quote
 quote_db_schema = {
-    "db_file": str(DB_DIR / "quote.sqlite"),
+    "db_file": "quote.sqlite",
     "name": "quote",
     "items": [
         ["uuid", "TEXT NOT NULL UNIQUE"],
@@ -199,7 +267,7 @@ quote_db_schema = {
 }
 
 quote_content_db_schema = {
-    "db_file": str(DB_DIR / "quote.sqlite"),
+    "db_file": "quote.sqlite",
     "name": "quote_content",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -212,7 +280,7 @@ quote_content_db_schema = {
 }
 
 quote_img_db_schema = {
-    "db_file": str(DB_DIR / "quote.sqlite"),
+    "db_file": "quote.sqlite",
     "name": "quote_img",
     "items": [
         ["comment_id", "INT"],
@@ -222,7 +290,7 @@ quote_img_db_schema = {
 }
 
 quote_db_log_schema = {
-    "db_file": str(DB_DIR / "quote.sqlite"),
+    "db_file": "quote.sqlite",
     "name": "log",
     "items": [["uuid", "TEXT NOT NULL"], ["channel_id", "INT"], ["datetime", "TEXT"]],
     "primary": None,
@@ -230,7 +298,7 @@ quote_db_log_schema = {
 }
 
 quote_db_settings_schema = {
-    "db_file": str(DB_DIR / "quote.sqlite"),
+    "db_file": "quote.sqlite",
     "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT"]],
     "inserts": [
@@ -249,7 +317,7 @@ quote_db_settings_schema = {
 
 # Roles
 roles_db_msgs_schema = {
-    "db_file": str(DB_DIR / "roles.sqlite"),
+    "db_file": "roles.sqlite",
     "name": "messages",
     "items": [
         ["msg_id", " TEXT NOT NULL"],
@@ -264,20 +332,20 @@ roles_db_msgs_schema = {
 }
 
 roles_db_roles_schema = {
-    "db_file": str(DB_DIR / "roles.sqlite"),
+    "db_file": "roles.sqlite",
     "name": "roles",
     "items": [["msg_id", "TEXT NOT NULL"], ["role", "TEXT"], ["emoji", "TEXT"]],
 }
 
 roles_db_settings_schema = {
-    "db_file": str(DB_DIR / "roles.sqlite"),
+    "db_file": "roles.sqlite",
     "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT"]],
 }
 
 # Stats
 log_db_schema = {
-    "db_file": str(DB_DIR / "log.sqlite"),
+    "db_file": "log.sqlite",
     "name": "log",
     "items": [
         ["setting", "TEXT NOT NULL"],
@@ -292,7 +360,7 @@ log_db_schema = {
 }
 
 stats_db_settings_schema = {
-    "db_file": str(DB_DIR / "stats.sqlite"),
+    "db_file": "stats.sqlite",
     "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT NOT NULL"]],
     "inserts": [
@@ -322,7 +390,7 @@ stats_db_settings_schema = {
 }
 
 stats_db_hide_roles_schema = {
-    "db_file": str(DB_DIR / "stats.sqlite"),
+    "db_file": "stats.sqlite",
     "name": "hide_roles",
     "items": [
         ["role_id", "TEXT NOT NULL"],
@@ -330,7 +398,7 @@ stats_db_hide_roles_schema = {
 }
 
 stats_db_log_schema = {
-    "db_file": str(DB_DIR / "stats_log.sqlite"),
+    "db_file": "stats_log.sqlite",
     "name": "log",
     "items": [
         ["datetime", "TEXT"],
@@ -342,7 +410,7 @@ stats_db_log_schema = {
 
 # RSS
 rss_db_schema = {
-    "db_file": str(DB_DIR / "rss_feeds.sqlite"),
+    "db_file": "rss_feeds.sqlite",
     "name": "rss_feeds",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -362,7 +430,7 @@ rss_db_schema = {
 }
 
 rss_db_filter_schema = {
-    "db_file": str(DB_DIR / "rss_feeds.sqlite"),
+    "db_file": "rss_feeds.sqlite",
     "name": "filter",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -374,7 +442,7 @@ rss_db_filter_schema = {
 }
 
 rss_db_settings_schema = {
-    "db_file": str(DB_DIR / "rss_feeds.sqlite"),
+    "db_file": "rss_feeds.sqlite",
     "name": "settings",
     "items": [
         ["setting", "TEXT NOT NULL"],
@@ -391,7 +459,7 @@ rss_db_settings_schema = {
 }
 
 rss_db_ratings_schema = {
-    "db_file": str(DB_DIR / "rss_feeds.sqlite"),
+    "db_file": "rss_feeds.sqlite",
     "name": "ratings",
     "items": [
         ["user_id", "TEXT NOT NULL"],
@@ -405,7 +473,7 @@ rss_db_ratings_schema = {
 }
 
 rss_db_log_schema = {
-    "db_file": str(DB_DIR / "rss_log.sqlite"),
+    "db_file": "rss_log.sqlite",
     "name": "log",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -419,7 +487,7 @@ rss_db_log_schema = {
 
 # Youtube
 youtube_db_schema = {
-    "db_file": str(DB_DIR / "youtube_feeds.sqlite"),
+    "db_file": "youtube_feeds.sqlite",
     "name": "youtube_feeds",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -439,7 +507,7 @@ youtube_db_schema = {
 }
 
 youtube_db_filter_schema = {
-    "db_file": str(DB_DIR / "youtube_feeds.sqlite"),
+    "db_file": "youtube_feeds.sqlite",
     "name": "filter",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -451,7 +519,7 @@ youtube_db_filter_schema = {
 }
 
 youtube_db_log_schema = {
-    "db_file": str(DB_DIR / "youtube_log.sqlite"),
+    "db_file": "youtube_log.sqlite",
     "name": "log",
     "items": [
         ["uuid", " TEXT NOT NULL"],
@@ -464,7 +532,7 @@ youtube_db_log_schema = {
 }
 
 locale_db_schema = {
-    "db_file": str(DB_DIR / "locale.sqlite"),
+    "db_file": "locale.sqlite",
     "name": "locale",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT NOT NULL"]],
     "inserts": [["language", "en"], ["timezone", "UTC"]],

@@ -11,7 +11,7 @@ import re
 import typing
 from pprint import pformat
 
-from sausage_bot.util import config, envs, file_io, discord_commands
+from sausage_bot.util import config, envs, discord_commands
 from sausage_bot.util import db_helper, net_io
 from sausage_bot.util.i18n import I18N
 
@@ -106,13 +106,15 @@ async def settings_autocomplete(
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
     settings_db = await db_helper.get_output(
-        template_info=envs.roles_db_settings_schema, get_row_ids=True
+        template_info=envs.roles_db_settings_schema,
+        get_row_ids=True,
+        guild_id=interaction.guild.id,
     )
     temp_settings = settings_db.copy()
     for setting in temp_settings:
         list_num = settings_db.index(setting)
         temp_settings[list_num]["name"] = get(
-            discord_commands.get_current_guild().roles, id=int(setting["value"])
+            interaction.guild.roles, id=int(setting["value"])
         ).name
     logger.debug(f"`settings_db`: {settings_db}")
     return [
@@ -134,7 +136,7 @@ async def emojis_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    _guild = discord_commands.get_current_guild()
+    _guild = interaction.guild
     _emojis = _guild.emojis
     _emojis_list = []
     for emoji in _emojis:
@@ -149,7 +151,7 @@ async def emojis_autocomplete(
     ][:25]
 
 
-async def get_msg_id_and_name(msg_id_or_name):
+async def get_msg_id_and_name(msg_id_or_name, guild_id):
     """
     Get msg id, channel and message name from database
     based on msg id or msg name
@@ -167,6 +169,7 @@ async def get_msg_id_and_name(msg_id_or_name):
         where=[(where_in, msg_id_or_name)],
         select=("msg_id", "channel", "name"),
         single=True,
+        guild_id=guild_id,
     )
     logger.debug(f"db_message: {db_message}")
     return {
@@ -185,16 +188,18 @@ async def strip_role_or_emoji(input):
         return input
 
 
-async def sync_reaction_message_from_settings(msg_id_or_name, sort: bool = False):
+async def sync_reaction_message_from_settings(
+    msg_id_or_name, sort: bool = False, guild: discord.Guild = None
+):
     # Assert that the reaction message exist on discord
-    msg_info = await get_msg_id_and_name(msg_id_or_name)
-    _guild = discord_commands.get_current_guild()
+    msg_info = await get_msg_id_and_name(msg_id_or_name, guild.id)
+    _guild = guild
     logger.debug(f"msg_info:\n{pformat(msg_info)}")
     msg_id = msg_info["id"]
     msg_channel = msg_info["channel"]
     logger.debug(f"`msg_info` is {msg_info}")
     msg_obj = await discord_commands.get_message_obj(
-        msg_id=msg_id, channel_id=msg_channel
+        guild=guild, msg_id=msg_id, channel_id=msg_channel
     )
     logger.debug(f"`msg_obj` is {msg_obj}")
     if msg_obj is None:
@@ -202,7 +207,9 @@ async def sync_reaction_message_from_settings(msg_id_or_name, sort: bool = False
         # and msg_id in databases must be updated
         logger.debug("Creating a new message")
         db_message = await db_helper.get_output(
-            template_info=envs.roles_db_msgs_schema, where=[("msg_id", msg_id)]
+            template_info=envs.roles_db_msgs_schema,
+            where=[("msg_id", msg_id)],
+            guild_id=guild.id,
         )
         # Make a placeholder message
         msg_obj = await discord_commands.post_to_channel(
@@ -219,22 +226,28 @@ async def sync_reaction_message_from_settings(msg_id_or_name, sort: bool = False
             envs.roles_db_msgs_schema,
             updates=[("msg_id", msg_id)],
             where=("msg_id", msg_info["id"]),
+            guild_id=guild.id,
         )
         await db_helper.update_fields(
             envs.roles_db_roles_schema,
             updates=[("msg_id", msg_id)],
             where=("msg_id", msg_info["id"]),
+            guild_id=guild.id,
         )
         logger.debug(f"`msg_obj` is {msg_obj}")
 
     db_message = await db_helper.get_output(
-        template_info=envs.roles_db_msgs_schema, where=[("msg_id", msg_id)], single=True
+        template_info=envs.roles_db_msgs_schema,
+        where=[("msg_id", msg_id)],
+        single=True,
+        guild_id=guild.id,
     )
     logger.debug(f"db_message: {db_message}")
     db_reactions = await db_helper.get_output(
         envs.roles_db_roles_schema,
         select=("role", "emoji"),
         where=[("msg_id", msg_id)],
+        guild_id=guild.id,
     )
     logger.debug(f"db_reactions: {db_reactions}")
     reactions_out = {}
@@ -304,8 +317,8 @@ async def sync_reaction_message_from_settings(msg_id_or_name, sort: bool = False
         role_out = "These roles had some issues when syncing:\n- {}".format(
             "- ".join(role for role in roles_errors)
         )
-    await discord_commands.log_to_bot_channel(emoji_out)
-    await discord_commands.log_to_bot_channel(role_out)
+    await discord_commands.log_to_bot_channel(guild, emoji_out)
+    await discord_commands.log_to_bot_channel(guild, role_out)
     return
 
 
@@ -505,6 +518,7 @@ async def reaction_msgs_autocomplete(
         template_info=envs.roles_db_msgs_schema,
         select=("msg_id", "name", "channel", "header", "content"),
         order_by=[("name", "ASC")],
+        guild_id=interaction.guild.id,
     )
     logger.debug(f"db_reactions: {db_reactions}")
     return [
@@ -532,6 +546,7 @@ async def edit_reaction_msgs_autocomplete(
         template_info=envs.roles_db_msgs_schema,
         select=("msg_id", "name"),
         order_by=[("name", "ASC")],
+        guild_id=interaction.guild.id,
     )
     logger.debug(f"db_reactions: {db_reactions}")
     return [
@@ -554,8 +569,9 @@ async def reaction_msgs_roles_autocomplete(
         template_info_2=envs.roles_db_roles_schema,
         key="msg_id",
         select=["name", "channel", "A.msg_id", "role", "emoji"],
+        guild_id=interaction.guild.id,
     )
-    _guild = discord_commands.get_current_guild()
+    _guild = interaction.guild
     logger.debug(f"db_reactions:\n{pformat(db_reactions)}")
     return [
         discord.app_commands.Choice(
@@ -564,7 +580,7 @@ async def reaction_msgs_roles_autocomplete(
                 _guild.get_channel(int(reaction["channel"])).name.lower(),
                 str(
                     get(
-                        discord_commands.get_current_guild().roles,
+                        _guild.roles,
                         id=int(reaction["role"]),
                     )
                 ).lower(),
@@ -661,8 +677,12 @@ class ReactionEditModal(discord.ui.Modal):
         self.add_item(reaction_text)
 
     async def on_submit(self, interaction: discord.Interaction):
-        header_out = discord_commands.check_user_channel_role(self.children[0].value)
-        text_out = discord_commands.check_user_channel_role(self.children[1].value)
+        header_out = discord_commands.check_user_channel_role(
+            interaction.guild, self.children[0].value
+        )
+        text_out = discord_commands.check_user_channel_role(
+            interaction.guild, self.children[1].value
+        )
         msg_out = ""
         logger.debug("Creating bot message for any errors")
         for content_block in [header_out, text_out]:
@@ -748,7 +768,7 @@ class Autoroles(commands.Cog):
         name="emojis", description=locale_str(I18N.t("roles.group.emojis"))
     )
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="info", description=locale_str(I18N.t("roles.commands.role_info.cmd"))
     )
@@ -829,7 +849,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="list", description=locale_str(I18N.t("roles.commands.list.cmd"))
     )
@@ -849,7 +869,7 @@ class Autoroles(commands.Cog):
         ] = None,
     ):
         async def roles_list_roles():
-            _guild = discord_commands.get_current_guild()
+            _guild = interaction.guild
             tabulate_dict = {
                 "emoji": [],
                 "name": [],
@@ -880,7 +900,7 @@ class Autoroles(commands.Cog):
             return tabulate_roles(tabulate_dict)
 
         async def roles_list_emojis():
-            _guild = discord_commands.get_current_guild()
+            _guild = interaction.guild
             tabulate_dict = {
                 "emoji": [],
                 "name": [],
@@ -931,7 +951,7 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(f"{page}", ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="add", description=locale_str(I18N.t("roles.commands.add_role.cmd"))
     )
@@ -978,7 +998,7 @@ class Autoroles(commands.Cog):
         if len(perms) > 0:
             perms_in = ", ".join(f"{perm}=True" for perm in perms)
         # Create role in guild
-        guild = discord_commands.get_current_guild()
+        guild = interaction.guild
         try:
             await guild.create_role(
                 name=role_name,
@@ -1005,7 +1025,7 @@ class Autoroles(commands.Cog):
             return
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="remove", description=locale_str(I18N.t("roles.commands.remove_role.cmd"))
     )
@@ -1014,7 +1034,7 @@ class Autoroles(commands.Cog):
         self, interaction: discord.Interaction, role_name: discord.Role
     ):
         await interaction.response.defer(ephemeral=True)
-        _guild = discord_commands.get_current_guild()
+        _guild = interaction.guild
         rolename = role_name.name
         await _guild.get_role(int(role_name.id)).delete()
         await interaction.followup.send(
@@ -1022,7 +1042,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
         name="edit", description=locale_str(I18N.t("roles.commands.edit_role.cmd"))
     )
@@ -1096,7 +1116,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @emojis_group.command(
         name="add", description=locale_str(I18N.t("roles.commands.add_emoji.cmd"))
     )
@@ -1113,7 +1133,7 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         image = await image.read()
         # Create emoji in guild
-        guild = discord_commands.get_current_guild()
+        guild = interaction.guild
         try:
             await guild.create_custom_emoji(name=emoji_name, image=image)
             await interaction.followup.send(
@@ -1138,7 +1158,7 @@ class Autoroles(commands.Cog):
             )
             return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @emojis_group.command(
         name="remove", description=locale_str(I18N.t("roles.commands.remove_emoji.cmd"))
     )
@@ -1146,7 +1166,7 @@ class Autoroles(commands.Cog):
     async def remove_emoji(self, interaction: discord.Interaction, emoji: discord.Role):
         await interaction.response.defer(ephemeral=True)
         try:
-            _guild = discord_commands.get_current_guild()
+            _guild = interaction.guild
             emoji_name = emoji.name
             await _guild.get_role(int(emoji.id)).delete()
             await interaction.followup.send(
@@ -1166,7 +1186,7 @@ class Autoroles(commands.Cog):
             )
             return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(emoji=emojis_autocomplete)
     @emojis_group.command(
         name="edit", description=locale_str(I18N.t("roles.commands.edit_emoji.cmd"))
@@ -1187,7 +1207,7 @@ class Autoroles(commands.Cog):
     ):
         await interaction.response.defer(ephemeral=True)
         changes = []
-        _guild = discord_commands.get_current_guild()
+        _guild = interaction.guild
         emoji_obj = _guild.get_emoji(int(emoji))
         if new_name:
             i18n_name = I18N.t("roles.changelist.name")
@@ -1215,7 +1235,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(emoji=emojis_autocomplete)
     @emojis_group.command(
         name="info", description=locale_str(I18N.t("roles.commands.emoji_info.cmd"))
@@ -1239,7 +1259,7 @@ class Autoroles(commands.Cog):
         else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
-        _guild = discord_commands.get_current_guild()
+        _guild = interaction.guild
         emoji_obj = _guild.get_emoji(int(emoji))
         emoji_color = await net_io.extract_color_from_image_url(emoji_obj.url)
         embed = discord.Embed(color=discord.Color.from_str(f"#{emoji_color}"))
@@ -1275,7 +1295,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=_ephemeral)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @describe(reaction_msg=I18N.t("roles.commands.react_list.desc.reaction_msg"))
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @roles_reaction_group.command(
@@ -1302,6 +1322,7 @@ class Autoroles(commands.Cog):
                     "emoji",
                 ],
                 where=[("A.msg_id", msg_id)],
+                guild_id=interaction.guild.id,
             )
             logger.debug(f"db_reactions:\n{pformat(db_reactions)}")
             if len(db_reactions) <= 0 or db_reactions is None:
@@ -1318,7 +1339,7 @@ class Autoroles(commands.Cog):
             for reaction in db_reactions:
                 if re.match(r"\d{19,22}", reaction["role"]):
                     role = get(
-                        discord_commands.get_current_guild().roles,
+                        interaction.guild.roles,
                         id=int(reaction["role"]),
                     )
                     role_name = role.name
@@ -1328,7 +1349,7 @@ class Autoroles(commands.Cog):
                     role_id = reaction["role"]
                 if re.match(r"\d{19,22}", reaction["emoji"]):
                     emoji = get(
-                        discord_commands.get_current_guild().emojis,
+                        interaction.guild.emojis,
                         id=int(reaction["emoji"]),
                     )
                     emoji_name = emoji.name
@@ -1373,6 +1394,7 @@ class Autoroles(commands.Cog):
                 key="msg_id",
                 group_by="A.msg_id",
                 order_by=[("channel", "DESC"), ("msg_order", "ASC")],
+                guild_id=interaction.guild.id,
             )
             logger.debug(f"`sorted_reacts` is {sorted_reacts}")
             if sorted_reacts is None:
@@ -1436,6 +1458,7 @@ class Autoroles(commands.Cog):
             envs.roles_db_msgs_schema,
             where=("channel", channel.id),
             select=("msg_order", "name"),
+            guild_id=interaction.guild.id,
         )
         if order in [msg_order["msg_order"] for msg_order in msg_db_orders]:
             await interaction.followup.send(
@@ -1447,7 +1470,10 @@ class Autoroles(commands.Cog):
             )
             return
         msg_db = await db_helper.get_output(
-            envs.roles_db_msgs_schema, where=[("name", msg_name)], select=("name")
+            envs.roles_db_msgs_schema,
+            where=[("name", msg_name)],
+            select=("name"),
+            guild_id=interaction.guild.id,
         )
         if len(msg_db) == 1:
             await interaction.followup.send(
@@ -1473,12 +1499,12 @@ class Autoroles(commands.Cog):
             logger.debug(f"Checking combo `{combo}`")
             logger.debug(f"Combo[0] `{combo[0]}`")
             logger.debug(f"Combo[1] `{combo[1]}`")
-            role_out = get(discord_commands.get_current_guild().roles, id=int(combo[0]))
+            role_out = get(interaction.guild.roles, id=int(combo[0]))
             if re.match(r"<.*\b(\d+)>", combo[1]):
                 emoji_out = combo[1]
             elif re.match(r"(\d+)", combo[1]):
                 emoji_out = get(
-                    discord_commands.get_current_guild().emojis, id=int(combo[1])
+                    interaction.guild.emojis, id=int(combo[1])
                 )
             else:
                 emoji_out = combo[1]
@@ -1506,17 +1532,20 @@ class Autoroles(commands.Cog):
             if re.match(r"^(\d+)$", reac[1]):
                 logger.debug("Adding emoji as id")
                 await reaction_msg.add_reaction(
-                    get(discord_commands.get_current_guild().emojis, id=int(reac[1]))
+                    get(interaction.guild.emojis, id=int(reac[1]))
                 )
             else:
                 logger.debug("Adding emoji as name")
                 await reaction_msg.add_reaction(reac[1])
         await db_helper.insert_many_all(
-            envs.roles_db_roles_schema, inserts=reactions_in
+            envs.roles_db_roles_schema,
+            inserts=reactions_in,
+            guild_id=interaction.guild.id,
         )
         # Add to messages DB
         await db_helper.insert_many_all(
             envs.roles_db_msgs_schema,
+            guild_id=interaction.guild.id,
             inserts=[
                 (
                     reaction_msg.id,
@@ -1534,7 +1563,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_add_group.command(
         name="role",
         description=locale_str(I18N.t("roles.commands.add_reaction_role.cmd")),
@@ -1564,6 +1593,7 @@ class Autoroles(commands.Cog):
             template_info=envs.roles_db_roles_schema,
             where=(("msg_id", msg_id)),
             select=("role", "emoji"),
+            guild_id=interaction.guild.id,
         )
         logger.debug(f"Got `reactions_db_in:` {reactions_db_in}")
         merged_roles_emojis = await combine_roles_and_emojis(roles, emojis)
@@ -1580,9 +1610,13 @@ class Autoroles(commands.Cog):
             new_inserts.append(temp_item)
         if len(new_inserts) > 0:
             await db_helper.insert_many_all(
-                envs.roles_db_roles_schema, inserts=new_inserts
+                envs.roles_db_roles_schema,
+                inserts=new_inserts,
+                guild_id=interaction.guild.id,
             )
-            await sync_reaction_message_from_settings(msg_id_or_name=msg_id, sort=sort)
+            await sync_reaction_message_from_settings(
+                msg_id_or_name=msg_id, sort=sort, guild=interaction.guild
+            )
             await interaction.followup.send(
                 I18N.t("roles.commands.add_reaction_role.msg_confirm"), ephemeral=True
             )
@@ -1591,7 +1625,7 @@ class Autoroles(commands.Cog):
                 "roles.commands.add_reaction_role.msg_duplicate", msg_name=msg_name
             )
             dupl_msg += ":"
-            _guild = discord_commands.get_current_guild()
+            _guild = interaction.guild
             for item in duplicates:
                 # Convert role
                 role_out = get(_guild.roles, id=int(item[0]))
@@ -1604,7 +1638,7 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(dupl_msg, ephemeral=True)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @describe(reaction_msg=I18N.t("roles.commands.sync.desc.reaction_msg"))
     @roles_reaction_group.command(
@@ -1620,7 +1654,7 @@ class Autoroles(commands.Cog):
         reaction_msg = reaction_msg.split("-")
         msg_id = reaction_msg[0]
         sync_errors = await sync_reaction_message_from_settings(
-            msg_id_or_name=msg_id, sort=sort
+            msg_id_or_name=msg_id, sort=sort, guild=interaction.guild
         )
         if sync_errors:
             await interaction.followup.send(sync_errors, ephemeral=True)
@@ -1630,7 +1664,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @describe(reaction_msg=I18N.t("roles.commands.sort.desc.reaction_msg"))
     @roles_reaction_group.command(name="sort")
@@ -1645,14 +1679,16 @@ class Autoroles(commands.Cog):
         reaction_msg = reaction_msg.split("-")
         msg_id = reaction_msg[0]
         msg_channel = reaction_msg[2]
-        _msg = await discord_commands.get_message_obj(msg_id, msg_channel)
+        _msg = await discord_commands.get_message_obj(
+            guild=interaction.guild, msg_id=msg_id, channel_id=msg_channel
+        )
         if _msg is None:
             await interaction.followup.send(
                 I18N.t("roles.commands.sort.msg_error", reaction_msg=reaction_msg)
             )
             return
         sync_errors = await sync_reaction_message_from_settings(
-            reaction_msg[0], sort=True
+            reaction_msg[0], sort=True, guild=interaction.guild
         )
         if sync_errors:
             await interaction.followup.send(sync_errors, ephemeral=True)
@@ -1662,7 +1698,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_remove_group.command(
         name="message", description="Remove a reaction message"
     )
@@ -1683,7 +1719,9 @@ class Autoroles(commands.Cog):
         reaction_msg = reaction_msg.split("-")
         msg_id = reaction_msg[0]
         msg_channel = reaction_msg[2]
-        _msg = await discord_commands.get_message_obj(msg_id, msg_channel)
+        _msg = await discord_commands.get_message_obj(
+            guild=interaction.guild, msg_id=msg_id, channel_id=msg_channel
+        )
         if _msg is None:
             await interaction.followup.send(
                 I18N.t("roles.commands.remove_msg.msg_error", reaction_msg=reaction_msg)
@@ -1691,14 +1729,16 @@ class Autoroles(commands.Cog):
             return
         # Remove reaction message from database
         await db_helper.del_row_by_AND_filter(
-            template_info=envs.roles_db_msgs_schema, where=[("msg_id", msg_id)]
+            template_info=envs.roles_db_msgs_schema,
+            where=[("msg_id", msg_id)],
+            guild_id=interaction.guild.id,
         )
         # Remove message from guild
         await _msg.delete()
         await interaction.followup.send(I18N.t("roles.commands.remove_msg.msg_confirm"))
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_group.command(
         name="edit",
         description=locale_str(I18N.t("roles.commands.edit_reaction_msg.cmd")),
@@ -1726,12 +1766,15 @@ class Autoroles(commands.Cog):
             select=("msg_id", "name", "channel", "header", "content"),
             order_by=[("name", "ASC")],
             single=True,
+            guild_id=interaction.guild.id,
         )
         logger.debug(f"`db_reactions` is {db_reactions}")
         msg_channel = db_reactions["channel"]
         msg_header = db_reactions["header"]
         msg_content = db_reactions["content"]
-        _msg = await discord_commands.get_message_obj(msg_id, msg_channel)
+        _msg = await discord_commands.get_message_obj(
+            guild=interaction.guild, msg_id=msg_id, channel_id=msg_channel
+        )
         if _msg is None:
             await interaction.followup.send(
                 I18N.t("roles.commands.edit_reaction_msg.msg_error")
@@ -1753,7 +1796,10 @@ class Autoroles(commands.Cog):
             ("content", modal_in.reaction_text_out),
         ]
         await db_helper.update_fields(
-            envs.roles_db_msgs_schema, updates=db_updates, where=("name", msg_name)
+            envs.roles_db_msgs_schema,
+            updates=db_updates,
+            where=("name", msg_name),
+            guild_id=interaction.guild.id,
         )
         content = ""
         if modal_in.reaction_header_out is not None:
@@ -1762,7 +1808,7 @@ class Autoroles(commands.Cog):
         await _msg.edit(content=content)
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_remove_group.command(
         name="role", description=locale_str(I18N.t("roles.commands.remove_role.cmd"))
     )
@@ -1783,19 +1829,20 @@ class Autoroles(commands.Cog):
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
             where=[("msg_id", str(msg_id)), ("role", str(role_id))],
+            guild_id=interaction.guild.id,
         )
         # Sync settings
-        await sync_reaction_message_from_settings(msg_id_or_name=msg_id, sort=sort)
-        _role_name = get(
-            discord_commands.get_current_guild().roles, id=int(role_id)
-        ).name
+        await sync_reaction_message_from_settings(
+            msg_id_or_name=msg_id, sort=sort, guild=interaction.guild
+        )
+        _role_name = get(interaction.guild.roles, id=int(role_id)).name
         await interaction.followup.send(
             I18N.t("roles.commands.remove_role.msg_confirm", rolename=_role_name),
             ephemeral=True,
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_move_group.command(
         name="role",
         description=locale_str(I18N.t("roles.commands.move_reaction_role.cmd")),
@@ -1835,6 +1882,7 @@ class Autoroles(commands.Cog):
             template_info=envs.roles_db_roles_schema,
             where=("msg_id", old_msg_id),
             select=("role"),
+            guild_id=interaction.guild.id,
         )
         if len(num_reaction_roles) == 1:
             await interaction.followup.send(
@@ -1844,21 +1892,28 @@ class Autoroles(commands.Cog):
                 ephemeral=True,
             )
             return
-        _guild = discord_commands.get_current_guild()
+        _guild = interaction.guild
         role_obj = _guild.get_role(int(role_id))
         emoji_obj = _guild.get_emoji(int(emoji_id))
         # Add reaction to new message in db
         await db_helper.insert_many_all(
-            envs.roles_db_roles_schema, inserts=[(new_msg_id, role_id, emoji_id)]
+            envs.roles_db_roles_schema,
+            inserts=[(new_msg_id, role_id, emoji_id)],
+            guild_id=interaction.guild.id,
         )
         # Delete reaction from old message in db
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
             where=[("msg_id", str(old_msg_id)), ("role", str(role_id))],
+            guild_id=interaction.guild.id,
         )
         # Sync settings
-        await sync_reaction_message_from_settings(old_msg_id, sort=sort)
-        await sync_reaction_message_from_settings(new_msg_id, sort=sort)
+        await sync_reaction_message_from_settings(
+            old_msg_id, sort=sort, guild=interaction.guild
+        )
+        await sync_reaction_message_from_settings(
+            new_msg_id, sort=sort, guild=interaction.guild
+        )
         await interaction.followup.send(
             I18N.t(
                 "roles.commands.move_reaction_role.msg_confirm",
@@ -1871,7 +1926,7 @@ class Autoroles(commands.Cog):
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_group.command(
         name="reorder", description=locale_str(I18N.t("roles.commands.reorder.cmd"))
     )
@@ -1893,11 +1948,13 @@ class Autoroles(commands.Cog):
                 envs.roles_db_msgs_schema,
                 updates=[("msg_id", new_msg)],
                 where=("msg_id", old_msg),
+                guild_id=interaction.guild.id,
             )
             await db_helper.update_fields(
                 envs.roles_db_roles_schema,
                 updates=[("msg_id", new_msg)],
                 where=("msg_id", old_msg),
+                guild_id=interaction.guild.id,
             )
 
         await interaction.response.defer(ephemeral=True)
@@ -1906,6 +1963,7 @@ class Autoroles(commands.Cog):
             envs.roles_db_msgs_schema,
             where=("channel", channel.id),
             order_by=[("msg_order", "ASC")],
+            guild_id=interaction.guild.id,
         )
         logger.debug(f"Got `react_msgs`: {react_msgs}")
         discord_msgs = [
@@ -1949,13 +2007,17 @@ class Autoroles(commands.Cog):
                 )
                 # Delete message
                 old_msg = await discord_commands.get_message_obj(
-                    channel_id=channel.id, msg_id=react_msg["msg_id"]
+                    guild=interaction.guild,
+                    channel_id=channel.id,
+                    msg_id=react_msg["msg_id"],
                 )
                 if old_msg is not None:
                     await old_msg.delete()
                 # Recreate reactions by syncing settings
                 await sync_reaction_message_from_settings(
-                    msg_id_or_name=new_reaction_msg.id, sort=sort
+                    msg_id_or_name=new_reaction_msg.id,
+                    sort=sort,
+                    guild=interaction.guild,
                 )
             await interaction.followup.send(
                 I18N.t("roles.commands.reorder.msg_confirm")
@@ -1966,7 +2028,7 @@ class Autoroles(commands.Cog):
             )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
         name="add", description=locale_str(I18N.t("roles.commands.add_settings.cmd"))
     )
@@ -1994,6 +2056,7 @@ class Autoroles(commands.Cog):
                 select=("value"),
                 where=("setting", "unique"),
                 single=True,
+                guild_id=interaction.guild.id,
             )
             if unique["value"]:
                 await interaction.followup.send(
@@ -2007,13 +2070,14 @@ class Autoroles(commands.Cog):
         await db_helper.insert_many_all(
             template_info=envs.roles_db_settings_schema,
             inserts=[(_setting, str(role.id))],
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
             I18N.t("roles.commands.add_settings.msg_confirm")
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name="remove",
@@ -2027,14 +2091,16 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         logger.debug(f"Got row_id `{setting}`")
         await db_helper.del_row_id(
-            template_info=envs.roles_db_settings_schema, numbers=setting
+            template_info=envs.roles_db_settings_schema,
+            numbers=setting,
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
             I18N.t("roles.commands.remove_settings.msg_confirm"),
         )
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
         name="list", description=locale_str(I18N.t("roles.commands.list_settings.cmd"))
     )
@@ -2045,14 +2111,12 @@ class Autoroles(commands.Cog):
         await interaction.response.defer(ephemeral=True)
 
         settings_db = await db_helper.get_output(
-            template_info=envs.roles_db_settings_schema
+            template_info=envs.roles_db_settings_schema, guild_id=interaction.guild.id
         )
         temp_settings_db = settings_db.copy()
         logger.debug(f"temp_settings_db:\n{pformat(temp_settings_db)}")
         for setting in temp_settings_db:
-            _role = get(
-                discord_commands.get_current_guild().roles, id=int(setting["value"])
-            )
+            _role = get(interaction.guild.roles, id=int(setting["value"]))
             setting["role"] = _role
         logger.debug(f"temp_settings_db: {temp_settings_db}")
         _settings = tabulate(
@@ -2066,7 +2130,7 @@ class Autoroles(commands.Cog):
         await interaction.followup.send(f"```{_settings}```")
         return
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name="edit", description=locale_str(I18N.t("roles.commands.edit_settings.cmd"))
@@ -2086,6 +2150,7 @@ class Autoroles(commands.Cog):
             template_info=envs.roles_db_settings_schema,
             where=("setting", setting),
             updates=("value", str(role.id)),
+            guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
             I18N.t(
@@ -2097,61 +2162,40 @@ class Autoroles(commands.Cog):
         return
 
 
+async def ensure_guild_roles_tables(guild):
+    """
+    Prep this guild's roles tables, and fix up any legacy channel-name
+    data. Safe to call repeatedly (idempotent).
+    #autodoc skip#
+    """
+    await db_helper.prep_table(table_in=envs.roles_db_msgs_schema, guild_id=guild.id)
+    await db_helper.prep_table(table_in=envs.roles_db_roles_schema, guild_id=guild.id)
+    await db_helper.prep_table(
+        table_in=envs.roles_db_settings_schema, guild_id=guild.id
+    )
+    # Change channel name to id
+    await db_helper.db_channel_names_to_ids(
+        template_info=envs.roles_db_msgs_schema,
+        id_col="msg_id",
+        channel_col="channel",
+        guild=guild,
+    )
+
+
 async def setup(bot):
-    # Create necessary databases before starting
     cog_name = "roles"
     logger.info(envs.COG_STARTING.format(cog_name))
     logger.debug("Checking db")
 
-    # Convert json to sqlite db-files if exists
-    # Define inserts
-    roles_inserts = None
-    roles_inserts_msg = None
-    roles_inserts_reactions = None
-    roles_inserts_settings = None
-    msgs_is_ok = False
-    reacts_is_ok = False
-    settings_is_ok = False
+    approved_guilds = await db_helper.get_output(
+        envs.guilds_db_schema, where=("status", "approved")
+    )
+    for guild_row in approved_guilds:
+        guild = config.bot.get_guild(int(guild_row["guild_id"]))
+        if guild is None:
+            continue
+        await ensure_guild_roles_tables(guild)
 
-    # Populate the inserts
-    roles_inserts = None
-    roles_inserts_msg = None
-    roles_inserts_reactions = None
-    roles_inserts_settings = None
-    # Convert the inserts from json if file exist
-    if not file_io.file_exist(envs.roles_db_roles_schema["db_file"]):
-        if file_io.file_exist(envs.roles_settings_file):
-            logger.debug("Found old json file")
-            roles_inserts = await db_helper.json_to_db_inserts(cog_name)
-            roles_inserts_msg = roles_inserts["msg_inserts"]
-            roles_inserts_reactions = roles_inserts["reactions_inserts"]
-            roles_inserts_settings = roles_inserts["settings_inserts"]
-        logger.debug(f"`roles_inserts_msg` is {roles_inserts_msg}")
-        logger.debug(f"`roles_inserts_reactions` is {roles_inserts_reactions}")
-        logger.debug(f"`roles_inserts_settings` is {roles_inserts_settings}")
-        msgs_is_ok = await db_helper.prep_table(
-            table_in=envs.roles_db_msgs_schema, inserts=roles_inserts_msg
-        )
-        logger.debug(f"`msgs_is_ok` is {msgs_is_ok}")
-        reacts_is_ok = await db_helper.prep_table(
-            table_in=envs.roles_db_roles_schema, inserts=roles_inserts_reactions
-        )
-        logger.debug(f"`reacts_is_ok` is {reacts_is_ok}")
-        settings_is_ok = await db_helper.prep_table(
-            table_in=envs.roles_db_settings_schema, inserts=roles_inserts_settings
-        )
-        logger.debug(f"`settings_is_ok` is {settings_is_ok}")
-    # Delete old json files if they exist
-    if msgs_is_ok and reacts_is_ok and settings_is_ok:
-        file_io.remove_file(envs.roles_settings_file)
-    # Cleaning DB if irregularities from previous instances of database
-    if file_io.file_exist(envs.roles_db_msgs_schema["db_file"]):
-        # Change channel name to id
-        await db_helper.db_channel_names_to_ids(
-            template_info=envs.roles_db_msgs_schema,
-            id_col="msg_id",
-            channel_col="channel",
-        )
     logger.debug("Registering cog to bot")
     await bot.add_cog(Autoroles(bot))
     logger.info(envs.COG_STARTED.format(cog_name))
@@ -2164,15 +2208,21 @@ async def setup(bot):
 @config.bot.event
 async def on_raw_reaction_add(payload):
     logger.debug("Checking added reaction role")
+    if payload.guild_id is None:
+        return
     if str(payload.user_id) == str(config.BOT_ID):
         logger.debug("Change made by bot, skip")
         return
     else:
         logger.debug("Change made by user, checking it...")
+    if not await db_helper.is_guild_approved(payload.guild_id):
+        return
+    _guild = config.bot.get_guild(payload.guild_id)
+    if _guild is None:
+        return
     reaction_messages = await db_helper.get_output(
-        envs.roles_db_msgs_schema, select=("msg_id")
+        envs.roles_db_msgs_schema, select=("msg_id"), guild_id=_guild.id
     )
-    _guild = discord_commands.get_current_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message["msg_id"]):
             logger.debug("Found message, checking add reactions...")
@@ -2182,6 +2232,7 @@ async def on_raw_reaction_add(payload):
                 key="msg_id",
                 select=["emoji", "role"],
                 where=[("A.msg_id", payload.message_id)],
+                guild_id=_guild.id,
             )
             logger.debug(f"reactions is {reactions}")
             if payload.emoji.id is not None:
@@ -2200,10 +2251,7 @@ async def on_raw_reaction_add(payload):
                 )
                 if str(incoming_emoji) == str(reaction["emoji"]):
                     await _guild.get_member(payload.user_id).add_roles(
-                        get(
-                            discord_commands.get_current_guild().roles,
-                            id=int(reaction["role"]),
-                        ),
+                        get(_guild.roles, id=int(reaction["role"])),
                         reason=I18N.t("roles.on_raw_reaction_add.channel_log_confirm"),
                     )
                     break
@@ -2216,16 +2264,22 @@ async def on_raw_reaction_add(payload):
 @config.bot.event
 async def on_raw_reaction_remove(payload):
     logger.debug("Checking removed reaction role")
+    if payload.guild_id is None:
+        return
     if str(payload.user_id) == str(config.BOT_ID):
         logger.debug("Change made by bot, skip")
         return
     else:
         logger.debug("Change made by user, checking it...")
+    if not await db_helper.is_guild_approved(payload.guild_id):
+        return
+    _guild = config.bot.get_guild(payload.guild_id)
+    if _guild is None:
+        return
     reaction_messages = await db_helper.get_output(
-        envs.roles_db_msgs_schema, select=("msg_id")
+        envs.roles_db_msgs_schema, select=("msg_id"), guild_id=_guild.id
     )
     logger.debug(f"reaction_messages: {reaction_messages}")
-    _guild = discord_commands.get_current_guild()
     for reaction_message in reaction_messages:
         if str(payload.message_id) == str(reaction_message["msg_id"]):
             logger.debug("Found message, checking remove reactions...")
@@ -2235,6 +2289,7 @@ async def on_raw_reaction_remove(payload):
                 key="msg_id",
                 select=["role", "emoji"],
                 where=[("A.msg_id", reaction_message["msg_id"])],
+                guild_id=_guild.id,
             )
             logger.debug(f"`reactions`: {reactions}")
             if payload.emoji.id is not None:
@@ -2280,11 +2335,15 @@ async def on_member_update(before, after):
     setting `not_include_in_total`), it will automatically get the unique
     role.
     """
+    _guild = after.guild
+    if not await db_helper.is_guild_approved(_guild.id):
+        return
     unique_role = await db_helper.get_output(
         envs.roles_db_settings_schema,
         select=("value"),
         where=("setting", "unique"),
         single=True,
+        guild_id=_guild.id,
     )
     if not unique_role:
         return
@@ -2298,7 +2357,6 @@ async def on_member_update(before, after):
         if str(before.id) == str(config.BOT_ID):
             logger.debug("Change made by bot, skip")
             return
-        _guild = discord_commands.get_current_guild()
         logger.debug(f"Before ({len(before.roles)}) vs after ({len(after.roles)})")
         logger.debug(
             "before.roles: {}".format(", ".join(role.name for role in before.roles))
@@ -2316,6 +2374,7 @@ async def on_member_update(before, after):
             envs.roles_db_settings_schema,
             select=("value"),
             where=("setting", "not_include_in_total"),
+            guild_id=_guild.id,
         )
         if len(not_include_in_total) > 0:
             logger.debug("Found roles not to include in total")

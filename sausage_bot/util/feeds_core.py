@@ -80,6 +80,7 @@ class DynamicRatingSelect(
                 ("episode_uuid", self.episode_uuid),
                 ("user_id", str(interaction.user.id)),
             ],
+            guild_id=interaction.guild.id,
         )
         if len(uuid_checks) >= 1:
             await db_helper.update_fields(
@@ -93,6 +94,7 @@ class DynamicRatingSelect(
                     ("rating", self.rating),
                     ("datetime", await datetime_handling.get_dt(format="ISO8601")),
                 ],
+                guild_id=interaction.guild.id,
             )
         else:
             await db_helper.insert_many_all(
@@ -106,12 +108,14 @@ class DynamicRatingSelect(
                         await datetime_handling.get_dt(format="ISO8601"),
                     )
                 ],
+                guild_id=interaction.guild.id,
             )
         # Update average rating
         avg_rating = await db_helper.calculate_average_rating_from_db(
             show_uuid=self.show_uuid,
             episode_uuid=self.episode_uuid,
             template_info=envs.rss_db_ratings_schema,
+            guild_id=interaction.guild.id,
         )
         if not avg_rating:
             await db_helper.add_avg_for_new_show(
@@ -132,16 +136,16 @@ class DynamicRatingSelect(
         )
 
 
-async def check_if_feed_name_exist(feed_name):
+async def check_if_feed_name_exist(feed_name, guild_id):
     feeds = await db_helper.get_output(
-        template_info=envs.rss_db_schema, select="feed_name"
+        template_info=envs.rss_db_schema, select="feed_name", guild_id=guild_id
     )
     feeds = [feed["feed_name"] for feed in feeds]
     logger.debug(f"`feeds`: {feeds}")
     return feed_name not in feeds
 
 
-async def check_feed_validity(url_in, mock_file=None):
+async def check_feed_validity(url_in, mock_file=None, guild=None):
     "Make sure that `url_in` is a valid link with feed items"
     if args.rss_skip_url_validation:
         logger.debug("Skipping url validation")
@@ -164,7 +168,7 @@ async def check_feed_validity(url_in, mock_file=None):
     if "open.spotify.com/show/" in url_in:
         logger.debug("Discovered Spotify branded link")
         sample_item = await net_io.check_spotify_podcast(
-            url=url_in, mock_file=mock_file
+            url=url_in, mock_file=mock_file, guild=guild
         )
     else:
         logger.debug("Discovered normal link")
@@ -333,6 +337,7 @@ async def add_to_feed_db(
     user_add=None,
     yt_id=None,
     playlist_id=None,
+    guild_id=None,
 ):
     """
     Add a an item to the feeds table in db
@@ -344,6 +349,7 @@ async def add_to_feed_db(
     `user_add`:     The user who added the feed
     `yt_id`:        yt-id
     ``playlist_id`: id of playlist
+    `guild_id`:     Guild the feed belongs to
     """
 
     if feed_type not in ["rss", "youtube", "podcast"]:
@@ -392,6 +398,7 @@ async def add_to_feed_db(
                     0,
                 )
             ),
+            guild_id=guild_id,
         )
     elif feed_type == "youtube":
         await db_helper.insert_many_some(
@@ -424,6 +431,7 @@ async def add_to_feed_db(
                     playlist_id,
                 )
             ),
+            guild_id=guild_id,
         )
     elif feed_type in ["podcast"]:
         await db_helper.insert_many_some(
@@ -456,10 +464,11 @@ async def add_to_feed_db(
                     0,
                 )
             ),
+            guild_id=guild_id,
         )
 
 
-async def remove_feed_from_db(feed_type, feed_name):
+async def remove_feed_from_db(feed_type, feed_name, guild_id):
     "Remove a feed from `feed file` based on `feed_name`"
     removal_ok = True
     if feed_type in ["rss", "podcast"]:
@@ -473,17 +482,18 @@ async def remove_feed_from_db(feed_type, feed_name):
         select=("uuid"),
         where=[("feed_name", feed_name)],
         single=True,
+        guild_id=guild_id,
     )
     uuid_from_db = uuid_from_db["uuid"]
     logger.debug(f"`uuid_from_db` is {uuid_from_db}")
     removal = await db_helper.del_row_by_AND_filter(
-        feed_db, where=("uuid", uuid_from_db)
+        feed_db, where=("uuid", uuid_from_db), guild_id=guild_id
     )
     logger.debug(f"`removal` is {removal}")
     if not removal:
         removal_ok = False
     removal_filters = await db_helper.del_row_by_AND_filter(
-        feed_db_filter, where=("uuid", uuid_from_db)
+        feed_db_filter, where=("uuid", uuid_from_db), guild_id=guild_id
     )
     logger.debug(f"`removal_filters` is {removal_filters}")
     if not removal_filters:
@@ -491,7 +501,7 @@ async def remove_feed_from_db(feed_type, feed_name):
     return removal_ok
 
 
-async def get_feed_links(feed_type, feed_info):
+async def get_feed_links(feed_type, feed_info, guild_id):
     "Get the links from a feed"
     UUID = feed_info["uuid"]
     if feed_type == "rss":
@@ -517,9 +527,10 @@ async def get_feed_links(feed_type, feed_info):
             template_info=feed_db_filter,
             select=("allow_or_deny", "filter"),
             where=[("uuid", UUID)],
+            guild_id=guild_id,
         )
         log_db = await db_helper.get_output(
-            template_info=feed_db_log, where=[("uuid", UUID)]
+            template_info=feed_db_log, where=[("uuid", UUID)], guild_id=guild_id
         )
         links_out = await get_items_from_rss(
             req=req["content"], url=URL, filters_in=filters_db, log_in=log_db,
@@ -534,6 +545,7 @@ async def get_feed_links(feed_type, feed_info):
 
 
 async def get_feed_list(
+    guild: discord.Guild,
     db_in: str = None,
     db_filter_in: str = None,
     list_type: str = None,
@@ -585,7 +597,7 @@ async def get_feed_list(
             paginated.append(table_in)
         return paginated
 
-    _guild = discord_commands.get_current_guild()
+    _guild = guild
     if link_type == I18N.t("youtube.commands.list.literal_link_type.channel"):
         wheres_in = [("playlist_id", "IS", "None")]
     elif link_type == I18N.t("youtube.commands.list.literal_link_type.playlist"):
@@ -607,6 +619,7 @@ async def get_feed_list(
             where=wheres_in,
             select=selects,
             order_by=[("feed_name", "ASC")],
+            guild_id=guild.id,
         )
         # Return None if empty db
         if feeds_out is None:
@@ -633,6 +646,7 @@ async def get_feed_list(
             select=("feed_name", "url", "channel", "added", "added_by", "playlist_id"),
             where=wheres_in,
             order_by=[("feed_name", "ASC")],
+            guild_id=guild.id,
         )
         for feed in feeds_out:
             feed["channel"] = _guild.get_channel(int(feed["channel"])).name
@@ -664,10 +678,13 @@ async def get_feed_list(
             select=("uuid", "feed_name", "channel", "playlist_id"),
             where=wheres_in,
             order_by=[("feed_name", "ASC")],
+            guild_id=guild.id,
         )
         logger.debug(f"Got `feeds_db`:\n{pformat(feeds_db)}")
         feeds_filter = await db_helper.get_output(
-            template_info=db_filter_in, order_by=[("uuid", "DESC"), ("filter", "ASC")]
+            template_info=db_filter_in,
+            order_by=[("uuid", "DESC"), ("filter", "ASC")],
+            guild_id=guild.id,
         )
         logger.debug(f"Got `feeds_filter`:\n{pformat(feeds_filter)}")
         feeds_out = []
@@ -707,7 +724,7 @@ async def get_feed_list(
     return await split_lengthy_list(table_out)
 
 
-async def link_is_in_log(link, log_in, log_env, channel, uuid):
+async def link_is_in_log(link, log_in, log_env, channel, uuid, guild):
     """
     Check if a link already is in the log. Replace and repost if it is
     similar to a logged link.
@@ -720,7 +737,7 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
             if item["hash"] == link_hash:
                 list_of_old_links.append(item["url"])
         logger.debug("Replacing link in discord message")
-        await discord_commands.replace_post(list_of_old_links, link, channel)
+        await discord_commands.replace_post(guild, list_of_old_links, link, channel)
 
     link_in_log = None
     hash_in_log = None
@@ -759,11 +776,11 @@ async def link_is_in_log(link, log_in, log_env, channel, uuid):
         return True
     elif not link_in_log and hash_in_log is None:
         logger.debug("Link is not in log, logging it and returning False")
-        await log_link(log_env, uuid, link, link_hash)
+        await log_link(log_env, uuid, link, link_hash, guild)
         return False
 
 
-async def log_link(template_info, uuid, feed_link, page_hash):
+async def log_link(template_info, uuid, feed_link, page_hash, guild):
     logger.info("Logging link to db")
     logger.debug(
         f"Got these vars: template_info: {template_info}, uuid: {uuid}, "
@@ -777,14 +794,16 @@ async def log_link(template_info, uuid, feed_link, page_hash):
         logger.error(f"No page hash found for {feed_link}, logging link instead")
         # TODO i18n
         await discord_commands.log_to_bot_channel(
-            f"No page hash found for {feed_link}, logging link instead"
+            guild, f"No page hash found for {feed_link}, logging link instead"
         )
     logger.debug(f"Adding this to log:\n{pformat(inserts)}")
-    await db_helper.insert_many_all(template_info=template_info, inserts=[inserts])
+    await db_helper.insert_many_all(
+        template_info=template_info, inserts=[inserts], guild_id=guild.id
+    )
 
 
 async def process_links_for_posting_or_editing(
-    feed_name: str, feed_type: str, uuid, FEED_POSTS, CHANNEL
+    feed_name: str, feed_type: str, uuid, FEED_POSTS, CHANNEL, guild: discord.Guild
 ):
     """
     Compare links in `FEED_POSTS` items to posts belonging to `feed` to see
@@ -799,6 +818,7 @@ async def process_links_for_posting_or_editing(
     `feed_type`:        Should be 'rss', 'youtube' or 'podcast'
     `FEED_POSTS`:       The newly received feed posts
     `CHANNEL`:          Discord channel to post/edit
+    `guild`:            Guild the feed belongs to
     """
     logger.debug("Starting `process_links_for_posting_or_editing`")
     if feed_type not in ["rss", "youtube", "podcast"]:
@@ -810,6 +830,7 @@ async def process_links_for_posting_or_editing(
             template_info=envs.rss_db_settings_schema,
             select=("setting", "value"),
             as_settings_json=True,
+            guild_id=guild.id,
         )
     elif feed_type == "youtube":
         feed_db_log = envs.youtube_db_log_schema
@@ -820,11 +841,17 @@ async def process_links_for_posting_or_editing(
     logger.debug(f"Got {len(FEED_POSTS)} items in `FEED_POSTS`")
     if feed_type in ["rss", "podcast"]:
         FEED_LOG = await db_helper.get_output(
-            template_info=feed_db_log, select=("url", "hash"), where=[("uuid", uuid)]
+            template_info=feed_db_log,
+            select=("url", "hash"),
+            where=[("uuid", uuid)],
+            guild_id=guild.id,
         )
     else:
         FEED_LOG = await db_helper.get_output(
-            template_info=feed_db_log, select=("url"), where=[("uuid", uuid)]
+            template_info=feed_db_log,
+            select=("url"),
+            where=[("uuid", uuid)],
+            guild_id=guild.id,
         )
     logger.debug(f"FEED_SETTINGS is {FEED_SETTINGS} for feed type {feed_type}")
     FEED_POSTS = FEED_POSTS[0:3]
@@ -838,7 +865,7 @@ async def process_links_for_posting_or_editing(
         # Check if the link is in the log
         logger.debug(f"Checking if link `{feed_link}` is in log")
         link_in_log = await link_is_in_log(
-            feed_link, FEED_LOG, feed_db_log, CHANNEL, uuid
+            feed_link, FEED_LOG, feed_db_log, CHANNEL, uuid, guild
         )
         if link_in_log:
             logger.debug(f"Link `{feed_link}` already logged. Skipping.")
@@ -927,6 +954,7 @@ async def process_links_for_posting_or_editing(
                 uuid,
                 item["link"] if isinstance(item, dict) else feed_link,
                 item["hash"] if isinstance(item, dict) else _page_hash,
+                guild,
             )
 
 
