@@ -5,6 +5,7 @@ __pycache__/
 *.code-workspace
 todo.md
 todo.diff
+.DS_Store
 
 sausage_bot/data*/
 sausage_bot/testing
@@ -16,7 +17,6 @@ sausage_bot/tempfiles/*
 sausage_bot/version.json
 .cache
 .flake8
-.DS_Store
 sausage_bot/test/test_parse/*
 /sausage_bot/flake8-I18N-checker/build/lib
 /sausage_bot/flake8-I18N-checker/cool_module.py

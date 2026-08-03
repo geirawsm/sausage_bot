@@ -65,7 +65,7 @@ Command: `/quote`
 - Count no. of quote
 - List quote from quote number or search for a keyword
 
-### Roles
+### Manage roles
 
 Manage roles and reaction messages.
 Can autoadd role for new users.
@@ -183,7 +183,7 @@ Follow the instructions on this page on *Creating a Discord Bot Account*: <https
 
 You need to register with Spotify API first:
 
-- Follow the instructions on this page on *Getting started*: <https://developer.spotify.com/documentation/web-api>
+- Follow the instructions on this page on _Getting started_: <https://developer.spotify.com/documentation/web-api>
 - Add "Client ID" and "Client secret" in .env file or as environment argument in docker
 
 ### Running the bot

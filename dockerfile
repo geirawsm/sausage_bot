@@ -1,6 +1,11 @@
 FROM python:3.14-slim
 LABEL org.opencontainers.image.authors="geirawsm@pm.me"
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /
 
 COPY / /app/
