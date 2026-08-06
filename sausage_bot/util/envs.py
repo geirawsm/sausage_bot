@@ -41,8 +41,7 @@ def resolve_db_file(template_info: dict, guild_id=None) -> str:
         return template_info["db_file"]
     if guild_id is None:
         raise ValueError(
-            "guild_id is required for guild-scoped table "
-            f"'{template_info.get('name')}'"
+            f"guild_id is required for guild-scoped table '{template_info.get('name')}'"
         )
     return str(guild_db_dir(guild_id) / template_info["db_file"])
 

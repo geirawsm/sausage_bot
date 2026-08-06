@@ -25,3 +25,6 @@ sausage_bot/flake8-I18N-checker/flake8_I18N_checker.egg-info
 sausage_bot/flake8-I18N-checker/make_flattened_yaml.py
 /.claude
 /graphify-out
+/node_modules
+/sausage_bot/docs/mermaid_charts
+/sausage_bot/external_files

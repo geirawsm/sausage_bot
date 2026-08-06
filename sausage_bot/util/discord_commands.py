@@ -272,7 +272,9 @@ async def get_sorted_scheduled_events(guild: discord.Guild):
     return out
 
 
-def get_roles(guild: discord.Guild, hide_empties=None, filter_bots=None, hide_roles=None):
+def get_roles(
+    guild: discord.Guild, hide_empties=None, filter_bots=None, hide_roles=None
+):
     """
     Get a dict of all roles on server and their ID's
     #autodoc skip#

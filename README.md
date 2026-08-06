@@ -159,7 +159,7 @@ To approve a new server:
 
 - The bot posts a notification in `ADMIN_CHANNEL_ID` (in the
   `ADMIN_GUILD_ID` server) whenever it joins a new server
-- The bot owner runs `/approve-guild guild_id:<id>` from that channel
+- The bot owner runs `/approve-guild guild_id` from that channel
 - Use `/list-pending-guilds` (also from the admin server) to see
   servers waiting for approval
 
@@ -169,7 +169,7 @@ Ok, so you want to run a Discord bot?
 
 ### Register Discord bot
 
-Follow the instructions on this page on *Creating a Discord Bot Account*: <https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account>
+Follow the instructions on this page on _Creating a Discord Bot Account_: <https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account>
 
 - Navigate to <https://discord.com/developers/applications> and log in.
 - Click on New Application.
@@ -204,10 +204,10 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 - Run `pipenv install` to install dependencies
 - Run the bot once to get the `.env` file: `python -m sausage_bot`
 - Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key:
-  - `DISCORD_TOKEN`     Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
-  - `BOT_ID`            Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
-  - `ADMIN_GUILD_ID`    The ID of your own/main Discord server - see [Multiple servers](#multiple-servers)
-  - `ADMIN_CHANNEL_ID`  The ID of a channel in that server for new-server notifications and `/approve-guild`
+  - `DISCORD_TOKEN` Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
+  - `BOT_ID` Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
+  - `ADMIN_GUILD_ID` The ID of your own/main Discord server - see [Multiple servers](#multiple-servers)
+  - `ADMIN_CHANNEL_ID` The ID of a channel in that server for new-server notifications and `/approve-guild`
 - Invite the bot to your discord server:
   - Again, go back to the [Discord Developer portal](https://discord.com/developers/applications), "OAuth2", "URL Generator".
   - Chose the scope "bot"
