@@ -676,7 +676,10 @@ class ReactionEditModal(discord.ui.Modal):
         self.add_item(reaction_header)
         self.add_item(reaction_text)
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(
+        self,
+        interaction: discord.Interaction,
+    ):
         header_out = discord_commands.check_user_channel_role(
             interaction.guild, self.children[0].value
         )
@@ -1503,9 +1506,7 @@ class Autoroles(commands.Cog):
             if re.match(r"<.*\b(\d+)>", combo[1]):
                 emoji_out = combo[1]
             elif re.match(r"(\d+)", combo[1]):
-                emoji_out = get(
-                    interaction.guild.emojis, id=int(combo[1])
-                )
+                emoji_out = get(interaction.guild.emojis, id=int(combo[1]))
             else:
                 emoji_out = combo[1]
             if len(desc_out) > 0:

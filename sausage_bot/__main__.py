@@ -651,8 +651,8 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
         where=[("guild_id", str(guild.id))],
     )
     guild_name = guilds_db[0]["guild_name"] if guilds_db else guild.name
-    view = LeaveGuildConfirm(user_id=interaction.user.id)
-    # TODO i18n
+    view = LeaveGuildConfirm_view(user_id=interaction.user.id)
+    # TODO: i18n
     confirm_msg = await interaction.followup.send(
         f"⚠️ Leave guild **{guild_name}** (`{guild.id}`)?\n"
         "The guild's data is kept - its status is only set to `removed`. "
