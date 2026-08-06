@@ -80,18 +80,18 @@ async def test_is_guild_approved(guild_db_root):
 
 async def test_guild_locale_context_sets_and_resets_contextvars(guild_db_root):
     await db_helper.prep_table(
-        envs.locale_db_schema,
-        inserts=envs.locale_db_schema["inserts"],
+        envs.settings_db_schema,
+        inserts=envs.settings_db_schema["inserts"],
         guild_id=GUILD_A,
     )
     await db_helper.update_fields(
-        envs.locale_db_schema,
+        envs.settings_db_schema,
         where=("setting", "language"),
         updates=[("value", "nb")],
         guild_id=GUILD_A,
     )
     await db_helper.update_fields(
-        envs.locale_db_schema,
+        envs.settings_db_schema,
         where=("setting", "timezone"),
         updates=[("value", "Europe/Oslo")],
         guild_id=GUILD_A,

@@ -62,7 +62,7 @@ try:
     ADMIN_GUILD_ID = env("ADMIN_GUILD_ID", default=None)
     ADMIN_CHANNEL_ID = env("ADMIN_CHANNEL_ID", default=None)
     PREFIX = env("PREFIX", default="!")
-    BOT_CHANNEL = env("BOT_DUMP_CHANNEL", default="bot-log")
+    BOT_CHANNEL = env("BOT_CHANNEL", default="bot-log")
     TIMEZONE = env("BOT_TIMEZONE", default="UTC")
     LANGUAGE = env("BOT_LANGUAGE", default="en")
     LOG_ROTATION_DAYS = env("LOG_ROTATION_DAYS", default=10)

@@ -33,7 +33,7 @@ async def guild_locale_context(guild_id):
             await interaction.response.send_message(I18N.t("..."))
     """
     settings = await get_output(
-        envs.locale_db_schema, guild_id=guild_id, as_settings_json=True
+        envs.settings_db_schema, guild_id=guild_id, as_settings_json=True
     )
     id_token = guild_context.current_guild_id.set(guild_id)
     locale_token = guild_context.current_locale.set(settings.get("language", "en"))

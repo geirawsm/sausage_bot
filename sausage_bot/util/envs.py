@@ -98,8 +98,7 @@ DISCORD_TOKEN=
 BOT_ID=
 PREFIX=
 LOCALE=
-BOT_DUMP_CHANNEL=bot
-WATCHING=
+BOT_CHANNEL=bot
 
 # Multi-guild settings
 # ADMIN_GUILD_ID is the bot's home guild - it is auto-approved and never
@@ -531,11 +530,11 @@ youtube_db_log_schema = {
     "autoincrement": False,
 }
 
-locale_db_schema = {
-    "db_file": "locale.sqlite",
-    "name": "locale",
+settings_db_schema = {
+    "db_file": "settings.sqlite",
+    "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT NOT NULL"]],
-    "inserts": [["language", "en"], ["timezone", "UTC"]],
+    "inserts": [["language", "en"], ["timezone", "UTC"], ["bot_channel", ""]],
     "primary": None,
     "autoincrement": False,
 }

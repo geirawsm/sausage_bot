@@ -83,7 +83,7 @@ class AutoEvent(commands.Cog):
             await interaction.followup.send(I18N.t("common.too_few_arguments"))
             return
         else:
-            scraped_info = await net_io.parse(url)
+            scraped_info = await net_io.parse(url, guild=interaction.guild)
             if scraped_info is None:
                 logger.debug("scrape is NOT ok")
             else:

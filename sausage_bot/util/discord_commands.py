@@ -372,7 +372,16 @@ async def remove_stats_post(guild: discord.Guild, stats_channel):
 
 async def log_to_bot_channel(guild: discord.Guild, content_in=None):
     "Messages you want to send directly to a specific channel"
-    log_channel = config.BOT_CHANNEL
+    # Lazy import: db_helper imports this module, so importing it at module
+    # level would create a circular import.
+    from sausage_bot.util import db_helper
+
+    settings = await db_helper.get_output(
+        envs.settings_db_schema, guild_id=guild.id, as_settings_json=True
+    )
+    # The per-guild `bot_channel` setting wins; fall back to the bot-wide
+    # default (config.BOT_CHANNEL) when the guild hasn't set one.
+    log_channel = settings.get("bot_channel") or config.BOT_CHANNEL
     logger.debug(f"`log_channel` er {log_channel}")
     channel_out = guild.get_channel(int(get_text_channel_list(guild)[log_channel]))
     msg_out = await channel_out.send(content=content_in)

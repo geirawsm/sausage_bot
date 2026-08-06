@@ -247,11 +247,11 @@ async def register_guild(guild: discord.Guild):
         rows=("guild_id", "guild_name", "status", "joined_at"),
         inserts=[(str(guild.id), guild.name, status, now)],
     )
-    # Every registered guild gets its own locale table straight away, so
+    # Every registered guild gets its own settings table straight away, so
     # I18N.t()/get_dt() have sane defaults even before it's approved.
     await db_helper.prep_table(
-        envs.locale_db_schema,
-        inserts=envs.locale_db_schema["inserts"],
+        envs.settings_db_schema,
+        inserts=envs.settings_db_schema["inserts"],
         guild_id=guild.id,
     )
     if is_admin_guild:
@@ -341,11 +341,16 @@ async def on_ready():
         logger.info("Maintenance mode activated", color="RED")
         await config.bot.change_presence(status=discord.Status.dnd)
 
-    # Make sure that the BOT_CHANNEL is present in every approved guild
-    bot_channel = config.BOT_CHANNEL
+    # Make sure that each approved guild's configured bot channel exists.
+    # The channel name is the guild's own `bot_channel` setting, falling
+    # back to the bot-wide default (config.BOT_CHANNEL) when unset.
     for guild in config.bot.guilds:
         if not await db_helper.is_guild_approved(guild.id):
             continue
+        settings = await db_helper.get_output(
+            envs.settings_db_schema, guild_id=guild.id, as_settings_json=True
+        )
+        bot_channel = settings.get("bot_channel") or config.BOT_CHANNEL
         channel_list = discord_commands.get_text_channel_list(guild) or {}
         if bot_channel in channel_list:
             continue
@@ -357,14 +362,15 @@ async def on_ready():
             guild.me: discord.PermissionOverwrite(read_messages=True),
         }
         async with db_helper.guild_locale_context(guild.id):
-            channel_out = await guild.create_text_channel(
+            # Permissions are applied via `overwrites=` at creation time,
+            # so no follow-up set_permissions() call is needed.
+            await guild.create_text_channel(
                 name=str(bot_channel),
                 topic=I18N.t(
                     "main.msg.create_log_channel_logging", botname=config.bot.user.name
                 ),
                 overwrites=overwrites,
             )
-        channel_out.set_permissions()
 
 
 @config.bot.tree.error
@@ -489,8 +495,8 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
         ],
     )
     await db_helper.prep_table(
-        envs.locale_db_schema,
-        inserts=envs.locale_db_schema["inserts"],
+        envs.settings_db_schema,
+        inserts=envs.settings_db_schema["inserts"],
         guild_id=guild_id,
     )
     await db_helper.ensure_guild_tasks_rows(guild_id)
@@ -886,7 +892,7 @@ async def language(interaction: discord.Interaction, language: str):
         )
         return
     await db_helper.update_fields(
-        envs.locale_db_schema,
+        envs.settings_db_schema,
         where=("setting", "language"),
         updates=("value", language),
         guild_id=interaction.guild.id,
@@ -899,6 +905,171 @@ async def language(interaction: discord.Interaction, language: str):
     return
 
 
+async def _persist_bot_channel(guild: discord.Guild, name: str) -> None:
+    "Store `name` as the guild's `bot_channel` setting. #autodoc skip#"
+    await db_helper.update_fields(
+        envs.settings_db_schema,
+        where=("setting", "bot_channel"),
+        updates=("value", name),
+        guild_id=guild.id,
+    )
+
+
+class DuplicateChannelModal(discord.ui.Modal):
+    """
+    Lets the user pick an existing text channel to copy from and name the
+    new bot channel. The new channel inherits the source channel's
+    permission overwrites and category, and is placed right after the
+    source in the channel list.
+    #autodoc skip#
+    """
+
+    def __init__(self, default_name: str):
+        # TODO: i18n
+        super().__init__(title="Lag bot-kanal fra en eksisterende kanal")
+        # Kept as an attribute so on_submit can read the picked channel.
+        self.channel_select = discord.ui.ChannelSelect(
+            channel_types=[discord.ChannelType.text],
+            min_values=1,
+            max_values=1,
+            required=True,
+            # TODO: i18n
+            placeholder="Velg kanalen tillatelsene skal kopieres fra",
+        )
+        self.add_item(
+            discord.ui.Label(
+                # TODO: i18n
+                text="Kopier tillatelser fra:",
+                component=self.channel_select,
+            )
+        )
+        self.name_input = discord.ui.TextInput(
+            # TODO: i18n
+            label="Navn på den nye bot-kanalen",
+            default=default_name,
+            max_length=100,
+        )
+        self.add_item(self.name_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        # ChannelSelect.values holds partial AppCommandChannels; resolve the
+        # full channel so we can read overwrites/category/position.
+        picked = self.channel_select.values[0]
+        source = interaction.guild.get_channel(picked.id)
+        new_name = str(self.name_input.value).strip()
+        if source is None:
+            # TODO: i18n
+            await interaction.followup.send(
+                "Fant ikke kilde-kanalen. Prøv igjen.", ephemeral=True
+            )
+            return
+        new_channel = await interaction.guild.create_text_channel(
+            name=new_name,
+            category=source.category,
+            position=source.position + 1,
+            overwrites=source.overwrites,
+            # TODO: i18n
+            reason="Oppretter bot-kanal (kopiert fra #{})".format(source.name),
+        )
+        await _persist_bot_channel(interaction.guild, new_name)
+        # TODO: i18n
+        await interaction.followup.send(
+            "✅✅ Laget {} (tillatelser kopiert fra #{}) og satt som bot-kanal.".format(
+                new_channel.mention, source.name
+            ),
+            ephemeral=True,
+        )
+
+
+class CreateBotChannelView(discord.ui.View):
+    """
+    Shown when the requested bot channel does not exist yet. Offers to
+    duplicate an existing channel (opens `DuplicateChannelModal`), create a
+    fresh empty channel, or cancel.
+    #autodoc skip#
+    """
+
+    def __init__(self, channel_name: str):
+        super().__init__(timeout=120)
+        self.channel_name = channel_name
+
+    # TODO: i18n button labels
+    @discord.ui.button(
+        # TODO: i18n
+        label="Dupliser eksisterende",
+        style=discord.ButtonStyle.secondary,
+    )
+    async def duplicate(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        # A modal must be the response to this button interaction.
+        await interaction.response.send_modal(
+            DuplicateChannelModal(default_name=self.channel_name)
+        )
+        self.stop()
+
+    @discord.ui.button(label="Lag helt ny", style=discord.ButtonStyle.secondary)
+    async def fresh(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(
+                read_messages=False
+            ),
+            interaction.guild.me: discord.PermissionOverwrite(read_messages=True),
+        }
+        new_channel = await interaction.guild.create_text_channel(
+            name=self.channel_name,
+            overwrites=overwrites,
+            # TODO: i18n
+            reason="Oppretter ny bot-kanal",
+        )
+        await _persist_bot_channel(interaction.guild, self.channel_name)
+        await interaction.followup.send(
+            # TODO: i18n
+            "✅✅ Laget {} og satt som bot-kanal.".format(new_channel.mention),
+            ephemeral=True,
+        )
+        self.stop()
+
+    @discord.ui.button(label="Avbryt", style=discord.ButtonStyle.danger)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # TODO: i18n
+        await interaction.response.edit_message(
+            content="Avbrutt. Lager ingen kanal.", view=None
+        )
+        self.stop()
+
+
+@discord_commands.is_owner_or_manage_guild()
+@config.bot.tree.command(
+    name="bot_channel", description=locale_str(I18N.t("main.owner_only"))
+)
+async def set_bot_channel(interaction: discord.Interaction, bot_channel: str):
+    await interaction.response.defer(ephemeral=True)
+    logger.debug(f"Setting bot_channel for `{interaction.guild.name}` to {bot_channel}")
+    channel_list = discord_commands.get_text_channel_list(interaction.guild) or {}
+    if bot_channel not in channel_list:
+        # Channel doesn't exist yet - let the user duplicate an existing
+        # channel, create a fresh one, or cancel. Each button on the view
+        # finishes the flow (creating the channel + storing the setting).
+        # TODO: i18n
+        await interaction.followup.send(
+            "Kanalen #{} finnes ikke ennå. Hva vil du gjøre?".format(bot_channel),
+            view=CreateBotChannelView(bot_channel),
+            ephemeral=True,
+        )
+        return
+    # Channel already exists - just store it as the guild's bot channel.
+    await _persist_bot_channel(interaction.guild, bot_channel)
+    # TODO: i18n
+    await interaction.followup.send(
+        "✅✅ Satt bot-kanal til #{}.".format(bot_channel),
+        ephemeral=True,
+    )
+    return
+
+
 @discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
     name="timezone", description=locale_str(I18N.t("main.owner_only"))
@@ -908,7 +1079,7 @@ async def timezone(interaction: discord.Interaction, timezone: str):
     await interaction.response.defer(ephemeral=True)
     logger.debug(f"Setting timezone for `{interaction.guild.name}` to {timezone}")
     await db_helper.update_fields(
-        envs.locale_db_schema,
+        envs.settings_db_schema,
         where=("setting", "timezone"),
         updates=("value", timezone),
         guild_id=interaction.guild.id,

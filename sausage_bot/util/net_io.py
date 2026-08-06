@@ -503,13 +503,13 @@ async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
                 items_info["feed_name"], e
             )
             logger.error(_msg)
-            await discord_commands.log_to_bot_channel(_msg)
+            await discord_commands.log_to_bot_channel(guild, _msg)
     else:
         _msg = "Found no podcast episodes in {} ({:.0f} % of items had audio)".format(
             url, _ratio * 100
         )
         logger.error(_msg)
-        await discord_commands.log_to_bot_channel(_msg)
+        await discord_commands.log_to_bot_channel(guild, _msg)
     return None
 
 
@@ -665,7 +665,7 @@ async def make_event_start_stop(date, time=None):
         return None
 
 
-async def parse(url: str = None):
+async def parse(url: str = None, guild=None):
     """
     Parse `url` to get info about a football match
     Currently supports the following sites:
@@ -712,7 +712,7 @@ async def parse(url: str = None):
             logger.error("The vglive url is not from a match page")
             return None
         try:
-            parse = await parse_vglive(url)
+            parse = await parse_vglive(url, guild=guild)
             if parse is None:
                 return None
             else:
@@ -776,7 +776,7 @@ async def parse_nifs(url_in=None, mock_in=None):
     }
 
 
-async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
+async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
     """
     Parse match ID from matchpage from vglive.no, then use that in an
     api call
@@ -796,7 +796,7 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None):
         # TODO i18n
         error_msg = "Link received HTTP status code {}".format(match_json)
         logger.error(error_msg)
-        await discord_commands.log_to_bot_channel(error_msg)
+        await discord_commands.log_to_bot_channel(guild, error_msg)
         return None
     logger.debug(f"Got `match_json`:\n{pformat(match_json)}")
     if mock_in and mock_in_tv:
