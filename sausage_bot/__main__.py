@@ -516,10 +516,16 @@ def _in_admin_guild(interaction: discord.Interaction) -> bool:
     return str(interaction.guild_id) == str(config.ADMIN_GUILD_ID)
 
 
-@discord_commands.is_owner()
-@config.bot.tree.command(
-    name="approve_guild", description=locale_str(I18N.t("main.owner_only"))
+guild_group = discord.app_commands.Group(
+    name="guild",
+    # TODO: i18n
+    # description=locale_str(I18N.t("stats.commands.groups.stats")),
+    description="Administrer guilder",
 )
+
+
+@discord_commands.is_owner()
+@guild_group.command(name="approve", description=locale_str(I18N.t("main.owner_only")))
 @discord.app_commands.autocomplete(guild_id=pending_guilds_autocomplete)
 async def approve_guild(interaction: discord.Interaction, guild_id: str):
     "#autodoc skip#"
@@ -610,9 +616,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
 
 
 @discord_commands.is_owner()
-@config.bot.tree.command(
-    name="leave_guild", description=locale_str(I18N.t("main.owner_only"))
-)
+@guild_group.command(name="leave", description=locale_str(I18N.t("main.owner_only")))
 @discord.app_commands.autocomplete(guild_id=all_guilds_autocomplete)
 async def leave_guild(interaction: discord.Interaction, guild_id: str):
     "#autodoc skip#"
@@ -693,9 +697,7 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
 
 
 @discord_commands.is_owner()
-@config.bot.tree.command(
-    name="list_guilds", description=locale_str(I18N.t("main.owner_only"))
-)
+@guild_group.command(name="list", description=locale_str(I18N.t("main.owner_only")))
 async def list_guilds(
     interaction: discord.Interaction,
 ):
