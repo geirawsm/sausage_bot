@@ -485,9 +485,7 @@ async def db_single_channel_name_to_id(
         # Try to search for channel ID
         logger.debug("channel is not an id, searching for name...")
         try:
-            channel_id = get(
-                guild.text_channels, name=channel_in
-            ).id
+            channel_id = get(guild.text_channels, name=channel_in).id
         except Exception as e:
             # TODO i18n
             error_msg = "Could not find channel `{}` in `{}` (`{}`): {}".format(
@@ -823,7 +821,9 @@ async def insert_many_all(template_info, inserts: tuple = None, guild_id=None):
             return False
 
 
-async def insert_many_some(template_info, rows: tuple = None, inserts: list = None, guild_id=None):
+async def insert_many_some(
+    template_info, rows: tuple = None, inserts: list = None, guild_id=None
+):
     """
     Insert info in specific columns in a sqlite row:
 
@@ -878,7 +878,9 @@ async def insert_many_some(template_info, rows: tuple = None, inserts: list = No
             return None
 
 
-async def insert_single(template_info, field_name: str = None, insert=None, guild_id=None):
+async def insert_single(
+    template_info, field_name: str = None, insert=None, guild_id=None
+):
     """
     Insert a single field in specific column in a sqlite row:
 
@@ -1151,8 +1153,7 @@ async def get_output(
 
 
 async def get_random_left_exclude_output(
-    template_info_1, template_info_2, key: str = None, select: tuple = (),
-    guild_id=None
+    template_info_1, template_info_2, key: str = None, select: tuple = (), guild_id=None
 ):
     """
     Get output from the following query:
@@ -1303,9 +1304,11 @@ async def get_imgs_with_quote(
                 sql_query += ", "
     else:
         sql_query += "quote.rowid, quote.*, quote_content.*, quote_img.* "
-    sql_query += "FROM quote INNER JOIN quote_content" \
-        " ON quote.uuid = quote_content.uuid" \
+    sql_query += (
+        "FROM quote INNER JOIN quote_content"
+        " ON quote.uuid = quote_content.uuid"
         " LEFT JOIN quote_img ON quote_content.comment_id = quote_img.comment_id"
+    )
     if where:
         sql_query += " WHERE"
         if isinstance(where[0], str):
@@ -1428,7 +1431,9 @@ async def get_one_random_output(template_info, fields_out: tuple, guild_id=None)
         return None
 
 
-async def get_output_by_rowid(template_info, rowid: int = -1, fields_out=None, guild_id=None):
+async def get_output_by_rowid(
+    template_info, rowid: int = -1, fields_out=None, guild_id=None
+):
     """
     Get a unique output from the following query:
 
