@@ -793,7 +793,7 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
         match_json = await get_link(mock_file=mock_in)
         _id = match_json["event"]["id"]
     if isinstance(match_json, int):
-        # TODO i18n
+        # TODO: i18n
         error_msg = "Link received HTTP status code {}".format(match_json)
         logger.error(error_msg)
         await discord_commands.log_to_bot_channel(guild, error_msg)

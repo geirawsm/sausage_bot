@@ -436,7 +436,7 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild
                 logger.debug(f"Found channel id: {channel_id}")
                 row_item["channel_new"] = channel_id
             except AttributeError as e:
-                # TODO i18n
+                # TODO: i18n
                 error_msg = "Could not find channel `{}` in `{}` (`{}`): {}".format(
                     row_item["channel"],
                     template_info["name"],
@@ -487,7 +487,7 @@ async def db_single_channel_name_to_id(
         try:
             channel_id = get(guild.text_channels, name=channel_in).id
         except Exception as e:
-            # TODO i18n
+            # TODO: i18n
             error_msg = "Could not find channel `{}` in `{}` (`{}`): {}".format(
                 channel_in, template_info["name"], template_info["db_file"], e
             )

@@ -823,7 +823,7 @@ class Stats(commands.Cog):
                 )
         else:
             await interaction.followup.send(
-                # TODO i18n
+                # TODO: i18n
                 content="No hidden roles exist",
                 ephemeral=True,
             )

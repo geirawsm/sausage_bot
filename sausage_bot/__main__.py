@@ -94,7 +94,7 @@ class SayModal(discord.ui.Modal):
                     errors=", ".join(comment_out["channel_errors"]),
                 )
             else:
-                # TODO i18n
+                # TODO: i18n
                 msg_out += "\nChannels: {}".format(
                     ", ".join(comment_out["channel_errors"])
                 )
@@ -154,7 +154,7 @@ class EditModal(discord.ui.Modal):
                     errors=", ".join(comment_out["channel_errors"]),
                 )
             else:
-                # TODO i18n
+                # TODO: i18n
                 msg_out += "\nChannels: {}".format(
                     ", ".join(comment_out["channel_errors"])
                 )
@@ -292,7 +292,7 @@ async def notify_admin_of_new_guild(guild: discord.Guild):
     "#autodoc skip#"
     if not config.ADMIN_CHANNEL_ID:
         return
-    # TODO i18n
+    # TODO: i18n
     content = (
         "🔔 New guild wants to use the bot:\n"
         f"**{guild.name}** (`{guild.id}`)\n"
@@ -485,7 +485,7 @@ async def sync_global(interaction: discord.Interaction):
         if _cmd != "":
             _cmd += "\n"
     await interaction.response.send_message(
-        # TODO i18n
+        # TODO: i18n
         f"Commands synched!\n{_cmd}",
         ephemeral=True,
     )
@@ -525,7 +525,7 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
     "#autodoc skip#"
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
-        # TODO i18n
+        # TODO: i18n
         await interaction.followup.send(
             "This command can only be used in the admin guild.", ephemeral=True
         )
@@ -549,7 +549,7 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
         guild_id=guild_id,
     )
     await db_helper.ensure_guild_tasks_rows(guild_id)
-    # TODO i18n
+    # TODO: i18n
     await interaction.followup.send(
         f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
         ephemeral=True,
@@ -572,7 +572,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         # Only whoever ran the command may press the buttons
         if interaction.user.id != self.user_id:
-            # TODO i18n
+            # TODO: i18n
             await interaction.response.send_message(
                 "This confirmation isn't yours.", ephemeral=True
             )
@@ -584,7 +584,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
         for _btn in self.children:
             _btn.disabled = True
 
-    # TODO i18n
+    # TODO: i18n
     @discord.ui.button(label="Leave guild", style=discord.ButtonStyle.danger)
     async def confirm(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -595,7 +595,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
         await interaction.response.edit_message(view=self)
         self.stop()
 
-    # TODO i18n
+    # TODO: i18n
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         "#autodoc skip#"
@@ -618,7 +618,7 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
     "#autodoc skip#"
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
-        # TODO i18n
+        # TODO: i18n
         await interaction.followup.send(
             "This command can only be used in the admin guild.", ephemeral=True
         )
@@ -626,7 +626,7 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
     if str(guild_id) == str(config.ADMIN_GUILD_ID):
         # Leaving the admin guild would lock the owner out of every
         # owner-only command - including this one.
-        # TODO i18n
+        # TODO: i18n
         await interaction.followup.send(
             "❌ Refusing to leave the admin guild.", ephemeral=True
         )
@@ -639,7 +639,7 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
     if guild is None:
         # `all_guilds_autocomplete` lists every row in the guild registry,
         # including guilds the bot is no longer a member of.
-        # TODO i18n
+        # TODO: i18n
         await interaction.followup.send(
             f"❌ The bot is not a member of a guild with id `{guild_id}`.",
             ephemeral=True,
@@ -663,13 +663,13 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
     )
     await view.wait()
     if view.value is None:
-        # TODO i18n
+        # TODO: i18n
         await confirm_msg.edit(
             content=f"⏲️ Timed out - still in {guild_name} ({guild.id}).", view=None
         )
         return
     if view.value is False:
-        # TODO i18n
+        # TODO: i18n
         await confirm_msg.edit(
             content=f"❌ Cancelled - still in {guild_name} ({guild.id}).", view=None
         )
@@ -678,7 +678,7 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
         await guild.leave()
     except discord.HTTPException as e:
         logger.error(f"Could not leave guild `{guild_name}` ({guild.id}): {e}")
-        # TODO i18n
+        # TODO: i18n
         await confirm_msg.edit(
             content=f"❌ Could not leave {guild_name} ({guild.id}): {e}", view=None
         )
@@ -686,7 +686,7 @@ async def leave_guild(interaction: discord.Interaction, guild_id: str):
     logger.info(
         f"Left guild `{guild_name}` ({guild.id}) on request from `{interaction.user}`"
     )  # No db write here - `on_guild_remove` sets the status to `removed`.
-    # TODO i18n
+    # TODO: i18n
     await confirm_msg.edit(
         content=f"✅ Left guild {guild_name} ({guild.id}).", view=None
     )
@@ -702,7 +702,7 @@ async def list_guilds(
     "#autodoc skip#"
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
-        # TODO i18n
+        # TODO: i18n
         await interaction.followup.send(
             "This command can only be used in the admin guild.", ephemeral=True
         )
@@ -1071,7 +1071,7 @@ async def language(interaction: discord.Interaction, language: str):
     await interaction.response.defer(ephemeral=True)
     logger.debug(f"Setting language for `{interaction.guild.name}` to {language}")
     if language not in available_languages():
-        # TODO i18n
+        # TODO: i18n
         await interaction.followup.send(
             f"`{language}` is not an available language.", ephemeral=True
         )
@@ -1270,7 +1270,7 @@ async def timezone(interaction: discord.Interaction, timezone: str):
         guild_id=interaction.guild.id,
     )
     await interaction.followup.send(
-        # TODO i18n
+        # TODO: i18n
         "Set timezone to `{}`".format(timezone),
         ephemeral=True,
     )

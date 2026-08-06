@@ -696,7 +696,7 @@ class ReactionEditModal(discord.ui.Modal):
                         ", ".join(content_block["channel_errors"])
                     )
                 else:
-                    # TODO i18n
+                    # TODO: i18n
                     msg_out += "\nChannels: {}".format(
                         ", ".join(content_block["channel_errors"])
                     )
