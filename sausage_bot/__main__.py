@@ -221,6 +221,29 @@ async def pending_guilds_autocomplete(
     ][:25]
 
 
+async def all_guilds_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    all_guilds_db = await db_helper.get_output(
+        template_info=envs.guilds_db_schema,
+        order_by=[("guild_name", "ASC")],
+    )
+    all_guilds = all_guilds_db.copy()
+    for guild in all_guilds:
+        list_num = all_guilds_db.index(guild)
+        all_guilds[list_num]["name"] = guild["guild_name"]
+        logger.debug(f"`all_guilds_db`: {all_guilds_db}")
+    return [
+        discord.app_commands.Choice(
+            name="{}".format(guild["guild_name"]),
+            value=guild["guild_id"],
+        )
+        for guild in all_guilds
+        if current.lower() in "{} ({})".format(guild["guild_name"], guild["guild_id"])
+    ][:25]
+
+
 async def register_guild(guild: discord.Guild):
     """
     Make sure `guild` has a row in the guild registry. New guilds are
@@ -274,7 +297,33 @@ async def notify_admin_of_new_guild(guild: discord.Guild):
         "🔔 New guild wants to use the bot:\n"
         f"**{guild.name}** (`{guild.id}`)\n"
         f"Members: {guild.member_count}\n"
-        f"Use `/approve-guild guild_id:{guild.id}` in this channel to activate it."
+        f"Description: {guild.description}\n"
+        f"Vanity url code: {guild.vanity_url_code}\n"
+    )
+    # Try to create an invite link to the new guild and append it to the
+    # content, so the admin can jump straight to the guild.
+    invite_url = None
+    for channel in guild.text_channels:
+        if not channel.permissions_for(guild.me).create_instant_invite:
+            continue
+        try:
+            invite = await channel.create_invite(
+                max_age=0,
+                max_uses=0,
+                unique=False,
+                reason="Admin notification of new guild",
+            )
+            invite_url = invite.url
+            break
+        except discord.HTTPException as e:
+            logger.debug(f"Could not create invite in `{channel.name}`: {e}")
+            continue
+    if invite_url:
+        content += f"Invite link: {invite_url}\n"
+    else:
+        content += "Could not create an invite link for this guild.\n"
+    content += (
+        f"\nUse `/approve-guild guild_id:{guild.id}` in this channel to activate it."
     )
     await discord_commands.post_to_channel(config.ADMIN_CHANNEL_ID, content_in=content)
 
@@ -285,7 +334,7 @@ async def on_guild_join(guild: discord.Guild):
     Called when the bot is added to a new guild.
     #autodoc skip#
     """
-    logger.info(f"Joined new guild: `{guild.name}` ({guild.id})")
+    logger.info(f"Joined new guild:\nName: {guild.name}\nGuild ID: {guild.id}")
     await register_guild(guild)
 
 
@@ -504,6 +553,142 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
     await interaction.followup.send(
         f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
         ephemeral=True,
+    )
+
+
+class LeaveGuildConfirm(discord.ui.View):
+    """
+    Yes/no confirmation for `/leave_guild`. `value` is True when the
+    owner confirmed, False when they cancelled, and stays None when the
+    view timed out without a press.
+    #autodoc skip#
+    """
+
+    def __init__(self, user_id: int, timeout: int = 60):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.value = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Only whoever ran the command may press the buttons
+        if interaction.user.id != self.user_id:
+            # TODO i18n
+            await interaction.response.send_message(
+                "This confirmation isn't yours.", ephemeral=True
+            )
+            return False
+        return True
+
+    def disable_buttons(self):
+        "#autodoc skip#"
+        for _btn in self.children:
+            _btn.disabled = True
+
+    # TODO i18n
+    @discord.ui.button(label="Leave guild", style=discord.ButtonStyle.danger)
+    async def confirm(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        "#autodoc skip#"
+        self.value = True
+        self.disable_buttons()
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    # TODO i18n
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        "#autodoc skip#"
+        self.value = False
+        self.disable_buttons()
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    async def on_timeout(self):
+        "#autodoc skip#"
+        self.disable_buttons()
+
+
+@discord_commands.is_owner()
+@config.bot.tree.command(
+    name="leave_guild", description=locale_str(I18N.t("main.owner_only"))
+)
+@discord.app_commands.autocomplete(guild_id=all_guilds_autocomplete)
+async def leave_guild(interaction: discord.Interaction, guild_id: str):
+    "#autodoc skip#"
+    await interaction.response.defer(ephemeral=True)
+    if not _in_admin_guild(interaction):
+        # TODO i18n
+        await interaction.followup.send(
+            "This command can only be used in the admin guild.", ephemeral=True
+        )
+        return
+    if str(guild_id) == str(config.ADMIN_GUILD_ID):
+        # Leaving the admin guild would lock the owner out of every
+        # owner-only command - including this one.
+        # TODO i18n
+        await interaction.followup.send(
+            "❌ Refusing to leave the admin guild.", ephemeral=True
+        )
+        return
+    try:
+        guild = config.bot.get_guild(int(guild_id))
+    except (TypeError, ValueError):
+        # Someone typed free text instead of picking from the autocomplete
+        guild = None
+    if guild is None:
+        # `all_guilds_autocomplete` lists every row in the guild registry,
+        # including guilds the bot is no longer a member of.
+        # TODO i18n
+        await interaction.followup.send(
+            f"❌ The bot is not a member of a guild with id `{guild_id}`.",
+            ephemeral=True,
+        )
+        return
+    guilds_db = await db_helper.get_output(
+        envs.guilds_db_schema,
+        select=("guild_name"),
+        where=[("guild_id", str(guild.id))],
+    )
+    guild_name = guilds_db[0]["guild_name"] if guilds_db else guild.name
+    view = LeaveGuildConfirm(user_id=interaction.user.id)
+    # TODO i18n
+    confirm_msg = await interaction.followup.send(
+        f"⚠️ Leave guild **{guild_name}** (`{guild.id}`)?\n"
+        "The guild's data is kept - its status is only set to `removed`. "
+        "The bot has to be invited back in to rejoin.",
+        view=view,
+        ephemeral=True,
+        wait=True,
+    )
+    await view.wait()
+    if view.value is None:
+        # TODO i18n
+        await confirm_msg.edit(
+            content=f"⏲️ Timed out - still in {guild_name} ({guild.id}).", view=None
+        )
+        return
+    if view.value is False:
+        # TODO i18n
+        await confirm_msg.edit(
+            content=f"❌ Cancelled - still in {guild_name} ({guild.id}).", view=None
+        )
+        return
+    try:
+        await guild.leave()
+    except discord.HTTPException as e:
+        logger.error(f"Could not leave guild `{guild_name}` ({guild.id}): {e}")
+        # TODO i18n
+        await confirm_msg.edit(
+            content=f"❌ Could not leave {guild_name} ({guild.id}): {e}", view=None
+        )
+        return
+    logger.info(
+        f"Left guild `{guild_name}` ({guild.id}) on request from `{interaction.user}`"
+    )  # No db write here - `on_guild_remove` sets the status to `removed`.
+    # TODO i18n
+    await confirm_msg.edit(
+        content=f"✅ Left guild {guild_name} ({guild.id}).", view=None
     )
 
 
