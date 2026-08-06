@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Tests for the /leave_guild command in __main__.py and its
-LeaveGuildConfirm view.
+LeaveGuildConfirm_view.
 
 sausage_bot/__main__.py calls config.bot.run(...) at module level (no
 `if __name__ == "__main__":` guard), so a plain import would try to
@@ -55,7 +55,7 @@ def _make_guild(leave_side_effect=None):
 
 def _fake_view_class(value):
     """
-    Stand-in for LeaveGuildConfirm that resolves immediately with a
+    Stand-in for LeaveGuildConfirm_view that resolves immediately with a
     preset `value`: True (confirmed), False (cancelled) or None (timeout)
     """
 
@@ -86,7 +86,9 @@ def _patch_env(guild, view_value=True, guilds_db=None):
             "get_output",
             mock.AsyncMock(return_value=guilds_db),
         ),
-        mock.patch.object(main_module, "LeaveGuildConfirm", _fake_view_class(view_value)),
+        mock.patch.object(
+            main_module, "LeaveGuildConfirm_view", _fake_view_class(view_value)
+        ),
     )
 
 
@@ -177,7 +179,7 @@ async def test_guild_name_falls_back_to_discord_when_not_in_db():
     assert "Test Guild" in interaction._message.edit.await_args.kwargs["content"]
 
 
-# --- LeaveGuildConfirm view ---
+# --- LeaveGuildConfirm_view ---
 
 
 async def test_only_the_invoking_user_may_press_the_buttons():
