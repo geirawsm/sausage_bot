@@ -556,7 +556,7 @@ async def approve_guild(interaction: discord.Interaction, guild_id: str):
     )
 
 
-class LeaveGuildConfirm(discord.ui.View):
+class LeaveGuildConfirm_view(discord.ui.View):
     """
     Yes/no confirmation for `/leave_guild`. `value` is True when the
     owner confirmed, False when they cancelled, and stays None when the

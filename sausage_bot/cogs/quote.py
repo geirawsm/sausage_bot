@@ -58,7 +58,7 @@ async def get_autopost_time(guild_id):
     return time_out
 
 
-class ConfirmButtons(discord.ui.View):
+class EitherOrButtons(discord.ui.View):
     def __init__(self, *, timeout=60, yes_label=None, no_label=None):
         super().__init__(timeout=timeout)
         self.yes_label = yes_label
@@ -769,7 +769,7 @@ class Quotes(commands.Cog):
             return
         quote = quote_from_db[0]
         logger.debug(f"quote is: {truncate_for_log(quote)}")
-        confirm_buttons = ConfirmButtons(
+        confirm_buttons = EitherOrButtons(
             yes_label=I18N.t("common.literal_yes_no.lit_yes"),
             no_label=I18N.t("common.literal_yes_no.lit_no"),
         )
@@ -819,7 +819,7 @@ class Quotes(commands.Cog):
         if len(paginated) > 0:
             for page in paginated:
                 await interaction.followup.send(str(page), ephemeral=True)
-        confirm_buttons = ConfirmButtons(
+        confirm_buttons = EitherOrButtons(
             yes_label=I18N.t("common.literal_yes_no.lit_yes"),
             no_label=I18N.t("common.literal_yes_no.lit_no"),
         )
@@ -907,7 +907,7 @@ class Quotes(commands.Cog):
                 return []
             else:
                 logger.debug("List all quotes")
-                confirm_buttons = ConfirmButtons(
+                confirm_buttons = EitherOrButtons(
                     yes_label=I18N.t("common.literal_yes_no.lit_yes"),
                     no_label=I18N.t("common.literal_yes_no.lit_no"),
                 )

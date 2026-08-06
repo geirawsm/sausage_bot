@@ -26,7 +26,7 @@ from sausage_bot.util import config
 
 with mock.patch.object(config.bot, "run", lambda *args, **kwargs: None):
     from sausage_bot import __main__ as main_module
-    from sausage_bot.__main__ import LeaveGuildConfirm, leave_guild
+    from sausage_bot.__main__ import LeaveGuildConfirm_view, leave_guild
 
 ADMIN_GUILD_ID = "111"
 TARGET_GUILD_ID = "222"
@@ -181,7 +181,7 @@ async def test_guild_name_falls_back_to_discord_when_not_in_db():
 
 
 async def test_only_the_invoking_user_may_press_the_buttons():
-    view = LeaveGuildConfirm(user_id=42)
+    view = LeaveGuildConfirm_view(user_id=42)
     other = SimpleNamespace(
         user=SimpleNamespace(id=99),
         response=SimpleNamespace(send_message=mock.AsyncMock()),
@@ -191,7 +191,7 @@ async def test_only_the_invoking_user_may_press_the_buttons():
 
 
 async def test_the_invoking_user_may_press_the_buttons():
-    view = LeaveGuildConfirm(user_id=42)
+    view = LeaveGuildConfirm_view(user_id=42)
     owner = SimpleNamespace(
         user=SimpleNamespace(id=42),
         response=SimpleNamespace(send_message=mock.AsyncMock()),
@@ -201,7 +201,7 @@ async def test_the_invoking_user_may_press_the_buttons():
 
 
 async def test_timeout_disables_the_buttons():
-    view = LeaveGuildConfirm(user_id=42)
+    view = LeaveGuildConfirm_view(user_id=42)
     assert any(not btn.disabled for btn in view.children)
     await view.on_timeout()
     assert all(btn.disabled for btn in view.children)
