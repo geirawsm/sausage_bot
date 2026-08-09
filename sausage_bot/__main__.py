@@ -392,6 +392,8 @@ async def on_ready():
     # again in each posting cog's own `setup()`.
     if config.bot.get_cog("Sync") is None:
         await config.bot.add_cog(Sync(config.bot))
+    if config.bot.get_cog("Guild") is None:
+        await config.bot.add_cog(Guild(config.bot))
     logger.debug("Deleting old json files")
     if file_io.file_size(envs.cogs_status_file):
         logger.debug("Found old json file")
@@ -541,52 +543,6 @@ def _in_admin_guild(interaction: discord.Interaction) -> bool:
     return str(interaction.guild_id) == str(config.ADMIN_GUILD_ID)
 
 
-guild_group = discord.app_commands.Group(
-    name="guild",
-    # TODO: i18n
-    # description=locale_str(I18N.t("stats.commands.groups.stats")),
-    description="Administrer guilder",
-)
-
-
-@discord_commands.is_owner()
-@guild_group.command(name="approve", description=locale_str(I18N.t("main.owner_only")))
-@discord.app_commands.autocomplete(guild_id=pending_guilds_autocomplete)
-async def approve_guild(interaction: discord.Interaction, guild_id: str):
-    "#autodoc skip#"
-    await interaction.response.defer(ephemeral=True)
-    if not _in_admin_guild(interaction):
-        # TODO: i18n
-        await interaction.followup.send(
-            "This command can only be used in the admin guild.", ephemeral=True
-        )
-        return
-    pending_guilds_db = await db_helper.get_output(
-        envs.guilds_db_schema, select=("guild_name"), where=[("guild_id", guild_id)]
-    )
-    now = await get_dt(format="ISO8601")
-    await db_helper.update_fields(
-        envs.guilds_db_schema,
-        where=("guild_id", guild_id),
-        updates=[
-            ("status", "approved"),
-            ("approved_by", str(interaction.user.id)),
-            ("approved_at", now),
-        ],
-    )
-    await db_helper.prep_table(
-        envs.settings_db_schema,
-        inserts=envs.settings_db_schema["inserts"],
-        guild_id=guild_id,
-    )
-    await db_helper.ensure_guild_tasks_rows(guild_id)
-    # TODO: i18n
-    await interaction.followup.send(
-        f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
-        ephemeral=True,
-    )
-
-
 class LeaveGuildConfirm_view(discord.ui.View):
     """
     Yes/no confirmation for `/leave_guild`. `value` is True when the
@@ -640,129 +596,186 @@ class LeaveGuildConfirm_view(discord.ui.View):
         self.disable_buttons()
 
 
-@discord_commands.is_owner()
-@guild_group.command(name="leave", description=locale_str(I18N.t("main.owner_only")))
-@discord.app_commands.autocomplete(guild_id=all_guilds_autocomplete)
-async def leave_guild(interaction: discord.Interaction, guild_id: str):
-    "#autodoc skip#"
-    await interaction.response.defer(ephemeral=True)
-    if not _in_admin_guild(interaction):
+class Guild(commands.Cog):
+    "Administer guild settings"
+
+    def __init__(self, bot):
+        self.bot = bot
+        super().__init__()
+
+    guild_group = discord.app_commands.Group(
+        name="guild",
         # TODO: i18n
-        await interaction.followup.send(
-            "This command can only be used in the admin guild.", ephemeral=True
+        # description=locale_str(I18N.t("stats.commands.groups.stats")),
+        description="Administrer guilder",
+    )
+
+    @discord_commands.is_owner()
+    @guild_group.command(
+        name="approve", description=locale_str(I18N.t("main.owner_only"))
+    )
+    @discord.app_commands.autocomplete(guild_id=pending_guilds_autocomplete)
+    async def approve_guild(self, interaction: discord.Interaction, guild_id: str):
+        "#autodoc skip#"
+        await interaction.response.defer(ephemeral=True)
+        if not _in_admin_guild(interaction):
+            # TODO: i18n
+            await interaction.followup.send(
+                "This command can only be used in the admin guild.", ephemeral=True
+            )
+            return
+        pending_guilds_db = await db_helper.get_output(
+            envs.guilds_db_schema, select=("guild_name"), where=[("guild_id", guild_id)]
         )
-        return
-    if str(guild_id) == str(config.ADMIN_GUILD_ID):
-        # Leaving the admin guild would lock the owner out of every
-        # owner-only command - including this one.
-        # TODO: i18n
-        await interaction.followup.send(
-            "❌ Refusing to leave the admin guild.", ephemeral=True
+        now = await get_dt(format="ISO8601")
+        await db_helper.update_fields(
+            envs.guilds_db_schema,
+            where=("guild_id", guild_id),
+            updates=[
+                ("status", "approved"),
+                ("approved_by", str(interaction.user.id)),
+                ("approved_at", now),
+            ],
         )
-        return
-    try:
-        guild = config.bot.get_guild(int(guild_id))
-    except (TypeError, ValueError):
-        # Someone typed free text instead of picking from the autocomplete
-        guild = None
-    if guild is None:
-        # `all_guilds_autocomplete` lists every row in the guild registry,
-        # including guilds the bot is no longer a member of.
+        await db_helper.prep_table(
+            envs.settings_db_schema,
+            inserts=envs.settings_db_schema["inserts"],
+            guild_id=guild_id,
+        )
+        await db_helper.ensure_guild_tasks_rows(guild_id)
         # TODO: i18n
         await interaction.followup.send(
-            f"❌ The bot is not a member of a guild with id `{guild_id}`.",
+            f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
             ephemeral=True,
         )
-        return
-    guilds_db = await db_helper.get_output(
-        envs.guilds_db_schema,
-        select=("guild_name"),
-        where=[("guild_id", str(guild.id))],
-    )
-    guild_name = guilds_db[0]["guild_name"] if guilds_db else guild.name
-    view = LeaveGuildConfirm_view(user_id=interaction.user.id)
-    # TODO: i18n
-    confirm_msg = await interaction.followup.send(
-        f"⚠️ Leave guild **{guild_name}** (`{guild.id}`)?\n"
-        "The guild's data is kept - its status is only set to `removed`. "
-        "The bot has to be invited back in to rejoin.",
-        view=view,
-        ephemeral=True,
-        wait=True,
-    )
-    await view.wait()
-    if view.value is None:
-        # TODO: i18n
-        await confirm_msg.edit(
-            content=f"⏲️ Timed out - still in {guild_name} ({guild.id}).", view=None
-        )
-        return
-    if view.value is False:
-        # TODO: i18n
-        await confirm_msg.edit(
-            content=f"❌ Cancelled - still in {guild_name} ({guild.id}).", view=None
-        )
-        return
-    try:
-        await guild.leave()
-    except discord.HTTPException as e:
-        logger.error(f"Could not leave guild `{guild_name}` ({guild.id}): {e}")
-        # TODO: i18n
-        await confirm_msg.edit(
-            content=f"❌ Could not leave {guild_name} ({guild.id}): {e}", view=None
-        )
-        return
-    logger.info(
-        f"Left guild `{guild_name}` ({guild.id}) on request from `{interaction.user}`"
-    )  # No db write here - `on_guild_remove` sets the status to `removed`.
-    # TODO: i18n
-    await confirm_msg.edit(
-        content=f"✅ Left guild {guild_name} ({guild.id}).", view=None
-    )
 
-
-@discord_commands.is_owner()
-@guild_group.command(name="list", description=locale_str(I18N.t("main.owner_only")))
-async def list_guilds(
-    interaction: discord.Interaction,
-):
-    "#autodoc skip#"
-    await interaction.response.defer(ephemeral=True)
-    if not _in_admin_guild(interaction):
+    @discord_commands.is_owner()
+    @guild_group.command(
+        name="leave", description=locale_str(I18N.t("main.owner_only"))
+    )
+    @discord.app_commands.autocomplete(guild_id=all_guilds_autocomplete)
+    async def leave_guild(self, interaction: discord.Interaction, guild_id: str):
+        "#autodoc skip#"
+        await interaction.response.defer(ephemeral=True)
+        if not _in_admin_guild(interaction):
+            # TODO: i18n
+            await interaction.followup.send(
+                "This command can only be used in the admin guild.", ephemeral=True
+            )
+            return
+        if str(guild_id) == str(config.ADMIN_GUILD_ID):
+            # Leaving the admin guild would lock the owner out of every
+            # owner-only command - including this one.
+            # TODO: i18n
+            await interaction.followup.send(
+                "❌ Refusing to leave the admin guild.", ephemeral=True
+            )
+            return
+        try:
+            guild = config.bot.get_guild(int(guild_id))
+        except (TypeError, ValueError):
+            # Someone typed free text instead of picking from the autocomplete
+            guild = None
+        if guild is None:
+            # `all_guilds_autocomplete` lists every row in the guild registry,
+            # including guilds the bot is no longer a member of.
+            # TODO: i18n
+            await interaction.followup.send(
+                f"❌ The bot is not a member of a guild with id `{guild_id}`.",
+                ephemeral=True,
+            )
+            return
+        guilds_db = await db_helper.get_output(
+            envs.guilds_db_schema,
+            select=("guild_name"),
+            where=[("guild_id", str(guild.id))],
+        )
+        guild_name = guilds_db[0]["guild_name"] if guilds_db else guild.name
+        view = LeaveGuildConfirm_view(user_id=interaction.user.id)
         # TODO: i18n
-        await interaction.followup.send(
-            "This command can only be used in the admin guild.", ephemeral=True
+        confirm_msg = await interaction.followup.send(
+            f"⚠️ Leave guild **{guild_name}** (`{guild.id}`)?\n"
+            "The guild's data is kept - its status is only set to `removed`. "
+            "The bot has to be invited back in to rejoin.",
+            view=view,
+            ephemeral=True,
+            wait=True,
         )
-        return
-    guilds = await db_helper.get_output(
-        envs.guilds_db_schema,
-        select=("guild_name", "status", "joined_at", "approved_at", "approved_by"),
-        order_by=[("guild_name", "ASC")],
-    )
-    for guild in guilds:
-        if guild["approved_by"] not in [None, ""]:
-            guild["approved_by"] = get(
-                interaction.guild.members, id=int(guild["approved_by"])
+        await view.wait()
+        if view.value is None:
+            # TODO: i18n
+            await confirm_msg.edit(
+                content=f"⏲️ Timed out - still in {guild_name} ({guild.id}).", view=None
             )
-        if guild["approved_at"] not in [None, ""]:
-            guild["approved_at"] = await get_dt(
-                dt=guild["approved_at"], format="datetime"
+            return
+        if view.value is False:
+            # TODO: i18n
+            await confirm_msg.edit(
+                content=f"❌ Cancelled - still in {guild_name} ({guild.id}).", view=None
             )
-        if guild["joined_at"] not in [None, ""]:
-            guild["joined_at"] = await get_dt(dt=guild["joined_at"], format="datetime")
-    text_out = "```{}```".format(
-        tabulate(
-            guilds,
-            headers={
-                "guild_name": "Name",
-                "status": "Status",
-                "joined_at": "Joined",
-                "approved_at": "Approved",
-                "approved_by": "Approved by",
-            },
+            return
+        try:
+            await guild.leave()
+        except discord.HTTPException as e:
+            logger.error(f"Could not leave guild `{guild_name}` ({guild.id}): {e}")
+            # TODO: i18n
+            await confirm_msg.edit(
+                content=f"❌ Could not leave {guild_name} ({guild.id}): {e}", view=None
+            )
+            return
+        logger.info(
+            f"Left guild `{guild_name}` ({guild.id}) on request from `{interaction.user}`"
+        )  # No db write here - `on_guild_remove` sets the status to `removed`.
+        # TODO: i18n
+        await confirm_msg.edit(
+            content=f"✅ Left guild {guild_name} ({guild.id}).", view=None
         )
-    )
-    await interaction.followup.send(text_out, ephemeral=True)
+
+    @discord_commands.is_owner()
+    @guild_group.command(name="list", description=locale_str(I18N.t("main.owner_only")))
+    async def list_guilds(
+        self,
+        interaction: discord.Interaction,
+    ):
+        "#autodoc skip#"
+        await interaction.response.defer(ephemeral=True)
+        if not _in_admin_guild(interaction):
+            # TODO: i18n
+            await interaction.followup.send(
+                "This command can only be used in the admin guild.", ephemeral=True
+            )
+            return
+        guilds = await db_helper.get_output(
+            envs.guilds_db_schema,
+            select=("guild_name", "status", "joined_at", "approved_at", "approved_by"),
+            order_by=[("guild_name", "ASC")],
+        )
+        for guild in guilds:
+            if guild["approved_by"] not in [None, ""]:
+                guild["approved_by"] = get(
+                    interaction.guild.members, id=int(guild["approved_by"])
+                )
+            if guild["approved_at"] not in [None, ""]:
+                guild["approved_at"] = await get_dt(
+                    dt=guild["approved_at"], format="datetime"
+                )
+            if guild["joined_at"] not in [None, ""]:
+                guild["joined_at"] = await get_dt(
+                    dt=guild["joined_at"], format="datetime"
+                )
+        text_out = "```{}```".format(
+            tabulate(
+                guilds,
+                headers={
+                    "guild_name": "Name",
+                    "status": "Status",
+                    "joined_at": "Joined",
+                    "approved_at": "Approved",
+                    "approved_by": "Approved by",
+                },
+            )
+        )
+        await interaction.followup.send(text_out, ephemeral=True)
 
 
 # This needs to be used to init the first sync so
