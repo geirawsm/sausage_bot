@@ -390,6 +390,8 @@ async def on_ready():
     # `tasks_db_schema` is guild-scoped (see envs.py) - it is prepped per
     # guild in `register_guild()`/`approve_guild()` below and defensively
     # again in each posting cog's own `setup()`.
+    if config.bot.get_cog("Sync") is None:
+        await config.bot.add_cog(Sync(config.bot))
     logger.debug("Deleting old json files")
     if file_io.file_size(envs.cogs_status_file):
         logger.debug("Found old json file")
@@ -478,51 +480,61 @@ async def on_app_command_error(
         logger.error(f"Ignoring exception in command tree: {error}")
 
 
-sync_group = discord.app_commands.Group(
-    name="sync", description=locale_str(I18N.t("stats.commands.groups.stats"))
-)
+class Sync(commands.Cog):
+    "Administer syncing settings"
 
+    def __init__(self, bot):
+        self.bot = bot
+        super().__init__()
 
-@discord_commands.is_owner()
-@sync_group.command(name="global", description=locale_str(I18N.t("main.owner_only")))
-async def sync_global(interaction: discord.Interaction):
-    await config.bot.tree.sync()
-    _cmd = ""
-    for command in config.bot.tree.get_commands():
-        slash_or_text = (
-            "Slash Command"
-            if isinstance(command, discord.app_commands.Command)
-            else "Text Command"
-        )
-        _cmd += f"- {command.name} (Type: {slash_or_text})"
-        if _cmd != "":
-            _cmd += "\n"
-    await interaction.response.send_message(
+    sync_group = discord.app_commands.Group(
+        name="sync",
         # TODO: i18n
-        f"Commands synched!\n{_cmd}",
-        ephemeral=True,
+        # description=locale_str(I18N.t("stats.commands.groups.stats"))
+        description="Sync slash commands",
     )
-    return
 
+    @discord_commands.is_owner()
+    @sync_group.command(
+        name="global", description=locale_str(I18N.t("main.owner_only"))
+    )
+    async def sync_global(self, interaction: discord.Interaction):
+        await config.bot.tree.sync()
+        _cmd = ""
+        for command in config.bot.tree.get_commands():
+            slash_or_text = (
+                "Slash Command"
+                if isinstance(command, discord.app_commands.Command)
+                else "Text Command"
+            )
+            _cmd += f"- {command.name} (Type: {slash_or_text})"
+            if _cmd != "":
+                _cmd += "\n"
+        await interaction.response.send_message(
+            # TODO: i18n
+            f"Commands synched!\n{_cmd}",
+            ephemeral=True,
+        )
+        return
 
-@discord_commands.is_owner()
-@config.bot.tree.command(
-    name="syncdev",
-    description=locale_str(I18N.t("main.owner_only")),
-)
-async def sync_dev(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    await interaction.followup.send(
-        content="✅💭 {}".format(I18N.t("main.commands.syncdev.msg_starting"))
+    @discord_commands.is_owner()
+    @sync_group.command(
+        name="dev",
+        description=locale_str(I18N.t("main.owner_only")),
     )
-    config.bot.tree.copy_global_to(guild=interaction.guild)
-    await config.bot.tree.sync(guild=interaction.guild)
-    for command in config.bot.tree.get_commands():
-        logger.debug(f"Checking {command.name}")
-    await interaction.edit_original_response(
-        content="✅✅ {}".format(I18N.t("main.commands.syncdev.msg_confirm"))
-    )
-    return
+    async def sync_dev(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await interaction.followup.send(
+            content="✅💭 {}".format(I18N.t("main.commands.syncdev.msg_starting"))
+        )
+        config.bot.tree.copy_global_to(guild=interaction.guild)
+        await config.bot.tree.sync(guild=interaction.guild)
+        for command in config.bot.tree.get_commands():
+            logger.debug(f"Checking {command.name}")
+        await interaction.edit_original_response(
+            content="✅✅ {}".format(I18N.t("main.commands.syncdev.msg_confirm"))
+        )
+        return
 
 
 def _in_admin_guild(interaction: discord.Interaction) -> bool:
