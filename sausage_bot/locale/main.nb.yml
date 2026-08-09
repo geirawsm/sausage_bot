@@ -73,6 +73,7 @@ nb:
       group_desc: Administrer guilder
       approve:
         msg_confirm: "✅ Godkjente guild %{guild_name} (%{guild_id})."
+        msg_not_found: "❌ Ingen guild som samsvarer med `%{guild_id}` er registrert. Velg en guild fra autofullfør-lista i stedet for å skrive den inn - lista sender inn guild-id, ikke navnet."
       leave:
         not_yours: Denne bekreftelsen er ikke din.
         btn_leave: Forlat guild
