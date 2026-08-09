@@ -329,13 +329,18 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
                         break
                     except discord.DiscordServerError:
                         if i == 2:
-                            raise
+                            logger.error(
+                                "Discord server error editing stats msg "
+                                f"`{stats_msg_id}` in `{guild.name}` after 3 "
+                                "tries, giving up this tick"
+                            )
+                            return
                         await asyncio.sleep(2)  # Wait 2 seconds before retrying
-                    return
+                return
             except discord.errors.NotFound:
                 logger.error(
-                    "Could not find msg id `{stats_msg_id}` in channel "
-                    "`{stats_channel}`"
+                    f"Could not find msg id `{stats_msg_id}` in channel "
+                    f"`{stats_channel}`"
                 )
                 post_new = True
                 logger.debug("Creating new stats message")
@@ -888,7 +893,15 @@ class Stats(commands.Cog):
             if task_status.get("status") != "started":
                 continue
             async with db_helper.guild_locale_context(guild.id):
-                await update_guild_stats(guild, files_in_codebase, lines_in_codebase)
+                try:
+                    await update_guild_stats(
+                        guild, files_in_codebase, lines_in_codebase
+                    )
+                except Exception as error:
+                    logger.error(
+                        f"Error updating stats for `{guild.name}`: {error}"
+                    )
+                    continue
 
     @task_update_stats.before_loop
     async def before_update_stats():
