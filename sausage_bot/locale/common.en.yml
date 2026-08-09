@@ -8,6 +8,7 @@ en:
   literal_allow_deny:
     allow: Allow
     deny: Deny
+  cancel: Cancel
   name: Name
   channel: Channel
   message_id: Message ID
@@ -33,3 +34,8 @@ en:
     name_of_setting: Name of setting
     value_in: Value
   something_wrong: "Something went wrong: %{error}"
+  channel_errors: "\nChannels: %{errors}"
+  error:
+    http_status: "Link received HTTP status code %{code}"
+    channel_not_found_in_table: "Could not find channel `%{channel}` in `%{table}` (`%{db_file}`): %{error}"
+    channel_not_found: "Could not find channel `%{channel}` in guild"

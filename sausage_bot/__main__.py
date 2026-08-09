@@ -94,9 +94,9 @@ class SayModal(discord.ui.Modal):
                     errors=", ".join(comment_out["channel_errors"]),
                 )
             else:
-                # TODO: i18n
-                msg_out += "\nChannels: {}".format(
-                    ", ".join(comment_out["channel_errors"])
+                msg_out += I18N.t(
+                    "main.context_menu.edit_msg.channel_errors",
+                    errors=", ".join(comment_out["channel_errors"]),
                 )
         await interaction.response.send_message(
             I18N.t("main.commands.say.modal.confirm", channel=self.channel.name),
@@ -154,9 +154,9 @@ class EditModal(discord.ui.Modal):
                     errors=", ".join(comment_out["channel_errors"]),
                 )
             else:
-                # TODO: i18n
-                msg_out += "\nChannels: {}".format(
-                    ", ".join(comment_out["channel_errors"])
+                msg_out += I18N.t(
+                    "main.context_menu.edit_msg.channel_errors",
+                    errors=", ".join(comment_out["channel_errors"]),
                 )
 
         self.comment_out = comment_out["text"]
@@ -301,17 +301,21 @@ async def notify_admin_of_new_guild(guild: discord.Guild, rejoined=False):
     "#autodoc skip#"
     if not config.ADMIN_CHANNEL_ID:
         return
-    # TODO: i18n
     content = ""
     if rejoined:
-        content += "🔔 Rejoined guild:\n"
+        content += I18N.t("main.notify_new_guild.rejoined") + "\n"
     else:
-        content += "🔔 New guild wants to use the bot:\n"
+        content += I18N.t("main.notify_new_guild.new") + "\n"
     content += (
-        f"**{guild.name}** (`{guild.id}`)\n"
-        f"Members: {guild.member_count}\n"
-        f"Description: {guild.description}\n"
-        f"Vanity url code: {guild.vanity_url_code}\n"
+        I18N.t(
+            "main.notify_new_guild.details",
+            guild_name=guild.name,
+            guild_id=guild.id,
+            member_count=guild.member_count,
+            description=guild.description,
+            vanity_url_code=guild.vanity_url_code,
+        )
+        + "\n"
     )
     # Try to create an invite link to the new guild and append it to the
     # content, so the admin can jump straight to the guild.
@@ -332,11 +336,13 @@ async def notify_admin_of_new_guild(guild: discord.Guild, rejoined=False):
             logger.debug(f"Could not create invite in `{channel.name}`: {e}")
             continue
     if invite_url:
-        content += f"Invite link: {invite_url}\n"
+        content += (
+            I18N.t("main.notify_new_guild.invite_link", invite_url=invite_url) + "\n"
+        )
     else:
-        content += "Could not create an invite link for this guild.\n"
-    content += (
-        f"\nUse `/approve-guild guild_id:{guild.id}` in this channel to activate it."
+        content += I18N.t("main.notify_new_guild.no_invite") + "\n"
+    content += "\n" + I18N.t(
+        "main.notify_new_guild.how_to_approve", guild_id=guild.id
     )
     await discord_commands.post_to_channel(config.ADMIN_CHANNEL_ID, content_in=content)
 
@@ -495,9 +501,7 @@ class Sync(commands.Cog):
 
     sync_group = discord.app_commands.Group(
         name="sync",
-        # TODO: i18n
-        # description=locale_str(I18N.t("stats.commands.groups.stats"))
-        description="Sync slash commands",
+        description=locale_str(I18N.t("main.commands.sync.group_desc")),
     )
 
     @discord_commands.is_owner()
@@ -517,8 +521,7 @@ class Sync(commands.Cog):
             if _cmd != "":
                 _cmd += "\n"
         await interaction.response.send_message(
-            # TODO: i18n
-            f"Commands synched!\n{_cmd}",
+            I18N.t("main.commands.sync.msg_confirm_list", commands=_cmd),
             ephemeral=True,
         )
         return
@@ -563,9 +566,8 @@ class LeaveGuildConfirm_view(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         # Only whoever ran the command may press the buttons
         if interaction.user.id != self.user_id:
-            # TODO: i18n
             await interaction.response.send_message(
-                "This confirmation isn't yours.", ephemeral=True
+                I18N.t("main.commands.guild.leave.not_yours"), ephemeral=True
             )
             return False
         return True
@@ -575,8 +577,10 @@ class LeaveGuildConfirm_view(discord.ui.View):
         for _btn in self.children:
             _btn.disabled = True
 
-    # TODO: i18n
-    @discord.ui.button(label="Leave guild", style=discord.ButtonStyle.danger)
+    @discord.ui.button(
+        label=I18N.t("main.commands.guild.leave.btn_leave"),
+        style=discord.ButtonStyle.danger,
+    )
     async def confirm(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -586,8 +590,10 @@ class LeaveGuildConfirm_view(discord.ui.View):
         await interaction.response.edit_message(view=self)
         self.stop()
 
-    # TODO: i18n
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(
+        label=I18N.t("common.cancel"),
+        style=discord.ButtonStyle.secondary,
+    )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         "#autodoc skip#"
         self.value = False
@@ -609,9 +615,7 @@ class Guild(commands.Cog):
 
     guild_group = discord.app_commands.Group(
         name="guild",
-        # TODO: i18n
-        # description=locale_str(I18N.t("stats.commands.groups.stats")),
-        description="Administrer guilder",
+        description=locale_str(I18N.t("main.commands.guild.group_desc")),
     )
 
     @discord_commands.is_owner()
@@ -623,9 +627,9 @@ class Guild(commands.Cog):
         "#autodoc skip#"
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
-            # TODO: i18n
             await interaction.followup.send(
-                "This command can only be used in the admin guild.", ephemeral=True
+                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                ephemeral=True,
             )
             return
         pending_guilds_db = await db_helper.get_output(
@@ -647,9 +651,12 @@ class Guild(commands.Cog):
             guild_id=guild_id,
         )
         await db_helper.ensure_guild_tasks_rows(guild_id)
-        # TODO: i18n
         await interaction.followup.send(
-            f"✅ Approved guild {pending_guilds_db[0]['guild_name']} ({guild_id}).",
+            I18N.t(
+                "main.commands.guild.approve.msg_confirm",
+                guild_name=pending_guilds_db[0]["guild_name"],
+                guild_id=guild_id,
+            ),
             ephemeral=True,
         )
 
@@ -662,17 +669,17 @@ class Guild(commands.Cog):
         "#autodoc skip#"
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
-            # TODO: i18n
             await interaction.followup.send(
-                "This command can only be used in the admin guild.", ephemeral=True
+                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                ephemeral=True,
             )
             return
         if str(guild_id) == str(config.ADMIN_GUILD_ID):
             # Leaving the admin guild would lock the owner out of every
             # owner-only command - including this one.
-            # TODO: i18n
             await interaction.followup.send(
-                "❌ Refusing to leave the admin guild.", ephemeral=True
+                I18N.t("main.commands.guild.leave.msg_refuse_admin"),
+                ephemeral=True,
             )
             return
         try:
@@ -683,9 +690,10 @@ class Guild(commands.Cog):
         if guild is None:
             # `all_guilds_autocomplete` lists every row in the guild registry,
             # including guilds the bot is no longer a member of.
-            # TODO: i18n
             await interaction.followup.send(
-                f"❌ The bot is not a member of a guild with id `{guild_id}`.",
+                I18N.t(
+                    "main.commands.guild.leave.msg_not_member", guild_id=guild_id
+                ),
                 ephemeral=True,
             )
             return
@@ -696,43 +704,61 @@ class Guild(commands.Cog):
         )
         guild_name = guilds_db[0]["guild_name"] if guilds_db else guild.name
         view = LeaveGuildConfirm_view(user_id=interaction.user.id)
-        # TODO: i18n
         confirm_msg = await interaction.followup.send(
-            f"⚠️ Leave guild **{guild_name}** (`{guild.id}`)?\n"
-            "The guild's data is kept - its status is only set to `removed`. "
-            "The bot has to be invited back in to rejoin.",
+            I18N.t(
+                "main.commands.guild.leave.confirm_prompt",
+                guild_name=guild_name,
+                guild_id=guild.id,
+            ),
             view=view,
             ephemeral=True,
             wait=True,
         )
         await view.wait()
         if view.value is None:
-            # TODO: i18n
             await confirm_msg.edit(
-                content=f"⏲️ Timed out - still in {guild_name} ({guild.id}).", view=None
+                content=I18N.t(
+                    "main.commands.guild.leave.msg_timeout",
+                    guild_name=guild_name,
+                    guild_id=guild.id,
+                ),
+                view=None,
             )
             return
         if view.value is False:
-            # TODO: i18n
             await confirm_msg.edit(
-                content=f"❌ Cancelled - still in {guild_name} ({guild.id}).", view=None
+                content=I18N.t(
+                    "main.commands.guild.leave.msg_cancelled",
+                    guild_name=guild_name,
+                    guild_id=guild.id,
+                ),
+                view=None,
             )
             return
         try:
             await guild.leave()
         except discord.HTTPException as e:
             logger.error(f"Could not leave guild `{guild_name}` ({guild.id}): {e}")
-            # TODO: i18n
             await confirm_msg.edit(
-                content=f"❌ Could not leave {guild_name} ({guild.id}): {e}", view=None
+                content=I18N.t(
+                    "main.commands.guild.leave.msg_failed",
+                    guild_name=guild_name,
+                    guild_id=guild.id,
+                    error=e,
+                ),
+                view=None,
             )
             return
         logger.info(
             f"Left guild `{guild_name}` ({guild.id}) on request from `{interaction.user}`"
         )  # No db write here - `on_guild_remove` sets the status to `removed`.
-        # TODO: i18n
         await confirm_msg.edit(
-            content=f"✅ Left guild {guild_name} ({guild.id}).", view=None
+            content=I18N.t(
+                "main.commands.guild.leave.msg_confirm",
+                guild_name=guild_name,
+                guild_id=guild.id,
+            ),
+            view=None,
         )
 
     @discord_commands.is_owner()
@@ -744,9 +770,9 @@ class Guild(commands.Cog):
         "#autodoc skip#"
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
-            # TODO: i18n
             await interaction.followup.send(
-                "This command can only be used in the admin guild.", ephemeral=True
+                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                ephemeral=True,
             )
             return
         guilds = await db_helper.get_output(
@@ -1115,9 +1141,9 @@ async def language(interaction: discord.Interaction, language: str):
     await interaction.response.defer(ephemeral=True)
     logger.debug(f"Setting language for `{interaction.guild.name}` to {language}")
     if language not in available_languages():
-        # TODO: i18n
         await interaction.followup.send(
-            f"`{language}` is not an available language.", ephemeral=True
+            I18N.t("main.commands.language.msg_not_available", language=language),
+            ephemeral=True,
         )
         return
     await db_helper.update_fields(
@@ -1154,27 +1180,29 @@ class DuplicateChannelModal(discord.ui.Modal):
     """
 
     def __init__(self, default_name: str):
-        # TODO: i18n
-        super().__init__(title="Lag bot-kanal fra en eksisterende kanal")
+        super().__init__(
+            title=I18N.t("main.commands.bot_channel.create_modal.title")
+        )
         # Kept as an attribute so on_submit can read the picked channel.
         self.channel_select = discord.ui.ChannelSelect(
             channel_types=[discord.ChannelType.text],
             min_values=1,
             max_values=1,
             required=True,
-            # TODO: i18n
-            placeholder="Velg kanalen tillatelsene skal kopieres fra",
+            placeholder=I18N.t(
+                "main.commands.bot_channel.create_modal.select_placeholder"
+            ),
         )
         self.add_item(
             discord.ui.Label(
-                # TODO: i18n
-                text="Kopier tillatelser fra:",
+                text=I18N.t(
+                    "main.commands.bot_channel.create_modal.copy_from_label"
+                ),
                 component=self.channel_select,
             )
         )
         self.name_input = discord.ui.TextInput(
-            # TODO: i18n
-            label="Navn på den nye bot-kanalen",
+            label=I18N.t("main.commands.bot_channel.create_modal.name_label"),
             default=default_name,
             max_length=100,
         )
@@ -1188,9 +1216,9 @@ class DuplicateChannelModal(discord.ui.Modal):
         source = interaction.guild.get_channel(picked.id)
         new_name = str(self.name_input.value).strip()
         if source is None:
-            # TODO: i18n
             await interaction.followup.send(
-                "Fant ikke kilde-kanalen. Prøv igjen.", ephemeral=True
+                I18N.t("main.commands.bot_channel.create_modal.source_not_found"),
+                ephemeral=True,
             )
             return
         new_channel = await interaction.guild.create_text_channel(
@@ -1198,14 +1226,16 @@ class DuplicateChannelModal(discord.ui.Modal):
             category=source.category,
             position=source.position + 1,
             overwrites=source.overwrites,
-            # TODO: i18n
-            reason="Oppretter bot-kanal (kopiert fra #{})".format(source.name),
+            reason=I18N.t(
+                "main.commands.bot_channel.create_modal.reason", source=source.name
+            ),
         )
         await _persist_bot_channel(interaction.guild, new_name)
-        # TODO: i18n
         await interaction.followup.send(
-            "✅✅ Laget {} (tillatelser kopiert fra #{}) og satt som bot-kanal.".format(
-                new_channel.mention, source.name
+            I18N.t(
+                "main.commands.bot_channel.create_modal.msg_confirm",
+                channel=new_channel.mention,
+                source=source.name,
             ),
             ephemeral=True,
         )
@@ -1223,10 +1253,8 @@ class CreateBotChannelView(discord.ui.View):
         super().__init__(timeout=120)
         self.channel_name = channel_name
 
-    # TODO: i18n button labels
     @discord.ui.button(
-        # TODO: i18n
-        label="Dupliser eksisterende",
+        label=I18N.t("main.commands.bot_channel.btn_duplicate"),
         style=discord.ButtonStyle.secondary,
     )
     async def duplicate(
@@ -1238,7 +1266,10 @@ class CreateBotChannelView(discord.ui.View):
         )
         self.stop()
 
-    @discord.ui.button(label="Lag helt ny", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(
+        label=I18N.t("main.commands.bot_channel.btn_fresh"),
+        style=discord.ButtonStyle.secondary,
+    )
     async def fresh(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         overwrites = {
@@ -1250,22 +1281,25 @@ class CreateBotChannelView(discord.ui.View):
         new_channel = await interaction.guild.create_text_channel(
             name=self.channel_name,
             overwrites=overwrites,
-            # TODO: i18n
-            reason="Oppretter ny bot-kanal",
+            reason=I18N.t("main.commands.bot_channel.reason_fresh"),
         )
         await _persist_bot_channel(interaction.guild, self.channel_name)
         await interaction.followup.send(
-            # TODO: i18n
-            "✅✅ Laget {} og satt som bot-kanal.".format(new_channel.mention),
+            I18N.t(
+                "main.commands.bot_channel.msg_confirm_fresh",
+                channel=new_channel.mention,
+            ),
             ephemeral=True,
         )
         self.stop()
 
-    @discord.ui.button(label="Avbryt", style=discord.ButtonStyle.danger)
+    @discord.ui.button(
+        label=I18N.t("common.cancel"),
+        style=discord.ButtonStyle.danger,
+    )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # TODO: i18n
         await interaction.response.edit_message(
-            content="Avbrutt. Lager ingen kanal.", view=None
+            content=I18N.t("main.commands.bot_channel.cancelled"), view=None
         )
         self.stop()
 
@@ -1282,18 +1316,18 @@ async def set_bot_channel(interaction: discord.Interaction, bot_channel: str):
         # Channel doesn't exist yet - let the user duplicate an existing
         # channel, create a fresh one, or cancel. Each button on the view
         # finishes the flow (creating the channel + storing the setting).
-        # TODO: i18n
         await interaction.followup.send(
-            "Kanalen #{} finnes ikke ennå. Hva vil du gjøre?".format(bot_channel),
+            I18N.t(
+                "main.commands.bot_channel.msg_not_exist", channel=bot_channel
+            ),
             view=CreateBotChannelView(bot_channel),
             ephemeral=True,
         )
         return
     # Channel already exists - just store it as the guild's bot channel.
     await _persist_bot_channel(interaction.guild, bot_channel)
-    # TODO: i18n
     await interaction.followup.send(
-        "✅✅ Satt bot-kanal til #{}.".format(bot_channel),
+        I18N.t("main.commands.bot_channel.msg_confirm", channel=bot_channel),
         ephemeral=True,
     )
     return
@@ -1314,8 +1348,7 @@ async def timezone(interaction: discord.Interaction, timezone: str):
         guild_id=interaction.guild.id,
     )
     await interaction.followup.send(
-        # TODO: i18n
-        "Set timezone to `{}`".format(timezone),
+        I18N.t("main.commands.timezone.msg_confirm", timezone=timezone),
         ephemeral=True,
     )
     return
@@ -1336,9 +1369,7 @@ class Profile(commands.Cog):
 
     profile_group = discord.app_commands.Group(
         name="profile",
-        # TODO: i18n
-        # description=locale_str(I18N.t("stats.commands.groups.stats"))
-        description="Change profile on guild",
+        description=locale_str(I18N.t("main.commands.profile.group_desc")),
     )
 
     @profile_group.command(

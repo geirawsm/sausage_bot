@@ -8,6 +8,7 @@ nb:
   literal_allow_deny:
     allow: Tillat
     deny: Nekt
+  cancel: Avbryt
   name: Navn
   channel: Kanal
   message_id: Meldings-ID
@@ -33,3 +34,8 @@ nb:
     name_of_setting: Navn på innstilling
     value_in: Verdi
   something_wrong: "Noe gikk galt: %{error}"
+  channel_errors: "\nKanaler: %{errors}"
+  error:
+    http_status: "Lenken mottok HTTP-statuskode %{code}"
+    channel_not_found_in_table: "Fant ikke kanal `%{channel}` i `%{table}` (`%{db_file}`): %{error}"
+    channel_not_found: "Fant ikke kanal `%{channel}` i guilden"

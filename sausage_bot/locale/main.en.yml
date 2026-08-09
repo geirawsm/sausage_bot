@@ -8,6 +8,7 @@ en:
   commands:
     language:
       confirm_language_set: Language set to `%{language}`. Restart the bot manually for changes to appear.
+      msg_not_available: "`%{language}` is not an available language."
     set_profile:
       command: "Change the bot's nickname, avatar, banner or bio in this server"
       msg_no_permission: You need Administrator or Manage Nicknames permission to use this command
@@ -68,6 +69,47 @@ en:
     syncdev:
       msg_starting: Starting commands sync...
       msg_confirm: Commands synced
+    sync:
+      group_desc: Sync slash commands
+      msg_confirm_list: |-
+        Commands synced!
+        %{commands}
+    guild:
+      group_desc: Administer guilds
+      approve:
+        msg_confirm: "✅ Approved guild %{guild_name} (%{guild_id})."
+      leave:
+        not_yours: This confirmation isn't yours.
+        btn_leave: Leave guild
+        msg_refuse_admin: "❌ Refusing to leave the admin guild."
+        msg_not_member: "❌ The bot is not a member of a guild with id `%{guild_id}`."
+        confirm_prompt: |-
+          ⚠️ Leave guild **%{guild_name}** (`%{guild_id}`)?
+          The guild's data is kept - its status is only set to `removed`. The bot has to be invited back in to rejoin.
+        msg_timeout: "⏲️ Timed out - still in %{guild_name} (%{guild_id})."
+        msg_cancelled: "❌ Cancelled - still in %{guild_name} (%{guild_id})."
+        msg_failed: "❌ Could not leave %{guild_name} (%{guild_id}): %{error}"
+        msg_confirm: "✅ Left guild %{guild_name} (%{guild_id})."
+    timezone:
+      msg_confirm: "Set timezone to `%{timezone}`"
+    bot_channel:
+      create_modal:
+        title: Create bot channel from an existing channel
+        select_placeholder: Select the channel to copy permissions from
+        copy_from_label: "Copy permissions from:"
+        name_label: Name of the new bot channel
+        source_not_found: Could not find the source channel. Try again.
+        reason: "Creating bot channel (copied from #%{source})"
+        msg_confirm: "✅✅ Created %{channel} (permissions copied from #%{source}) and set as bot channel."
+      btn_duplicate: Duplicate existing
+      btn_fresh: Create new
+      reason_fresh: Creating new bot channel
+      msg_confirm_fresh: "✅✅ Created %{channel} and set as bot channel."
+      cancelled: Cancelled. Not creating a channel.
+      msg_not_exist: "The channel #%{channel} doesn't exist yet. What do you want to do?"
+      msg_confirm: "✅✅ Set bot channel to #%{channel}."
+    profile:
+      group_desc: Change bot profile on this server
     locale:
       group: "Change language or timezone"
       language:
@@ -81,3 +123,15 @@ en:
       edit_confirm: Message was edited
       edit_confirm_with_errors: ", but some tagging failed: %{errors}"
       edit_error: "Error when editing, check logs"
+      channel_errors: "\nChannels: %{errors}"
+  notify_new_guild:
+    rejoined: "🔔 Rejoined guild:"
+    new: "🔔 New guild wants to use the bot:"
+    details: |-
+      **%{guild_name}** (`%{guild_id}`)
+      Members: %{member_count}
+      Description: %{description}
+      Vanity url code: %{vanity_url_code}
+    invite_link: "Invite link: %{invite_url}"
+    no_invite: Could not create an invite link for this guild.
+    how_to_approve: "Use `/approve-guild guild_id:%{guild_id}` in this channel to activate it."

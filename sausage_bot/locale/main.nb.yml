@@ -8,6 +8,7 @@ nb:
   commands:
     language:
       confirm_language_set: Språk satt til `%{language}`. Restart botten manuelt for å synliggjøre endringer.
+      msg_not_available: "`%{language}` er ikke et tilgjengelig språk."
     set_profile:
       command: "Endre botens kallenavn, avatar, banner eller bio på denne serveren"
       msg_no_permission: Du trenger Administrator- eller Manage Nicknames-tilgang for å bruke denne kommandoen
@@ -63,6 +64,47 @@ nb:
     syncdev:
       msg_starting: Starter kommando synkronisering...
       msg_confirm: Kommandoer synkronisert
+    sync:
+      group_desc: Synkroniser slash-kommandoer
+      msg_confirm_list: |-
+        Kommandoer synkronisert!
+        %{commands}
+    guild:
+      group_desc: Administrer guilder
+      approve:
+        msg_confirm: "✅ Godkjente guild %{guild_name} (%{guild_id})."
+      leave:
+        not_yours: Denne bekreftelsen er ikke din.
+        btn_leave: Forlat guild
+        msg_refuse_admin: "❌ Nekter å forlate admin-guilden."
+        msg_not_member: "❌ Boten er ikke medlem av en guild med id `%{guild_id}`."
+        confirm_prompt: |-
+          ⚠️ Forlate guild **%{guild_name}** (`%{guild_id}`)?
+          Guildens data beholdes - statusen settes kun til `removed`. Boten må inviteres inn på nytt for å bli med igjen.
+        msg_timeout: "⏲️ Tidsavbrudd - fortsatt i %{guild_name} (%{guild_id})."
+        msg_cancelled: "❌ Avbrutt - fortsatt i %{guild_name} (%{guild_id})."
+        msg_failed: "❌ Kunne ikke forlate %{guild_name} (%{guild_id}): %{error}"
+        msg_confirm: "✅ Forlot guild %{guild_name} (%{guild_id})."
+    timezone:
+      msg_confirm: "Satt tidssone til `%{timezone}`"
+    bot_channel:
+      create_modal:
+        title: Lag bot-kanal fra en eksisterende kanal
+        select_placeholder: Velg kanalen tillatelsene skal kopieres fra
+        copy_from_label: "Kopier tillatelser fra:"
+        name_label: Navn på den nye bot-kanalen
+        source_not_found: Fant ikke kilde-kanalen. Prøv igjen.
+        reason: "Oppretter bot-kanal (kopiert fra #%{source})"
+        msg_confirm: "✅✅ Laget %{channel} (tillatelser kopiert fra #%{source}) og satt som bot-kanal."
+      btn_duplicate: Dupliser eksisterende
+      btn_fresh: Lag helt ny
+      reason_fresh: Oppretter ny bot-kanal
+      msg_confirm_fresh: "✅✅ Laget %{channel} og satt som bot-kanal."
+      cancelled: Avbrutt. Lager ingen kanal.
+      msg_not_exist: "Kanalen #%{channel} finnes ikke ennå. Hva vil du gjøre?"
+      msg_confirm: "✅✅ Satt bot-kanal til #%{channel}."
+    profile:
+      group_desc: Endre bot-profil på denne serveren
     locale:
       group: "Endre språk eller tidssone"
       language:
@@ -76,3 +118,15 @@ nb:
       edit_confirm: Meldingen ble endret
       edit_confirm_with_errors: ", men noen nevninger fungerte ikke: %{errors}"
       edit_error: "Feil ved endring av melding, sjekk loggen"
+      channel_errors: "\nKanaler: %{errors}"
+  notify_new_guild:
+    rejoined: "🔔 Guild ble med igjen:"
+    new: "🔔 Ny guild vil bruke boten:"
+    details: |-
+      **%{guild_name}** (`%{guild_id}`)
+      Medlemmer: %{member_count}
+      Beskrivelse: %{description}
+      Vanity-url-kode: %{vanity_url_code}
+    invite_link: "Invitasjonslenke: %{invite_url}"
+    no_invite: Kunne ikke lage en invitasjonslenke for denne guilden.
+    how_to_approve: "Bruk `/approve-guild guild_id:%{guild_id}` i denne kanalen for å aktivere den."

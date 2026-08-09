@@ -416,9 +416,7 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
             logger.debug(f"Length roles_members after check: {len(roles_members)}")
             await discord_commands.log_to_bot_channel(
                 guild,
-                # TODO: i18n
-                "Stats: Length of roles exceeded message limit, auto-truncated it. "
-                "Maybe check it's settings?",
+                I18N.t("stats.tasks.update_stats.log.roles_truncated"),
             )
 
         members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
@@ -823,8 +821,9 @@ class Stats(commands.Cog):
                 )
         else:
             await interaction.followup.send(
-                # TODO: i18n
-                content="No hidden roles exist",
+                content=I18N.t(
+                    "stats.commands.hide_roles_add.msg.no_hidden_roles"
+                ),
                 ephemeral=True,
             )
         return

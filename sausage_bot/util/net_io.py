@@ -24,6 +24,7 @@ from yt_dlp import YoutubeDL
 
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.args import args
 
 logger = config.logger
@@ -793,10 +794,12 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
         match_json = await get_link(mock_file=mock_in)
         _id = match_json["event"]["id"]
     if isinstance(match_json, int):
-        # TODO: i18n
         error_msg = "Link received HTTP status code {}".format(match_json)
         logger.error(error_msg)
-        await discord_commands.log_to_bot_channel(guild, error_msg)
+        await discord_commands.log_to_bot_channel(
+            guild,
+            I18N.t("common.error.http_status", code=match_json),
+        )
         return None
     logger.debug(f"Got `match_json`:\n{pformat(match_json)}")
     if mock_in and mock_in_tv:

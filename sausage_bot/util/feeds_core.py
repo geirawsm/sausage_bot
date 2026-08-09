@@ -131,8 +131,9 @@ class DynamicRatingSelect(
         )
         await interaction.followup.send(
             ephemeral=True,
-            # TODO: i18n
-            content=f"You rated this episode {self.rating} ★",
+            content=I18N.t(
+                "feeds_core.podcast_rating.msg_confirm", rating=self.rating
+            ),
         )
 
 
@@ -792,9 +793,9 @@ async def log_link(template_info, uuid, feed_link, page_hash, guild):
     else:
         inserts.append(feed_link)
         logger.error(f"No page hash found for {feed_link}, logging link instead")
-        # TODO: i18n
         await discord_commands.log_to_bot_channel(
-            guild, f"No page hash found for {feed_link}, logging link instead"
+            guild,
+            I18N.t("feeds_core.log.no_page_hash", feed_link=feed_link),
         )
     logger.debug(f"Adding this to log:\n{pformat(inserts)}")
     await db_helper.insert_many_all(

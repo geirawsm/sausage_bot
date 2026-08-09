@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from pprint import pformat
 
 from sausage_bot.util import envs, config, file_io, discord_commands, guild_context
+from sausage_bot.util.i18n import I18N
 from sausage_bot.util.args import args
 from .datetime_handling import get_dt
 
@@ -436,7 +437,6 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild
                 logger.debug(f"Found channel id: {channel_id}")
                 row_item["channel_new"] = channel_id
             except AttributeError as e:
-                # TODO: i18n
                 error_msg = "Could not find channel `{}` in `{}` (`{}`): {}".format(
                     row_item["channel"],
                     template_info["name"],
@@ -445,7 +445,15 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild
                 )
                 logger.error(error_msg)
                 await discord_commands.log_to_bot_channel(
-                    guild, f"`db_channel_name_to_id`: {error_msg}"
+                    guild,
+                    "`db_channel_name_to_id`: "
+                    + I18N.t(
+                        "common.error.channel_not_found_in_table",
+                        channel=row_item["channel"],
+                        table=template_info["name"],
+                        db_file=template_info["db_file"],
+                        error=e,
+                    ),
                 )
                 row_items_copy.pop(row_items_copy.index(row_item))
         elif re.match(r"(\d+)", row_item["channel"]):
@@ -487,13 +495,20 @@ async def db_single_channel_name_to_id(
         try:
             channel_id = get(guild.text_channels, name=channel_in).id
         except Exception as e:
-            # TODO: i18n
             error_msg = "Could not find channel `{}` in `{}` (`{}`): {}".format(
                 channel_in, template_info["name"], template_info["db_file"], e
             )
             logger.error(error_msg)
             await discord_commands.log_to_bot_channel(
-                guild, f"`db_single_channel_name_to_id`: {error_msg}"
+                guild,
+                "`db_single_channel_name_to_id`: "
+                + I18N.t(
+                    "common.error.channel_not_found_in_table",
+                    channel=channel_in,
+                    table=template_info["name"],
+                    db_file=template_info["db_file"],
+                    error=e,
+                ),
             )
             return None
         if channel_id:
