@@ -30,8 +30,7 @@ from sausage_bot.util import config
 with mock.patch.object(config.bot, "run", lambda *args, **kwargs: None):
     from sausage_bot.__main__ import (
         _has_manage_bot_profile_permission,
-        set_profile,
-        reset_profile,
+        Profile,
     )
 
 
@@ -85,14 +84,14 @@ def test_no_permissions_is_denied():
 
 async def test_set_profile_denies_without_permission():
     interaction = _make_interaction()
-    await set_profile.callback(interaction, nickname="New name")
+    await Profile.set_profile.callback(None, interaction, nickname="New name")
     interaction.response.send_message.assert_awaited_once()
     interaction.guild.me.edit.assert_not_awaited()
 
 
 async def test_set_profile_requires_at_least_one_field():
     interaction = _make_interaction(administrator=True)
-    await set_profile.callback(interaction)
+    await Profile.set_profile.callback(None, interaction)
     interaction.response.send_message.assert_awaited_once()
     interaction.response.defer.assert_not_awaited()
     interaction.guild.me.edit.assert_not_awaited()
@@ -100,7 +99,7 @@ async def test_set_profile_requires_at_least_one_field():
 
 async def test_set_profile_only_sends_the_provided_field():
     interaction = _make_interaction(administrator=True)
-    await set_profile.callback(interaction, nickname="New name")
+    await Profile.set_profile.callback(None, interaction, nickname="New name")
     interaction.guild.me.edit.assert_awaited_once_with(nick="New name")
 
 
@@ -108,7 +107,7 @@ async def test_set_profile_reads_attachments_into_bytes():
     interaction = _make_interaction(administrator=True)
     avatar = _make_attachment(b"avatar-bytes")
     banner = _make_attachment(b"banner-bytes")
-    await set_profile.callback(interaction, avatar=avatar, banner=banner)
+    await Profile.set_profile.callback(None, interaction, avatar=avatar, banner=banner)
     interaction.guild.me.edit.assert_awaited_once_with(
         avatar=b"avatar-bytes", banner=b"banner-bytes"
     )
@@ -118,7 +117,8 @@ async def test_set_profile_combines_all_four_fields():
     interaction = _make_interaction(manage_nicknames=True)
     avatar = _make_attachment(b"avatar-bytes")
     banner = _make_attachment(b"banner-bytes")
-    await set_profile.callback(
+    await Profile.set_profile.callback(
+        None,
         interaction,
         nickname="New name",
         avatar=avatar,
@@ -136,7 +136,7 @@ async def test_set_profile_combines_all_four_fields():
 async def test_set_profile_reports_discord_error():
     interaction = _make_interaction(administrator=True)
     interaction.guild.me.edit.side_effect = _http_exception()
-    await set_profile.callback(interaction, nickname="New name")
+    await Profile.set_profile.callback(None, interaction, nickname="New name")
     interaction.followup.send.assert_awaited_once()
 
 
@@ -145,32 +145,14 @@ async def test_set_profile_reports_discord_error():
 
 async def test_reset_profile_denies_without_permission():
     interaction = _make_interaction()
-    await reset_profile.callback(interaction, nickname=True)
+    await Profile.reset_profile.callback(None, interaction)
     interaction.response.send_message.assert_awaited_once()
     interaction.guild.me.edit.assert_not_awaited()
-
-
-async def test_reset_profile_requires_at_least_one_flag():
-    interaction = _make_interaction(administrator=True)
-    await reset_profile.callback(interaction)
-    interaction.response.send_message.assert_awaited_once()
-    interaction.response.defer.assert_not_awaited()
-    interaction.guild.me.edit.assert_not_awaited()
-
-
-async def test_reset_profile_only_clears_the_flagged_field():
-    # False on the other three flags must mean "leave untouched" - they
-    # must not appear in the edit call at all, not even as False/None
-    interaction = _make_interaction(administrator=True)
-    await reset_profile.callback(interaction, nickname=True)
-    interaction.guild.me.edit.assert_awaited_once_with(nick=None)
 
 
 async def test_reset_profile_clears_all_four_fields():
     interaction = _make_interaction(manage_nicknames=True)
-    await reset_profile.callback(
-        interaction, nickname=True, avatar=True, banner=True, bio=True
-    )
+    await Profile.reset_profile.callback(None, interaction)
     interaction.guild.me.edit.assert_awaited_once_with(
         nick=None, avatar=None, banner=None, bio=None
     )
@@ -179,5 +161,5 @@ async def test_reset_profile_clears_all_four_fields():
 async def test_reset_profile_reports_discord_error():
     interaction = _make_interaction(administrator=True)
     interaction.guild.me.edit.side_effect = _http_exception()
-    await reset_profile.callback(interaction, bio=True)
+    await Profile.reset_profile.callback(None, interaction)
     interaction.followup.send.assert_awaited_once()

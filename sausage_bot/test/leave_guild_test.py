@@ -26,7 +26,8 @@ from sausage_bot.util import config
 
 with mock.patch.object(config.bot, "run", lambda *args, **kwargs: None):
     from sausage_bot import __main__ as main_module
-    from sausage_bot.__main__ import LeaveGuildConfirm_view, leave_guild
+    from sausage_bot.__main__ import LeaveGuildConfirm_view
+    from sausage_bot.__main__ import Guild
 
 ADMIN_GUILD_ID = "111"
 TARGET_GUILD_ID = "222"
@@ -95,7 +96,7 @@ def _patch_env(guild, view_value=True, guilds_db=None):
 async def _run(interaction, guild, view_value=True, guilds_db=None):
     patches = _patch_env(guild, view_value=view_value, guilds_db=guilds_db)
     with patches[0], patches[1], patches[2], patches[3]:
-        await leave_guild.callback(interaction, TARGET_GUILD_ID)
+        await Guild.leave_guild.callback(None, interaction, TARGET_GUILD_ID)
 
 
 # --- guard rails ---
@@ -117,7 +118,7 @@ async def test_refuses_to_leave_the_admin_guild_itself():
     guild = _make_guild()
     patches = _patch_env(guild)
     with patches[0], patches[1], patches[2], patches[3]:
-        await leave_guild.callback(interaction, ADMIN_GUILD_ID)
+        await Guild.leave_guild.callback(None, interaction, ADMIN_GUILD_ID)
     assert "Refusing" in interaction.followup.send.await_args.args[0]
     guild.leave.assert_not_awaited()
 
@@ -133,7 +134,7 @@ async def test_non_numeric_guild_id_is_reported_not_crashed():
     interaction = _make_interaction()
     patches = _patch_env(_make_guild())
     with patches[0], patches[1], patches[2], patches[3]:
-        await leave_guild.callback(interaction, "not-an-id")
+        await Guild.leave_guild.callback(None, interaction, "not-an-id")
     assert "not a member" in interaction.followup.send.await_args.args[0]
 
 
