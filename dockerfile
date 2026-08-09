@@ -30,4 +30,4 @@ RUN echo \
 
 
 # Run bot
-ENTRYPOINT [ "python", "-m", "sausage_bot", "--log-all", "--data-dir", "/data" ]
+ENTRYPOINT [ "python", "-m", "sausage_bot" ]
