@@ -197,6 +197,67 @@ async def timezones_autocomplete(
     ][:25]
 
 
+def guild_choice_label(guild_name, guild_id) -> str:
+    """
+    Label for a guild autocomplete choice: `name (id)`. Showing the id
+    makes it obvious that the *value* behind a choice is the guild id,
+    not the name. Discord caps choice labels at 100 characters, so the
+    name is trimmed rather than the id.
+    #autodoc skip#
+    """
+    suffix = " ({})".format(guild_id)
+    name = str(guild_name or "")
+    max_name_len = 100 - len(suffix)
+    if len(name) > max_name_len:
+        name = name[: max_name_len - 1] + "…"
+    return "{}{}".format(name, suffix)
+
+
+def guild_choice_matches(current: str, guild_name, guild_id) -> bool:
+    """
+    Whether a guild belongs in the autocomplete for what the user has
+    typed so far. Both sides are lowercased - matching the typed text
+    against a cased guild name meant a lowercase search returned no
+    choices at all, which is what makes people type the guild name out
+    in full instead of picking a choice.
+    #autodoc skip#
+    """
+    haystack = "{} ({})".format(guild_name, guild_id).lower()
+    return current.lower() in haystack
+
+
+async def resolve_guild_row(guild_id: str) -> dict | None:
+    """
+    Look up a row in the guild registry by guild id, falling back to a
+    case-insensitive guild name match.
+
+    The guild autocompletes label their choices with the guild name but
+    submit the guild id as the value. Typing the label instead of
+    picking a choice therefore sends a guild *name* into a `guild_id`
+    parameter, and matching is done here rather than in an SQL WHERE so
+    that free text (quotes included) never reaches the query builder.
+
+    Returns the matching row, or None when nothing matches.
+    #autodoc skip#
+    """
+    all_guilds = await db_helper.get_output(envs.guilds_db_schema)
+    if not all_guilds:
+        return None
+    wanted = str(guild_id).strip()
+    for guild in all_guilds:
+        if str(guild["guild_id"]) == wanted:
+            return guild
+    for guild in all_guilds:
+        if str(guild["guild_name"] or "").lower() == wanted.lower():
+            logger.debug(
+                "Resolved `{}` to guild id `{}` by name".format(
+                    wanted, guild["guild_id"]
+                )
+            )
+            return guild
+    return None
+
+
 async def pending_guilds_autocomplete(
     interaction: discord.Interaction,
     current: str,
@@ -206,18 +267,14 @@ async def pending_guilds_autocomplete(
         where=[("status", "pending")],
         order_by=[("guild_name", "ASC")],
     )
-    temp_guilds = pending_guilds_db.copy()
-    for guild in temp_guilds:
-        list_num = pending_guilds_db.index(guild)
-        temp_guilds[list_num]["name"] = guild["guild_name"]
-        logger.debug(f"`pending_guilds_db`: {pending_guilds_db}")
+    logger.debug(f"`pending_guilds_db`: {pending_guilds_db}")
     return [
         discord.app_commands.Choice(
-            name="{}".format(guild["guild_name"]),
+            name=guild_choice_label(guild["guild_name"], guild["guild_id"]),
             value=guild["guild_id"],
         )
-        for guild in temp_guilds
-        if current.lower() in "{} ({})".format(guild["guild_name"], guild["guild_id"])
+        for guild in pending_guilds_db
+        if guild_choice_matches(current, guild["guild_name"], guild["guild_id"])
     ][:25]
 
 
@@ -229,18 +286,14 @@ async def all_guilds_autocomplete(
         template_info=envs.guilds_db_schema,
         order_by=[("guild_name", "ASC")],
     )
-    all_guilds = all_guilds_db.copy()
-    for guild in all_guilds:
-        list_num = all_guilds_db.index(guild)
-        all_guilds[list_num]["name"] = guild["guild_name"]
-        logger.debug(f"`all_guilds_db`: {all_guilds_db}")
+    logger.debug(f"`all_guilds_db`: {all_guilds_db}")
     return [
         discord.app_commands.Choice(
-            name="{}".format(guild["guild_name"]),
+            name=guild_choice_label(guild["guild_name"], guild["guild_id"]),
             value=guild["guild_id"],
         )
-        for guild in all_guilds
-        if current.lower() in "{} ({})".format(guild["guild_name"], guild["guild_id"])
+        for guild in all_guilds_db
+        if guild_choice_matches(current, guild["guild_name"], guild["guild_id"])
     ][:25]
 
 
@@ -632,9 +685,21 @@ class Guild(commands.Cog):
                 ephemeral=True,
             )
             return
-        pending_guilds_db = await db_helper.get_output(
-            envs.guilds_db_schema, select=("guild_name"), where=[("guild_id", guild_id)]
-        )
+        guild_row = await resolve_guild_row(guild_id)
+        if guild_row is None:
+            # Nothing is written before this point on purpose: approving an
+            # unknown id used to UPDATE nothing, create a bogus
+            # `db/guild_<garbage>/` directory and only then crash on an empty
+            # result.
+            logger.error(f"No guild in the registry matches `{guild_id}`")
+            await interaction.followup.send(
+                I18N.t("main.commands.guild.approve.msg_not_found", guild_id=guild_id),
+                ephemeral=True,
+            )
+            return
+        # Whatever was submitted, from here on work with the registry's own id
+        guild_id = str(guild_row["guild_id"])
+        guild_name = guild_row["guild_name"]
         now = await get_dt(format="ISO8601")
         await db_helper.update_fields(
             envs.guilds_db_schema,
@@ -654,7 +719,7 @@ class Guild(commands.Cog):
         await interaction.followup.send(
             I18N.t(
                 "main.commands.guild.approve.msg_confirm",
-                guild_name=pending_guilds_db[0]["guild_name"],
+                guild_name=guild_name,
                 guild_id=guild_id,
             ),
             ephemeral=True,

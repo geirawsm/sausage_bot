@@ -78,6 +78,7 @@ en:
       group_desc: Administer guilds
       approve:
         msg_confirm: "✅ Approved guild %{guild_name} (%{guild_id})."
+        msg_not_found: "❌ No guild matching `%{guild_id}` is registered. Pick a guild from the autocomplete list instead of typing it - the list submits the guild id, not the name."
       leave:
         not_yours: This confirmation isn't yours.
         btn_leave: Leave guild
