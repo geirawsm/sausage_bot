@@ -249,7 +249,8 @@ async def register_guild(guild: discord.Guild):
     Make sure `guild` has a row in the guild registry. New guilds are
     `pending` unless they are the configured ADMIN_GUILD_ID, which is
     auto-approved and never needs to go through `/approve-guild`.
-    Existing rows are left untouched - status only ever changes via
+    If guild is marked as `removed`, it resets to `pending`. Other
+    existing rows are left untouched. Status change via
     `/approve-guild` or `on_guild_remove`.
     #autodoc skip#
     """
@@ -261,6 +262,14 @@ async def register_guild(guild: discord.Guild):
         envs.guilds_db_schema, where=("guild_id", str(guild.id)), single=True
     )
     if existing:
+        logger.info(existing)
+        if existing["status"].lower() == "removed":
+            await db_helper.update_fields(
+                envs.guilds_db_schema,
+                where=("guild_id", str(guild.id)),
+                updates=("status", "pending"),
+            )
+            await notify_admin_of_new_guild(guild, rejoined=True)
         return
     is_admin_guild = str(guild.id) == str(config.ADMIN_GUILD_ID)
     now = await get_dt(format="ISO8601")
@@ -288,13 +297,17 @@ async def register_guild(guild: discord.Guild):
         await notify_admin_of_new_guild(guild)
 
 
-async def notify_admin_of_new_guild(guild: discord.Guild):
+async def notify_admin_of_new_guild(guild: discord.Guild, rejoined=False):
     "#autodoc skip#"
     if not config.ADMIN_CHANNEL_ID:
         return
     # TODO: i18n
-    content = (
-        "🔔 New guild wants to use the bot:\n"
+    content = ""
+    if rejoined:
+        content += "🔔 Rejoined guild:\n"
+    else:
+        content += "🔔 New guild wants to use the bot:\n"
+    content += (
         f"**{guild.name}** (`{guild.id}`)\n"
         f"Members: {guild.member_count}\n"
         f"Description: {guild.description}\n"
