@@ -341,9 +341,7 @@ async def notify_admin_of_new_guild(guild: discord.Guild, rejoined=False):
         )
     else:
         content += I18N.t("main.notify_new_guild.no_invite") + "\n"
-    content += "\n" + I18N.t(
-        "main.notify_new_guild.how_to_approve", guild_id=guild.id
-    )
+    content += "\n" + I18N.t("main.notify_new_guild.how_to_approve", guild_id=guild.id)
     await discord_commands.post_to_channel(config.ADMIN_CHANNEL_ID, content_in=content)
 
 
@@ -691,9 +689,7 @@ class Guild(commands.Cog):
             # `all_guilds_autocomplete` lists every row in the guild registry,
             # including guilds the bot is no longer a member of.
             await interaction.followup.send(
-                I18N.t(
-                    "main.commands.guild.leave.msg_not_member", guild_id=guild_id
-                ),
+                I18N.t("main.commands.guild.leave.msg_not_member", guild_id=guild_id),
                 ephemeral=True,
             )
             return
@@ -777,7 +773,14 @@ class Guild(commands.Cog):
             return
         guilds = await db_helper.get_output(
             envs.guilds_db_schema,
-            select=("guild_name", "status", "joined_at", "approved_at", "approved_by"),
+            select=(
+                "guild_name",
+                "guild_id",
+                "status",
+                "joined_at",
+                "approved_at",
+                "approved_by",
+            ),
             order_by=[("guild_name", "ASC")],
         )
         for guild in guilds:
@@ -796,8 +799,10 @@ class Guild(commands.Cog):
         text_out = "```{}```".format(
             tabulate(
                 guilds,
+                # TODO: i18n
                 headers={
                     "guild_name": "Name",
+                    "guild_id": "Guild ID",
                     "status": "Status",
                     "joined_at": "Joined",
                     "approved_at": "Approved",
@@ -1180,9 +1185,7 @@ class DuplicateChannelModal(discord.ui.Modal):
     """
 
     def __init__(self, default_name: str):
-        super().__init__(
-            title=I18N.t("main.commands.bot_channel.create_modal.title")
-        )
+        super().__init__(title=I18N.t("main.commands.bot_channel.create_modal.title"))
         # Kept as an attribute so on_submit can read the picked channel.
         self.channel_select = discord.ui.ChannelSelect(
             channel_types=[discord.ChannelType.text],
@@ -1195,9 +1198,7 @@ class DuplicateChannelModal(discord.ui.Modal):
         )
         self.add_item(
             discord.ui.Label(
-                text=I18N.t(
-                    "main.commands.bot_channel.create_modal.copy_from_label"
-                ),
+                text=I18N.t("main.commands.bot_channel.create_modal.copy_from_label"),
                 component=self.channel_select,
             )
         )
@@ -1317,9 +1318,7 @@ async def set_bot_channel(interaction: discord.Interaction, bot_channel: str):
         # channel, create a fresh one, or cancel. Each button on the view
         # finishes the flow (creating the channel + storing the setting).
         await interaction.followup.send(
-            I18N.t(
-                "main.commands.bot_channel.msg_not_exist", channel=bot_channel
-            ),
+            I18N.t("main.commands.bot_channel.msg_not_exist", channel=bot_channel),
             view=CreateBotChannelView(bot_channel),
             ephemeral=True,
         )
