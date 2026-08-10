@@ -706,7 +706,9 @@ class Quotes(commands.Cog):
         logger.debug(f"quote_from_db: {quote_from_db}")
         channel_out = None
         if quote_from_db["channel_id"] not in [None, ""]:
-            channel_out = interaction.guild.get_channel(int(quote_from_db["channel_id"]))
+            channel_out = interaction.guild.get_channel(
+                int(quote_from_db["channel_id"])
+            )
         msg_defaults = [msg_id for msg_id in quote_from_db["comments"]]
         # Editing works by re-reading the messages the quote was built
         # from, so it needs both a readable channel and a real Discord
@@ -1613,25 +1615,14 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
     "Add a quote"
     channel_out = interaction.channel
     msgs = []
-    msg_defaults = []
+    msg_defaults = [message.id]
     logger.debug("Getting msg history")
-    async for msg in channel_out.history(limit=100):
-        logger.debug(f"msg.id ({msg.id}) vs message.id ({message.id})")
-        if int(msg.id) == int(message.id):
-            main_msg = msg
-            msg_defaults.append(main_msg.id)
-            break
-        else:
-            main_msg = None
-    if not main_msg:
-        logger.debug("Got no main_msg")
-        return
-    msgs_before = channel_out.history(limit=12, before=main_msg)
+    msgs_before = channel_out.history(limit=12, before=message)
     async for _msg in msgs_before:
         msgs.append(_msg)
     msgs.reverse()
-    msgs.append(main_msg)
-    msgs_after = channel_out.history(limit=12, after=main_msg)
+    msgs.append(message)
+    msgs_after = channel_out.history(limit=12, after=message)
     logger.debug(f"msgs is {msgs}")
     logger.debug(f"msg_defaults is {msg_defaults}")
     async for _msg in msgs_after:
@@ -1687,7 +1678,7 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
                 _uuid,
                 int(interaction.channel.id),
                 str(interaction.channel.name),
-                main_msg.created_at,
+                message.created_at,
             )
         ],
         guild_id=interaction.guild.id,
