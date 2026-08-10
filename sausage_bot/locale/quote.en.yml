@@ -46,6 +46,7 @@ en:
       desc:
         quote_in: Quote to edit
       no_change: No changes discovered
+      msg_not_editable: "Quote # %{quote_in} cannot be edited - it has no messages in a readable channel in this server"
     delete:
       cmd: Delete a quote
       desc:
@@ -66,6 +67,11 @@ en:
       cmd: List quotes
       msg_nonexisting_quote: Quote does not exist
       msg_listing_cancelled: Quote listing cancelled
+      confirm_post_all:
+        zero: There are no quotes to post
+        one: This will post the one quote in the database. Are you sure about this?
+        few: "This will post all %{count} quotes. Are you sure about this?"
+        many: "This will post all %{count} quotes. Are you sure about this?"
     settings:
       cmd: Settings
       change_confirmed: Setting changed
@@ -84,7 +90,9 @@ en:
     add:
       modal_title: Add quote
       msg_confirm: Added this quote
+      msg_confirm_number: "Quote saved as no. %{quote_number}!"
       msg_request_quote: You must select a quote
+      dropdown_placeholder: Select quotes...
     edit:
       modal_title: Edit quote
       msg_confirm: Quote edited

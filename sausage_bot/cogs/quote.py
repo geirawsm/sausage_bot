@@ -144,7 +144,7 @@ class ModalQuoteAdd(discord.ui.Modal):
             f"self.quote_prep ({len(self.quote_prep)}: {str(self.quote_prep)[0:500]}"
         )
         self.quote_dropdown = discord.ui.Select(
-            placeholder="Select quotes...",
+            placeholder=I18N.t("quote.modals.add.dropdown_placeholder"),
             options=self.quote_prep,
             max_values=int(len(self.quote_prep) if self.quote_prep else 25),
             required=True,
@@ -163,7 +163,10 @@ class ModalQuoteAdd(discord.ui.Modal):
             if self.row_ids == 0:
                 msg_out = I18N.t("quote.modals.add.msg_confirm")
             else:
-                msg_out = (f"Sitat lagret som nr {self.row_ids + 1}!",)
+                msg_out = I18N.t(
+                    "quote.modals.add.msg_confirm_number",
+                    quote_number=self.row_ids + 1,
+                )
             await interaction.response.send_message(msg_out, ephemeral=True)
         return
 
@@ -226,6 +229,70 @@ async def env_settings_autocomplete(
     ][:25]
 
 
+def get_quote_channel_name(guild: discord.Guild, quote: dict) -> str:
+    """
+    Resolve a quote's channel to a printable name.
+
+    Imported/legacy quotes can have an empty `channel_id` (they were
+    never posted in a Discord channel in the first place), so fall back
+    to `channel_backup` both when the id is missing and when it no longer
+    resolves to a channel in this guild.
+    #autodoc skip#
+    """
+    channel_id = quote.get("channel_id")
+    if channel_id in [None, ""]:
+        return quote["channel_backup"]
+    channel_object = get(guild.text_channels, id=int(channel_id))
+    if channel_object is None:
+        return quote["channel_backup"]
+    return channel_object.name
+
+
+async def delete_quote_with_content(guild_id, uuid: str, rowid) -> None:
+    """
+    Delete a quote and everything hanging off it: its comments, their
+    images, and its posting log rows.
+
+    Deleting the `quote` row on its own left orphaned `quote_content` and
+    `quote_img` rows behind - the images in particular, since a single
+    base64 image is by far the largest thing this database stores - plus
+    log rows that kept a no longer existing uuid excluded from random
+    picks for good.
+    #autodoc skip#
+    """
+    comment_rows = await db_helper.get_output(
+        template_info=envs.quote_content_db_schema,
+        select=("comment_id"),
+        where=[("uuid", uuid)],
+        guild_id=guild_id,
+    )
+    # Imported comments have no message id, and `quote_img` is keyed by
+    # message id alone, so they cannot have images to clean up
+    comment_ids = [
+        row["comment_id"]
+        for row in comment_rows or []
+        if row["comment_id"] not in [None, ""]
+    ]
+    logger.debug(f"Deleting quote `{uuid}` with comment ids: {comment_ids}")
+    if len(comment_ids) > 0:
+        await db_helper.del_row_by_OR_filter(
+            template_info=envs.quote_img_db_schema,
+            where=[("comment_id", c_id) for c_id in comment_ids],
+            guild_id=guild_id,
+        )
+    await db_helper.del_row_by_AND_filter(
+        template_info=envs.quote_content_db_schema,
+        where=[("uuid", uuid)],
+        guild_id=guild_id,
+    )
+    await db_helper.del_row_by_AND_filter(
+        template_info=envs.quote_db_log_schema,
+        where=[("uuid", uuid)],
+        guild_id=guild_id,
+    )
+    await db_helper.del_row_id(envs.quote_db_schema, rowid, guild_id=guild_id)
+
+
 async def get_random_quote(guild_id, testmode=False):
     """
     Return rowid for random quote
@@ -280,9 +347,11 @@ async def post_random_quote(
             )
         else:
             await interaction.followup.send(
-                I18N.t("quote.commands.post.quote_db_empty"), ephemeral=_ephemeral
+                I18N.t("quote.common.quote_db_empty"), ephemeral=_ephemeral
             )
-            return
+        # Both branches are done here - continuing would index into the
+        # empty `random_quote_number` below
+        return
     logger.debug(f"Got `random_quote_number`: {random_quote_number}")
     # Post quote
     random_quote = await db_helper.get_imgs_with_quote(
@@ -329,22 +398,14 @@ async def post_random_quote(
         for comment in quote["comments"]:
             if len(quote["comments"][comment]["author_backup"]) > author_max_len:
                 author_max_len = len(quote["comments"][comment]["author_backup"])
-        quote_channel = ""
-        quote_channel_object = get(guild.text_channels, id=int(quote["channel_id"]))
-        if quote_channel_object is None:
-            quote_channel = quote["channel_backup"]
-        else:
-            quote_channel = quote_channel_object.name
-        if len(autopost) > 0:
-            if autopost["prefix"]:
-                logger.debug("Adding prefix to msg_in")
-                msg_in = "## {}\n`# {} - #{}, {}`\n\n".format(
-                    autopost["prefix"], quote["rowid"], quote_channel, quote_dt
-                )
-        else:
-            msg_in = "`# {} - #{}, {}`\n\n".format(
-                quote["rowid"], quote_channel, quote_dt
-            )
+        quote_channel = get_quote_channel_name(guild, quote)
+        msg_in = ""
+        if len(autopost) > 0 and autopost.get("prefix"):
+            logger.debug("Adding prefix to msg_in")
+            msg_in += "## {}\n".format(autopost["prefix"])
+        # An autopost without a prefix set gets the same header as a
+        # manually posted quote - it must never be left unassigned
+        msg_in += "`# {} - #{}, {}`\n\n".format(quote["rowid"], quote_channel, quote_dt)
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
@@ -480,14 +541,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         for comment in quote["comments"]:
             if len(quote["comments"][comment]["author_backup"]) > author_max_len:
                 author_max_len = len(quote["comments"][comment]["author_backup"])
-        quote_channel = ""
-        quote_channel_object = get(
-            interaction.guild.text_channels, id=int(quote["channel_id"])
-        )
-        if quote_channel_object is None:
-            quote_channel = quote["channel_backup"]
-        else:
-            quote_channel = quote_channel_object.name
+        quote_channel = get_quote_channel_name(interaction.guild, quote)
         msg_in = "`# {} - #{}, {}`\n\n".format(quote["rowid"], quote_channel, quote_dt)
         comment_last_key = next(reversed(quote["comments"]))
         for _comment_id in quote["comments"]:
@@ -605,7 +659,6 @@ class Quotes(commands.Cog):
         name="post", description=locale_str(I18N.t("quote.commands.post.cmd"))
     )
     @describe(quote_in=I18N.t("quote.commands.post.desc.number"))
-    @describe(quote_in=I18N.t("quote.commands.post.desc.number"))
     async def post(
         self,
         interaction: discord.Interaction,
@@ -651,9 +704,27 @@ class Quotes(commands.Cog):
         )
         quote_from_db = quote_from_db[0]
         logger.debug(f"quote_from_db: {quote_from_db}")
-        channel_out = interaction.guild.get_channel(quote_from_db["channel_id"])
-        msgs = []
+        channel_out = None
+        if quote_from_db["channel_id"] not in [None, ""]:
+            channel_out = interaction.guild.get_channel(int(quote_from_db["channel_id"]))
         msg_defaults = [msg_id for msg_id in quote_from_db["comments"]]
+        # Editing works by re-reading the messages the quote was built
+        # from, so it needs both a readable channel and a real Discord
+        # message id per comment. Imported quotes have neither (their
+        # comments are keyed by `content_order` instead - see
+        # `db_helper.get_imgs_with_quote()`).
+        if channel_out is None or not all(
+            isinstance(msg_id, int) for msg_id in msg_defaults
+        ):
+            logger.debug(
+                "Quote `{}` has no channel/message ids to edit from".format(quote_in)
+            )
+            await interaction.response.send_message(
+                I18N.t("quote.commands.edit.msg_not_editable", quote_in=quote_in),
+                ephemeral=True,
+            )
+            return
+        msgs = []
         # Get quote middle message for history fetch
         middle_msg = await discord_commands.get_message_obj(
             guild=interaction.guild,
@@ -670,7 +741,9 @@ class Quotes(commands.Cog):
         async for _msg in msgs_after:
             msgs.append(_msg)
         editquote_view = ModalQuoteAdd(
-            title_in="Endre sitat", msgs_in=msgs, defaults=msg_defaults
+            title_in=I18N.t("quote.modals.edit.modal_title"),
+            msgs_in=msgs,
+            defaults=msg_defaults,
         )
         await interaction.response.send_modal(editquote_view)
         await editquote_view.wait()
@@ -777,14 +850,7 @@ class Quotes(commands.Cog):
         msg = ""
         trigger_pagination = False
         quote_dt = await get_dt(format="datetime", dt=quote["datetime"])
-        quote_channel = ""
-        quote_channel_object = get(
-            interaction.guild.text_channels, id=int(quote["channel_id"])
-        )
-        if quote_channel_object is None:
-            quote_channel = quote["channel_backup"]
-        else:
-            quote_channel = quote_channel_object.name
+        quote_channel = get_quote_channel_name(interaction.guild, quote)
         msg_in = "`# {} - #{}, {}`\n\n".format(quote["rowid"], quote_channel, quote_dt)
         for _comment_id in quote["comments"]:
             comment = quote["comments"][_comment_id]
@@ -834,14 +900,16 @@ class Quotes(commands.Cog):
         if False in btn_values:
             # Confirm not deleting quote
             await interaction.followup.send(
-                I18N.t("quote.delete.msg_confirm_not_delete"),
+                I18N.t("quote.commands.delete.msg_confirm_not_delete"),
                 ephemeral=True,
             )
             return
         if True in btn_values:
             # Remove the quote
-            await db_helper.del_row_id(
-                envs.quote_db_schema, quote["rowid"], guild_id=interaction.guild.id
+            await delete_quote_with_content(
+                guild_id=interaction.guild.id,
+                uuid=quote["uuid"],
+                rowid=quote["rowid"],
             )
             # Confirm that the quote has been deleted
             await interaction.followup.send(
@@ -912,8 +980,9 @@ class Quotes(commands.Cog):
                     no_label=I18N.t("common.literal_yes_no.lit_no"),
                 )
                 await interaction.followup.send(
-                    "This will post all {} quotes. Are you sure about this?".format(
-                        len(quote_rowids)
+                    I18N.t(
+                        "quote.commands.list.confirm_post_all",
+                        count=len(quote_rowids),
                     ),
                     view=confirm_buttons,
                     ephemeral=True,
@@ -983,14 +1052,7 @@ class Quotes(commands.Cog):
             for comment in quote["comments"]:
                 if len(quote["comments"][comment]["author_backup"]) > author_max_len:
                     author_max_len = len(quote["comments"][comment]["author_backup"])
-            quote_channel = ""
-            quote_channel_object = get(
-                interaction.guild.text_channels, id=int(quote["channel_id"])
-            )
-            if quote_channel_object is None:
-                quote_channel = quote["channel_backup"]
-            else:
-                quote_channel = quote_channel_object.name
+            quote_channel = get_quote_channel_name(interaction.guild, quote)
             msg_in = "`# {} - #{}, {}`\n\n".format(
                 quote["rowid"], quote_channel, quote_dt
             )
@@ -1434,7 +1496,7 @@ class Quotes(commands.Cog):
                     guild=guild,
                     channel_id=channel,
                     channel_name="quotes",
-                    topic="Posting quotes",
+                    topic=I18N.t("quote.commands.settings.add_channel_topic"),
                     overwrites=overwrites,
                 )
                 # Load quote from database
@@ -1582,7 +1644,7 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
         )
     )
     addquote_view = ModalQuoteAdd(
-        title_in="Legg til sitat",
+        title_in=I18N.t("quote.modals.add.modal_title"),
         msgs_in=msgs,
         defaults=msg_defaults,
         row_ids=q_row_ids,
@@ -1691,3 +1753,8 @@ async def setup(bot):
     # Shared, always-running loop - each tick checks every guild's own
     # tasks_db_schema row to decide whether to process that guild.
     Quotes.task_autopost.start()
+
+
+async def teardown(bot):
+    "#autodoc skip#"
+    Quotes.task_autopost.cancel()

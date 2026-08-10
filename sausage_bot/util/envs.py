@@ -301,7 +301,11 @@ quote_db_settings_schema = {
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT"]],
     "inserts": [
         ["channel", "quotes"],
-        ["autopost_prefix", "Dagens sitat!"],
+        # No default prefix: it would be posted verbatim in every guild
+        # regardless of that guild's own language. Guilds that want a
+        # heading above their autoposted quotes set it themselves with
+        # `/quote settings change autopost_prefix`.
+        ["autopost_prefix", ""],
         ["autopost_tag_role", ""],
         ["autopost_time", ""],
     ],

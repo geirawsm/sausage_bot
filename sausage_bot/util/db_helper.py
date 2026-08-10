@@ -1301,16 +1301,6 @@ async def get_imgs_with_quote(
     guild_id=None,
 ):
     db_file = envs.resolve_db_file(template_info, guild_id)
-    # sql_query = (
-    #     "SELECT quote.rowid, quote.uuid, quote.channel_id,"
-    #     " quote.channel_backup, quote.datetime, quote_content.comment_id,"
-    #     " quote_content.author_id, quote_content.author_backup,"
-    #     " quote_content.content_text, quote_content.content_order,"
-    #     " quote_img.img_no, quote_img.base64 as img_base64"
-    #     " FROM quote INNER JOIN quote_content"
-    #     " ON quote.uuid = quote_content.uuid"
-    #     " LEFT JOIN quote_img ON quote_content.comment_id = quote_img.comment_id"
-    # )
     sql_query = "SELECT "
     if len(select) > 0:
         for _sel in select:
@@ -1318,7 +1308,14 @@ async def get_imgs_with_quote(
             if _sel != select[-1]:
                 sql_query += ", "
     else:
-        sql_query += "quote.rowid, quote.*, quote_content.*, quote_img.* "
+        # `quote_img.base64` must be aliased: it is read as `img_base64`
+        # below. The image columns are listed explicitly rather than as
+        # `quote_img.*` so the join's own `comment_id` (NULL for every
+        # comment without an image) never shadows `quote_content`'s.
+        sql_query += (
+            "quote.rowid, quote.*, quote_content.*,"
+            " quote_img.img_no, quote_img.base64 AS img_base64 "
+        )
     sql_query += (
         "FROM quote INNER JOIN quote_content"
         " ON quote.uuid = quote_content.uuid"
@@ -1367,7 +1364,7 @@ async def get_imgs_with_quote(
                         if k
                         not in (
                             "img_no",
-                            "quote_img.img_base64",
+                            "img_base64",
                             "comment_id",
                             "author_id",
                             "author_backup",
@@ -1377,7 +1374,14 @@ async def get_imgs_with_quote(
                     }
                 if "comments" not in quotes[uid]:
                     quotes[uid]["comments"] = {}
+                # Imported quotes have no Discord message id per comment,
+                # so keying on `comment_id` alone collapsed every comment
+                # of such a quote into a single NULL entry - only the
+                # first line survived. `content_order` is unique within a
+                # quote, so it identifies those comments instead.
                 cid = row["comment_id"]
+                if cid is None:
+                    cid = "order-{}".format(row["content_order"])
                 if cid not in quotes[uid]["comments"]:
                     quotes[uid]["comments"][cid] = {}
                     quotes[uid]["comments"][cid]["author_id"] = row["author_id"]

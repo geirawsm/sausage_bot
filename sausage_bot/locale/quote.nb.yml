@@ -46,6 +46,7 @@ nb:
       desc:
         quote_in: Sitat som skal endres
       no_change: Ingen endringer funnet
+      msg_not_editable: "Sitat nr %{quote_in} kan ikke redigeres - det har ingen meldinger i en lesbar kanal i denne serveren"
     delete:
       cmd: Slett sitat
       desc:
@@ -66,6 +67,11 @@ nb:
       cmd: Vis sitater
       msg_nonexisting_quote: Sitatet eksisterer ikke
       msg_listing_cancelled: Listing av sitater stoppet
+      confirm_post_all:
+        zero: Det er ingen sitater å poste
+        one: Dette vil poste det ene sitatet i databasen. Er du sikker på at du vil det?
+        few: "Dette vil poste alle %{count} sitatene. Er du sikker på at du vil det?"
+        many: "Dette vil poste alle %{count} sitatene. Er du sikker på at du vil det?"
     settings:
       cmd: Innstillinger
       change_confirmed: Innstilling endret
@@ -84,7 +90,9 @@ nb:
     add:
       modal_title: Legg til sitat
       msg_confirm: La til følgende sitat
+      msg_confirm_number: "Sitat lagret som nr %{quote_number}!"
       msg_request_quote: Du må velge et sitat
+      dropdown_placeholder: Velg sitater...
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
