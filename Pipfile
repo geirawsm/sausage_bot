@@ -30,6 +30,8 @@ tabulated = "*"
 tqdm = ">=4.66.3"
 pillow = "*"
 yt-dlp = {extras = ["default"], version = "*"}
+audioop-lts = "*"
+typing-extensions = "*"
 
 [dev-packages]
 astpretty = "*"

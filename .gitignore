@@ -28,3 +28,4 @@ sausage_bot/flake8-I18N-checker/make_flattened_yaml.py
 /node_modules
 /sausage_bot/docs/mermaid_charts
 /sausage_bot/external_files
+/pyproject.toml
