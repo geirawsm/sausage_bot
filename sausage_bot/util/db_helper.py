@@ -38,7 +38,7 @@ async def guild_locale_context(guild_id):
     )
     id_token = guild_context.current_guild_id.set(guild_id)
     locale_token = guild_context.current_locale.set(settings.get("language", "en"))
-    tz_token = guild_context.current_timezone.set(settings.get("timezone", "UTC"))
+    tz_token = guild_context.current_timezone.set(dict(settings).get("timezone", "UTC"))
     try:
         yield
     finally:
@@ -113,7 +113,7 @@ async def table_exist(template_info, guild_id=None):
     return len(out) > 0
 
 
-async def prep_table(table_in, inserts: list = None, guild_id=None):
+async def prep_table(table_in, inserts: list = [], guild_id=None):
     logger.debug(f"Got `table_in`: {table_in}")
     db_file = envs.resolve_db_file(table_in, guild_id)
     file_io.ensure_folder(Path(db_file).parent)
@@ -121,7 +121,7 @@ async def prep_table(table_in, inserts: list = None, guild_id=None):
     item_list = table_in["items"]
     _cmd = """CREATE TABLE IF NOT EXISTS {} (""".format(table_name)
     try:
-        _cmd += ", ".join("{} {}".format(item[0], item[1]) for item in item_list)
+        _cmd += ", ".join(f"{item[0]} {item[1]}" for item in item_list)
     except IndexError as e:
         logger.error(f"Error when creating table `{table_name}` in {db_file}: {e}")
         return None
@@ -143,7 +143,7 @@ async def prep_table(table_in, inserts: list = None, guild_id=None):
             logger.error(f"Error: {e}")
             return None
     delete_json_ok = False
-    if inserts:
+    if len(inserts) > 0:
         await add_missing_db_setup(table_in, guild_id=guild_id)
     return delete_json_ok
 
@@ -1024,17 +1024,17 @@ async def update_fields(template_info, where=None, updates: list = None, guild_i
 
 async def get_output(
     template_info,
-    where: tuple = (),
+    where: tuple | list = (),
     like: tuple | list = (),
     not_like: tuple | list = (),
-    select: tuple = (),
+    select: tuple | (str) = (),
     order_by: list = [],
     get_row_ids: bool = False,
     rowid_sort: bool = False,
     single: bool = False,
     as_settings_json: bool = False,
     guild_id=None,
-):
+) -> dict:
     """
     Get output from a SELECT query from a specified
     `template_info[table_name]`, with WHERE-filtering the `where` and

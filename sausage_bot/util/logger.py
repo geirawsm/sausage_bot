@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+import json
 import logging
-from logging.handlers import TimedRotatingFileHandler
-from pathlib import Path
 import os
 import stat
-import json
+from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 
 from sausage_bot.util import envs
 
@@ -50,11 +50,11 @@ def ensure_folder(folder_path: str):
         _dirs = str(folder_path).split(os.sep)
         _path = ""
         for _dir in _dirs:
-            _path += "{}/".format(_dir)
+            _path += f"{_dir}/"
         Path(_path).mkdir(parents=True, exist_ok=True)
 
 
-def ensure_file(file_path_in: str, file_template=False):
+def ensure_file(file_path_in: str, file_template: str = ""):
     """
     Create file `file_path_in` if it doesn't exist and include the
     `file_template` if provided.
@@ -70,16 +70,10 @@ def ensure_file(file_path_in: str, file_template=False):
     # Create the file if it doesn't exist
     if not file_size(file_path_in):
         if file_name.split(".")[-1] == "json":
-            if file_template:
-                write_json(file_path_in, file_template)
-            else:
-                write_json(file_path_in, {})
+            write_json(file_path_in, file_template if file_template else {})
         else:
             with open(file_path_in, "w+") as fout:
-                if file_template:
-                    fout.write(file_template)
-                else:
-                    fout.write("")
+                fout.write(file_template if file_template else "")
 
 
 def write_json(json_file, json_out):
@@ -107,11 +101,11 @@ class ColorFormatter(logging.Formatter):
     )
 
     FORMATS = {
-        logging.DEBUG: white + format + reset,
-        logging.INFO: green + format + reset,
-        logging.WARNING: yellow + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: red + format + reset,
+        logging.DEBUG: f"{white}{format}{reset}",
+        logging.INFO: f"{green}{format}{reset}",
+        logging.WARNING: f"{yellow}{format}{reset}",
+        logging.ERROR: f"{red}{format}{reset}",
+        logging.CRITICAL: f"{red}{format}{reset}",
     }
 
     def format(self, record):

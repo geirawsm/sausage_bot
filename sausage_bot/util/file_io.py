@@ -188,7 +188,7 @@ def ensure_folder(folder_path: str):
         Path(_path).mkdir(parents=True, exist_ok=True)
 
 
-def ensure_file(file_path_in: str, file_template=False):
+def ensure_file(file_path_in: str, file_template: str = ""):
     """
     Create file `file_path_in` if it doesn't exist and include the
     `file_template` if provided.
@@ -201,21 +201,17 @@ def ensure_file(file_path_in: str, file_template=False):
     if not os.path.exists(file_path_in):
         ensure_folder(folder_path)
     # Ooooh, this is a scary one. Don't overwrite the file unless it's empty
-    logger.debug("{} size: {}".format(file_name, file_size(file_path_in)))
+    logger.debug(f"{file_name} size: {file_size(file_path_in)}")
     # Create the file if it doesn't exist
     if not file_size(file_path_in):
-        logger.debug("File not found, creating: {}".format(file_path_in))
+        logger.debug(f"File not found, creating: {file_path_in}")
         if file_name.split(".")[-1] == "json":
-            if file_template:
-                write_json(file_path_in, file_template)
-            else:
-                write_json(file_path_in, {})
+            write_json(file_path_in, file_template if file_template else {})
         else:
             with open(file_path_in, "w+") as fout:
-                if file_template:
-                    fout.write(file_template)
-                else:
-                    fout.write("")
+                fout.write(file_template if file_template else "")
+    else:
+        logger.error(f"Could not find file {file_size(file_path_in)}")
 
 
 def get_max_item_lengths(headers, dict_in):
