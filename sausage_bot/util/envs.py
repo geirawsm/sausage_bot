@@ -138,7 +138,7 @@ ADMIN_CHANNEL_ID=
 SPOTIFY_ID=
 SPOTIFY_SECRET=
 
-# Scrapeops is being used for changing user agent agent when fetching links 
+# Scrapeops is being used for changing user agent agent when fetching links
 # It's not mandatory, but it might help: https://scrapeops.io
 SCRAPEOPS_API_KEY=
 """

@@ -1562,4 +1562,4 @@ if config.DISCORD_TOKEN != "":
     except Exception as _error:
         logger.error(f"Could not start bot: {_error}")
 else:
-    logger.error(f"DISCORD_TOKEN is not set in .env-file or docker envs")
+    logger.error("DISCORD_TOKEN is not set in .env-file or docker envs")
