@@ -13,7 +13,6 @@ colorama = "*"
 colorlog = "*"
 discord = "*"
 "discord.py" = "*"
-environs = "*"
 html5lib = "*"
 httpx = "*"
 i18nice = {extras = ["yaml"], version = "*"}
@@ -32,6 +31,7 @@ pillow = "*"
 yt-dlp = {extras = ["default"], version = "*"}
 audioop-lts = "*"
 typing-extensions = "*"
+environs = "*"
 
 [dev-packages]
 astpretty = "*"
