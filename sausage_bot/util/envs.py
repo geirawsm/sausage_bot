@@ -2,9 +2,24 @@
 # -*- coding: UTF-8 -*-
 "envs: Set variables for the module like folder, files and botlines"
 
+from environs import Env, EnvError
+from os import stat
 from pathlib import Path
 
 from sausage_bot.util.args import args
+
+
+def file_exist(filename):
+    """
+    Checks if the file exist. If it can't find the file it will return
+    False
+    """
+    try:
+        stat(str(filename), follow_symlinks=True)
+        return True
+    except FileNotFoundError:
+        return False
+
 
 # Folders
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -75,6 +90,17 @@ test_tv2livesport_json_good = TESTPARSE_DIR / "tv2livesport.json"
 # Files
 version_file = ROOT_DIR / "version.json"
 env_file = DATA_DIR / ".env"
+# Special retrieval of env file
+try:
+    env = Env()
+    if file_exist(env_file):
+        env.read_env(path=env_file)
+    LOG_ROTATION_DAYS = env("LOG_ROTATION_DAYS", default=10)
+except EnvError as e:
+    LOG_ROTATION_DAYS = 10
+    print(
+        f"Could not set 'LOG_ROTATION_DAYS'. Have you set this in docker compose secrets?: {e}"
+    )
 rss_feeds_file = JSON_DIR / "rss-feeds.json"
 rss_feeds_logs_file = JSON_DIR / "rss-feeds-log.json"
 youtube_feeds_file = JSON_DIR / "yt-feeds.json"
@@ -98,6 +124,7 @@ BOT_ID=
 PREFIX=
 LOCALE=
 BOT_CHANNEL=bot
+LOG_ROTATION_DAYS=10
 
 # Multi-guild settings
 # ADMIN_GUILD_ID is the bot's home guild - it is auto-approved and never

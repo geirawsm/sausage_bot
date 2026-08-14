@@ -65,7 +65,6 @@ try:
     BOT_CHANNEL = env("BOT_CHANNEL", default="bot-log")
     TIMEZONE = env("BOT_TIMEZONE", default="UTC")
     LANGUAGE = env("BOT_LANGUAGE", default="en")
-    LOG_ROTATION_DAYS = env("LOG_ROTATION_DAYS", default=10)
     ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
     SPOTIFY_ID = env("SPOTIFY_ID", default=None)
     SPOTIFY_SECRET = env("SPOTIFY_SECRET", default=None)
