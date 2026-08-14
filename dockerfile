@@ -30,4 +30,6 @@ RUN echo \
 
 
 # Run bot
-ENTRYPOINT [ "python", "-m", "sausage_bot" ]
+# --data-dir points the bot at the volume declared above. Without it the
+# bot would write to `sausage_bot/data/` inside the image layer instead.
+ENTRYPOINT [ "python", "-m", "sausage_bot", "--data-dir", "/data" ]
