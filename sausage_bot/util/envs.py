@@ -117,12 +117,10 @@ stats_logs_file = JSON_DIR / "stats_logs.json"
 roles_settings_file = JSON_DIR / "roles_settings.json"
 
 # Template content
-env_template = """
-# Basic settings
+env_template = """# Basic settings
 DISCORD_TOKEN=
 BOT_ID=
 PREFIX=
-LOCALE=
 BOT_CHANNEL=bot
 LOG_ROTATION_DAYS=10
 
@@ -132,6 +130,17 @@ LOG_ROTATION_DAYS=10
 # the /approve-guild command are used from ADMIN_CHANNEL_ID in that guild.
 ADMIN_GUILD_ID=
 ADMIN_CHANNEL_ID=
+
+# Spotify settings
+# To be used if you want Spotify branding on the podcast feeds.
+# Follow the instructions on this page on _Getting started_: https://developer.spotify.com/documentation/web-api
+# Add "Client ID" and "Client secret" in this files or as environment argument in docker
+SPOTIFY_ID=
+SPOTIFY_SECRET=
+
+# Scrapeops is being used for changing user agent agent when fetching links 
+# It's not mandatory, but it might help: https://scrapeops.io
+SCRAPEOPS_API_KEY=
 """
 
 # Guilds registry (global - not scoped to a guild, this IS the list of guilds)

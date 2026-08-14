@@ -456,7 +456,7 @@ async def on_ready():
         await config.bot.add_cog(Profile(config.bot))
 
     logger.debug("Deleting old json files")
-    if file_io.file_size(envs.cogs_status_file):
+    if file_io.file_exist(envs.cogs_status_file):
         logger.debug("Found old json file")
         file_io.remove_file(envs.cogs_status_file)
 
@@ -1556,7 +1556,10 @@ async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Me
 
 # Locale db is per-guild - created in `register_guild()` (see on_ready
 # and on_guild_join above), not at import time here.
-try:
-    config.bot.run(config.DISCORD_TOKEN)
-except Exception as _error:
-    logger.error(f"Could not start bot: {_error}")
+if config.DISCORD_TOKEN != "":
+    try:
+        config.bot.run(config.DISCORD_TOKEN)
+    except Exception as _error:
+        logger.error(f"Could not start bot: {_error}")
+else:
+    logger.error(f"DISCORD_TOKEN is not set in .env-file or docker envs")
