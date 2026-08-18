@@ -47,7 +47,12 @@ async def get_random_user_agent():
 
 class SayTextInput(discord.ui.TextInput):
     def __init__(
-        self, style_in, label_in, default_in=None, required_in=None, placeholder_in=None
+        self,
+        style_in,
+        label_in,
+        default_in=None,
+        required_in=None,
+        placeholder_in=None,
     ):
         super().__init__(
             style=style_in,
@@ -168,7 +173,8 @@ class EditModal(discord.ui.Modal):
         logger.error(f"Error when editing message: {error}")
         self.error_out = error
         await interaction.response.send_message(
-            I18N.t("main.context_menu.edit_msg.edit_error", error=error), ephemeral=True
+            I18N.t("main.context_menu.edit_msg.edit_error", error=error),
+            ephemeral=True,
         )
 
 
@@ -258,6 +264,34 @@ async def resolve_guild_row(guild_id: str) -> dict | None:
     return None
 
 
+def resolve_guild_arg(guild_arg) -> discord.Guild | None:
+    """
+    Resolve a guild autocomplete value to a guild the bot is currently a
+    member of, or None.
+
+    Sibling to `resolve_guild_row()`, but answers a different question:
+    that one looks in the guild *registry*, which also holds guilds the
+    bot has left, while this one only ever returns a live
+    `discord.Guild`. `/guild set_admin_guild` needs the live object -
+    it has to read and possibly create channels there.
+
+    Accepts a guild id or, since autocomplete never restricts what can
+    be submitted, a typed guild name.
+    #autodoc skip#
+    """
+    if guild_arg in (None, ""):
+        return None
+    wanted = str(guild_arg).strip()
+    if wanted.isdigit():
+        guild = config.bot.get_guild(int(wanted))
+        if guild is not None:
+            return guild
+    for guild in config.bot.guilds:
+        if str(guild.name).lower() == wanted.lower():
+            return guild
+    return None
+
+
 async def pending_guilds_autocomplete(
     interaction: discord.Interaction,
     current: str,
@@ -297,6 +331,123 @@ async def all_guilds_autocomplete(
     ][:25]
 
 
+# Marks an `admin_channel_autocomplete` choice as "create this channel"
+# rather than "use this existing channel". Existing channels submit their
+# id, so the prefix is what keeps a channel literally named like a
+# snowflake from being ambiguous.
+NEW_CHANNEL_PREFIX = "new:"
+
+
+async def admin_guild_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    """
+    Guilds the bot is a *member* of, for `/guild set_admin_guild`.
+
+    Unlike `all_guilds_autocomplete` this reads `config.bot.guilds`
+    rather than the registry: the admin guild has to be one the bot can
+    actually read and post in, so guilds it has left don't belong here.
+    #autodoc skip#
+    """
+    return [
+        discord.app_commands.Choice(
+            name=guild_choice_label(guild.name, guild.id),
+            value=str(guild.id),
+        )
+        for guild in sorted(config.bot.guilds, key=lambda g: str(g.name).lower())
+        if guild_choice_matches(current, guild.name, guild.id)
+    ][:25]
+
+
+def current_admin_guild() -> discord.Guild | None:
+    """
+    The guild `config.ADMIN_GUILD_ID` currently points at, or None when
+    none is configured or the bot isn't in it.
+    #autodoc skip#
+    """
+    return resolve_guild_arg(config.ADMIN_GUILD_ID)
+
+
+def admin_channel_choices(
+    guild: discord.Guild | None,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    """
+    Autocomplete choices for a text channel in `guild`, shared by
+    `/guild set_admin_guild` and `/guild set_admin_channel`.
+
+    Existing channels submit their id. When what's typed doesn't name an
+    existing channel, a "create this" choice is offered on top - the
+    commands treat it as a new channel name and confirm before creating.
+    Filtering on what's typed also means the 25 choice cap acts as a
+    search limit rather than a ceiling on how many channels a guild may
+    have.
+    #autodoc skip#
+    """
+    if guild is None:
+        return []
+    typed = str(current or "").strip().lstrip("#")
+    choices = [
+        discord.app_commands.Choice(
+            name="#{}".format(channel.name)[:100],
+            value=str(channel.id),
+        )
+        for channel in guild.text_channels
+        if typed.lower() in str(channel.name).lower()
+    ][:24]
+    already_exists = any(
+        str(channel.name).lower() == typed.lower() for channel in guild.text_channels
+    )
+    if typed and not already_exists:
+        choices.insert(
+            0,
+            discord.app_commands.Choice(
+                name=I18N.t(
+                    "main.commands.guild.admin_channel.ac_create_new",
+                    channel=typed,
+                )[:100],
+                # Discord caps choice values at 100 chars, and so does a
+                # channel name - trim the tail, the prefix has to survive.
+                value="{}{}".format(NEW_CHANNEL_PREFIX, typed)[:100],
+            ),
+        )
+    return choices[:25]
+
+
+async def admin_channel_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    """
+    Text channels in the guild picked in the `guild` parameter of
+    `/guild set_admin_guild` - read off `interaction.namespace`, since
+    the target guild is not the one the command is being run from. That
+    is also why this can't be a `discord.ui.ChannelSelect` or a
+    `TextChannel` parameter: both only ever resolve channels in the
+    invoking guild.
+
+    Returns nothing while `guild` is still empty. The user can type a
+    channel name anyway - `set_admin_guild()` reports the missing guild.
+    #autodoc skip#
+    """
+    guild = resolve_guild_arg(getattr(interaction.namespace, "guild", None))
+    return admin_channel_choices(guild, current)
+
+
+async def admin_channel_only_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[discord.app_commands.Choice[str]]:
+    """
+    Text channels in the guild that is *already* the admin guild, for
+    `/guild set_admin_channel`. There is no `guild` parameter to read
+    here - the target is whatever `config.ADMIN_GUILD_ID` points at.
+    #autodoc skip#
+    """
+    return admin_channel_choices(current_admin_guild(), current)
+
+
 async def register_guild(guild: discord.Guild):
     """
     Make sure `guild` has a row in the guild registry. New guilds are
@@ -311,12 +462,14 @@ async def register_guild(guild: discord.Guild):
     # can also reach this function directly - prep_table is a cheap,
     # idempotent CREATE TABLE IF NOT EXISTS.
     await db_helper.prep_table(envs.guilds_db_schema)
-    existing = await db_helper.get_output(
+    await db_helper.prep_table(envs.admin_guild_db_schema)
+    existing_guilds = await db_helper.get_output(
         envs.guilds_db_schema, where=("guild_id", str(guild.id)), single=True
     )
-    if existing:
-        logger.info(existing)
-        if existing["status"].lower() == "removed":
+    existing_admin = await db_helper.get_output(envs.admin_guild_db_schema)
+    if existing_guilds:
+        logger.info(existing_guilds)
+        if existing_guilds["status"].lower() == "removed":
             await db_helper.update_fields(
                 envs.guilds_db_schema,
                 where=("guild_id", str(guild.id)),
@@ -345,6 +498,17 @@ async def register_guild(guild: discord.Guild):
         # here instead - `/approve-guild` does the same for other guilds.
         await db_helper.ensure_guild_tasks_rows(guild.id)
         logger.info(f"Registered admin guild `{guild.name}` ({guild.id})")
+        # Also register the guild to admin_guild database
+        # If len(rows) is 0, add as new row
+        if len(existing_admin) == 0:
+            await db_helper.insert_many_all(
+                template_info=envs.admin_guild_db_schema,
+                inserts=[(str(guild.id), str(guild.name))],
+            )
+            logger.info(
+                "Admin guild registered to database. Env ADMIN_GUILD_ID is no longer necessary"
+            )
+
     else:
         logger.info(f"Registered new pending guild `{guild.name}` ({guild.id})")
         await notify_admin_of_new_guild(guild)
@@ -424,6 +588,76 @@ async def on_guild_remove(guild: discord.Guild):
     )
 
 
+async def load_admin_guild_from_db() -> None:
+    """
+    Apply the `admin_guild` table to the running config, with the
+    `ADMIN_GUILD_ID`/`ADMIN_CHANNEL_ID` env values as fallback.
+
+    The table is the source of truth - `/guild set_admin_guild` writes
+    it, and the env vars only bootstrap a fresh install. An empty table
+    therefore leaves the env values alone: `register_guild()` seeds the
+    row from them on the first run.
+
+    A row naming a guild the bot is no longer a member of, or a channel
+    that has since been deleted, is left in the db but not applied. The
+    env values are used instead and a warning is logged, since silently
+    trusting a dangling row would point every admin notification at a
+    channel that cannot receive it. `/guild set_admin_guild` is
+    deliberately not gated on `_in_admin_guild()`, so the bot owner can
+    always set a working one from wherever they are.
+
+    Called from `on_ready()` *before* guilds are registered, because
+    `register_guild()` decides auto-approval by comparing against
+    `config.ADMIN_GUILD_ID`.
+    #autodoc skip#
+    """
+    await db_helper.prep_table(envs.admin_guild_db_schema)
+    admin_row = await db_helper.get_output(envs.admin_guild_db_schema, single=True)
+    # Reset to the env values first, so this function is idempotent
+    # rather than dependent on config still holding its import-time state.
+    config.ADMIN_GUILD_ID = config.ENV_ADMIN_GUILD_ID
+    config.ADMIN_CHANNEL_ID = config.ENV_ADMIN_CHANNEL_ID
+    if not admin_row:
+        logger.debug("No admin guild registered in db, using env values")
+    else:
+        db_guild_id = str(admin_row.get("guild_id") or "").strip()
+        db_channel_id = str(admin_row.get("guild_channel") or "").strip()
+        guild = None
+        if db_guild_id.isdigit():
+            guild = config.bot.get_guild(int(db_guild_id))
+        channel = None
+        if guild is not None and db_channel_id.isdigit():
+            channel = guild.get_channel(int(db_channel_id))
+        if guild is None:
+            logger.warning(
+                f"Admin guild `{db_guild_id}` from db is not a guild the bot is "
+                "in - falling back to the env values. Run `/guild "
+                "set_admin_guild` to point it somewhere the bot can reach."
+            )
+        elif channel is None:
+            logger.warning(
+                f"Admin channel `{db_channel_id}` no longer exists in "
+                f"`{guild.name}` - falling back to the env values. Run "
+                "`/guild set_admin_guild` to pick a new channel."
+            )
+        else:
+            config.ADMIN_GUILD_ID = str(guild.id)
+            config.ADMIN_CHANNEL_ID = str(channel.id)
+            logger.info(
+                f"Admin guild from db: `{guild.name}` ({guild.id}), "
+                f"channel `#{channel.name}` ({channel.id})"
+            )
+    if config.ADMIN_GUILD_ID is None or config.ADMIN_CHANNEL_ID is None:
+        # Not fatal - the bot runs fine, but new-guild notifications have
+        # nowhere to go and every `_in_admin_guild()` command is
+        # unreachable until this is set.
+        logger.error(
+            "No admin guild configured. Set ADMIN_GUILD_ID and "
+            "ADMIN_CHANNEL_ID in the env file, or run `/guild "
+            "set_admin_guild` to store one in the database."
+        )
+
+
 @config.bot.event
 async def on_ready():
     """
@@ -447,6 +681,11 @@ async def on_ready():
     # `tasks_db_schema` is guild-scoped (see envs.py) - it is prepped per
     # guild in `register_guild()`/`approve_guild()` below and defensively
     # again in each posting cog's own `setup()`.
+
+    # Has to happen before the `register_guild()` loop further down: that
+    # decides auto-approval against `config.ADMIN_GUILD_ID`, which this
+    # may replace with whatever `/guild set_admin_guild` last stored.
+    await load_admin_guild_from_db()
 
     if config.bot.get_cog("Sync") is None:
         await config.bot.add_cog(Sync(config.bot))
@@ -494,7 +733,8 @@ async def on_ready():
             await guild.create_text_channel(
                 name=str(bot_channel),
                 topic=I18N.t(
-                    "main.msg.create_log_channel_logging", botname=config.bot.user.name
+                    "main.msg.create_log_channel_logging",
+                    botname=config.bot.user.name,
                 ),
                 overwrites=overwrites,
             )
@@ -502,7 +742,8 @@ async def on_ready():
 
 @config.bot.tree.error
 async def on_app_command_error(
-    interaction: discord.Interaction, error: discord.app_commands.AppCommandError
+    interaction: discord.Interaction,
+    error: discord.app_commands.AppCommandError,
 ):
     """
     Tree-wide error handler. Only meaningfully handles
@@ -657,6 +898,271 @@ class LeaveGuildConfirm_view(discord.ui.View):
         self.disable_buttons()
 
 
+class CreateAdminChannelConfirm_view(discord.ui.View):
+    """
+    Confirmation for creating a brand new admin channel in
+    `/guild set_admin_guild`.
+
+    The `channel` parameter is autocompleted but not restricted, so a
+    typo arrives as free text and would otherwise silently create a
+    channel nobody asked for. `value` is True when the owner confirmed,
+    False when they cancelled, and stays None when the view timed out
+    without a press.
+    #autodoc skip#
+    """
+
+    def __init__(self, user_id: int, timeout: int = 60):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.value = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Only whoever ran the command may press the buttons
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                I18N.t("main.commands.guild.admin_channel.not_yours"),
+                ephemeral=True,
+            )
+            return False
+        return True
+
+    def disable_buttons(self):
+        "#autodoc skip#"
+        for _btn in self.children:
+            _btn.disabled = True
+
+    @discord.ui.button(
+        label=I18N.t("main.commands.guild.admin_channel.btn_create"),
+        style=discord.ButtonStyle.green,
+    )
+    async def confirm(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        "#autodoc skip#"
+        self.value = True
+        self.disable_buttons()
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @discord.ui.button(
+        label=I18N.t("common.cancel"),
+        style=discord.ButtonStyle.secondary,
+    )
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        "#autodoc skip#"
+        self.value = False
+        self.disable_buttons()
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    async def on_timeout(self):
+        "#autodoc skip#"
+        self.disable_buttons()
+
+
+async def resolve_admin_channel(
+    interaction: discord.Interaction,
+    target_guild: discord.Guild,
+    channel_arg: str,
+):
+    """
+    Turn the `channel` argument of `/guild set_admin_guild` and
+    `/guild set_admin_channel` into a text channel in `target_guild`,
+    creating one after confirmation when the name doesn't exist yet.
+
+    The argument is autocompleted but not restricted, so it arrives as a
+    channel id picked from the list, the name of an existing channel, or
+    the name of one that doesn't exist. Only the last creates anything,
+    and only once the owner confirms - a typo submits exactly like a
+    deliberate new name.
+
+    Returns `(channel, prompt)`. `channel` is None when the flow ended
+    without one; the user has already been told why, so callers should
+    just return. `prompt` is the confirmation message when one was
+    shown, so callers can edit their own prompt into the final answer
+    instead of stacking a second message below it.
+    #autodoc skip#
+    """
+    channel_arg = str(channel_arg or "").strip()
+    if not channel_arg:
+        await interaction.followup.send(
+            I18N.t("main.commands.guild.admin_channel.msg_no_channel"),
+            ephemeral=True,
+        )
+        return None, None
+    target_channel = None
+    new_channel_name = None
+    if channel_arg.startswith(NEW_CHANNEL_PREFIX):
+        # Picked the "create this" choice from the autocomplete
+        new_channel_name = channel_arg[len(NEW_CHANNEL_PREFIX) :].strip()
+    elif channel_arg.isdigit():
+        # An id can only come from the autocomplete, so a miss here means
+        # the channel was deleted mid-command - not a name to create a
+        # channel from.
+        target_channel = target_guild.get_channel(int(channel_arg))
+        if target_channel is None:
+            await interaction.followup.send(
+                I18N.t(
+                    "main.commands.guild.admin_channel.msg_channel_not_found",
+                    channel=channel_arg,
+                    guild_name=target_guild.name,
+                ),
+                ephemeral=True,
+            )
+            return None, None
+    else:
+        wanted_name = channel_arg.lstrip("#")
+        target_channel = get(target_guild.text_channels, name=wanted_name)
+        if target_channel is None:
+            new_channel_name = wanted_name
+    if target_channel is not None and not isinstance(
+        target_channel, discord.TextChannel
+    ):
+        await interaction.followup.send(
+            I18N.t(
+                "main.commands.guild.admin_channel.msg_not_text_channel",
+                channel=target_channel.name,
+            ),
+            ephemeral=True,
+        )
+        return None, None
+    if not new_channel_name:
+        return target_channel, None
+    view = CreateAdminChannelConfirm_view(user_id=interaction.user.id)
+    confirm_msg = await interaction.followup.send(
+        I18N.t(
+            "main.commands.guild.admin_channel.confirm_create",
+            channel=new_channel_name,
+            guild_name=target_guild.name,
+            guild_id=target_guild.id,
+        ),
+        view=view,
+        ephemeral=True,
+        wait=True,
+    )
+    await view.wait()
+    if view.value is None:
+        await confirm_msg.edit(
+            content=I18N.t(
+                "main.commands.guild.admin_channel.msg_timeout",
+                channel=new_channel_name,
+            ),
+            view=None,
+        )
+        return None, confirm_msg
+    if view.value is False:
+        await confirm_msg.edit(
+            content=I18N.t(
+                "main.commands.guild.admin_channel.msg_cancelled",
+                channel=new_channel_name,
+            ),
+            view=None,
+        )
+        return None, confirm_msg
+    try:
+        async with db_helper.guild_locale_context(target_guild.id):
+            target_channel = await discord_commands.create_missing_channel(
+                target_guild,
+                channel_name=new_channel_name,
+                topic=I18N.t(
+                    "main.msg.create_log_channel_logging",
+                    botname=config.bot.user.name,
+                ),
+            )
+    except discord.HTTPException as e:
+        logger.error(
+            f"Could not create `{new_channel_name}` in "
+            f"`{target_guild.name}` ({target_guild.id}): {e}"
+        )
+        await confirm_msg.edit(
+            content=I18N.t(
+                "main.commands.guild.admin_channel.msg_create_failed",
+                channel=new_channel_name,
+                error=e,
+            ),
+            view=None,
+        )
+        return None, confirm_msg
+    if target_channel is None:
+        # `create_missing_channel` returns None when it decided the
+        # channel already existed - it was checked above, so this means
+        # the two disagree rather than that all is well
+        logger.error(
+            f"No channel object back after creating `{new_channel_name}` "
+            f"in `{target_guild.name}` ({target_guild.id})"
+        )
+        await confirm_msg.edit(
+            content=I18N.t(
+                "main.commands.guild.admin_channel.msg_create_failed",
+                channel=new_channel_name,
+                error="-",
+            ),
+            view=None,
+        )
+        return None, confirm_msg
+    return target_channel, confirm_msg
+
+
+async def _persist_admin_guild(
+    guild: discord.Guild, channel: discord.abc.GuildChannel
+) -> None:
+    """
+    Store `guild`/`channel` as the bot's admin guild and apply it to the
+    running config straight away, so `_in_admin_guild()` and the
+    new-guild notifications follow along without a restart.
+    `load_admin_guild_from_db()` picks the same row up on the next start.
+
+    `admin_guild` holds a single row and `guild_id` is its primary key,
+    so the table is emptied and re-inserted rather than updated in place.
+    #autodoc skip#
+    """
+    await db_helper.prep_table(envs.admin_guild_db_schema)
+    await db_helper.empty_table(envs.admin_guild_db_schema)
+    await db_helper.insert_many_all(
+        template_info=envs.admin_guild_db_schema,
+        inserts=[(str(guild.id), str(guild.name), str(channel.id))],
+    )
+    config.ADMIN_GUILD_ID = str(guild.id)
+    config.ADMIN_CHANNEL_ID = str(channel.id)
+
+
+async def _approve_admin_guild(guild: discord.Guild, approved_by: int) -> None:
+    """
+    Make sure the new admin guild is `approved` in the guild registry,
+    the same way `register_guild()` auto-approves the env-configured one.
+    Without this the admin guild could sit as `pending` with no task
+    rows, which would leave its own posting cogs inactive.
+
+    A guild that is already approved keeps its original approver and
+    timestamp.
+    #autodoc skip#
+    """
+    guild_row = await resolve_guild_row(str(guild.id))
+    if guild_row is None:
+        logger.warning(
+            f"`{guild.name}` ({guild.id}) was missing from the guild registry "
+            "- registering it before approving"
+        )
+        await register_guild(guild)
+        guild_row = await resolve_guild_row(str(guild.id))
+    if guild_row is None or guild_row.get("status") != "approved":
+        await db_helper.update_fields(
+            envs.guilds_db_schema,
+            where=("guild_id", str(guild.id)),
+            updates=[
+                ("status", "approved"),
+                ("approved_by", str(approved_by)),
+                ("approved_at", await get_dt(format="ISO8601")),
+            ],
+        )
+    await db_helper.prep_table(
+        envs.settings_db_schema,
+        inserts=envs.settings_db_schema["inserts"],
+        guild_id=guild.id,
+    )
+    await db_helper.ensure_guild_tasks_rows(guild.id)
+
+
 class Guild(commands.Cog):
     "Administer guild settings"
 
@@ -691,7 +1197,10 @@ class Guild(commands.Cog):
             # result.
             logger.error(f"No guild in the registry matches `{guild_id}`")
             await interaction.followup.send(
-                I18N.t("main.commands.guild.approve.msg_not_found", guild_id=guild_id),
+                I18N.t(
+                    "main.commands.guild.approve.msg_not_found",
+                    guild_id=guild_id,
+                ),
                 ephemeral=True,
             )
             return
@@ -754,7 +1263,10 @@ class Guild(commands.Cog):
             # `all_guilds_autocomplete` lists every row in the guild registry,
             # including guilds the bot is no longer a member of.
             await interaction.followup.send(
-                I18N.t("main.commands.guild.leave.msg_not_member", guild_id=guild_id),
+                I18N.t(
+                    "main.commands.guild.leave.msg_not_member",
+                    guild_id=guild_id,
+                ),
                 ephemeral=True,
             )
             return
@@ -877,6 +1389,136 @@ class Guild(commands.Cog):
         )
         await interaction.followup.send(text_out, ephemeral=True)
 
+    @discord_commands.is_owner()
+    @guild_group.command(
+        name="set_admin_guild", description=locale_str(I18N.t("main.owner_only"))
+    )
+    @discord.app_commands.autocomplete(
+        guild=admin_guild_autocomplete,
+        channel=admin_channel_autocomplete,
+    )
+    async def set_admin_guild(
+        self,
+        interaction: discord.Interaction,
+        guild: str,
+        channel: str,
+    ):
+        """
+        Point the bot's admin guild/channel at another guild.
+
+        Both parameters are autocompleted, and neither is restricted to
+        its suggestions - `channel` accepts a channel id picked from the
+        list, the name of an existing channel, or the name of one to
+        create. Creating is confirmed first, since a typo is
+        indistinguishable from a deliberate new name.
+
+        Not gated on `_in_admin_guild()`, unlike the other owner-only
+        guild commands: this is the command that fixes a wrong admin
+        guild, so requiring the admin guild to be right would lock the
+        owner out of the only way back.
+        #autodoc skip#
+        """
+        await interaction.response.defer(ephemeral=True)
+        target_guild = resolve_guild_arg(guild)
+        if target_guild is None:
+            await interaction.followup.send(
+                I18N.t(
+                    "main.commands.guild.set_admin_guild.msg_not_member",
+                    guild=guild,
+                ),
+                ephemeral=True,
+            )
+            return
+        target_channel, confirm_msg = await resolve_admin_channel(
+            interaction, target_guild, channel
+        )
+        if target_channel is None:
+            # `resolve_admin_channel` has already explained why
+            return
+        await _persist_admin_guild(target_guild, target_channel)
+        await _approve_admin_guild(target_guild, interaction.user.id)
+        logger.info(
+            f"Admin guild set to `{target_guild.name}` ({target_guild.id}), "
+            f"channel `#{target_channel.name}` ({target_channel.id}) "
+            f"by `{interaction.user}`"
+        )
+        text_out = I18N.t(
+            "main.commands.guild.set_admin_guild.msg_confirm",
+            guild_name=target_guild.name,
+            guild_id=target_guild.id,
+            channel=target_channel.name,
+        )
+        if confirm_msg is not None:
+            await confirm_msg.edit(content=text_out, view=None)
+        else:
+            await interaction.followup.send(text_out, ephemeral=True)
+
+    @discord_commands.is_owner()
+    @guild_group.command(
+        name="set_admin_channel", description=locale_str(I18N.t("main.owner_only"))
+    )
+    @discord.app_commands.autocomplete(channel=admin_channel_only_autocomplete)
+    async def set_admin_channel(
+        self,
+        interaction: discord.Interaction,
+        channel: str,
+    ):
+        """
+        Move the admin channel within the guild that is already the
+        admin guild. `/guild set_admin_guild` is the one that changes
+        which guild that is.
+
+        `channel` is autocompleted but not restricted, so it takes a
+        channel id picked from the list, the name of an existing
+        channel, or the name of one to create - creating is confirmed
+        first, the same as in `/guild set_admin_guild`.
+
+        Gated on `_in_admin_guild()`, unlike `/guild set_admin_guild`:
+        this only ever touches the admin guild's own channel, so there
+        is no lockout to escape from. A wrong *guild* is still fixed
+        with `/guild set_admin_guild` from anywhere.
+        #autodoc skip#
+        """
+        await interaction.response.defer(ephemeral=True)
+        if not _in_admin_guild(interaction):
+            await interaction.followup.send(
+                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                ephemeral=True,
+            )
+            return
+        target_guild = current_admin_guild()
+        if target_guild is None:
+            # `_in_admin_guild` compares ids, so this only happens when
+            # the bot is no longer in its own admin guild
+            await interaction.followup.send(
+                I18N.t("main.commands.guild.set_admin_channel.msg_no_admin_guild"),
+                ephemeral=True,
+            )
+            return
+        target_channel, confirm_msg = await resolve_admin_channel(
+            interaction, target_guild, channel
+        )
+        if target_channel is None:
+            # `resolve_admin_channel` has already explained why
+            return
+        # Same single-row write as `/guild set_admin_guild` - the guild
+        # is unchanged, so there is nothing to approve or prep here.
+        await _persist_admin_guild(target_guild, target_channel)
+        logger.info(
+            f"Admin channel set to `#{target_channel.name}` "
+            f"({target_channel.id}) in `{target_guild.name}` "
+            f"({target_guild.id}) by `{interaction.user}`"
+        )
+        text_out = I18N.t(
+            "main.commands.guild.set_admin_channel.msg_confirm",
+            guild_name=target_guild.name,
+            channel=target_channel.name,
+        )
+        if confirm_msg is not None:
+            await confirm_msg.edit(content=text_out, view=None)
+        else:
+            await interaction.followup.send(text_out, ephemeral=True)
+
 
 # This needs to be used to init the first sync so
 # `syncglobal` and `syncdev` will be visible
@@ -954,7 +1596,8 @@ async def clear_locals(ctx):
 
 
 @config.bot.tree.command(
-    name="version", description=locale_str(I18N.t("main.commands.version.command"))
+    name="version",
+    description=locale_str(I18N.t("main.commands.version.command")),
 )
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -988,7 +1631,8 @@ async def ping(interaction: discord.Interaction):
 
 @discord_commands.is_owner_or_has_permission("manage_messages")
 @config.bot.tree.command(
-    name="delete", description=locale_str(I18N.t("main.commands.delete.command"))
+    name="delete",
+    description=locale_str(I18N.t("main.commands.delete.command")),
 )
 async def delete(interaction: discord.Interaction, amount: int):
     "Delete `amount` number of messages in the chat"
@@ -1002,7 +1646,8 @@ async def delete(interaction: discord.Interaction, amount: int):
             limit=amount, reason=I18N.t("main.commands.delete.log_confirm")
         )
         await interaction.followup.send(
-            I18N.t("main.commands.delete.msg_confirm", amount=amount), ephemeral=True
+            I18N.t("main.commands.delete.msg_confirm", amount=amount),
+            ephemeral=True,
         )
     return
 
@@ -1031,11 +1676,13 @@ async def kick(
     try:
         await member.kick(reason=reason)
         await interaction.followup.send(
-            I18N.t("main.commands.kick.msg_confirm", member=member), ephemeral=True
+            I18N.t("main.commands.kick.msg_confirm", member=member),
+            ephemeral=True,
         )
     except Exception as _error:
         await interaction.followup.send(
-            I18N.t("main.commands.kick.msg_failed", error=_error), ephemeral=True
+            I18N.t("main.commands.kick.msg_failed", error=_error),
+            ephemeral=True,
         )
 
 
@@ -1121,7 +1768,8 @@ async def get_tasks_list(interaction: discord.Interaction):
     logger.debug(f"Got this from `tasks_in_db`: {tasks_in_db}")
     text_out = "```{}```".format(
         tabulate(
-            tasks_in_db, headers={"cog": "Cog", "task": "Task", "status": "Status"}
+            tasks_in_db,
+            headers={"cog": "Cog", "task": "Task", "status": "Status"},
         )
     )
     logger.debug(f"Returning:\n{text_out}")
@@ -1143,7 +1791,8 @@ async def get_tasks_global_list(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
         await interaction.followup.send(
-            I18N.t("main.commands.tasks_global.msg_not_admin_guild"), ephemeral=True
+            I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+            ephemeral=True,
         )
         return
     approved_guilds = await db_helper.get_output(
@@ -1293,7 +1942,8 @@ class DuplicateChannelModal(discord.ui.Modal):
             position=source.position + 1,
             overwrites=source.overwrites,
             reason=I18N.t(
-                "main.commands.bot_channel.create_modal.reason", source=source.name
+                "main.commands.bot_channel.create_modal.reason",
+                source=source.name,
             ),
         )
         await _persist_bot_channel(interaction.guild, new_name)
@@ -1418,7 +2068,9 @@ async def timezone(interaction: discord.Interaction, timezone: str):
     return
 
 
-def _has_manage_bot_profile_permission(interaction: discord.Interaction) -> bool:
+def _has_manage_bot_profile_permission(
+    interaction: discord.Interaction,
+) -> bool:
     "#autodoc skip#"
     perms = interaction.user.guild_permissions
     return perms.administrator or perms.manage_nicknames
@@ -1465,7 +2117,8 @@ class Profile(commands.Cog):
         """
         if not _has_manage_bot_profile_permission(interaction):
             await interaction.response.send_message(
-                I18N.t("main.commands.set_profile.msg_no_permission"), ephemeral=True
+                I18N.t("main.commands.set_profile.msg_no_permission"),
+                ephemeral=True,
             )
             return
         if nickname is None and avatar is None and banner is None and bio is None:
@@ -1509,7 +2162,8 @@ class Profile(commands.Cog):
         """
         if not _has_manage_bot_profile_permission(interaction):
             await interaction.response.send_message(
-                I18N.t("main.commands.reset_profile.msg_no_permission"), ephemeral=True
+                I18N.t("main.commands.reset_profile.msg_no_permission"),
+                ephemeral=True,
             )
             return
         await interaction.response.defer(ephemeral=True)
@@ -1546,7 +2200,8 @@ async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Me
         )
         return
     modal_in = EditModal(
-        title_in=I18N.t("main.context_menu.edit_msg.name"), comment_in=message.content
+        title_in=I18N.t("main.context_menu.edit_msg.name"),
+        comment_in=message.content,
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()

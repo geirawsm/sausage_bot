@@ -59,10 +59,20 @@ try:
     BOT_ID = env("BOT_ID", default=None)
     # ADMIN_GUILD_ID is the bot's home guild - it is auto-approved and is
     # where the /approve-guild flow and new-guild notifications run from.
-    ADMIN_GUILD_ID = env("ADMIN_GUILD_ID", default=None)
-    ADMIN_CHANNEL_ID = env("ADMIN_CHANNEL_ID", default=None)
+    # The `admin_guild` table is the source of truth for these: at startup
+    # `load_admin_guild_from_db()` (__main__.py) overwrites ADMIN_GUILD_ID
+    # and ADMIN_CHANNEL_ID from that table, and `/guild set_admin_guild`
+    # writes it. The env values below are only the bootstrap/fallback used
+    # when the table is empty or its row points at a guild/channel the bot
+    # can no longer see - the ENV_ copies are kept unmodified so the loader
+    # has something to fall back to after it has replaced the live values.
+    ENV_ADMIN_GUILD_ID = env("ADMIN_GUILD_ID", default=None)
+    ENV_ADMIN_CHANNEL_ID = env("ADMIN_CHANNEL_ID", default=None)
+    ADMIN_GUILD_ID = ENV_ADMIN_GUILD_ID
+    ADMIN_CHANNEL_ID = ENV_ADMIN_CHANNEL_ID
     PREFIX = env("PREFIX", default="!")
     BOT_CHANNEL = env("BOT_CHANNEL", default="bot-log")
+    # TODO: Fjerne timezone og language etterhvert, alt skal via db
     TIMEZONE = env("BOT_TIMEZONE", default="UTC")
     LANGUAGE = env("BOT_LANGUAGE", default="en")
     ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
@@ -75,10 +85,12 @@ try:
     POD_LOOP = env.int("POD_LOOP", default=15)
     FCB_LOOP = env.int("FCB_LOOP", default=60)
     INVITATION_CHANNEL = env.int("INVITATION_CHANNEL", default="general")
-    if any(
-        envvar is None
-        for envvar in [DISCORD_TOKEN, BOT_ID, ADMIN_GUILD_ID, ADMIN_CHANNEL_ID]
-    ):
+    # Only the credentials the bot cannot start without are checked here.
+    # ADMIN_GUILD_ID/ADMIN_CHANNEL_ID are deliberately not: they can just
+    # as well come from the `admin_guild` table, and demanding them here
+    # would exit before any db read is possible. Missing them in both
+    # places is reported by `load_admin_guild_from_db()` in on_ready.
+    if any(envvar is None for envvar in [DISCORD_TOKEN, BOT_ID]):
         print("Something is wrong with the env file.")
         exit()
 except EnvError as e:

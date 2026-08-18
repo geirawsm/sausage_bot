@@ -14,6 +14,47 @@ from sausage_bot.util.i18n import I18N
 logger = config.logger
 
 
+class ButtonConfirm(discord.ui.Button):
+    def __init__(self, label):
+        super().__init__(label=label, style=discord.ButtonStyle.green)
+        self.value = None
+
+    async def callback(self, interaction: discord.Interaction):
+        self.value = True
+        # Disable all buttons
+        buttons = [x for x in self.view.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        await interaction.response.edit_message(view=self.view)
+        self.view.stop()
+
+
+class ButtonDeny(discord.ui.Button):
+    def __init__(self, label):
+        super().__init__(label=label, style=discord.ButtonStyle.red)
+        self.value = None
+
+    async def callback(self, interaction: discord.Interaction):
+        self.value = False
+        # Disable all buttons
+        buttons = [x for x in self.view.children]
+        for _btn in buttons:
+            _btn.disabled = True
+        await interaction.response.edit_message(view=self.view)
+        self.view.stop()
+
+
+class EitherOrButtons(discord.ui.View):
+    def __init__(self, *, timeout=60, yes_label=None, no_label=None):
+        super().__init__(timeout=timeout)
+        self.yes_label = yes_label
+        self.no_label = no_label
+        self.value = None
+
+        self.add_item(ButtonConfirm(label=self.yes_label))
+        self.add_item(ButtonDeny(label=self.no_label))
+
+
 class OwnerOnlyCheckFailure(discord.app_commands.CheckFailure):
     """
     Raised by `is_owner()` when the invoking user is not the bot owner.
@@ -156,9 +197,9 @@ async def create_missing_channel(
             missing = True
             logger.info(f"Could not find channel with id {channel_id}")
     elif not channel_id and channel_name:
-        if get(_guild.text_channels, name=str(channel_id)) is None:
+        if get(_guild.text_channels, name=str(channel_name)) is None:
             missing = True
-            logger.info(f"Could not find channel with name {channel_id}")
+            logger.info(f"Could not find channel with name {channel_name}")
     else:
         logger.error(
             "Both 'channel_id' and 'channel_name' is None. This needs to be fixed."

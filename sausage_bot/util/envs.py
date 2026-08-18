@@ -121,8 +121,8 @@ env_template = """# Basic settings
 DISCORD_TOKEN=
 BOT_ID=
 PREFIX=
-BOT_CHANNEL=bot
-LOG_ROTATION_DAYS=10
+BOT_CHANNEL=
+LOG_ROTATION_DAYS=
 
 # Multi-guild settings
 # ADMIN_GUILD_ID is the bot's home guild - it is auto-approved and never
@@ -155,6 +155,19 @@ guilds_db_schema = {
         ["joined_at", "TEXT"],
         ["approved_by", "TEXT"],
         ["approved_at", "TEXT"],
+    ],
+    "primary": "guild_id",
+    "autoincrement": False,
+}
+
+admin_guild_db_schema = {
+    "db_file": GUILDS_DB_FILE,
+    "scope": "global",
+    "name": "admin_guild",
+    "items": [
+        ["guild_id", "TEXT NOT NULL UNIQUE"],
+        ["guild_name", "TEXT"],
+        ["guild_channel", "TEXT"],
     ],
     "primary": "guild_id",
     "autoincrement": False,

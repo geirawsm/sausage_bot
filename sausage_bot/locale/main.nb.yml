@@ -74,6 +74,25 @@ nb:
       approve:
         msg_confirm: "✅ Godkjente guild %{guild_name} (%{guild_id})."
         msg_not_found: "❌ Ingen guild som samsvarer med `%{guild_id}` er registrert. Velg en guild fra autofullfør-lista i stedet for å skrive den inn - lista sender inn guild-id, ikke navnet."
+      admin_channel:
+        ac_create_new: "➕ Opprett #%{channel}"
+        not_yours: Denne bekreftelsen er ikke din.
+        btn_create: Opprett kanal
+        msg_no_channel: "❌ Ingen kanal oppgitt. Velg en fra autofullfør-lista, eller skriv navnet på en kanal som skal opprettes."
+        msg_channel_not_found: "❌ Ingen kanal med id `%{channel}` finnes i %{guild_name}. Den kan ha blitt slettet - prøv på nytt."
+        msg_not_text_channel: "❌ `%{channel}` er ikke en tekstkanal."
+        confirm_create: |-
+          ⚠️ **%{channel}** finnes ikke i %{guild_name} (`%{guild_id}`).
+          Opprette den og sette den som admin-kanal?
+        msg_timeout: "⏲️ Tidsavbrudd - `%{channel}` ble ikke opprettet, og ingenting ble endret."
+        msg_cancelled: "❌ Avbrutt - `%{channel}` ble ikke opprettet, og ingenting ble endret."
+        msg_create_failed: "❌ Kunne ikke opprette `%{channel}`: %{error}"
+      set_admin_guild:
+        msg_not_member: "❌ Boten er ikke medlem av en guild som samsvarer med `%{guild}`. Velg en guild fra autofullfør-lista i stedet for å skrive den inn."
+        msg_confirm: "✅ Admin-guild satt til %{guild_name} (`%{guild_id}`), admin-kanal #%{channel}."
+      set_admin_channel:
+        msg_no_admin_guild: "❌ Boten er ikke lenger i sin egen admin-guild. Bruk `/guild set_admin_guild` for å peke den mot en den kan nå."
+        msg_confirm: "✅ Admin-kanal satt til #%{channel} i %{guild_name}."
       leave:
         not_yours: Denne bekreftelsen er ikke din.
         btn_leave: Forlat guild
