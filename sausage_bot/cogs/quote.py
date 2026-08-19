@@ -1713,14 +1713,6 @@ async def ensure_guild_quote_tables(guild):
     await db_helper.prep_table(table_in=envs.quote_content_db_schema, guild_id=guild.id)
     await db_helper.prep_table(table_in=envs.quote_img_db_schema, guild_id=guild.id)
 
-    # Change channel name to id
-    await db_helper.db_single_channel_name_to_id(
-        template_info=envs.quote_db_settings_schema,
-        channel_row="setting",
-        channel_col="value",
-        guild=guild,
-    )
-
 
 async def setup(bot):
     cog_name = "quote"

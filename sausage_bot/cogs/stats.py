@@ -253,19 +253,8 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
 
     async def check_and_post_to_stats_msg_id(stats_settings, stats_info):
         # Get `stats_msg_id` from db to update stats post
+        stats_settings = await get_db_settings(guild)
         channel_setting = stats_settings.get("channel")
-        if channel_setting is not None and not re.match(r"^\d+$", str(channel_setting)):
-            # `channel` setting is still a channel name (not migrated to
-            # an id yet) - try to resolve and persist it, then re-read
-            # the fresh value instead of the now-stale `stats_settings`.
-            await db_helper.db_single_channel_name_to_id(
-                template_info=envs.stats_db_settings_schema,
-                channel_row="setting",
-                channel_col="value",
-                guild=guild,
-            )
-            stats_settings = await get_db_settings(guild)
-            channel_setting = stats_settings.get("channel")
         if channel_setting is None or not re.match(r"^\d+$", str(channel_setting)):
             logger.error("`stats_channel` is not a channel")
             return None
@@ -826,9 +815,7 @@ class Stats(commands.Cog):
                 )
         else:
             await interaction.followup.send(
-                content=I18N.t(
-                    "stats.commands.hide_roles_add.msg.no_hidden_roles"
-                ),
+                content=I18N.t("stats.commands.hide_roles_add.msg.no_hidden_roles"),
                 ephemeral=True,
             )
         return
@@ -898,9 +885,7 @@ class Stats(commands.Cog):
                         guild, files_in_codebase, lines_in_codebase
                     )
                 except Exception as error:
-                    logger.error(
-                        f"Error updating stats for `{guild.name}`: {error}"
-                    )
+                    logger.error(f"Error updating stats for `{guild.name}`: {error}")
                     continue
 
     @task_update_stats.before_loop
@@ -937,25 +922,6 @@ async def ensure_guild_stats_tables(guild):
         envs.stats_db_settings_schema, guild_id=guild.id
     )
     await db_helper.db_remove_old_cols(envs.stats_db_settings_schema, guild_id=guild.id)
-    # Change channel name to id
-    channel_name_to_id = await db_helper.db_single_channel_name_to_id(
-        template_info=envs.stats_db_settings_schema,
-        channel_row="setting",
-        channel_col="value",
-        guild=guild,
-    )
-    if channel_name_to_id is None:
-        logger.error(f"Stats channel not found for `{guild.name}`, disabling posting")
-        # Make sure this guild's `tasks_db_schema` rows exist before
-        # writing to them - `ensure_guild_tasks_rows` is idempotent, so
-        # this is safe to call regardless of call order in `setup()`.
-        await db_helper.ensure_guild_tasks_rows(guild.id)
-        await db_helper.update_fields(
-            template_info=envs.tasks_db_schema,
-            where=[("cog", "stats"), ("task", "post_stats")],
-            updates=("status", "stopped"),
-            guild_id=guild.id,
-        )
 
 
 async def setup(bot):
