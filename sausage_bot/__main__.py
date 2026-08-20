@@ -462,11 +462,9 @@ async def register_guild(guild: discord.Guild):
     # can also reach this function directly - prep_table is a cheap,
     # idempotent CREATE TABLE IF NOT EXISTS.
     await db_helper.prep_table(envs.guilds_db_schema)
-    await db_helper.prep_table(envs.admin_guild_db_schema)
     existing_guilds = await db_helper.get_output(
         envs.guilds_db_schema, where=("guild_id", str(guild.id)), single=True
     )
-    existing_admin = await db_helper.get_output(envs.admin_guild_db_schema)
     if existing_guilds:
         logger.info(existing_guilds)
         if existing_guilds["status"].lower() == "removed":
@@ -498,17 +496,10 @@ async def register_guild(guild: discord.Guild):
         # here instead - `/approve-guild` does the same for other guilds.
         await db_helper.ensure_guild_tasks_rows(guild.id)
         logger.info(f"Registered admin guild `{guild.name}` ({guild.id})")
-        # Also register the guild to admin_guild database
-        # If len(rows) is 0, add as new row
-        if len(existing_admin) == 0:
-            await db_helper.insert_many_all(
-                template_info=envs.admin_guild_db_schema,
-                inserts=[(str(guild.id), str(guild.name))],
-            )
-            logger.info(
-                "Admin guild registered to database. Env ADMIN_GUILD_ID is no longer necessary"
-            )
-
+        # Seeding the `admin_guild` table is deliberately *not* done here.
+        # This branch is only reached the first time a guild is registered,
+        # so an installation that has run before would never get a row.
+        # `seed_admin_guild_from_env()` handles it from on_ready instead.
     else:
         logger.info(f"Registered new pending guild `{guild.name}` ({guild.id})")
         await notify_admin_of_new_guild(guild)
@@ -588,6 +579,57 @@ async def on_guild_remove(guild: discord.Guild):
     )
 
 
+async def seed_admin_guild_from_env() -> bool:
+    """
+    Write the env-configured admin guild into the empty `admin_guild`
+    table, so a fresh install ends up with the same single row that
+    `/guild set_admin_guild` would have written.
+
+    Only called when the table is empty. A row that exists but does not
+    validate is left alone on purpose - see `load_admin_guild_from_db()`.
+
+    The env values are only seeded when the bot can actually see both the
+    guild and the channel. Storing an unreachable pair would turn a
+    typo in the env file into a db row that outlives the env file itself.
+
+    Returns True when a row was written.
+    #autodoc skip#
+    """
+    guild_id = str(config.ADMIN_GUILD_ID or "").strip()
+    channel_id = str(config.ADMIN_CHANNEL_ID or "").strip()
+    if not (guild_id.isdigit() and channel_id.isdigit()):
+        logger.warning(
+            f"Env ADMIN_GUILD_ID (`{guild_id}`) and ADMIN_CHANNEL_ID "
+            f"(`{channel_id}`) must both be numeric ids to be stored in "
+            "the database. Run `/guild set_admin_guild` instead."
+        )
+        return False
+    guild = config.bot.get_guild(int(guild_id))
+    if guild is None:
+        logger.warning(
+            f"Env ADMIN_GUILD_ID `{guild_id}` is not a guild the bot is in "
+            "- not storing it in the database."
+        )
+        return False
+    channel = guild.get_channel(int(channel_id))
+    if channel is None:
+        logger.warning(
+            f"Env ADMIN_CHANNEL_ID `{channel_id}` does not exist in "
+            f"`{guild.name}` - not storing it in the database."
+        )
+        return False
+    if not await _persist_admin_guild(guild, channel):
+        # `_persist_admin_guild` has already logged the failure. The env
+        # values still apply for this run, they just are not persisted.
+        return False
+    logger.info(
+        f"Admin guild from env stored in database: `{guild.name}` "
+        f"({guild.id}), channel `#{channel.name}` ({channel.id}). The "
+        "ADMIN_GUILD_ID/ADMIN_CHANNEL_ID env values are no longer needed."
+    )
+    return True
+
+
 async def load_admin_guild_from_db() -> None:
     """
     Apply the `admin_guild` table to the running config, with the
@@ -595,8 +637,9 @@ async def load_admin_guild_from_db() -> None:
 
     The table is the source of truth - `/guild set_admin_guild` writes
     it, and the env vars only bootstrap a fresh install. An empty table
-    therefore leaves the env values alone: `register_guild()` seeds the
-    row from them on the first run.
+    therefore leaves the env values alone and, when they point somewhere
+    the bot can reach, `seed_admin_guild_from_env()` stores them as the
+    first row.
 
     A row naming a guild the bot is no longer a member of, or a channel
     that has since been deleted, is left in the db but not applied. The
@@ -656,6 +699,12 @@ async def load_admin_guild_from_db() -> None:
             "ADMIN_CHANNEL_ID in the env file, or run `/guild "
             "set_admin_guild` to store one in the database."
         )
+        return
+    if not admin_row:
+        # Runs on every start with an empty table, not just the first time
+        # the admin guild happens to be registered, so an installation that
+        # predates this gets its row too.
+        await seed_admin_guild_from_env()
 
 
 @config.bot.event
@@ -1105,7 +1154,7 @@ async def resolve_admin_channel(
 
 async def _persist_admin_guild(
     guild: discord.Guild, channel: discord.abc.GuildChannel
-) -> None:
+) -> bool:
     """
     Store `guild`/`channel` as the bot's admin guild and apply it to the
     running config straight away, so `_in_admin_guild()` and the
@@ -1114,16 +1163,30 @@ async def _persist_admin_guild(
 
     `admin_guild` holds a single row and `guild_id` is its primary key,
     so the table is emptied and re-inserted rather than updated in place.
+
+    Returns True when the row was written, False when the insert failed.
+    A failed write leaves the running config untouched rather than
+    claiming an admin guild that is not stored anywhere - callers are
+    expected to report that instead of confirming a change that did not
+    happen. `--not-write-database` is not a failure: nothing is written,
+    but the config still follows along so the rest of the run behaves.
     #autodoc skip#
     """
     await db_helper.prep_table(envs.admin_guild_db_schema)
     await db_helper.empty_table(envs.admin_guild_db_schema)
-    await db_helper.insert_many_all(
+    written = await db_helper.insert_many_all(
         template_info=envs.admin_guild_db_schema,
         inserts=[(str(guild.id), str(guild.name), str(channel.id))],
     )
+    if written is False:
+        logger.error(
+            f"Could not store admin guild `{guild.name}` ({guild.id}) with "
+            f"channel `#{channel.name}` ({channel.id}) in the database"
+        )
+        return False
     config.ADMIN_GUILD_ID = str(guild.id)
     config.ADMIN_CHANNEL_ID = str(channel.id)
+    return True
 
 
 async def _approve_admin_guild(guild: discord.Guild, approved_by: int) -> None:
@@ -1435,7 +1498,17 @@ class Guild(commands.Cog):
         if target_channel is None:
             # `resolve_admin_channel` has already explained why
             return
-        await _persist_admin_guild(target_guild, target_channel)
+        if not await _persist_admin_guild(target_guild, target_channel):
+            # `_persist_admin_guild` logged the reason and left the running
+            # config alone, so nothing was changed anywhere.
+            failed_out = I18N.t(
+                "main.commands.guild.set_admin_guild.msg_db_failed"
+            )
+            if confirm_msg is not None:
+                await confirm_msg.edit(content=failed_out, view=None)
+            else:
+                await interaction.followup.send(failed_out, ephemeral=True)
+            return
         await _approve_admin_guild(target_guild, interaction.user.id)
         logger.info(
             f"Admin guild set to `{target_guild.name}` ({target_guild.id}), "
@@ -1503,7 +1576,15 @@ class Guild(commands.Cog):
             return
         # Same single-row write as `/guild set_admin_guild` - the guild
         # is unchanged, so there is nothing to approve or prep here.
-        await _persist_admin_guild(target_guild, target_channel)
+        if not await _persist_admin_guild(target_guild, target_channel):
+            failed_out = I18N.t(
+                "main.commands.guild.set_admin_channel.msg_db_failed"
+            )
+            if confirm_msg is not None:
+                await confirm_msg.edit(content=failed_out, view=None)
+            else:
+                await interaction.followup.send(failed_out, ephemeral=True)
+            return
         logger.info(
             f"Admin channel set to `#{target_channel.name}` "
             f"({target_channel.id}) in `{target_guild.name}` "
@@ -1553,12 +1634,16 @@ async def syncglobal(ctx):
     _reply = await ctx.reply(
         "💭💭 {}".format(I18N.t("main.commands.syncglobal.msg_starting"))
     )
-    logger.debug("Clearing commands...")
-    config.bot.tree.clear_commands(guild=None)
+    # No `clear_commands()` here. It only empties the tree in memory, so
+    # clearing before syncing pushed an empty set to Discord and deleted
+    # every global command instead of registering them - `syncglobal` did
+    # exactly what `clearglobals` does. `sync()` already removes commands
+    # that are no longer in the tree, so pushing the tree as-is is enough.
     for command in config.bot.tree.get_commands():
         logger.debug(f"Checking {command.name}")
     logger.debug("Syncing...")
-    await config.bot.tree.sync(guild=None)
+    synced = await config.bot.tree.sync(guild=None)
+    logger.debug(f"Synced {len(synced)} global commands")
     await _reply.edit(
         content="✅✅ {}".format(I18N.t("main.commands.syncglobal.msg_confirm"))
     )

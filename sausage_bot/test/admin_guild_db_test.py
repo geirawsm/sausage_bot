@@ -50,11 +50,18 @@ def _make_bot(guild_id=None, channel_id=None):
     )
 
 
-async def _run(row, bot, env_guild=ENV_GUILD_ID, env_channel=ENV_CHANNEL_ID):
+async def _run(
+    row, bot, env_guild=ENV_GUILD_ID, env_channel=ENV_CHANNEL_ID, persist=None
+):
+    # `_persist_admin_guild` is patched out by default: an empty table
+    # makes `load_admin_guild_from_db()` try to seed the row, and an
+    # unpatched seed would write to the real guilds db file.
     db = main_module.db_helper
+    persist = persist if persist is not None else mock.AsyncMock(return_value=True)
     with (
         mock.patch.object(db, "prep_table", mock.AsyncMock()),
         mock.patch.object(db, "get_output", mock.AsyncMock(return_value=row)),
+        mock.patch.object(main_module, "_persist_admin_guild", persist),
         mock.patch.object(config, "bot", bot),
         mock.patch.object(config, "ENV_ADMIN_GUILD_ID", env_guild),
         mock.patch.object(config, "ENV_ADMIN_CHANNEL_ID", env_channel),
@@ -65,6 +72,7 @@ async def _run(row, bot, env_guild=ENV_GUILD_ID, env_channel=ENV_CHANNEL_ID):
         return SimpleNamespace(
             guild_id=config.ADMIN_GUILD_ID,
             channel_id=config.ADMIN_CHANNEL_ID,
+            persist=persist,
         )
 
 
@@ -77,7 +85,8 @@ def _row(guild_id=DB_GUILD_ID, channel_id=DB_CHANNEL_ID):
 
 
 async def test_empty_table_keeps_the_env_values():
-    # First run on a fresh install - `register_guild()` seeds the row
+    # First run on a fresh install. The env guild is not one this bot is
+    # in, so there is nothing to seed - the values still apply for the run.
     result = await _run(None, _make_bot(DB_GUILD_ID, DB_CHANNEL_ID))
     assert result.guild_id == ENV_GUILD_ID
     assert result.channel_id == ENV_CHANNEL_ID
@@ -131,3 +140,94 @@ async def test_missing_everywhere_is_reported_as_an_error():
     assert result.guild_id is None
     log_error.assert_called_once()
     assert "set_admin_guild" in log_error.call_args.args[0]
+
+
+async def test_reachable_env_values_are_seeded_into_an_empty_table():
+    # The bootstrap path: env points at a guild/channel the bot can see
+    # and the table is empty, so the row is written for the next start.
+    result = await _run(
+        None,
+        _make_bot(DB_GUILD_ID, DB_CHANNEL_ID),
+        env_guild=DB_GUILD_ID,
+        env_channel=DB_CHANNEL_ID,
+    )
+    result.persist.assert_awaited_once()
+    seeded_guild, seeded_channel = result.persist.await_args.args
+    assert str(seeded_guild.id) == DB_GUILD_ID
+    assert str(seeded_channel.id) == DB_CHANNEL_ID
+
+
+async def test_seeding_is_skipped_when_the_env_guild_is_unreachable():
+    result = await _run(
+        None,
+        _make_bot(DB_GUILD_ID, DB_CHANNEL_ID),
+        env_guild="999999999999999999",
+        env_channel=DB_CHANNEL_ID,
+    )
+    result.persist.assert_not_awaited()
+
+
+async def test_seeding_is_skipped_when_the_env_channel_is_unreachable():
+    result = await _run(
+        None,
+        _make_bot(DB_GUILD_ID, DB_CHANNEL_ID),
+        env_guild=DB_GUILD_ID,
+        env_channel="999999999999999999",
+    )
+    result.persist.assert_not_awaited()
+
+
+async def test_a_dangling_row_is_not_overwritten_by_the_env_values():
+    # The row names a guild the bot has left. It is deliberately kept so
+    # the owner can see what it pointed at - seeding only fills an empty
+    # table.
+    result = await _run(
+        _row(),
+        _make_bot("999999999999999999", DB_CHANNEL_ID),
+        env_guild="999999999999999999",
+        env_channel=DB_CHANNEL_ID,
+    )
+    result.persist.assert_not_awaited()
+
+
+async def test_persist_writes_a_value_for_every_column():
+    # Regression: this used to insert (guild_id, guild_name) into a
+    # three-column table, which SQLite rejects with "table admin_guild has
+    # 3 columns but 2 values were supplied". The error was swallowed by
+    # db_helper, so the row was silently never written.
+    db = main_module.db_helper
+    insert = mock.AsyncMock(return_value=True)
+    guild = SimpleNamespace(id=int(DB_GUILD_ID), name=DB_GUILD_NAME)
+    channel = SimpleNamespace(id=int(DB_CHANNEL_ID), name=DB_CHANNEL_NAME)
+    with (
+        mock.patch.object(db, "prep_table", mock.AsyncMock()),
+        mock.patch.object(db, "empty_table", mock.AsyncMock()),
+        mock.patch.object(db, "insert_many_all", insert),
+        mock.patch.object(config, "ADMIN_GUILD_ID", None),
+        mock.patch.object(config, "ADMIN_CHANNEL_ID", None),
+    ):
+        assert await main_module._persist_admin_guild(guild, channel) is True
+        assert config.ADMIN_GUILD_ID == DB_GUILD_ID
+        assert config.ADMIN_CHANNEL_ID == DB_CHANNEL_ID
+    columns = main_module.envs.admin_guild_db_schema["items"]
+    written = insert.await_args.kwargs["inserts"][0]
+    assert len(written) == len(columns)
+    assert written == (DB_GUILD_ID, DB_GUILD_NAME, DB_CHANNEL_ID)
+
+
+async def test_persist_reports_a_failed_write_and_leaves_config_alone():
+    db = main_module.db_helper
+    guild = SimpleNamespace(id=int(DB_GUILD_ID), name=DB_GUILD_NAME)
+    channel = SimpleNamespace(id=int(DB_CHANNEL_ID), name=DB_CHANNEL_NAME)
+    with (
+        mock.patch.object(db, "prep_table", mock.AsyncMock()),
+        mock.patch.object(db, "empty_table", mock.AsyncMock()),
+        mock.patch.object(db, "insert_many_all", mock.AsyncMock(return_value=False)),
+        mock.patch.object(config, "ADMIN_GUILD_ID", "unchanged"),
+        mock.patch.object(config, "ADMIN_CHANNEL_ID", "unchanged"),
+    ):
+        assert await main_module._persist_admin_guild(guild, channel) is False
+        # A failed write must not leave the process claiming an admin
+        # guild that is not stored anywhere.
+        assert config.ADMIN_GUILD_ID == "unchanged"
+        assert config.ADMIN_CHANNEL_ID == "unchanged"
