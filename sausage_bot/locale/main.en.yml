@@ -95,9 +95,11 @@ en:
       set_admin_guild:
         msg_not_member: "❌ The bot is not a member of a guild matching `%{guild}`. Pick a guild from the autocomplete list instead of typing it."
         msg_confirm: "✅ Admin guild set to %{guild_name} (`%{guild_id}`), admin channel #%{channel}."
+        msg_db_failed: "❌ Could not store the admin guild in the database. Nothing was changed - check the bot log."
       set_admin_channel:
         msg_no_admin_guild: "❌ The bot is no longer in its own admin guild. Use `/guild set_admin_guild` to point it at one it can reach."
         msg_confirm: "✅ Admin channel set to #%{channel} in %{guild_name}."
+        msg_db_failed: "❌ Could not store the admin channel in the database. Nothing was changed - check the bot log."
       leave:
         not_yours: This confirmation isn't yours.
         btn_leave: Leave guild

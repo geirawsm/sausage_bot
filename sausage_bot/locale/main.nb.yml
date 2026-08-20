@@ -90,9 +90,11 @@ nb:
       set_admin_guild:
         msg_not_member: "❌ Boten er ikke medlem av en guild som samsvarer med `%{guild}`. Velg en guild fra autofullfør-lista i stedet for å skrive den inn."
         msg_confirm: "✅ Admin-guild satt til %{guild_name} (`%{guild_id}`), admin-kanal #%{channel}."
+        msg_db_failed: "❌ Klarte ikke å lagre admin-guilden i databasen. Ingenting ble endret - sjekk botloggen."
       set_admin_channel:
         msg_no_admin_guild: "❌ Boten er ikke lenger i sin egen admin-guild. Bruk `/guild set_admin_guild` for å peke den mot en den kan nå."
         msg_confirm: "✅ Admin-kanal satt til #%{channel} i %{guild_name}."
+        msg_db_failed: "❌ Klarte ikke å lagre admin-kanalen i databasen. Ingenting ble endret - sjekk botloggen."
       leave:
         not_yours: Denne bekreftelsen er ikke din.
         btn_leave: Forlat guild
