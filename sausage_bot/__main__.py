@@ -1634,12 +1634,16 @@ async def syncglobal(ctx):
     _reply = await ctx.reply(
         "💭💭 {}".format(I18N.t("main.commands.syncglobal.msg_starting"))
     )
-    logger.debug("Clearing commands...")
-    config.bot.tree.clear_commands(guild=None)
+    # No `clear_commands()` here. It only empties the tree in memory, so
+    # clearing before syncing pushed an empty set to Discord and deleted
+    # every global command instead of registering them - `syncglobal` did
+    # exactly what `clearglobals` does. `sync()` already removes commands
+    # that are no longer in the tree, so pushing the tree as-is is enough.
     for command in config.bot.tree.get_commands():
         logger.debug(f"Checking {command.name}")
     logger.debug("Syncing...")
-    await config.bot.tree.sync(guild=None)
+    synced = await config.bot.tree.sync(guild=None)
+    logger.debug(f"Synced {len(synced)} global commands")
     await _reply.edit(
         content="✅✅ {}".format(I18N.t("main.commands.syncglobal.msg_confirm"))
     )
