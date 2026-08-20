@@ -752,6 +752,14 @@ async def on_ready():
         await register_guild(guild)
 
     await cogs.Cogs.load_and_clean_cogs_internal()
+
+    # The loop refreshes the scraped user-agents `net_io.get_link()` uses.
+    # It was declared but never started, so the headers file was never
+    # written. Without an api key there is nothing to fetch, and `get_link`
+    # falls back to aiohttp's own user-agent.
+    if config.SCRAPEOPS_API_KEY and not get_random_user_agent.is_running():
+        get_random_user_agent.start()
+
     if args.maintenance:
         logger.info("Maintenance mode activated", color="RED")
         await config.bot.change_presence(status=discord.Status.dnd)
@@ -1501,9 +1509,7 @@ class Guild(commands.Cog):
         if not await _persist_admin_guild(target_guild, target_channel):
             # `_persist_admin_guild` logged the reason and left the running
             # config alone, so nothing was changed anywhere.
-            failed_out = I18N.t(
-                "main.commands.guild.set_admin_guild.msg_db_failed"
-            )
+            failed_out = I18N.t("main.commands.guild.set_admin_guild.msg_db_failed")
             if confirm_msg is not None:
                 await confirm_msg.edit(content=failed_out, view=None)
             else:
@@ -1577,9 +1583,7 @@ class Guild(commands.Cog):
         # Same single-row write as `/guild set_admin_guild` - the guild
         # is unchanged, so there is nothing to approve or prep here.
         if not await _persist_admin_guild(target_guild, target_channel):
-            failed_out = I18N.t(
-                "main.commands.guild.set_admin_channel.msg_db_failed"
-            )
+            failed_out = I18N.t("main.commands.guild.set_admin_channel.msg_db_failed")
             if confirm_msg is not None:
                 await confirm_msg.edit(content=failed_out, view=None)
             else:

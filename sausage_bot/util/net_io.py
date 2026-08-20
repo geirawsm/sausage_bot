@@ -61,8 +61,22 @@ async def get_link(url=None, mock_file=None, status_out=None):
     "Get contents of requests object from a `url`"
 
     def get_random_user_agent():
+        """
+        A scraped user-agent, or None when there are none to pick from.
+
+        `SCRAPEOPS_API_KEY` is optional, and `fetch_random_user_agent()`
+        writes nothing without it, so the headers file is regularly
+        missing or empty. `file_io.read_json()` creates it as `{}` in
+        that case, which used to raise `KeyError: 'result'` here and get
+        reported as a url error by the caller's `except`.
+        """
         headers_file = envs.TEMP_DIR / "headers.json"
-        return choice(dict(file_io.read_json(headers_file))["result"])["user-agent"]
+        scraped = file_io.read_json(headers_file) or {}
+        results = scraped.get("result") or []
+        if not results:
+            logger.debug("No scraped user-agents available, using the default")
+            return None
+        return choice(results)["user-agent"]
 
     if mock_file:
         logger.debug("Found mock file, returning it")
@@ -83,7 +97,8 @@ async def get_link(url=None, mock_file=None, status_out=None):
         # Get random user agent
         rand_user_agent = get_random_user_agent()
         logger.debug(f"Using user-agent: {rand_user_agent}")
-        headers = {"user-agent": rand_user_agent}
+        # aiohttp falls back to its own user-agent when this is None
+        headers = {"user-agent": rand_user_agent} if rand_user_agent else None
         # async with session.get(url) as resp:
         async with session.get(url, headers=headers) as resp:
             url_status = resp.status
@@ -109,14 +124,15 @@ async def get_link(url=None, mock_file=None, status_out=None):
         else:
             return content_out
     except Exception as e:
-        logger.error(f"Error when getting `url`:({url_status}) {e}")
-        if isinstance(url_status, int):
-            return int(url_status)
-        else:
-            return None
+        logger.error(f"Error when getting `url` {url}: ({url_status}) {e}")
+        # `status_out` callers index `req["status"]` straight away, so the
+        # failure path has to keep the same shape as the success path.
+        if status_out:
+            return {"status": url_status, "content": None}
+        # Nothing was fetched, so say so. This used to return `url_status`,
+        # which is still 0 here - no response ever arrived - and callers
+        # read that as a real HTTP status code.
         return None
-    else:
-        return content_out
 
 
 def enclosure_is_media(tag):
