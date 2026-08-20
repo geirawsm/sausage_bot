@@ -56,7 +56,8 @@ jobs:
           images: ${{secrets.DOCKER_USER}}/sausage_bot
 
       - name: Short Github SHA
-        run: echo "github_short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        id: short_sha
+        run: echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push versioned main
         uses: docker/build-push-action@v7
@@ -64,7 +65,7 @@ jobs:
           context: .
           push: true
           file: ./dockerfile
-          tags: ${{secrets.DOCKER_USER}}/sausage_bot:${{ github.ref_name }}_$github_short_sha
+          tags: ${{secrets.DOCKER_USER}}/sausage_bot:${{ github.ref_name }}_${{ steps.short_sha.outputs.value }}
           labels: |
             Branch=${{ github.ref_name }}
             Last commit_msg=${{ github.event.head_commit.message }}
