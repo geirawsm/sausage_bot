@@ -24,6 +24,8 @@ en:
   none: None
   color: Color
   playlist: Playlist
+  unknown_channel: "unknown channel (%{id})"
+  unknown_member: "unknown member (%{id})"
   settings:
     setting: Setting
     value: Value

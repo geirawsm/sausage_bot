@@ -24,6 +24,8 @@ nb:
   none: None
   color: Farge
   playlist: Spilleliste
+  unknown_channel: "ukjent kanal (%{id})"
+  unknown_member: "ukjent medlem (%{id})"
   settings:
     setting: Innstilling
     value: Verdi

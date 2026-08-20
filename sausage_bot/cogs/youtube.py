@@ -396,7 +396,9 @@ class Youtube(commands.Cog):
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
-                list_type=list_type.lower(),
+                # `get_feed_list` expects the untranslated list type, so
+                # don't pass the localized literal along
+                list_type="added",
                 link_type=link_type,
             )
         elif list_type == I18N.t("youtube.commands.list.literal_list_type.filter"):
@@ -404,7 +406,7 @@ class Youtube(commands.Cog):
                 guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
                 db_filter_in=envs.youtube_db_filter_schema,
-                list_type=list_type.lower(),
+                list_type="filter",
                 link_type=link_type,
             )
         else:
