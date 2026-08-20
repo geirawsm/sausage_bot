@@ -598,11 +598,16 @@ async def get_feed_list(
     db_filter_in: str
         Database with the filters (default: None)
     list_type: str
-        If specified, should show that specific list_type
+        If specified, should show that specific list_type: `added` or
+        `filter` (default: None, a plain listing)
     link_type: str
-        If specified, should show that specific link_type
+        If specified, should show that specific link_type: `channel` or
+        `playlist` (default: None, both)
     feed_type: str
         If specified, should show that specific feed_type
+
+    Note that `list_type`/`link_type` are the untranslated values - the
+    cogs are the ones dealing with the localized command literals.
     """
 
     async def split_lengthy_list(table_in):
@@ -636,7 +641,7 @@ async def get_feed_list(
     _guild = guild
     # Not every feed db knows about playlists (rss feeds don't)
     has_playlist_id = any(item[0] == "playlist_id" for item in db_in["items"])
-    show_playlist_id = has_playlist_id and link_type is not None
+    show_playlist_id = has_playlist_id and link_type in ["channel", "playlist"]
 
     def wanted_link_type(feed_in) -> bool:
         """
@@ -648,7 +653,7 @@ async def get_feed_list(
         if not show_playlist_id:
             return True
         is_playlist = feed_in.get("playlist_id") not in [None, "", "None"]
-        if link_type == I18N.t("youtube.commands.list.literal_link_type.playlist"):
+        if link_type == "playlist":
             return is_playlist
         return not is_playlist
 

@@ -20,6 +20,15 @@ from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
+# The `typing.Literal` choices for the list commands are evaluated once, at
+# import time, and discord hands the picked *value* back untranslated -
+# only the name shown in the client is localized. Compare against the same
+# constants the Literal was built from, and not a fresh `I18N.t()` call in
+# whatever locale the guild happens to use, or nothing ever matches.
+LIST_TYPE_NORMAL = I18N.t("rss.commands.list.literal_type.normal")
+LIST_TYPE_ADDED = I18N.t("rss.commands.list.literal_type.added")
+LIST_TYPE_FILTER = I18N.t("rss.commands.list.literal_type.filter")
+
 
 async def rss_feed_name_autocomplete(
     interaction: discord.Interaction, current: str
@@ -632,28 +641,30 @@ class RSSfeed(commands.Cog):
         self,
         interaction: discord.Interaction,
         list_type: typing.Literal[
-            I18N.t("rss.commands.list.literal_type.normal"),
-            I18N.t("rss.commands.list.literal_type.added"),
-            I18N.t("rss.commands.list.literal_type.filter"),
+            LIST_TYPE_NORMAL,
+            LIST_TYPE_ADDED,
+            LIST_TYPE_FILTER,
         ],
     ):
         """
         List all active rss feeds
         """
         await interaction.response.defer()
-        if list_type.lower() == "added":
+        if list_type == LIST_TYPE_ADDED:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.rss_db_schema,
-                list_type=list_type.lower(),
+                # `get_feed_list` expects the untranslated list type, so
+                # don't pass the localized literal along
+                list_type="added",
                 feed_type="rss",
             )
-        elif list_type.lower() == "filter":
+        elif list_type == LIST_TYPE_FILTER:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.rss_db_schema,
                 db_filter_in=envs.rss_db_filter_schema,
-                list_type=list_type.lower(),
+                list_type="filter",
                 feed_type="rss",
             )
         else:
@@ -959,28 +970,30 @@ class RSSfeed(commands.Cog):
         self,
         interaction: discord.Interaction,
         list_type: typing.Literal[
-            I18N.t("rss.commands.list.literal_type.normal"),
-            I18N.t("rss.commands.list.literal_type.added"),
-            I18N.t("rss.commands.list.literal_type.filter"),
+            LIST_TYPE_NORMAL,
+            LIST_TYPE_ADDED,
+            LIST_TYPE_FILTER,
         ],
     ):
         """
         List all active podcast feeds
         """
         await interaction.response.defer()
-        if list_type.lower() == "added":
+        if list_type == LIST_TYPE_ADDED:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.rss_db_schema,
-                list_type=list_type.lower(),
+                # `get_feed_list` expects the untranslated list type, so
+                # don't pass the localized literal along
+                list_type="added",
                 feed_type="podcast",
             )
-        elif list_type.lower() == "filter":
+        elif list_type == LIST_TYPE_FILTER:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.rss_db_schema,
                 db_filter_in=envs.rss_db_filter_schema,
-                list_type=list_type.lower(),
+                list_type="filter",
                 feed_type="podcast",
             )
         else:

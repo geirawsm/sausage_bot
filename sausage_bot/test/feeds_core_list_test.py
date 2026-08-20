@@ -13,7 +13,6 @@ resolution and the resulting table are under test.
 from unittest.mock import MagicMock
 
 from sausage_bot.util import envs, db_helper, feeds_core
-from sausage_bot.util.i18n import I18N
 
 GUILD_ID = 444444444444444444
 CHANNEL_OK = 4242
@@ -127,14 +126,10 @@ async def test_get_feed_list_filters_on_link_type(guild_db_root):
     guild = _make_guild()
 
     channels_out = await feeds_core.get_feed_list(
-        guild=guild,
-        db_in=envs.youtube_db_schema,
-        link_type=I18N.t("youtube.commands.list.literal_link_type.channel"),
+        guild=guild, db_in=envs.youtube_db_schema, link_type="channel"
     )
     playlists_out = await feeds_core.get_feed_list(
-        guild=guild,
-        db_in=envs.youtube_db_schema,
-        link_type=I18N.t("youtube.commands.list.literal_link_type.playlist"),
+        guild=guild, db_in=envs.youtube_db_schema, link_type="playlist"
     )
 
     assert "a channel" in "\n".join(channels_out)
