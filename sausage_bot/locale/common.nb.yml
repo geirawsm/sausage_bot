@@ -1,11 +1,14 @@
 nb:
   too_few_arguments: Du har gitt for få argumenter til kommandoen
+  msg_no_manage_guild_permission: Du må være bot-eieren eller ha nødvendig tilgang på denne serveren for å bruke denne kommandoen
+  msg_owner_only: Denne kommandoen kan bare brukes av bot-eieren
   literal_yes_no:
     lit_yes: Ja
     lit_no: Nei
   literal_allow_deny:
     allow: Tillat
     deny: Nekt
+  cancel: Avbryt
   name: Navn
   channel: Kanal
   message_id: Meldings-ID
@@ -31,3 +34,8 @@ nb:
     name_of_setting: Navn på innstilling
     value_in: Verdi
   something_wrong: "Noe gikk galt: %{error}"
+  channel_errors: "\nKanaler: %{errors}"
+  error:
+    http_status: "Lenken mottok HTTP-statuskode %{code}"
+    channel_not_found_in_table: "Fant ikke kanal `%{channel}` i `%{table}` (`%{db_file}`): %{error}"
+    channel_not_found: "Fant ikke kanal `%{channel}` i guilden"

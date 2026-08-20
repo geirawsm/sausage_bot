@@ -62,6 +62,7 @@ nb:
       msg:
         already_hidden: Rollen er allerede skjult
         confirm_added: Rolle lagt til som skjult rolle
+        no_hidden_roles: Ingen skjulte roller finnes
     hide_roles_remove:
       desc:
         role_in: Roller som skal fjernes
@@ -70,6 +71,8 @@ nb:
         confirm_removed: Rolle fjernet som skjult rolle
   tasks:
     update_stats:
+      log:
+        roles_truncated: "Stats: Rolle-lengden oversteg meldingsgrensen, ble auto-forkortet. Sjekk kanskje innstillingene?"
       stats_msg:
         members_sub: Medlemmer
         members_num: Antall medlemmer

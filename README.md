@@ -7,9 +7,13 @@ SausageBot - affectionately known as "pølsa" among its Norwegian users - is a D
 ### Administration (main)
 
 - Kick/ban users (/kick, /ban)
+- Delete a number of messages in a channel (/delete)
 - Set language (/language)
+- Set timezone (/timezone)
 - Show active tasks (/tasks)
 - Make the bot talk (/say, right-click message to edit already posted message)
+- Approve a pending server, admin-guild only (/approve-guild)
+- List servers waiting for approval, admin-guild only (/list-pending-guilds)
 
 ### Autoevent
 
@@ -61,7 +65,7 @@ Command: `/quote`
 - Count no. of quote
 - List quote from quote number or search for a keyword
 
-### Roles
+### Manage roles
 
 Manage roles and reaction messages.
 Can autoadd role for new users.
@@ -111,7 +115,7 @@ Command: `/rss`
 ### Scrape FCB
 
 (A very specific cog for one of my servers)
-Scrape the football website https://www.fcbarcelona.com and post news from the website to specific team channels.
+Scrape the football website <https://www.fcbarcelona.com> and post news from the website to specific team channels.
 Autposting news to specific channels: `first-team`, `femení`, `atlètic`, `juvenil` and `club`.
 
 ### Stats
@@ -140,15 +144,34 @@ Command: `/youtube`
 - Remove an allow-/deny-filter from a youtube channel
 - List all youtube channels: normal, added by or filter
 
+## Multiple servers
+
+SausageBot can run on several Discord servers at the same time. Each
+server gets its own isolated data, settings, language and timezone.
+
+When the bot joins a new server, that server is registered as
+**pending** - none of its features (RSS, quotes, roles, stats, etc.)
+will work until a bot owner approves it. The server set as
+`ADMIN_GUILD_ID` in `.env` is the exception: it's auto-approved and
+never needs approving.
+
+To approve a new server:
+
+- The bot posts a notification in `ADMIN_CHANNEL_ID` (in the
+  `ADMIN_GUILD_ID` server) whenever it joins a new server
+- The bot owner runs `/approve-guild guild_id` from that channel
+- Use `/list-pending-guilds` (also from the admin server) to see
+  servers waiting for approval
+
 ## Set up
 
 Ok, so you want to run a Discord bot?
 
 ### Register Discord bot
 
-Follow the instructions on this page on *Creating a Discord Bot Account*: https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account
+Follow the instructions on this page on _Creating a Discord Bot Account_: <https://www.pythondiscord.com/pages/guides/python-guides/discordpy/#creating-a-discord-bot-account>
 
-- Navigate to https://discord.com/developers/applications and log in.
+- Navigate to <https://discord.com/developers/applications> and log in.
 - Click on New Application.
 - Enter the application's name.
 - Click on Bot on the left side settings menu.
@@ -160,7 +183,7 @@ Follow the instructions on this page on *Creating a Discord Bot Account*: https:
 
 You need to register with Spotify API first:
 
-- Follow the instructions on this page on *Getting started*: https://developer.spotify.com/documentation/web-api
+- Follow the instructions on this page on _Getting started_: <https://developer.spotify.com/documentation/web-api>
 - Add "Client ID" and "Client secret" in .env file or as environment argument in docker
 
 ### Running the bot
@@ -180,17 +203,19 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 - Run `pipenv shell` to create the python environment and start the shell
 - Run `pipenv install` to install dependencies
 - Run the bot once to get the `.env` file: `python -m sausage_bot`
-- Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key: 
-  - `DISCORD_TOKEN`   Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
-  - `DISCORD_GUILD`   The name of the discord server you want to connect to
-  - `BOT_ID`          Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
-- Invite the bot to your discord server: 
+- Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key:
+  - `DISCORD_TOKEN` Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
+  - `BOT_ID` Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
+  - `ADMIN_GUILD_ID` The ID of your own/main Discord server - see [Multiple servers](#multiple-servers)
+  - `ADMIN_CHANNEL_ID` The ID of a channel in that server for new-server notifications and `/approve-guild`
+- Invite the bot to your discord server:
   - Again, go back to the [Discord Developer portal](https://discord.com/developers/applications), "OAuth2", "URL Generator".
   - Chose the scope "bot"
   - Chose the minimum needed permission for the bot. Only chose "Administrator" if you're absolutely sure.
   - Click "Copy" on "Generated url", visit that link in a browser.
   - Make sure that the information looks correct, select the server you want it to join, and click "Continue" and confirm the permissions by clicking "Authorize". Your bot should now join the channel in a disconnected state.
-- Start the bot 
+  - If this isn't your `ADMIN_GUILD_ID` server, it now needs approval - see [Multiple servers](#multiple-servers)
+- Start the bot
   - Go back to the terminal and run `python -m sausage_bot` again. The bot will now be online.
 
 If you run `python -m sausage_bot -h` you can also see all the arguments you can add.
@@ -208,6 +233,7 @@ If you run `python -m sausage_bot -h` you can also see all the arguments you can
 ### I want to contribute by translating
 
 sausage_bot uses `i18nice` for making text and commands translateable. See the `./sausage_bot/locale` folder to see examples.
+
 - One file per cog/python file, per language
 - Filename format is `[filename].[shortcode for language].yml`
 - Make a pull request with complete set of files for language
@@ -217,6 +243,7 @@ sausage_bot uses `i18nice` for making text and commands translateable. See the `
 I'm glad you asked.
 
 You can use the local flake8 plugin `flake8-I18N-checker` to check your newly created yml-files. Add this to a file in root folder named `.flake8`:
+
 ```
 [flake8]
 exclude =

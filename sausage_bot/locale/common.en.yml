@@ -1,11 +1,14 @@
 en:
   too_few_arguments: Too few arguments given to command
+  msg_no_manage_guild_permission: You need to be the bot owner or have the required permission on this server to use this command
+  msg_owner_only: This command can only be used by the bot owner
   literal_yes_no:
     lit_yes: Yes
     lit_no: No
   literal_allow_deny:
     allow: Allow
     deny: Deny
+  cancel: Cancel
   name: Name
   channel: Channel
   message_id: Message ID
@@ -31,3 +34,8 @@ en:
     name_of_setting: Name of setting
     value_in: Value
   something_wrong: "Something went wrong: %{error}"
+  channel_errors: "\nChannels: %{errors}"
+  error:
+    http_status: "Link received HTTP status code %{code}"
+    channel_not_found_in_table: "Could not find channel `%{channel}` in `%{table}` (`%{db_file}`): %{error}"
+    channel_not_found: "Could not find channel `%{channel}` in guild"

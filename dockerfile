@@ -1,12 +1,16 @@
 FROM python:3.14-slim
 LABEL org.opencontainers.image.authors="geirawsm@pm.me"
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /
 
 COPY / /app/
 WORKDIR /app/
 
-RUN pip install --upgrade pip
 RUN pip install pipenv
 RUN pipenv install --system --deploy --ignore-pipfile
 
@@ -26,4 +30,6 @@ RUN echo \
 
 
 # Run bot
-ENTRYPOINT [ "python", "-m", "sausage_bot", "--log-all", "--data-dir", "/data" ]
+# --data-dir points the bot at the volume declared above. Without it the
+# bot would write to `sausage_bot/data/` inside the image layer instead.
+ENTRYPOINT [ "python", "-m", "sausage_bot", "--data-dir", "/data" ]

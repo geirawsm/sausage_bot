@@ -12,3 +12,7 @@ nb:
     allow: Tillat
     deny: Nekt
     link_type: Link type
+  podcast_rating:
+    msg_confirm: "Du ga denne episoden %{rating} ★"
+  log:
+    no_page_hash: "Fant ingen side-hash for %{feed_link}, logger lenken i stedet"

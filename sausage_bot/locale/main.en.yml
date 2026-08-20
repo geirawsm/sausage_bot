@@ -8,6 +8,17 @@ en:
   commands:
     language:
       confirm_language_set: Language set to `%{language}`. Restart the bot manually for changes to appear.
+      msg_not_available: "`%{language}` is not an available language."
+    set_profile:
+      command: "Change the bot's nickname, avatar, banner or bio in this server"
+      msg_no_permission: You need Administrator or Manage Nicknames permission to use this command
+      msg_confirm: Bot profile updated for this server
+      msg_failed: "Failed to update bot profile: %{error}"
+    reset_profile:
+      command: "Reset the bot's nickname, avatar, banner or bio in this server"
+      msg_no_permission: You need Administrator or Manage Nicknames permission to use this command
+      msg_confirm: Bot profile updated for this server
+      msg_failed: "Failed to update bot profile: %{error}"
     test:
       confirm: English test message
     delete:
@@ -20,22 +31,28 @@ en:
       modal:
         title: Make the bot say a message
         comment: Comment
-        reply: 'Mention %{member}'
-        confirm: 'Comment sendt to `#%{channel}`'
-        error_sending: 'Error when sending comment to %{channel}: %{error}'
+        reply: "Mention %{member}"
+        confirm: "Comment sendt to `#%{channel}`"
+        error_sending: "Error when sending comment to %{channel}: %{error}"
         error_both_args: Both `message_id` and `reply` were provided, please only use one
     tasks:
-      command: List tasks and their status
+      command: List this server's own posting tasks and their status
+    tasks_global:
+      command: "List every approved server's posting tasks and their status (admin guild only)"
+      msg_not_admin_guild: This command can only be used in the admin guild.
+      msg_empty: No posting tasks found for any approved server.
+    version:
+      command: Show the bot's current version and branch info
     ping:
       command: Check latency
     kick:
       command: Kick a user (with reason)
-      msg_confirm: '%{member} has been kicked'
-      msg_failed: 'Failed to kick: %{error}'
+      msg_confirm: "%{member} has been kicked"
+      msg_failed: "Failed to kick: %{error}"
     ban:
       command: Ban a user (with reason)
-      msg_confirm: '%{member} has been banned'
-      msg_failed: 'Failed to ban: %{error}'
+      msg_confirm: "%{member} has been banned"
+      msg_failed: "Failed to ban: %{error}"
     synclocal:
       msg_starting: Starting local commands sync...
       msg_cont_copy: Copying global commands...
@@ -52,6 +69,67 @@ en:
     syncdev:
       msg_starting: Starting commands sync...
       msg_confirm: Commands synced
+    sync:
+      group_desc: Sync slash commands
+      msg_confirm_list: |-
+        Commands synced!
+        %{commands}
+    guild:
+      group_desc: Administer guilds
+      approve:
+        msg_confirm: "✅ Approved guild %{guild_name} (%{guild_id})."
+        msg_not_found: "❌ No guild matching `%{guild_id}` is registered. Pick a guild from the autocomplete list instead of typing it - the list submits the guild id, not the name."
+      admin_channel:
+        ac_create_new: "➕ Create #%{channel}"
+        not_yours: This confirmation isn't yours.
+        btn_create: Create channel
+        msg_no_channel: "❌ No channel given. Pick one from the autocomplete list, or type the name of a channel to create."
+        msg_channel_not_found: "❌ No channel with id `%{channel}` exists in %{guild_name}. It may have been deleted - try again."
+        msg_not_text_channel: "❌ `%{channel}` is not a text channel."
+        confirm_create: |-
+          ⚠️ **%{channel}** does not exist in %{guild_name} (`%{guild_id}`).
+          Create it and set it as the admin channel?
+        msg_timeout: "⏲️ Timed out - `%{channel}` was not created and nothing was changed."
+        msg_cancelled: "❌ Cancelled - `%{channel}` was not created and nothing was changed."
+        msg_create_failed: "❌ Could not create `%{channel}`: %{error}"
+      set_admin_guild:
+        msg_not_member: "❌ The bot is not a member of a guild matching `%{guild}`. Pick a guild from the autocomplete list instead of typing it."
+        msg_confirm: "✅ Admin guild set to %{guild_name} (`%{guild_id}`), admin channel #%{channel}."
+      set_admin_channel:
+        msg_no_admin_guild: "❌ The bot is no longer in its own admin guild. Use `/guild set_admin_guild` to point it at one it can reach."
+        msg_confirm: "✅ Admin channel set to #%{channel} in %{guild_name}."
+      leave:
+        not_yours: This confirmation isn't yours.
+        btn_leave: Leave guild
+        msg_refuse_admin: "❌ Refusing to leave the admin guild."
+        msg_not_member: "❌ The bot is not a member of a guild with id `%{guild_id}`."
+        confirm_prompt: |-
+          ⚠️ Leave guild **%{guild_name}** (`%{guild_id}`)?
+          The guild's data is kept - its status is only set to `removed`. The bot has to be invited back in to rejoin.
+        msg_timeout: "⏲️ Timed out - still in %{guild_name} (%{guild_id})."
+        msg_cancelled: "❌ Cancelled - still in %{guild_name} (%{guild_id})."
+        msg_failed: "❌ Could not leave %{guild_name} (%{guild_id}): %{error}"
+        msg_confirm: "✅ Left guild %{guild_name} (%{guild_id})."
+    timezone:
+      msg_confirm: "Set timezone to `%{timezone}`"
+    bot_channel:
+      create_modal:
+        title: Create bot channel from an existing channel
+        select_placeholder: Select the channel to copy permissions from
+        copy_from_label: "Copy permissions from:"
+        name_label: Name of the new bot channel
+        source_not_found: Could not find the source channel. Try again.
+        reason: "Creating bot channel (copied from #%{source})"
+        msg_confirm: "✅✅ Created %{channel} (permissions copied from #%{source}) and set as bot channel."
+      btn_duplicate: Duplicate existing
+      btn_fresh: Create new
+      reason_fresh: Creating new bot channel
+      msg_confirm_fresh: "✅✅ Created %{channel} and set as bot channel."
+      cancelled: Cancelled. Not creating a channel.
+      msg_not_exist: "The channel #%{channel} doesn't exist yet. What do you want to do?"
+      msg_confirm: "✅✅ Set bot channel to #%{channel}."
+    profile:
+      group_desc: Change bot profile on this server
     locale:
       group: "Change language or timezone"
       language:
@@ -63,5 +141,17 @@ en:
       name: Edit bot message
       not_bot: Message was not written by the bot
       edit_confirm: Message was edited
-      edit_confirm_with_errors: ', but some tagging failed: %{errors}'
-      edit_error: 'Error when editing, check logs'
+      edit_confirm_with_errors: ", but some tagging failed: %{errors}"
+      edit_error: "Error when editing, check logs"
+      channel_errors: "\nChannels: %{errors}"
+  notify_new_guild:
+    rejoined: "🔔 Rejoined guild:"
+    new: "🔔 New guild wants to use the bot:"
+    details: |-
+      **%{guild_name}** (`%{guild_id}`)
+      Members: %{member_count}
+      Description: %{description}
+      Vanity url code: %{vanity_url_code}
+    invite_link: "Invite link: %{invite_url}"
+    no_invite: Could not create an invite link for this guild.
+    how_to_approve: "Use `/approve-guild guild_id:%{guild_id}` in this channel to activate it."

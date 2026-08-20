@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-'poll: Make polls'
+"poll: Make polls"
+
 import discord
 from discord.ext import commands
 from discord.app_commands import locale_str, describe
@@ -10,233 +11,247 @@ import re
 import pendulum
 import uuid
 
-from sausage_bot.util import db_helper, envs, config
+from sausage_bot.util import db_helper, envs, config, discord_commands
 from sausage_bot.util import datetime_handling
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
-_tz = 'local'
+_tz = "local"
 
 
 class MakePoll(commands.Cog):
-    'Make polls'
+    "Make polls"
 
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.is_owner()
+    @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.command(
-        name="poll",
-        description=locale_str(I18N.t('poll.commands.poll.cmd'))
+        name="poll", description=locale_str(I18N.t("poll.commands.poll.cmd"))
     )
     @describe(
-        channel=I18N.t('poll.commands.poll.desc.channel'),
-        post_time=I18N.t('poll.commands.poll.desc.post_time'),
-        lock_time=I18N.t('poll.commands.poll.desc.lock_time'),
-        poll_text=I18N.t('poll.commands.poll.desc.poll_text'),
-        alternatives=I18N.t('poll.commands.poll.desc.alternatives')
+        channel=I18N.t("poll.commands.poll.desc.channel"),
+        post_time=I18N.t("poll.commands.poll.desc.post_time"),
+        lock_time=I18N.t("poll.commands.poll.desc.lock_time"),
+        poll_text=I18N.t("poll.commands.poll.desc.poll_text"),
+        alternatives=I18N.t("poll.commands.poll.desc.alternatives"),
     )
     async def poll(
-        self, interaction: discord.Interaction, channel: discord.TextChannel,
-        post_time: str, lock_time: str, poll_text: str, alternatives: str
+        self,
+        interaction: discord.Interaction,
+        channel: discord.TextChannel,
+        post_time: str,
+        lock_time: str,
+        poll_text: str,
+        alternatives: str,
     ):
-        '''
+        """
         Make a poll for voting on something.
-        '''
+        """
         await interaction.response.defer(ephemeral=True)
-        if post_time in [None, 'no', 'now']:
+        if post_time in [None, "no", "now"]:
             dt_post = None
-        elif re.match(r'^\d{2}([\D]+)?\d{2}$', post_time):
-            logger.debug(f'`post_time`: {post_time}')
-            re_search = re.search(
-                r'(\d{2})([,.\-;:_]+)?(\d{2})', post_time
-            )
-            post_time = post_time.replace(str(re_search.group(2)), '')
-            logger.debug(f'`post_time`: {post_time}')
-            dt_post = pendulum.from_format(
-                post_time, 'HHmm', 'local'
-            )
-            logger.debug(f'dt_post: {dt_post} ({type(dt_post)})')
+        elif re.match(r"^\d{2}([\D]+)?\d{2}$", post_time):
+            logger.debug(f"`post_time`: {post_time}")
+            re_search = re.search(r"(\d{2})([,.\-;:_]+)?(\d{2})", post_time)
+            post_time = post_time.replace(str(re_search.group(2)), "")
+            logger.debug(f"`post_time`: {post_time}")
+            dt_post = pendulum.from_format(post_time, "HHmm", "local")
+            logger.debug(f"dt_post: {dt_post} ({type(dt_post)})")
             dt_now = await datetime_handling.get_dt()
             dt_post_secs = await datetime_handling.get_dt(dt=dt_post)
             if dt_post_secs < dt_now:
                 await interaction.followup.send(
-                    I18N.t('poll.commands.poll.msg.post_in_past')
+                    I18N.t("poll.commands.poll.msg.post_in_past")
                 )
                 return
         else:
             await interaction.followup.send(
-                I18N.t(
-                    'poll.commands.poll.msg.post_gives_error',
-                    post_time=post_time
-                )
+                I18N.t("poll.commands.poll.msg.post_gives_error", post_time=post_time)
             )
             return
         # Check lock_time
-        if lock_time in [None, 'no', 'now']:
+        if lock_time in [None, "no", "now"]:
             await interaction.followup.send(
-                I18N.t('poll.commands.poll.msg.no_time_given'),
-                ephemeral=True
+                I18N.t("poll.commands.poll.msg.no_time_given"), ephemeral=True
             )
             return
-        lock_time_regex = r'^(\d+)(\s)?(h|m)$'
+        lock_time_regex = r"^(\d+)(\s)?(h|m)$"
         if not re.match(lock_time_regex, lock_time):
             await interaction.followup.send(
-                I18N.t(
-                    'poll.commands.poll.msg.lock_gives_error',
-                    lock_time=lock_time
-                ),
-                ephemeral=True
+                I18N.t("poll.commands.poll.msg.lock_gives_error", lock_time=lock_time),
+                ephemeral=True,
             )
             return
         _uuid = str(uuid.uuid4())
         await db_helper.insert_many_some(
             envs.poll_db_polls_schema,
             (
-                'uuid', 'channel', 'post_time', 'lock_time',
-                'poll_text', 'status_wait_post', 'status_posted',
-                'status_wait_lock', 'status_locked'
+                "uuid",
+                "channel",
+                "post_time",
+                "lock_time",
+                "poll_text",
+                "status_wait_post",
+                "status_posted",
+                "status_wait_lock",
+                "status_locked",
             ),
             [
                 (
-                    _uuid, channel.name, post_time, str(lock_time),
-                    str(poll_text), 0, 0, 0, 0
+                    _uuid,
+                    channel.name,
+                    post_time,
+                    str(lock_time),
+                    str(poll_text),
+                    0,
+                    0,
+                    0,
+                    0,
                 )
-            ]
+            ],
+            guild_id=interaction.guild.id,
         )
         random_emojis = [
-            '📺', '🧱', '🔧', '🔑', '🔒', '🎹', '🎷', '🪗', '🎧',
-            '🎸', '🎤', '🎵', '♣️', '🪅', '⏱', '💎', '💊', '🩸',
-            '🪣', '🛌', '🪟', '🎁', '♻️', '🫎'
+            "📺",
+            "🧱",
+            "🔧",
+            "🔑",
+            "🔒",
+            "🎹",
+            "🎷",
+            "🪗",
+            "🎧",
+            "🎸",
+            "🎤",
+            "🎵",
+            "♣️",
+            "🪅",
+            "⏱",
+            "💎",
+            "💊",
+            "🩸",
+            "🪣",
+            "🛌",
+            "🪟",
+            "🎁",
+            "♻️",
+            "🫎",
         ]
         try:
             alts_in = []
-            alts_in.extend(
-                line.strip() for line in str(alternatives).split(';')
-            )
-            logger.debug(f'Got `alts_in`: {alts_in}')
+            alts_in.extend(line.strip() for line in str(alternatives).split(";"))
+            logger.debug(f"Got `alts_in`: {alts_in}")
             needed_emojis = random.sample(random_emojis, k=len(alts_in))
             reactions = []
             alts_db = []
             for idx, alt in enumerate(alts_in):
                 alts_db.append((_uuid, needed_emojis[idx], alt, 0))
-            logger.debug(f'`alts_db`: {alts_db}')
+            logger.debug(f"`alts_db`: {alts_db}")
             # Add to db
             await db_helper.insert_many_some(
                 envs.poll_db_alternatives_schema,
-                ('uuid', 'emoji', 'input', 'count'),
-                alts_db
+                ("uuid", "emoji", "input", "count"),
+                alts_db,
+                guild_id=interaction.guild.id,
             )
             # Post info about when the post is coming
             if dt_post is None:
                 post_wait = 0
                 coming_post = await interaction.followup.send(
-                    I18N.t('poll.commands.poll.msg.posting_now')
+                    I18N.t("poll.commands.poll.msg.posting_now")
                 )
             else:
-                dt_now = pendulum.now('local')
+                dt_now = pendulum.now("local")
                 post_wait = dt_now.diff(dt_post).in_seconds()
-                dt_post_epoch = dt_post.format('x')[0:-3]
+                dt_post_epoch = dt_post.format("x")[0:-3]
                 coming_post = await interaction.followup.send(
                     I18N.t(
-                        'poll.commands.poll.msg.posting_fixed',
-                        dt_post_epoch=dt_post_epoch
+                        "poll.commands.poll.msg.posting_fixed",
+                        dt_post_epoch=dt_post_epoch,
                     ),
-                    ephemeral=False
+                    ephemeral=False,
                 )
-            logger.debug(f'post_wait: {post_wait}')
-            desc_out = f'{poll_text}\n'
+            logger.debug(f"post_wait: {post_wait}")
+            desc_out = f"{poll_text}\n"
             for idx, line in enumerate(alts_in):
-                desc_out += '\n{} - *"{}"*'.format(
-                    needed_emojis[idx], line
-                )
+                desc_out += '\n{} - *"{}"*'.format(needed_emojis[idx], line)
                 reactions.append(needed_emojis[idx])
             lock_split = re.match(lock_time_regex, lock_time)
             dt_lock = None
             if dt_post is None:
-                dt_post = pendulum.now('local')
+                dt_post = pendulum.now("local")
             if lock_split.group(3) == "h":
-                dt_lock = dt_post.add(
-                    hours=int(lock_split.group(1))
-                ).in_tz(_tz)
-                dt_lock_text = f'{lock_split.group(1)} time'
+                dt_lock = dt_post.add(hours=int(lock_split.group(1))).in_tz(_tz)
+                dt_lock_text = f"{lock_split.group(1)} time"
                 if int(lock_split.group(1)) > 1:
-                    dt_lock_text += 'r'
+                    dt_lock_text += "r"
             elif lock_split.group(3) == "m":
-                dt_lock = dt_post.add(
-                    minutes=int(lock_split.group(1))
-                ).in_tz(_tz)
-                dt_lock_text = f'{lock_split.group(1)} minutt'
+                dt_lock = dt_post.add(minutes=int(lock_split.group(1))).in_tz(_tz)
+                dt_lock_text = f"{lock_split.group(1)} minutt"
                 if int(lock_split.group(1)) > 1:
-                    dt_lock_text += 'er'
-            logger.debug(f'dt_lock: {dt_lock}')
+                    dt_lock_text += "er"
+            logger.debug(f"dt_lock: {dt_lock}")
             lock_diff = (dt_lock - dt_post).in_seconds()
-            logger.debug(f'`lock_diff` in seconds: {lock_diff}')
-            dt_lock_epoch = dt_lock.format('x')[0:-3]
-            logger.debug(
-                f'Converting `dt_lock` ({dt_lock}) to epoch: {dt_lock_epoch}'
-            )
+            logger.debug(f"`lock_diff` in seconds: {lock_diff}")
+            dt_lock_epoch = dt_lock.format("x")[0:-3]
+            logger.debug(f"Converting `dt_lock` ({dt_lock}) to epoch: {dt_lock_epoch}")
             embed_json = discord.Embed.from_dict(
                 {
-                    'title': I18N.t('poll.commands.poll.msg.embed_title'),
-                    'description': desc_out,
+                    "title": I18N.t("poll.commands.poll.msg.embed_title"),
+                    "description": desc_out,
                 }
             )
         except TimeoutError:
             await interaction.followup.send(
-                I18N.t('poll.commands.poll.msg.timed_out'),
-                ephemeral=True
+                I18N.t("poll.commands.poll.msg.timed_out"), ephemeral=True
             )
             return
         # Post the poll message
         await db_helper.update_fields(
             template_info=envs.poll_db_polls_schema,
-            where=('uuid', _uuid),
-            updates=[
-                ('status_wait_post', 1)
-            ]
+            where=("uuid", _uuid),
+            updates=[("status_wait_post", 1)],
+            guild_id=interaction.guild.id,
         )
         await asyncio.sleep(post_wait)
-        post_text = pendulum.now('local').format('DD.MM.YY, HH:mm')
+        post_text = pendulum.now("local").format("DD.MM.YY, HH:mm")
         await coming_post.delete()
         await interaction.followup.send(
-            I18N.t('poll.commands.poll.msg.post_confirm', post_text=post_text),
-            ephemeral=True
+            I18N.t("poll.commands.poll.msg.post_confirm", post_text=post_text),
+            ephemeral=True,
         )
         poll_msg = await channel.send(
             I18N.t(
-                'poll.commands.poll.msg.lock_confirm_future',
-                dt_lock_epoch=dt_lock_epoch
+                "poll.commands.poll.msg.lock_confirm_future",
+                dt_lock_epoch=dt_lock_epoch,
             ),
-            embed=embed_json
+            embed=embed_json,
         )
-        logger.debug(f'Got `poll_msg`: {poll_msg}')
+        logger.debug(f"Got `poll_msg`: {poll_msg}")
         await db_helper.update_fields(
             template_info=envs.poll_db_polls_schema,
-            where=('uuid', _uuid),
-            updates=[
-                ('msg_id', poll_msg.id),
-                ('status_posted', 1)
-            ]
+            where=("uuid", _uuid),
+            updates=[("msg_id", poll_msg.id), ("status_posted", 1)],
+            guild_id=interaction.guild.id,
         )
         for reaction in reactions:
-            logger.debug(f'Adding emoji {reaction}')
+            logger.debug(f"Adding emoji {reaction}")
             await poll_msg.add_reaction(reaction)
-        logger.debug('Waiting to lock...')
+        logger.debug("Waiting to lock...")
         await db_helper.update_fields(
             envs.poll_db_polls_schema,
-            ('uuid', _uuid),
-            [
-                ('status_wait_lock', 1)
-            ]
+            ("uuid", _uuid),
+            [("status_wait_lock", 1)],
+            guild_id=interaction.guild.id,
         )
-        logger.debug(f'dt_post: {dt_post}')
-        logger.debug(f'dt_lock: {dt_lock}')
+        logger.debug(f"dt_post: {dt_post}")
+        logger.debug(f"dt_lock: {dt_lock}")
         lock_diff = (dt_lock - pendulum.now()).in_seconds()
-        logger.debug(f'`lock_diff` in seconds: {lock_diff}')
+        logger.debug(f"`lock_diff` in seconds: {lock_diff}")
         await asyncio.sleep(lock_diff)
-        logger.debug('Ready to lock!')
+        logger.debug("Ready to lock!")
         # Get all reactions
         poll_cache = await channel.fetch_message(poll_msg.id)
         poll_reacts = poll_cache.reactions
@@ -245,66 +260,59 @@ class MakePoll(commands.Cog):
                 if react.emoji in alts:
                     await db_helper.update_fields(
                         envs.poll_db_alternatives_schema,
-                        [
-                            ('uuid', _uuid),
-                            ('emoji', react.emoji)
-                        ],
-                        [
-                            ('count', int(react.count - 1))
-                        ]
+                        [("uuid", _uuid), ("emoji", react.emoji)],
+                        [("count", int(react.count - 1))],
+                        guild_id=interaction.guild.id,
                     )
                     break
         sorted_reacts = await db_helper.get_output(
             template_info=envs.poll_db_alternatives_schema,
-            where=[
-                ('uuid', _uuid)
-            ],
-            select=('input', 'count'),
-            order_by=[
-                ('count', 'DESC')
-            ]
+            where=[("uuid", _uuid)],
+            select=("input", "count"),
+            order_by=[("count", "DESC")],
+            guild_id=interaction.guild.id,
         )
         # Remove old poll_msg
         await poll_msg.delete()
         # Move reaction to the text
-        desc_out = f'{poll_text}\n'
+        desc_out = f"{poll_text}\n"
         for reaction in sorted_reacts:
-            desc_out += '\n{}: {}'.format(
-                reaction['input'], reaction['count']
-            )
+            desc_out += "\n{}: {}".format(reaction["input"], reaction["count"])
         embed_json = discord.Embed.from_dict(
             {
-                'title': I18N.t('poll.commands.poll.msg.embed_title'),
-                'description': desc_out,
-                'footer': {
-                    'text': I18N.t(
-                        'poll.commands.poll.msg.lock_confirm',
-                        dt_lock_text=dt_lock_text
+                "title": I18N.t("poll.commands.poll.msg.embed_title"),
+                "description": desc_out,
+                "footer": {
+                    "text": I18N.t(
+                        "poll.commands.poll.msg.lock_confirm", dt_lock_text=dt_lock_text
                     )
-                }
+                },
             }
         )
-        await channel.send(
-            embed=embed_json
-        )
+        await channel.send(embed=embed_json)
         await db_helper.update_fields(
             envs.poll_db_polls_schema,
-            ('uuid', _uuid),
-            [
-                ('status_locked', 1)
-            ]
+            ("uuid", _uuid),
+            [("status_locked", 1)],
+            guild_id=interaction.guild.id,
         )
 
 
 async def setup(bot):
-    cog_name = 'poll'
+    cog_name = "poll"
     logger.info(envs.COG_STARTING.format(cog_name))
-    logger.debug('Checking db')
-    await db_helper.prep_table(
-        envs.poll_db_polls_schema
+    logger.debug("Checking db")
+
+    approved_guilds = await db_helper.get_output(
+        envs.guilds_db_schema, where=("status", "approved")
     )
-    await db_helper.prep_table(
-        envs.poll_db_alternatives_schema
-    )
-    logger.debug('Registering cog to bot')
+    for guild_row in approved_guilds:
+        guild = config.bot.get_guild(int(guild_row["guild_id"]))
+        if guild is None:
+            continue
+        await db_helper.prep_table(envs.poll_db_polls_schema, guild_id=guild.id)
+        await db_helper.prep_table(envs.poll_db_alternatives_schema, guild_id=guild.id)
+
+    logger.debug("Registering cog to bot")
     await bot.add_cog(MakePoll(bot))
+    logger.info(envs.COG_STARTED.format(cog_name))

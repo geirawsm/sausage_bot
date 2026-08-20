@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+    xmlns:sy="http://purl.org/rss/1.0/modules/syndication/">
+    <channel>
+        <title>Nyheter / Lillestrøm</title>
+        <atom:link href="https://www.lsk.no/rss-nyheter" rel="self" type="application/rss+xml" />
+        <link>https://www.lsk.no/rss-nyheter</link>
+        <description> </description>
+        <lastBuildDate>Mon, 19 Nov 2018 08:15:04 +0000</lastBuildDate>
+        <language>no-NO</language>
+        <generator>Enonic XP - RSS app</generator>
+        <item>
+      <!-- One article links an audio clip. This must NOT make the whole feed a podcast. -->
+      <enclosure url="https://example.org/klipp.mp3" length="4711" type="audio/mpeg"/>
+            <title> - Folk er ivrige og står på, og det er det viktigste premisset for alt </title>
+            <link>
+                https://www.lsk.no/nyheter/folk-er-ivrige-og-star-pa-det-er-det-viktigste-premisset-for-alt</link>
+            <enclosure length="1309507" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/99b60257-8a57-40c4-add6-875b0f5a3e2d:99b06028dc642d5c11799c61172bfeb85994385e/block-480-270/1902_TreningLSK-59.jpg" />
+            <pubDate>Fri, 21 Feb 2025 15:47:31 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/folk-er-ivrige-og-star-pa-det-er-det-viktigste-premisset-for-alt</guid>
+            <description> Etter snaue to måneder som Lillestrøm-trener, avslutter Hans Erik Ødegaard
+                sin første treningsleir med LSK mot FK Haugesund. </description>
+        </item>
+        <item>
+            <title> Markedsfredag: Tre partnere forlenger </title>
+            <link>https://www.lsk.no/nyheter/markedsfredag-tre-partnere-forlenger</link>
+            <enclosure length="3231097" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/d4641003-e6ca-4269-84f2-717e866a1926:74e10f5c3a9bff309004608d232da4fa3ccf233b/block-480-270/Noova%20Energi%202025.jpg" />
+            <pubDate>Fri, 21 Feb 2025 14:15:34 +0000</pubDate>
+            <category> Samarbeidspartnere </category>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/markedsfredag-tre-partnere-forlenger</guid>
+            <description> Noova Energi System, Hauger Golfklubb og Lady Solskjerming fornyer sine
+                avtaler med LSK Business Club </description>
+        </item>
+        <item>
+            <title> Kevin Krygård: - Alt går etter planen </title>
+            <link>https://www.lsk.no/nyheter/kevin-krygard-alt-gar-etter-planen</link>
+            <enclosure length="1004991" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/8bf7aa61-6674-4e84-a440-060256e87075:d01062f9717ee33e55d29b61706538b57820e6fe/block-480-270/1902_TreningLSK-22.jpg" />
+            <pubDate>Thu, 20 Feb 2025 15:17:32 +0000</pubDate>
+            <guid isPermaLink="false">https://www.lsk.no/nyheter/kevin-krygard-alt-gar-etter-planen</guid>
+            <description> En revansjesugen Kevin Krygård skulle selvfølgelig helst vært på banen
+                under LSKs treningsleir i Marbella, men etter å ha operert begge hælene i desember,
+                har veien tilbake vært preget av lange dager i gymmen og på sidelinja. </description>
+        </item>
+        <item>
+            <title> DEL 2 av Reisevloggen fra Marbella er ute </title>
+            <link>https://www.lsk.no/nyheter/del-2-av-reisevloggen-fra-marbella-er-ute</link>
+            <enclosure length="2131968" type="image/png"
+                url="https://www.lsk.no/rss-nyheter/_/image/c15018c7-2b19-4dc7-ac98-460de4e02618:69c73016deb9d76863887ff1f1b98b11f354aa8b/block-480-270/_Thumbnail%20YouTube%20(51).png" />
+            <pubDate>Wed, 19 Feb 2025 16:33:01 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/del-2-av-reisevloggen-fra-marbella-er-ute</guid>
+            <description> Bli med bak kulissene når LSK er på treningsleir i Marbella! </description>
+        </item>
+        <item>
+            <title> Martin Ove Roseth solgt til Viking </title>
+            <link>https://www.lsk.no/nyheter/martin-ove-roseth-solgt-til-viking</link>
+            <enclosure length="5012520" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/242b8a3c-c1ba-4543-8a96-4336fe2edf67:c077267505114c606a35a9dbb1ea88b7f4e27c91/block-480-270/NTB_pEZHtxhAeC0.jpg" />
+            <pubDate>Tue, 18 Feb 2025 14:59:45 +0000</pubDate>
+            <guid isPermaLink="false">https://www.lsk.no/nyheter/martin-ove-roseth-solgt-til-viking</guid>
+            <description> LSK og Viking er enige om en overgang for Martin Ove Roseth. Midtstopperen
+                forlater dermed Åråsen etter to år i klubben. </description>
+        </item>
+        <item>
+            <title> Nå er trenerteamet komplett: Yannick ansatt som ny analytiker </title>
+            <link>
+                https://www.lsk.no/nyheter/na-er-trenerteamet-komplett-yannick-ansatt-som-ny-analytiker</link>
+            <enclosure length="17974706" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/d68095c3-ce9a-4048-92ca-99ae0ea3cf96:b7b460788c92813d285ef47e592e1b6245243a73/block-480-270/Treningskamp-115.jpg" />
+            <pubDate>Tue, 18 Feb 2025 08:06:48 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/na-er-trenerteamet-komplett-yannick-ansatt-som-ny-analytiker</guid>
+            <description> Yannick Skar-Lentze er ansatt som analytiker i LSK og kompletterer
+                støtteapparatet rundt A-laget. </description>
+        </item>
+        <item>
+            <title> Valgkomitéens innstilling til årsmøte i LSK 2025 </title>
+            <link>https://www.lsk.no/nyheter/valgkomiteens-innstilling-til-arsmote-i-lsk-2025</link>
+            <enclosure length="13545385" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/2fa8f007-58c8-4ac7-93dc-802f36fdb7b1:37909ef7d9b7e402b49ef076ceaf69a69e59b4c3/block-480-270/Dronebilde%20flomlys%20skr%C3%A5tt%20LSK%20-%20Glimt.jpg" />
+            <pubDate>Mon, 17 Feb 2025 22:31:27 +0000</pubDate>
+            <dc:creator> Lillestrøm Sportsklubb </dc:creator>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/valgkomiteens-innstilling-til-arsmote-i-lsk-2025</guid>
+            <description> Lillestrøm Sportsklubb har mottatt Valgkomitéens innstilling til årsmøtet
+                som avholdes 4. mars 2025. </description>
+        </item>
+        <item>
+            <title> Kristiane Stormoen ansettes som ernæringsfysiolog </title>
+            <link>https://www.lsk.no/nyheter/kristiane-stormoen-ansettes-som-ernaeringsfysiolog</link>
+            <enclosure length="22748329" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/be0e4f01-0c91-4ec4-8fc6-d63bc0a7b667:1992700ad38f620d09f38c25861811dd9614a50a/block-480-270/Treningskamp-113.jpg" />
+            <pubDate>Mon, 17 Feb 2025 14:55:49 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/kristiane-stormoen-ansettes-som-ernaeringsfysiolog</guid>
+            <description> LSK styrker teamet rundt A-laget ytterligere og har deltidsansatt
+                Kristiane Stormoen (31) som klinisk ernæringsfysiolog. </description>
+        </item>
+        <item>
+            <title> Reisevlogg Marbella: Avreise og Kampdag </title>
+            <link>https://www.lsk.no/nyheter/reisevlogg-marbella-avreise-og-kampdag</link>
+            <enclosure length="2401816" type="image/png"
+                url="https://www.lsk.no/rss-nyheter/_/image/5c9e88a6-662a-4dc0-a214-f938658ece56:e4c1a9959ad456c9b2be7706354dafe77b79240d/block-480-270/_Thumbnail%20YouTube%20(48).png" />
+            <pubDate>Sun, 16 Feb 2025 14:50:01 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/reisevlogg-marbella-avreise-og-kampdag</guid>
+            <description> Treningsleiren på Marbella er godt i gang. Nå kan du se reisevloggen fra
+                den første delen av vårt opphold i Spania! </description>
+        </item>
+        <item>
+            <title> Dødballer sikret seieren </title>
+            <link>https://www.lsk.no/nyheter/dodballer-sikret-seieren</link>
+            <enclosure length="1159471" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/5ef02bf4-0763-423e-87ad-b2da578bf150:57df3a712df256c6716e7b373432a7979d92c87d/block-480-270/1402_LSK-Cherkasy-16.jpg" />
+            <pubDate>Fri, 14 Feb 2025 18:21:44 +0000</pubDate>
+            <guid isPermaLink="false">https://www.lsk.no/nyheter/dodballer-sikret-seieren</guid>
+            <description> LSK vant den første av to treningskamper under Marbella-oppholdet. Thomas
+                Lehne Olsen og Ruben Gabrielsen scoret målene i 2-1-seieren mot LNZ Cherkasy. </description>
+        </item>
+        <item>
+            <title> Laget som starter mot FC LNZ Cherkasy </title>
+            <link>https://www.lsk.no/nyheter/laget-som-starter-mot-fc-lnz-cherkasy</link>
+            <enclosure length="24029556" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/60763f1e-6ba1-4a7d-ad8d-7604f22aff3f:aaa976e92a4de44cc733cf2502ea1c1068feae1e/block-480-270/Treningskamp-55.jpg" />
+            <pubDate>Fri, 14 Feb 2025 13:45:00 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/laget-som-starter-mot-fc-lnz-cherkasy</guid>
+            <description> Her er laget som starter den første av to treningskamper her nede på
+                Marbella og en liten statusrapport fra Eirik Mæland og Thomas Lehne Olsen før kampen
+                mot ukrainske FC LNZ Cherkasy. Avspark på Dama le Noche kl. 16:00! </description>
+        </item>
+        <item>
+            <title> Markedsfredag: Megapiksel inn som ny partner, mens Connections og Døvigen
+                forlenger </title>
+            <link>
+                https://www.lsk.no/nyheter/markedsfredag-megapiksel-inn-som-ny-partner-mens-connections-og-dovigen-forlenger</link>
+            <enclosure length="10089814" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/8a18a47e-932a-4368-be41-f0c6fef1cbbe:02f9972b35c93f27bd7282abf05e81d800b8ddea/block-480-270/Megapixel%202025.jpg" />
+            <pubDate>Thu, 13 Feb 2025 20:22:05 +0000</pubDate>
+            <dc:creator> Kine Klevengen </dc:creator>
+            <category> Samarbeidspartnere </category>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/markedsfredag-megapiksel-inn-som-ny-partner-mens-connections-og-dovigen-forlenger</guid>
+            <description> På Åråsen er vi i full sving med nye signeringer og resigneringer av
+                tidligere avtaler. Vi er så heldige at vi har fått Megapiksel med på laget, samtidig
+                som at Connections og Døvigen forlenger samarbeidet - alle tre som sølvpartnere. </description>
+        </item>
+        <item>
+            <title> Dette er troppen som har reist på treningsleir til Marbella </title>
+            <link>
+                https://www.lsk.no/nyheter/dette-er-troppen-som-har-reist-pa-treningsleir-til-marbella</link>
+            <enclosure length="24429662" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/691fc132-ca6a-4742-9654-74877402f100:30a14b89169495ded7f214dfbe7588fc4de46f62/block-480-270/Treningskamp-54.jpg" />
+            <pubDate>Thu, 13 Feb 2025 18:27:32 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/dette-er-troppen-som-har-reist-pa-treningsleir-til-marbella</guid>
+            <description> LSK er på plass i Marbella i Spania for treningsleir i 10 dager. Med seg
+                nedover er det 28 spillere. Her har du oversikt over hvem som er med. </description>
+        </item>
+        <item>
+            <title> - Fine forberedelser mot EM-kvaliken </title>
+            <link>https://www.lsk.no/nyheter/fine-forberedelser-mot-em-kvaliken</link>
+            <enclosure length="3037423" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/64671e13-c374-41a3-b9af-734f3da9f5ef:bebe5e15a914b0ce2da040aae97df05ad7685ab3/block-480-270/Reshane+Woxen.jpg" />
+            <pubDate>Mon, 10 Feb 2025 20:06:54 +0000</pubDate>
+            <category> Akademiet </category>
+            <guid isPermaLink="false">https://www.lsk.no/nyheter/fine-forberedelser-mot-em-kvaliken</guid>
+            <description> Harald Woxen og Filip Reshane har vært i Spania med Norge U17. Sistnevnte
+                fikk også sin Norge-debut under firenasjonersturneringen. </description>
+        </item>
+        <item>
+            <title> Åsen og Hedenstad populære gjester hos Lauget </title>
+            <link>https://www.lsk.no/nyheter/asen-og-hedenstad-populaere-gjester-hos-lauget</link>
+            <enclosure length="208154" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/9c273780-4ddc-4e4e-a4d0-3663b7adf33f:7dc1a5dbac34a04bd248469c7ce9eea7a523d25b/block-480-270/original-7BA89BE2-A824-4BF4-B0D8-63285DD2D608.jpeg" />
+            <pubDate>Sat, 08 Feb 2025 13:48:42 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/asen-og-hedenstad-populaere-gjester-hos-lauget</guid>
+            <description> Gjermund Åsen og Mads Hedenstad Christiansen stilte velvillig opp på
+                februar-møtet hos LSK-Lauget fredag kveld. Og de to snakket åpent og ærlig om hva
+                som ikke minst skjedde i fjor og selvsagt også det som skjer i og rundt laget nå. </description>
+        </item>
+        <item>
+            <title> LSK fremmer forslag om VAR-avvikling på NFF Akershus kretsting </title>
+            <link>
+                https://www.lsk.no/nyheter/lsk-fremmer-forslag-om-var-avvikling-pa-nff-akershus-kretsting</link>
+            <enclosure length="13545385" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/2fa8f007-58c8-4ac7-93dc-802f36fdb7b1:37909ef7d9b7e402b49ef076ceaf69a69e59b4c3/block-480-270/Dronebilde%20flomlys%20skr%C3%A5tt%20LSK%20-%20Glimt.jpg" />
+            <pubDate>Sat, 08 Feb 2025 09:05:05 +0000</pubDate>
+            <dc:creator> Lillestrøm Sportsklubb </dc:creator>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/lsk-fremmer-forslag-om-var-avvikling-pa-nff-akershus-kretsting</guid>
+            <description> Daglig leder Robert Lauritsen informerer om at Lillestrøm Sportsklubb har
+                fremmet et forslag til NFF Akershus kretsting som skal avholdes 24. februar. </description>
+        </item>
+        <item>
+            <title> Bartosz Deregowski søker bolig til leie </title>
+            <link>https://www.lsk.no/nyheter/bartosz-deregowski-soker-bolig-til-leie</link>
+            <enclosure length="10337376" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/e8271970-7db3-4335-a610-f106f8d8a606:29a3e57d0dbca3b0625eae5850b2cfa0027609b1/block-480-270/treningsbilder-106.jpg" />
+            <pubDate>Fri, 07 Feb 2025 18:46:32 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/bartosz-deregowski-soker-bolig-til-leie</guid>
+            <description> Vår nye keepertrener, Bartosz Deregowski, er på boligjakt i Lillestrøm. </description>
+        </item>
+        <item>
+            <title> LSK snudde kampen og vant komfortabelt mot Ull/Kisa </title>
+            <link>https://www.lsk.no/nyheter/lsk-snudde-kampen-og-vant-komfortabelt-mot-ull-kisa</link>
+            <enclosure length="16587135" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/5ffecce2-db94-475e-92f5-dcd62363505e:b829846f5ef51d0f7ec907a19f2d495a63e13bdf/block-480-270/Treningskamp-1.jpg" />
+            <pubDate>Fri, 07 Feb 2025 14:56:51 +0000</pubDate>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/lsk-snudde-kampen-og-vant-komfortabelt-mot-ull-kisa</guid>
+            <description> LSK snudde kampen og vant 4-1 mot Ull/Kisa. Etter å ligget under til
+                pause, svarte hjemmelaget med fire scoringer i andre omgang. </description>
+        </item>
+        <item>
+            <title> Markedsfredag: Tre partnere forlenger - bli bedre kjent med Equipo, Oppover og
+                Dekk &amp;amp; felg Lillestrøm </title>
+            <link>
+                https://www.lsk.no/nyheter/markedsfredag-tre-partnere-forlenger-bli-bedre-kjent-med-equipo-oppover-og-dekk-felg-lillestrom</link>
+            <enclosure length="3196734" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/e6fb50b8-1ead-458e-97fc-fba0c14b94f5:2258b667ee35ec3831562dce16012937e195ae67/block-480-270/Equipo%202025.jpg" />
+            <pubDate>Fri, 07 Feb 2025 11:48:59 +0000</pubDate>
+            <dc:creator> Kine Klevengen </dc:creator>
+            <category> Samarbeidspartnere </category>
+            <guid isPermaLink="false">
+                https://www.lsk.no/nyheter/markedsfredag-tre-partnere-forlenger-bli-bedre-kjent-med-equipo-oppover-og-dekk-felg-lillestrom</guid>
+            <description> I dag gleder vi oss over at tre samarbeidspartnere forlenger sine avtaler
+                med LSK. Vi er heldige som har med oss Henrik Jentsch Sognnæs i Equipo, Bjørn Skovli
+                i Oppover og Glenn Westbryhn i Dekk &amp;amp; felg Lillestrøm videre i LSKs
+                nettverk. </description>
+        </item>
+        <item>
+            <title> Laget mot Ull/Kisa i LSK-hallen </title>
+            <link>https://www.lsk.no/nyheter/laget-mot-ull-kisa-i-lsk-hallen</link>
+            <enclosure length="1919727" type="image/jpeg"
+                url="https://www.lsk.no/rss-nyheter/_/image/1762fbd1-4de8-4430-b4c0-b114a79d2975:19b1cb99ac8c11e71c4f1cd46da21f0246c2ecab/block-480-270/%5B20250131%5D%20LSK-sif_TK_FT%201409-Enhanced-NR.jpg" />
+            <pubDate>Fri, 07 Feb 2025 09:52:22 +0000</pubDate>
+            <guid isPermaLink="false">https://www.lsk.no/nyheter/laget-mot-ull-kisa-i-lsk-hallen</guid>
+            <description> Salieu Drammeh er en av de som spiller fra start i treningskampen mot
+                Ull/Kisa i LSK-hallen. To juniorspillere, Melvin Rogert Kristiansen og Ivar Winje,
+                er en del av troppen. Kampen har avspark kl. 12:00. Se hele startelleveren her! </description>
+        </item>
+    </channel>
+</rss>

@@ -3,6 +3,8 @@ nb:
     quote_num: Sitat nr
     quote: Sitat
     quote_date: Dato
+  common:
+    quote_db_empty: Ingen sitater i databasen
   commands:
     refresh_quote:
       start:
@@ -16,12 +18,17 @@ nb:
         msg_confirm_ok: Sitat oppdatering startet på nytt
     autopost:
       cmd: Autopost sitater
+      errors:
+        channel_error: Feil ved henting av kanal for autopost, sjekk logger
+        no_quotes_stop_task: Ingen sitater tilgjengelig for autoposting i databasen, stopper autopostdisabling autoposting
       start:
         cmd: Start autopost
         msg_confirm_ok: Autoposting startet, neste post kommer %{time}
+        msg_already_running: Oppgaven kjører allerede
       stop:
         cmd: Stopp autopost
         msg_confirm_ok: Autoposting stoppet, neste post kommer %{time}
+        msg_already_stopped: Autoposting er allerede stoppet
       restart:
         cmd: Restart autopost
         msg_confirm_ok: Autoposting restartet
@@ -31,7 +38,7 @@ nb:
       cmd: Post et sitat
       desc:
         number: Velg et nummer hvis du vil ha et spesifikt sitat
-      quote_not_exist: 'Sitat nummer %{quote_in} finnes ikke'
+      quote_not_exist: "Sitat nummer %{quote_in} finnes ikke"
     add:
       cmd: Legg til sitat
     edit:
@@ -39,23 +46,32 @@ nb:
       desc:
         quote_in: Sitat som skal endres
       no_change: Ingen endringer funnet
+      msg_not_editable: "Sitat nr %{quote_in} kan ikke redigeres - det har ingen meldinger i en lesbar kanal i denne serveren"
     delete:
       cmd: Slett sitat
       desc:
         quote_number: Sitat-nummer som skal slettes
-      confirm_delete: 'Er du sikker på at du vil slette følgende sitat?'
-      msg_confirm_delete: 'Slettet sitat nummer %{quote_num}'
+      confirm_delete: "Er du sikker på at du vil slette dette sitatet?"
+      msg_confirm_delete: "Slettet sitat nummer %{quote_num}"
       msg_confirm_not_delete: Sitat ikke slettet
       msg_fail: Sitatet slettes ikke, sjekk logger
-      msg_nonexisting_quote: 'Sitat nr %{quote_number} eksisterer ikke'
+      msg_nonexisting_quote: "Sitat nr %{quote_number} eksisterer ikke"
     count:
       cmd: Tell antall sitater
-      msg_confirm: 'Jeg har for øyeblikket %{num_quotes} sitater i databasen'
+      msg_confirm:
+        zero: Jeg har for øyeblikket ingen sitater i databasen
+        one: Jeg har for øyeblikket %{count} sitat i databasen
+        few: Jeg har for øyeblikket %{count} sitater i databasen
+        many: Jeg har for øyeblikket %{count} sitater i databasen
     list:
       cmd: Vis sitater
-      msg_nonexisting_quote: Quote does not exist
-    server_update:
-      cmd: Oppdater quotes.json for server
+      msg_nonexisting_quote: Sitatet eksisterer ikke
+      msg_listing_cancelled: Listing av sitater stoppet
+      confirm_post_all:
+        zero: Det er ingen sitater å poste
+        one: Dette vil poste det ene sitatet i databasen. Er du sikker på at du vil det?
+        few: "Dette vil poste alle %{count} sitatene. Er du sikker på at du vil det?"
+        many: "Dette vil poste alle %{count} sitatene. Er du sikker på at du vil det?"
     settings:
       cmd: Innstillinger
       change_confirmed: Innstilling endret
@@ -74,8 +90,18 @@ nb:
     add:
       modal_title: Legg til sitat
       msg_confirm: La til følgende sitat
+      msg_confirm_number: "Sitat lagret som nr %{quote_number}!"
+      msg_request_quote: Du må velge et sitat
+      dropdown_placeholder: Velg sitater...
     edit:
       modal_title: Rediger sitat
       msg_confirm: Sitat redigert
       msg_no_change: Ingen endringer gjort
-    error: 'Fikk følgende feil: %{error}'
+    error: "Fikk følgende feil: %{error}"
+  context_menu:
+    add_quote:
+      name: Legg til sitat
+      not_bot: Message was not written by the bot
+      edit_confirm: Message was edited
+      edit_confirm_with_errors: ", but some tagging failed: %{errors}"
+      edit_error: "Error when editing, check logs"

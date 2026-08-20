@@ -3,6 +3,8 @@ en:
     quote_num: Quote no.
     quote: Quote
     quote_date: Date
+  common:
+    quote_db_empty: No quotes in the database
   commands:
     refresh_quote:
       start:
@@ -16,12 +18,17 @@ en:
         msg_confirm_ok: Quote refreshing restarted
     autopost:
       cmd: Autopost quotes
+      errors:
+        channel_error: Error when getting channel for autopost, check logs
+        no_quotes_stop_task: No quotes available for autoposting in db, disabling autoposting
       start:
         cmd: Start autoposting
         msg_confirm_ok: Autoposting started, next posting is at %{time}
+        msg_already_running: Task is already running
       stop:
         cmd: Stop autoposting
         msg_confirm_ok: Autoposting stopped
+        msg_already_stopped: Autoposting already stopped
       restart:
         cmd: Restart autoposting
         msg_confirm_ok: Autoposting restarted, next posting is at %{time}
@@ -31,7 +38,7 @@ en:
       cmd: Post a quote
       desc:
         number: Choose a number if you want a specific quote
-      quote_not_exist: 'Quote # %{quote_in} does not exist'
+      quote_not_exist: "Quote # %{quote_in} does not exist"
     add:
       cmd: Add a quote
     edit:
@@ -39,23 +46,32 @@ en:
       desc:
         quote_in: Quote to edit
       no_change: No changes discovered
+      msg_not_editable: "Quote # %{quote_in} cannot be edited - it has no messages in a readable channel in this server"
     delete:
       cmd: Delete a quote
       desc:
         quote_number: Quote number to delete
-      confirm_delete: 'Are you sure you want to delete the following quote?'
-      msg_confirm_delete: 'Deleted quote # %{quote_num}'
+      confirm_delete: "Are you sure you want to delete this quote?"
+      msg_confirm_delete: "Deleted quote # %{quote_num}"
       msg_confirm_not_delete: Quote not deleted
       msg_fail: Will not delete quote, check logs
       msg_nonexisting_quote: 'Quote \#%{quote_number} does not exist'
     count:
       cmd: Count the number of quotes
-      msg_confirm: 'I currently have %{num_quotes} quotes in my database'
+      msg_confirm:
+        zero: I currently have no quotes in my database
+        one: I currently have %{count} quote in my database
+        few: I currently have %{count} quotes in my database
+        many: I currently have %{count} quotes in my database
     list:
       cmd: List quotes
-      msg_nonexisting_quote: Sitatet eksisterer ikke
-    server_update:
-      cmd: Update quotes.json for server
+      msg_nonexisting_quote: Quote does not exist
+      msg_listing_cancelled: Quote listing cancelled
+      confirm_post_all:
+        zero: There are no quotes to post
+        one: This will post the one quote in the database. Are you sure about this?
+        few: "This will post all %{count} quotes. Are you sure about this?"
+        many: "This will post all %{count} quotes. Are you sure about this?"
     settings:
       cmd: Settings
       change_confirmed: Setting changed
@@ -74,8 +90,18 @@ en:
     add:
       modal_title: Add quote
       msg_confirm: Added this quote
+      msg_confirm_number: "Quote saved as no. %{quote_number}!"
+      msg_request_quote: You must select a quote
+      dropdown_placeholder: Select quotes...
     edit:
       modal_title: Edit quote
       msg_confirm: Quote edited
       msg_no_change: No changes made
-    error: 'Got error: %{error}'
+    error: "Got error: %{error}"
+  context_menu:
+    add_quote:
+      name: Add quote
+      not_bot: Message was not written by the bot
+      edit_confirm: Message was edited
+      edit_confirm_with_errors: ", but some tagging failed: %{errors}"
+      edit_error: "Error when editing, check logs"
