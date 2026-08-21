@@ -152,3 +152,4 @@ nb:
     invite_link: "Invitasjonslenke: %{invite_url}"
     no_invite: Kunne ikke lage en invitasjonslenke for denne guilden.
     how_to_approve: "Bruk `/approve-guild guild_id:%{guild_id}` i denne kanalen for å aktivere den."
+    auto_approved: Dette er admin-guilden, så den ble godkjent automatisk.

@@ -157,3 +157,4 @@ en:
     invite_link: "Invite link: %{invite_url}"
     no_invite: Could not create an invite link for this guild.
     how_to_approve: "Use `/approve-guild guild_id:%{guild_id}` in this channel to activate it."
+    auto_approved: This is the admin guild, so it was approved automatically.

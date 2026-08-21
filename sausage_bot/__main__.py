@@ -453,8 +453,9 @@ async def register_guild(guild: discord.Guild):
     Make sure `guild` has a row in the guild registry. New guilds are
     `pending` unless they are the configured ADMIN_GUILD_ID, which is
     auto-approved and never needs to go through `/approve-guild`.
-    If guild is marked as `removed`, it resets to `pending`. Other
-    existing rows are left untouched. Status change via
+    If guild is marked as `removed`, it resets to `pending` - unless it
+    is the admin guild, which is auto-approved again on the way back in.
+    Other existing rows are left untouched. Status change via
     `/approve-guild` or `on_guild_remove`.
     #autodoc skip#
     """
@@ -465,9 +466,28 @@ async def register_guild(guild: discord.Guild):
     existing_guilds = await db_helper.get_output(
         envs.guilds_db_schema, where=("guild_id", str(guild.id)), single=True
     )
+    is_admin_guild = str(guild.id) == str(config.ADMIN_GUILD_ID)
     if existing_guilds:
         logger.info(existing_guilds)
-        if existing_guilds["status"].lower() == "removed":
+        existing_status = existing_guilds["status"].lower()
+        if is_admin_guild and existing_status != "approved":
+            # The admin guild is auto-approved wherever it turns up in the
+            # registry, not only the first time it's seen. Re-adding the
+            # bot to it must not leave the guild that hosts
+            # `/approve-guild` sitting in `pending`, unable to approve
+            # itself back into service.
+            #
+            # `_approve_admin_guild()` calls back into `register_guild()`
+            # when the row is missing - unreachable from here, since this
+            # branch only runs when the row exists.
+            await _approve_admin_guild(guild, config.BOT_ID)
+            logger.info(f"Auto-approved admin guild `{guild.name}` ({guild.id})")
+            await notify_admin_of_new_guild(
+                guild,
+                rejoined=existing_status == "removed",
+                auto_approved=True,
+            )
+        elif existing_status == "removed":
             await db_helper.update_fields(
                 envs.guilds_db_schema,
                 where=("guild_id", str(guild.id)),
@@ -475,7 +495,6 @@ async def register_guild(guild: discord.Guild):
             )
             await notify_admin_of_new_guild(guild, rejoined=True)
         return
-    is_admin_guild = str(guild.id) == str(config.ADMIN_GUILD_ID)
     now = await get_dt(format="ISO8601")
     status = "approved" if is_admin_guild else "pending"
     await db_helper.insert_many_some(
@@ -505,7 +524,9 @@ async def register_guild(guild: discord.Guild):
         await notify_admin_of_new_guild(guild)
 
 
-async def notify_admin_of_new_guild(guild: discord.Guild, rejoined=False):
+async def notify_admin_of_new_guild(
+    guild: discord.Guild, rejoined=False, auto_approved=False
+):
     "#autodoc skip#"
     if not config.ADMIN_CHANNEL_ID:
         return
@@ -549,7 +570,12 @@ async def notify_admin_of_new_guild(guild: discord.Guild, rejoined=False):
         )
     else:
         content += I18N.t("main.notify_new_guild.no_invite") + "\n"
-    content += "\n" + I18N.t("main.notify_new_guild.how_to_approve", guild_id=guild.id)
+    if auto_approved:
+        content += "\n" + I18N.t("main.notify_new_guild.auto_approved")
+    else:
+        content += "\n" + I18N.t(
+            "main.notify_new_guild.how_to_approve", guild_id=guild.id
+        )
     await discord_commands.post_to_channel(config.ADMIN_CHANNEL_ID, content_in=content)
 
 
