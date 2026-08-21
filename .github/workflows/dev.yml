@@ -56,7 +56,7 @@ jobs:
           images: ${{secrets.DOCKER_USER}}/sausage_bot
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true

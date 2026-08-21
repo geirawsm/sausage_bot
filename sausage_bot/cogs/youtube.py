@@ -15,6 +15,17 @@ from sausage_bot.util.i18n import I18N
 
 logger = config.logger
 
+# The `typing.Literal` choices for `/youtube list` are evaluated once, at
+# import time, and discord hands the picked *value* back untranslated -
+# only the name shown in the client is localized. Compare against the same
+# constants the Literal was built from, and not a fresh `I18N.t()` call in
+# whatever locale the guild happens to use, or nothing ever matches.
+LIST_TYPE_NORMAL = I18N.t("youtube.commands.list.literal_list_type.normal")
+LIST_TYPE_ADDED = I18N.t("youtube.commands.list.literal_list_type.added")
+LIST_TYPE_FILTER = I18N.t("youtube.commands.list.literal_list_type.filter")
+LINK_TYPE_CHANNEL = I18N.t("youtube.commands.list.literal_link_type.channel")
+LINK_TYPE_PLAYLIST = I18N.t("youtube.commands.list.literal_link_type.playlist")
+
 
 async def feed_name_autocomplete(
     interaction: discord.Interaction,
@@ -379,39 +390,47 @@ class Youtube(commands.Cog):
         self,
         interaction: discord.Interaction,
         list_type: typing.Literal[
-            I18N.t("youtube.commands.list.literal_list_type.normal"),
-            I18N.t("youtube.commands.list.literal_list_type.added"),
-            I18N.t("youtube.commands.list.literal_list_type.filter"),
+            LIST_TYPE_NORMAL,
+            LIST_TYPE_ADDED,
+            LIST_TYPE_FILTER,
         ],
         link_type: typing.Literal[
-            I18N.t("youtube.commands.list.literal_link_type.channel"),
-            I18N.t("youtube.commands.list.literal_link_type.playlist"),
+            LINK_TYPE_CHANNEL,
+            LINK_TYPE_PLAYLIST,
         ] = None,
     ):
         """
         List all active Youtube feeds
         """
         await interaction.response.defer()
-        if list_type == I18N.t("youtube.commands.list.literal_list_type.added"):
+        # `get_feed_list` takes untranslated types, so don't pass the
+        # literals along as they are
+        if link_type == LINK_TYPE_CHANNEL:
+            link_type_in = "channel"
+        elif link_type == LINK_TYPE_PLAYLIST:
+            link_type_in = "playlist"
+        else:
+            link_type_in = None
+        if list_type == LIST_TYPE_ADDED:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
-                list_type=list_type.lower(),
-                link_type=link_type,
+                list_type="added",
+                link_type=link_type_in,
             )
-        elif list_type == I18N.t("youtube.commands.list.literal_list_type.filter"):
+        elif list_type == LIST_TYPE_FILTER:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
                 db_filter_in=envs.youtube_db_filter_schema,
-                list_type=list_type.lower(),
-                link_type=link_type,
+                list_type="filter",
+                link_type=link_type_in,
             )
         else:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
                 db_in=envs.youtube_db_schema,
-                link_type=link_type,
+                link_type=link_type_in,
             )
         if formatted_list is not None:
             page_counter = 0
