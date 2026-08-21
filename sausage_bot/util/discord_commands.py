@@ -315,6 +315,12 @@ async def post_to_channel(
     if embed_in and isinstance(embed_in, dict):
         embed_in = discord.Embed.from_dict(embed_in)
     channel_out = config.bot.get_channel(int(channel_id))
+    if channel_out is None:
+        logger.error(
+            f"Could not find channel `{channel_id}`. It may have been deleted, "
+            "or the bot may have lost access to it"
+        )
+        return None
     try:
         msg_out = await channel_out.send(
             content=content_in, embed=embed_in, files=files_in, view=view

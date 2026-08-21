@@ -16,3 +16,4 @@ nb:
     msg_confirm: "Du ga denne episoden %{rating} ★"
   log:
     no_page_hash: "Fant ingen side-hash for %{feed_link}, logger lenken i stedet"
+    dead_channel: "Klarte ikke å poste `%{feed_name}` til kanalen `%{channel}`. Kanalen er slettet, eller boten har mistet tilgang til den. Feeden er markert som feilet og blir ikke postet før kanalen er fikset."

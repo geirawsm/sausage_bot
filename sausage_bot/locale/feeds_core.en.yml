@@ -16,3 +16,4 @@ en:
     msg_confirm: "You rated this episode %{rating} ★"
   log:
     no_page_hash: "No page hash found for %{feed_link}, logging link instead"
+    dead_channel: "Could not post `%{feed_name}` to channel `%{channel}`. The channel is deleted, or the bot has lost access to it. The feed is marked as failed and will not be posted until the channel is fixed."
