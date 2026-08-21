@@ -824,7 +824,9 @@ class RSSfeed(commands.Cog):
             return
         logger.debug("Adding feed to db")
         feed_type = "podcast"
-        if "acast.com" in feed_link and "feeds.acast.com" not in feed_link:
+        if net_io.url_hostname_matches(
+            feed_link, "acast.com"
+        ) and not net_io.url_hostname_matches(feed_link, "feeds.acast.com"):
             logger.debug("Found Acast, but not the rss feed. Changing url")
             base_feed_url = "https://feeds.acast.com/public/shows/{}"
             feed_link = re.sub(r"/episodes.*", "", feed_link)
