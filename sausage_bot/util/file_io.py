@@ -210,8 +210,6 @@ def ensure_file(file_path_in: str, file_template: str = ""):
         else:
             with open(file_path_in, "w+") as fout:
                 fout.write(file_template if file_template else "")
-    else:
-        logger.error(f"Could not find file {file_size(file_path_in)}")
 
 
 def get_max_item_lengths(headers, dict_in):
