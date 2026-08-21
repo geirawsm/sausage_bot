@@ -545,6 +545,41 @@ async def get_feed_links(feed_type, feed_info, guild_id):
         return links_out
 
 
+def get_channel_name(guild: discord.Guild, channel_in) -> str:
+    """
+    Get the name of the channel `channel_in` in `guild`.
+
+    A feed keeps posting to a channel id in the database long after the
+    channel itself is gone (deleted, or moved out of the bot's reach), so
+    fall back to a placeholder with the raw id instead of raising.
+    #autodoc skip#
+    """
+    try:
+        channel_out = guild.get_channel_or_thread(int(channel_in))
+    except (TypeError, ValueError):
+        channel_out = None
+    if channel_out is None:
+        logger.warning(f"Could not find channel `{channel_in}` in guild {guild.id}")
+        return I18N.t("common.unknown_channel", id=channel_in)
+    return channel_out.name
+
+
+def get_member_name(guild: discord.Guild, member_in) -> str:
+    """
+    Get the name of the member `member_in` in `guild`, falling back to a
+    placeholder with the raw id if the member has left the guild.
+    #autodoc skip#
+    """
+    try:
+        member_out = guild.get_member(int(member_in))
+    except (TypeError, ValueError):
+        member_out = None
+    if member_out is None:
+        logger.warning(f"Could not find member `{member_in}` in guild {guild.id}")
+        return I18N.t("common.unknown_member", id=member_in)
+    return member_out.name
+
+
 async def get_feed_list(
     guild: discord.Guild,
     db_in: str = None,
@@ -563,11 +598,16 @@ async def get_feed_list(
     db_filter_in: str
         Database with the filters (default: None)
     list_type: str
-        If specified, should show that specific list_type
+        If specified, should show that specific list_type: `added` or
+        `filter` (default: None, a plain listing)
     link_type: str
-        If specified, should show that specific link_type
+        If specified, should show that specific link_type: `channel` or
+        `playlist` (default: None, both)
     feed_type: str
         If specified, should show that specific feed_type
+
+    Note that `list_type`/`link_type` are the untranslated values - the
+    cogs are the ones dealing with the localized command literals.
     """
 
     async def split_lengthy_list(table_in):
@@ -599,21 +639,32 @@ async def get_feed_list(
         return paginated
 
     _guild = guild
-    if link_type == I18N.t("youtube.commands.list.literal_link_type.channel"):
-        wheres_in = [("playlist_id", "IS", "None")]
-    elif link_type == I18N.t("youtube.commands.list.literal_link_type.playlist"):
-        wheres_in = [("playlist_id", "IS NOT", "None")]
+    # Not every feed db knows about playlists (rss feeds don't)
+    has_playlist_id = any(item[0] == "playlist_id" for item in db_in["items"])
+    show_playlist_id = has_playlist_id and link_type in ["channel", "playlist"]
+
+    def wanted_link_type(feed_in) -> bool:
+        """
+        Check a feed against `link_type`. Doing this in the query would
+        need an `IS (NOT) NULL`, which `db_helper.get_output` doesn't
+        support.
+        #autodoc skip#
+        """
+        if not show_playlist_id:
+            return True
+        is_playlist = feed_in.get("playlist_id") not in [None, "", "None"]
+        if link_type == "playlist":
+            return is_playlist
+        return not is_playlist
+
+    if feed_type:
+        wheres_in = [("feed_type", feed_type)]
     else:
         wheres_in = None
-    if feed_type:
-        if wheres_in is not None:
-            wheres_in.append(("feed_type", "IS", feed_type))
-        else:
-            wheres_in = [("feed_type", "IS", feed_type)]
-    if link_type is None:
-        selects = ("feed_name", "url", "channel")
-    else:
-        selects = ("feed_name", "url", "channel", "playlist_id")
+    selects = ["feed_name", "url", "channel"]
+    if show_playlist_id:
+        selects.append("playlist_id")
+    selects = tuple(selects)
     if list_type is None:
         feeds_out = await db_helper.get_output(
             template_info=db_in,
@@ -623,11 +674,12 @@ async def get_feed_list(
             guild_id=guild.id,
         )
         # Return None if empty db
-        if feeds_out is None:
+        if not feeds_out:
             logger.info("No feeds in database")
             return None
+        feeds_out = [feed for feed in feeds_out if wanted_link_type(feed)]
         for feed in feeds_out:
-            feed["channel"] = _guild.get_channel(int(feed["channel"])).name
+            feed["channel"] = get_channel_name(_guild, feed["channel"])
             if "playlist_id" in feed:
                 if feed["playlist_id"] is None:
                     feed["playlist_id"] = I18N.t("common.channel")
@@ -642,25 +694,30 @@ async def get_feed_list(
         }
         maxcolwidths = [None, None, None, None]
     elif list_type == "added":
+        selects_added = ["feed_name", "url", "channel", "added", "added_by"]
+        if has_playlist_id:
+            selects_added.append("playlist_id")
         feeds_out = await db_helper.get_output(
             template_info=db_in,
-            select=("feed_name", "url", "channel", "added", "added_by", "playlist_id"),
+            select=tuple(selects_added),
             where=wheres_in,
             order_by=[("feed_name", "ASC")],
             guild_id=guild.id,
         )
-        for feed in feeds_out:
-            feed["channel"] = _guild.get_channel(int(feed["channel"])).name
-            if re.match(r"(\d+)", feed["added_by"]):
-                feed["added_by"] = _guild.get_member(int(feed["added_by"])).name
-            if feed["playlist_id"] is None:
-                feed["playlist_id"] = I18N.t("common.channel")
-            else:
-                feed["playlist_id"] = I18N.t("common.playlist")
         # Return None if empty db
-        if len(feeds_out) <= 0:
+        if not feeds_out:
             logger.info("No feeds in database")
             return None
+        feeds_out = [feed for feed in feeds_out if wanted_link_type(feed)]
+        for feed in feeds_out:
+            feed["channel"] = get_channel_name(_guild, feed["channel"])
+            if feed["added_by"] and re.match(r"(\d+)", feed["added_by"]):
+                feed["added_by"] = get_member_name(_guild, feed["added_by"])
+            if has_playlist_id:
+                if feed["playlist_id"] is None:
+                    feed["playlist_id"] = I18N.t("common.channel")
+                else:
+                    feed["playlist_id"] = I18N.t("common.playlist")
         headers = {
             "feed_name": I18N.t("feeds_core.list_headers.feed_name"),
             "url": I18N.t("feeds_core.list_headers.url"),
@@ -674,20 +731,30 @@ async def get_feed_list(
         if db_filter_in is None:
             logger.error("`db_filter_in` is not specified")
             return None
+        selects_filter = ["uuid", "feed_name", "channel"]
+        if has_playlist_id:
+            selects_filter.append("playlist_id")
         feeds_db = await db_helper.get_output(
             template_info=db_in,
-            select=("uuid", "feed_name", "channel", "playlist_id"),
+            select=tuple(selects_filter),
             where=wheres_in,
             order_by=[("feed_name", "ASC")],
             guild_id=guild.id,
         )
         logger.debug(f"Got `feeds_db`:\n{pformat(feeds_db)}")
+        # Return None if empty db
+        if not feeds_db:
+            logger.info("No feeds in database")
+            return None
+        feeds_db = [feed for feed in feeds_db if wanted_link_type(feed)]
         feeds_filter = await db_helper.get_output(
             template_info=db_filter_in,
             order_by=[("uuid", "DESC"), ("filter", "ASC")],
             guild_id=guild.id,
         )
         logger.debug(f"Got `feeds_filter`:\n{pformat(feeds_filter)}")
+        if feeds_filter is None:
+            feeds_filter = []
         feeds_out = []
         for feed in feeds_db:
             filter_uuid = [
@@ -710,13 +777,16 @@ async def get_feed_list(
             logger.debug(f"`filter_deny` is {filter_deny}")
             temp_list = []
             temp_list.append(feed["feed_name"])
-            temp_list.append(_guild.get_channel(int(feed["channel"])).name)
+            temp_list.append(get_channel_name(_guild, feed["channel"]))
             temp_list.append(", ".join(item for item in filter_allow))
             temp_list.append(", ".join(item for item in filter_deny))
             feeds_out.append(temp_list)
             logger.debug(f"`temp_list` is {temp_list}")
         headers = ("Feed", "Channel", "Allow", "Deny")
         maxcolwidths = [None, None, 30, 30]
+    else:
+        logger.error(f"Unknown `list_type`: {list_type}")
+        return None
     if len(feeds_out) <= 0:
         return None
     table_out = tabulate(
