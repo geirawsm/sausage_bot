@@ -426,7 +426,9 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild
     # Replace channel names with channel id in list
     row_items_copy = row_items.copy()
     for row_item in row_items:
-        if not re.match(r"(\d+)", row_item["channel"]):
+        # `fullmatch`, so a channel named `1-general` is treated as a name
+        # and not mistaken for an id
+        if not re.fullmatch(r"\d+", row_item["channel"]):
             # Try to search for channel ID
             logger.debug("channel is not an id, searching for name...")
             try:
@@ -456,11 +458,8 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild
                     ),
                 )
                 row_items_copy.pop(row_items_copy.index(row_item))
-        elif re.match(r"(\d+)", row_item["channel"]):
-            logger.debug("Channel `{}` is an id and is ok".format(row_item["channel"]))
-            row_items_copy.pop(row_items_copy.index(row_item))
         else:
-            logger.error("Unexpected error")
+            logger.debug("Channel `{}` is an id and is ok".format(row_item["channel"]))
             row_items_copy.pop(row_items_copy.index(row_item))
     changes = {channel_col: []}
     logger.debug("Channel updates: {}".format(row_items_copy))
