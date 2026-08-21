@@ -122,6 +122,7 @@ for folder in check_and_create_folders:
 
 try:
     intents = discord.Intents.all()
+    intents.members = True
     bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 except KeyError as e:
     logger.error(f"Couldn't load basic env: {e}")
