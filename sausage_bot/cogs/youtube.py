@@ -5,6 +5,8 @@
 import discord
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
+from discord.utils import get
+
 import typing
 from time import sleep
 from yt_dlp import YoutubeDL
@@ -232,14 +234,14 @@ class Youtube(commands.Cog):
         """
         await interaction.response.defer()
         AUTHOR = interaction.user.name
-        _uuid = await db_helper.get_output(
+        feed_info = await db_helper.get_output(
             template_info=envs.youtube_db_schema,
-            select=("uuid"),
+            select=("uuid", "channel"),
             where=(("feed_name", feed_name)),
             single=True,
             guild_id=interaction.guild.id,
         )
-        if _uuid is None:
+        if feed_info is None:
             logger.debug(f"The feed `{feed_name}` does not exist")
             await interaction.followup.send(
                 I18N.t(
@@ -261,7 +263,13 @@ class Youtube(commands.Cog):
                 ),
             )
             await interaction.followup.send(
-                I18N.t("youtube.commands.remove.msg_feed_removed", feed_name=feed_name)
+                I18N.t(
+                    "youtube.commands.remove.msg_feed_removed",
+                    feed_name=feed_name,
+                    channel_name=get(
+                        interaction.guild.text_channels, id=int(feed_info["channel"])
+                    ),
+                )
             )
         elif removal is False:
             # Couldn't remove the feed
@@ -278,7 +286,7 @@ class Youtube(commands.Cog):
                     "youtube.commands.remove.log_feed_remove_failed",
                     user_name=AUTHOR,
                     feed_name=feed_name,
-                )
+                ),
             )
         return
 
