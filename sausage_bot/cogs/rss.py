@@ -1070,7 +1070,7 @@ class RSSfeed(commands.Cog):
                         await db_helper.update_fields(
                             template_info=envs.rss_db_schema,
                             where=("uuid", UUID),
-                            updates=("status_url", envs.CHANNEL_STATUS_ERROR),
+                            updates=("status_url", envs.FEEDS_URL_ERROR),
                             guild_id=guild.id,
                         )
                         await discord_commands.log_to_bot_channel(

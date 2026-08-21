@@ -80,9 +80,9 @@ try:
     SPOTIFY_SECRET = env("SPOTIFY_SECRET", default=None)
     SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default=None)
     STATS_LOOP = env.int("STATS_LOOP", default=10)
-    YT_LOOP = env.int("YT_LOOP", default=15)
-    RSS_LOOP = env.int("RSS_LOOP", default=15)
-    POD_LOOP = env.int("POD_LOOP", default=15)
+    YT_LOOP = env.int("YT_LOOP", default=10)
+    RSS_LOOP = env.int("RSS_LOOP", default=10)
+    POD_LOOP = env.int("POD_LOOP", default=10)
     FCB_LOOP = env.int("FCB_LOOP", default=60)
     INVITATION_CHANNEL = env.int("INVITATION_CHANNEL", default="general")
     # Only the credentials the bot cannot start without are checked here.

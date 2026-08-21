@@ -10,6 +10,7 @@ import discord
 import re
 from hashlib import md5
 from pprint import pformat
+from time import monotonic
 
 from sausage_bot.util import config, envs, datetime_handling
 from sausage_bot.util import discord_commands, net_io, db_helper
@@ -17,6 +18,13 @@ from sausage_bot.util.args import args
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+
+# A dead channel affects every feed posting to it, so warn about the
+# channel once and stay quiet for a while instead of sending one message
+# per video. Keyed on (guild id, channel), holding a `time.monotonic()`
+# reading, which is immune to the wall clock being adjusted.
+DEAD_CHANNEL_ALERT_COOLDOWN = 60 * 10
+dead_channel_alerts = {}
 
 
 class DynamicRatingSelect(
@@ -875,6 +883,47 @@ async def log_link(template_info, uuid, feed_link, page_hash, guild):
     )
 
 
+def channel_is_gone(guild: discord.Guild, channel_in) -> bool:
+    """
+    Check whether `channel_in` can still be reached in `guild`.
+
+    A feed keeps its channel id in the database long after the channel
+    itself is gone (deleted, or moved out of the bot's reach).
+    #autodoc skip#
+    """
+    try:
+        return guild.get_channel_or_thread(int(channel_in)) is None
+    except (TypeError, ValueError):
+        logger.error(f"Channel `{channel_in}` is not a valid channel id")
+        return True
+
+
+async def report_dead_channel(feed_db, uuid, feed_name, channel, guild):
+    """
+    Mark the feed as failed so it stops being picked up, and tell the
+    guild's bot channel about it. Repeats within
+    `DEAD_CHANNEL_ALERT_COOLDOWN` seconds are logged but not posted.
+    #autodoc skip#
+    """
+    await db_helper.update_fields(
+        template_info=feed_db,
+        where=("uuid", uuid),
+        updates=("status_channel", envs.CHANNEL_STATUS_ERROR),
+        guild_id=guild.id,
+    )
+    alert_key = (guild.id, str(channel))
+    now = monotonic()
+    last_alert = dead_channel_alerts.get(alert_key)
+    if last_alert is not None and (now - last_alert) < DEAD_CHANNEL_ALERT_COOLDOWN:
+        logger.debug(f"Already warned about channel `{channel}`, staying quiet")
+        return
+    dead_channel_alerts[alert_key] = now
+    await discord_commands.log_to_bot_channel(
+        guild,
+        I18N.t("feeds_core.log.dead_channel", feed_name=feed_name, channel=channel),
+    )
+
+
 async def process_links_for_posting_or_editing(
     feed_name: str, feed_type: str, uuid, FEED_POSTS, CHANNEL, guild: discord.Guild
 ):
@@ -898,6 +947,7 @@ async def process_links_for_posting_or_editing(
         logger.error("Function requires `feed_type`")
         return None
     if feed_type in ["rss", "podcast"]:
+        feed_db = envs.rss_db_schema
         feed_db_log = envs.rss_db_log_schema
         FEED_SETTINGS = await db_helper.get_output(
             template_info=envs.rss_db_settings_schema,
@@ -906,10 +956,19 @@ async def process_links_for_posting_or_editing(
             guild_id=guild.id,
         )
     elif feed_type == "youtube":
+        feed_db = envs.youtube_db_schema
         feed_db_log = envs.youtube_db_log_schema
         FEED_SETTINGS = None
     if FEED_POSTS is None:
         logger.debug("`FEED_POSTS` is None")
+        return None
+    # Checking the channel once per feed keeps a deleted channel from
+    # failing on every single item below
+    if channel_is_gone(guild, CHANNEL):
+        logger.error(
+            f"Channel `{CHANNEL}` for `{feed_name}` is gone, marking feed as failed"
+        )
+        await report_dead_channel(feed_db, uuid, feed_name, CHANNEL, guild)
         return None
     logger.debug(f"Got {len(FEED_POSTS)} items in `FEED_POSTS`")
     if feed_type in ["rss", "podcast"]:
@@ -956,6 +1015,7 @@ async def process_links_for_posting_or_editing(
             # Whether this is a podcast is decided by the feed's type in
             # the db, not by the item itself. A feed registered as `rss`
             # is never posted as a podcast even if it carries audio.
+            posted = True
             if feed_type == "podcast" and isinstance(item, dict):
                 embed_color = await net_io.extract_color_from_image_url(item["img"])
                 embed = discord.Embed(
@@ -983,6 +1043,7 @@ async def process_links_for_posting_or_editing(
                 episode_msg = await discord_commands.post_to_channel(
                     CHANNEL, embed_in=embed
                 )
+                posted = episode_msg is not None
                 view = None
                 rating_setting = "podcast_ratings_enabled"
                 if (
@@ -1002,6 +1063,7 @@ async def process_links_for_posting_or_editing(
                 if (
                     discussion_setting in FEED_SETTINGS
                     and FEED_SETTINGS[discussion_setting].lower() == "true"
+                    and episode_msg is not None
                 ):
                     logger.debug("Discussion enabled")
                     # Create a thread for discussion
@@ -1021,7 +1083,18 @@ async def process_links_for_posting_or_editing(
                         f"TESTMODE: Would post this link: {feed_link}", color="yellow"
                     )
                 else:
-                    await discord_commands.post_to_channel(CHANNEL, feed_link)
+                    posted = (
+                        await discord_commands.post_to_channel(CHANNEL, feed_link)
+                        is not None
+                    )
+            if not posted:
+                # Not logging the link keeps it queued for the next run,
+                # instead of silently dropping it as already posted
+                logger.error(
+                    f"Could not post `{feed_link}` from `{feed_name}` to channel "
+                    f"`{CHANNEL}`, not logging it as posted"
+                )
+                continue
             await log_link(
                 feed_db_log,
                 uuid,
