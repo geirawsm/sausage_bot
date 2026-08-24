@@ -139,9 +139,7 @@ class DynamicRatingSelect(
         )
         await interaction.followup.send(
             ephemeral=True,
-            content=I18N.t(
-                "feeds_core.podcast_rating.msg_confirm", rating=self.rating
-            ),
+            content=I18N.t("feeds_core.podcast_rating.msg_confirm", rating=self.rating),
         )
 
 
@@ -188,13 +186,17 @@ async def check_feed_validity(url_in, mock_file=None, guild=None):
             sample_item = _items[0]
     logger.debug(f"Got `sample_item`: {sample_item}")
     if sample_item is None:
-        return False
+        soup = BeautifulSoup(req, features="xml")
+        if bool(soup.find("link", attrs={"type": "application/rss+xml"})):
+            return True
+        else:
+            return False
     try:
         logger.debug(f"`req` is a {type(req)}")
         BeautifulSoup(req, features="xml")
         return True
     except etree.XMLSyntaxError as e:
-        logger.error("Error: {}".format(e))
+        logger.error(f"Error: {e}")
         return False
 
 
@@ -544,8 +546,11 @@ async def get_feed_links(feed_type, feed_info, guild_id):
             template_info=feed_db_log, where=[("uuid", UUID)], guild_id=guild_id
         )
         links_out = await get_items_from_rss(
-            req=req["content"], url=URL, filters_in=filters_db, log_in=log_db,
-            num_items=5
+            req=req["content"],
+            url=URL,
+            filters_in=filters_db,
+            log_in=log_db,
+            num_items=5,
         )
         logger.debug(
             "Got {} items from `get_items_from_rss`".format(
