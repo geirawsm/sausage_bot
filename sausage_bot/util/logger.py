@@ -7,7 +7,16 @@ import stat
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
-from sausage_bot.util import envs
+from sausage_bot.util import envs, guild_context
+
+# Both handlers share this, so console and file output stay in step.
+# The guild column is padded to the width of a Discord snowflake so the
+# module/function/line field starts in the same column on every line,
+# guild or no guild.
+LOG_FORMAT = (
+    "%(asctime)s | %(levelname)-5.5s | [ %(guild)-19s ] | "
+    "[ %(module)s : %(funcName)s : %(lineno)s ]\t%(message)s"
+)
 
 
 def truncate_for_log(data, max_len=100):
@@ -82,6 +91,36 @@ def write_json(json_file, json_out):
         json.dump(json_out, write_file, indent=4, sort_keys=True)
 
 
+class GuildContextFilter(logging.Filter):
+    """
+    Stamp every record with the guild the current asyncio Task is working
+    on, so output from concurrently running guilds can be told apart.
+
+    The value is read from `guild_context.current_guild_id`, which
+    `db_helper.guild_locale_context()` sets for the duration of a command
+    or a background-task iteration. Passing
+    `extra={"guild_id": <id>}` to the logging call overrides it, for the
+    code paths that know their guild but don't enter that context.
+
+    Records with no guild in scope - startup, global commands - get an
+    empty string, which `LOG_FORMAT` pads out to a blank column of the
+    same width, so every line's module field lines up.
+
+    Attached to the handlers rather than to the logger: a logger's own
+    filters only see records logged directly on it, so records that
+    propagate up from a child logger (discord.py, aiosqlite) would reach
+    the formatter without a `guild` attribute and raise on format.
+    #autodoc skip#
+    """
+
+    def filter(self, record):
+        guild_id = getattr(record, "guild_id", None)
+        if guild_id is None:
+            guild_id = guild_context.current_guild_id.get()
+        record.guild = str(guild_id) if guild_id else ""
+        return True
+
+
 class ColorFormatter(logging.Formatter):
     """Logging Formatter to add colors and count warning / errors"""
 
@@ -95,10 +134,7 @@ class ColorFormatter(logging.Formatter):
     grey = "\x1b[90m"
     reset = "\x1b[0m"
 
-    format = (
-        "%(asctime)s | %(levelname)-5.5s | [ %(module)s : %(funcName)s : "
-        "%(lineno)s ]\t%(message)s"
-    )
+    format = LOG_FORMAT
 
     FORMATS = {
         logging.DEBUG: f"{white}{format}{reset}",
@@ -131,6 +167,7 @@ def configure_logging(
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(ColorFormatter())
+    console_handler.addFilter(GuildContextFilter())
     logger.addHandler(console_handler)
 
     if to_file:
@@ -143,12 +180,9 @@ def configure_logging(
             backupCount=log_days,
         )
         file_handler.setLevel(file_level if file_level is not None else logging.DEBUG)
-        file_formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-5.5s | "
-            "[ %(module)s : %(funcName)s : %(lineno)s ]\t%(message)s",
-            "%Y-%m-%d %H:%M:%S",
-        )
+        file_formatter = logging.Formatter(LOG_FORMAT, "%Y-%m-%d %H:%M:%S")
         file_handler.setFormatter(file_formatter)
+        file_handler.addFilter(GuildContextFilter())
         logger.addHandler(file_handler)
 
 
