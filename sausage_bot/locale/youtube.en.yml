@@ -31,6 +31,13 @@ en:
       log_feed_removed: 'Youtube feed `%{feed_name}` removed by %{user_name}'
       msg_feed_remove_failed: 'The Youtube feed `%{feed_name}` could not be removed'
       log_feed_remove_failed: 'User %{user_name} tried to remove the Youtube feed `%{feed_name}`, but it failed'
+    reset_url_errors:
+      cmd: Put feeds deactivated by url errors back to work
+      desc:
+        feed_name: A single feed to reset. Leave empty to reset all of them
+      msg_nothing_to_reset: No Youtube feeds are deactivated
+      msg_confirm: "Reset these Youtube feeds:\n- %{feeds}"
+      log_reset: "%{user_name} reset these Youtube feeds:\n- %{feeds}"
     filter_add:
       cmd: Add filters on an Youtube feed
       desc:
@@ -59,5 +66,3 @@ en:
       literal_link_type:
         channel: Channel
         playlist: Playlist
-  tasks:
-    log_error: 'Feed `%{feed_name}` returned `%{return_value}`. Check the logs.'

@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 
-from sausage_bot.util import net_io
+from sausage_bot.util import envs, net_io
 
 URL = "https://www.youtube.com/@example"
 
@@ -74,8 +74,10 @@ async def test_missing_headers_file_does_not_break_the_request():
     ):
         result = await net_io.get_link(URL)
     assert result == "<html>ok</html>"
-    # No user-agent to send, so aiohttp's own default is used
-    assert session.headers_seen == [None]
+    # Falls back to a built-in browser user-agent. aiohttp's own default
+    # (`Python/3.x aiohttp/x.y`) got the bot throttled by Youtube.
+    assert len(session.headers_seen) == 1
+    assert session.headers_seen[0]["user-agent"] in envs.DEFAULT_USER_AGENTS
 
 
 async def test_a_scraped_user_agent_is_used_when_available():

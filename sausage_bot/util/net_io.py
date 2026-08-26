@@ -85,20 +85,23 @@ async def get_link(url=None, mock_file=None, status_out=None):
 
     def get_random_user_agent():
         """
-        A scraped user-agent, or None when there are none to pick from.
+        A scraped user-agent, or a built-in one when there are none.
 
         `SCRAPEOPS_API_KEY` is optional, and `fetch_random_user_agent()`
         writes nothing without it, so the headers file is regularly
         missing or empty. `file_io.read_json()` creates it as `{}` in
         that case, which used to raise `KeyError: 'result'` here and get
         reported as a url error by the caller's `except`.
+
+        Falling back to `None` left aiohttp announcing itself as
+        `Python/3.x aiohttp/x.y`, which Youtube throttles.
         """
         headers_file = envs.TEMP_DIR / "headers.json"
         scraped = file_io.read_json(headers_file) or {}
         results = scraped.get("result") or []
         if not results:
-            logger.debug("No scraped user-agents available, using the default")
-            return None
+            logger.debug("No scraped user-agents available, using a built-in one")
+            return choice(envs.DEFAULT_USER_AGENTS)
         return choice(results)["user-agent"]
 
     if mock_file:
@@ -120,8 +123,7 @@ async def get_link(url=None, mock_file=None, status_out=None):
         # Get random user agent
         rand_user_agent = get_random_user_agent()
         logger.debug(f"Using user-agent: {rand_user_agent}")
-        # aiohttp falls back to its own user-agent when this is None
-        headers = {"user-agent": rand_user_agent} if rand_user_agent else None
+        headers = {"user-agent": rand_user_agent}
         # async with session.get(url) as resp:
         async with session.get(url, headers=headers) as resp:
             url_status = resp.status

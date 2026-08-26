@@ -64,6 +64,26 @@ async def rss_feed_name_autocomplete(
     ][:25]
 
 
+async def broken_feed_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> list[discord.app_commands.Choice[str]]:
+    "Only the feeds that url errors have taken out of rotation"
+    feed_names = [
+        feed["feed_name"]
+        for feed in await db_helper.get_output(
+            template_info=envs.rss_db_schema,
+            select=("feed_name", "status_url"),
+            guild_id=interaction.guild.id,
+        )
+        if feed["status_url"] != envs.FEEDS_URL_SUCCESS
+    ]
+    return [
+        discord.app_commands.Choice(name=feed_name, value=feed_name)
+        for feed_name in feed_names
+        if current.lower() in feed_name.lower()
+    ][:25]
+
+
 async def podcast_name_autocomplete(
     interaction: discord.Interaction, current: str
 ) -> list[discord.app_commands.Choice[str]]:
@@ -474,6 +494,44 @@ class RSSfeed(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(changes_out, ephemeral=True)
+        return
+
+    @discord_commands.is_owner_or_manage_guild()
+    @discord.app_commands.autocomplete(feed_name=broken_feed_autocomplete)
+    @rss_group.command(
+        name="reset_url_errors",
+        description=locale_str(I18N.t("rss.commands.reset_url_errors.cmd")),
+    )
+    @describe(feed_name=I18N.t("rss.commands.reset_url_errors.desc.feed_name"))
+    async def rss_reset_url_errors(
+        self, interaction: discord.Interaction, feed_name: str = None
+    ):
+        """
+        Put feeds that url errors took out of rotation back to work
+        """
+        await interaction.response.defer()
+        reset = await feeds_core.reset_url_errors(
+            envs.rss_db_schema, interaction.guild, feed_name
+        )
+        if not reset:
+            await interaction.followup.send(
+                I18N.t("rss.commands.reset_url_errors.msg_nothing_to_reset")
+            )
+            return
+        await interaction.followup.send(
+            I18N.t(
+                "rss.commands.reset_url_errors.msg_confirm",
+                feeds="\n- ".join(reset),
+            )
+        )
+        await discord_commands.log_to_bot_channel(
+            interaction.guild,
+            I18N.t(
+                "rss.commands.reset_url_errors.log_reset",
+                feeds="\n- ".join(reset),
+                user_name=interaction.user.name,
+            ),
+        )
         return
 
     @discord_commands.is_owner_or_manage_guild()
@@ -1066,20 +1124,8 @@ class RSSfeed(commands.Cog):
                         feed_type="rss", feed_info=feed, guild_id=guild.id
                     )
                     if FEED_POSTS is None or isinstance(FEED_POSTS, int):
-                        logger.info(f"Feed {FEED_NAME} returned {FEED_POSTS}")
-                        await db_helper.update_fields(
-                            template_info=envs.rss_db_schema,
-                            where=("uuid", UUID),
-                            updates=("status_url", envs.FEEDS_URL_ERROR),
-                            guild_id=guild.id,
-                        )
-                        await discord_commands.log_to_bot_channel(
-                            guild,
-                            I18N.t(
-                                "rss.tasks.feed_posts_is_none",
-                                feed_name=FEED_NAME,
-                                return_value=str(FEED_POSTS),
-                            ),
+                        await feeds_core.reg_feed_error(
+                            envs.rss_db_schema, feed, guild, FEED_POSTS
                         )
                     else:
                         logger.debug(
@@ -1088,6 +1134,7 @@ class RSSfeed(commands.Cog):
                                 ", ".join([pod_ep["title"] for pod_ep in FEED_POSTS]),
                             )
                         )
+                        await feeds_core.reg_feed_ok(envs.rss_db_schema, feed, guild)
                         await feeds_core.process_links_for_posting_or_editing(
                             feed_name=FEED_NAME,
                             feed_type="rss",
@@ -1103,6 +1150,48 @@ class RSSfeed(commands.Cog):
     async def before_post_new_feeds():
         "#autodoc skip#"
         logger.debug("`post_feeds` waiting for bot to be ready...")
+        await config.bot.wait_until_ready()
+
+    # Slower than `post_feeds` on purpose: a feed only lands here after
+    # 3 failures in a row, and hammering a source that just throttled us
+    # is what got every feed deactivated in the first place.
+    @tasks.loop(hours=6, reconnect=True)
+    async def task_retry_failed():
+        logger.info("Starting `retry_failed`")
+        approved_guilds = await db_helper.get_output(
+            envs.guilds_db_schema, where=("status", "approved")
+        )
+        for guild_row in approved_guilds:
+            guild = config.bot.get_guild(int(guild_row["guild_id"]))
+            if guild is None:
+                logger.debug(f"Guild `{guild_row['guild_id']}` not in cache, skipping")
+                continue
+            # Gated on `post_feeds`: retrying feeds nobody is posting
+            # would only be noise in the bot channel
+            task_status = await db_helper.get_output(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "rss"), ("task", "post_feeds")],
+                select=("status"),
+                single=True,
+                guild_id=guild.id,
+            )
+            if task_status.get("status") != "started":
+                logger.debug(f"`post_feeds` is not enabled for `{guild.name}`, skipping")
+                continue
+            async with db_helper.guild_locale_context(guild.id):
+                await feeds_core.retry_failed(
+                    "rss",
+                    envs.rss_db_schema,
+                    guild,
+                    not_like=[("feed_type", "podcast")],
+                )
+        logger.info("Done with retrying")
+        return
+
+    @task_retry_failed.before_loop
+    async def before_retry_failed():
+        "#autodoc skip#"
+        logger.debug("`retry_failed` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
     @tasks.loop(minutes=config.POD_LOOP, reconnect=True)
@@ -1322,8 +1411,10 @@ async def setup(bot):
     # process that guild (see task_post_feeds/task_post_podcasts above).
     RSSfeed.task_post_feeds.start()
     RSSfeed.task_post_podcasts.start()
+    RSSfeed.task_retry_failed.start()
 
 
 async def teardown(bot):
     RSSfeed.task_post_feeds.cancel()
     RSSfeed.task_post_podcasts.cancel()
+    RSSfeed.task_retry_failed.cancel()

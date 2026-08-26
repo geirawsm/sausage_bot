@@ -31,6 +31,13 @@ nb:
       log_feed_removed: 'Youtube-feed `%{feed_name}` fjernet av %{user_name}'
       msg_feed_remove_failed: 'Youtube-feed `%{feed_name}` kunne ikke fjernes'
       log_feed_remove_failed: 'Bruker %{user_name} prøvde å fjerne Youtube-feed `%{feed_name}`, men det feilet'
+    reset_url_errors:
+      cmd: Sett feeds som er deaktivert av url-feil tilbake i drift
+      desc:
+        feed_name: En enkelt feed som skal nullstilles. La stå tom for å nullstille alle
+      msg_nothing_to_reset: Ingen Youtube-feeds er deaktivert
+      msg_confirm: "Nullstilte disse Youtube-feedene:\n- %{feeds}"
+      log_reset: "%{user_name} nullstilte disse Youtube-feedene:\n- %{feeds}"
     filter_add:
       cmd: Legg til filter på en Youtube-feed
       desc:
@@ -59,5 +66,3 @@ nb:
       literal_link_type:
         channel: Kanal
         playlist: Spilleliste
-  tasks:
-    log_error: 'Feeden `%{feed_name}` returnerer `%{return_value}`. Sjekk loggfilene.'
