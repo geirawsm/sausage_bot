@@ -560,59 +560,107 @@ def filter_links(items):
     Filter incoming links based on active filters
     """
 
+    def get_filter_priority():
+        """
+        Get the filter priority from env. Accepts `allow` or `deny`,
+        defaulting to `deny`
+        """
+        priority = (
+            str(config.env("FEED_FILTER_PRIORITY", default="allow")).strip().lower()
+        )
+        if priority not in ("allow", "deny"):
+            logger.error(
+                "`FEED_FILTER_PRIORITY` is `{}`, but has to be `allow` or "
+                "`deny`. Using `deny`".format(priority)
+            )
+            priority = "deny"
+        return priority
+
+    def get_item_content(item):
+        """
+        Get the searchable content (title and description) of an item as
+        a list of lowercase strings
+        """
+        content = []
+        for key in ("title", "description"):
+            value = item.get(key, None)
+            if value is None or value == "":
+                continue
+            if not isinstance(value, str):
+                logger.error(
+                    "`{}` is not correct type: {} ({})".format(key, value, type(value))
+                )
+                continue
+            content.append(value.lower())
+        return content
+
+    def get_matching_filters(content, filters_in):
+        """
+        Get the filters in `filters_in` that are found in `content`
+        """
+        hits = []
+        for filter_in in filters_in:
+            if str(filter_in).lower() in " ".join(content):
+                hits.append(filter_in)
+        return hits
+
     def post_based_on_filter(item, filters_in):
+        """
+        Decide if `item` should be posted or not, based on `filters_in` and
+        the `FEED_FILTER_PRIORITY` setting in env.
+
+        Priority `allow`: post everything - or only what matches an
+        allow-filter, if any allow-filters are given - except what matches
+        a deny-filter (deny wins on a double match).
+
+        Priority `deny`: post nothing - or only deny what matches a
+        deny-filter, if any deny-filters are given - except what matches
+        an allow-filter (allow wins on a double match).
+        """
         allow = []
         deny = []
         for filter_in in filters_in:
-            if filter_in["allow_or_deny"].lower() == "allow":
+            allow_or_deny = str(filter_in["allow_or_deny"]).lower()
+            if allow_or_deny == "allow":
                 allow.append(filter_in["filter"])
-            elif filter_in["allow_or_deny"].lower() == "deny":
+            elif allow_or_deny == "deny":
                 deny.append(filter_in["filter"])
-        filter_priority = eval(config.env("RSS_FILTER_PRIORITY", default="deny"))
-        for filter_out in filter_priority:
-            logger.debug(f"Using filter: {filter_out}")
-            try:
-                if item["title"] is not None:
-                    logger.debug(
-                        "Checking filter against title `{}`".format(
-                            item["title"].lower()
-                        )
-                    )
-                    if filter_out.lower() in str(item["title"]).lower():
-                        logger.debug(
-                            f"Found filter `{filter_out}` in "
-                            "title ({}) - not posting!".format(item["title"])
-                        )
-                        return False
-            except TypeError:
+            else:
                 logger.error(
-                    "Title is not correct type: {} ({})".format(
-                        item["title"], type(item["title"])
+                    "Unknown `allow_or_deny` for filter `{}`: {}".format(
+                        filter_in["filter"], filter_in["allow_or_deny"]
                     )
                 )
-            try:
-                if item["description"]:
-                    logger.debug(
-                        "Checking filter against description`{}`".format(
-                            item["description"].lower()
-                        )
-                    )
-                    if filter_out.lower() in str(item["description"]).lower():
-                        logger.debug(
-                            f"Found filter `{filter_out}` in "
-                            "description ({}) - not posting!".format(
-                                item["description"]
-                            )
-                        )
-                        return False
-            except TypeError:
-                logger.error(
-                    "Description is not correct type: {} ({})".format(
-                        item["description"], type(item["description"])
-                    )
-                )
-            logger.debug("Fant ikke noe filter i tittel eller beskrivelse")
+        if len(allow) == 0 and len(deny) == 0:
+            logger.debug("No usable filters, posting")
             return True
+        priority = get_filter_priority()
+        content = get_item_content(item)
+        allow_hits = get_matching_filters(content, allow)
+        deny_hits = get_matching_filters(content, deny)
+        logger.debug(
+            "Priority `{}`, allow {} (hits: {}), deny {} (hits: {})".format(
+                priority, allow, allow_hits, deny, deny_hits
+            )
+        )
+        if priority == "allow":
+            if len(deny_hits) > 0:
+                logger.debug("Found deny-filter(s) {} - not posting!".format(deny_hits))
+                return False
+            if len(allow) > 0 and len(allow_hits) == 0:
+                logger.debug("Found no allow-filter in item - not posting!")
+                return False
+            logger.debug("Nothing is denying this item - posting")
+            return True
+        # priority == "deny"
+        if len(allow_hits) > 0:
+            logger.debug("Found allow-filter(s) {} - posting!".format(allow_hits))
+            return True
+        if len(deny) > 0 and len(deny_hits) == 0:
+            logger.debug("Found no deny-filter in item - posting")
+            return True
+        logger.debug("Nothing is allowing this item - not posting!")
+        return False
 
     logger.debug(
         "Got {} `items` (sample): {}".format(

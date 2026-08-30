@@ -131,6 +131,16 @@ LOG_ROTATION_DAYS=
 ADMIN_GUILD_ID=
 ADMIN_CHANNEL_ID=
 
+# Feed settings
+# FEED_FILTER_PRIORITY decides how the allow- and deny-filters on rss,
+# youtube and podcast feeds are weighted against each other. It accepts
+# `allow` or `deny`, and defaults to `allow`.
+# `allow`: post everything - or only what matches an allow-filter, if any
+# allow-filters are given - except what matches a deny-filter
+# `deny`: post nothing - or deny only what matches a deny-filter, if any
+# deny-filters are given - except what matches an allow-filter
+FEED_FILTER_PRIORITY=allow
+
 # Spotify settings
 # To be used if you want Spotify branding on the podcast feeds.
 # Follow the instructions on this page on _Getting started_: https://developer.spotify.com/documentation/web-api
