@@ -200,6 +200,10 @@ def posted(monkeypatch):
         "get_guild",
         lambda gid: SimpleNamespace(id=GUILD_ID, name="Test Guild"),
     )
+    # The loop bails out without a key before it looks at a single feed.
+    # The API itself is faked below, so any non-empty value will do - set
+    # it here rather than depend on whatever is in the runner's .env.
+    monkeypatch.setattr(youtube.config, "YOUTUBE_API_KEY", "test-key")
 
     async def _run(videos):
         by_id = {

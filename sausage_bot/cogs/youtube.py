@@ -30,8 +30,36 @@ LIST_TYPE_FILTER = I18N.t("youtube.commands.list.literal_list_type.filter")
 LINK_TYPE_CHANNEL = I18N.t("youtube.commands.list.literal_link_type.channel")
 LINK_TYPE_PLAYLIST = I18N.t("youtube.commands.list.literal_link_type.playlist")
 
-# Activate the Youtube API
-youtube = build("youtube", "v3", developerKey=config.YOUTUBE_API_KEY)
+_youtube_api = None
+
+
+def youtube_api():
+    """
+    Build the Youtube API client, once, on first use.
+
+    Not built at import time: an empty developerKey makes `build()` fall
+    back to Application Default Credentials, which a bot host does not
+    have, so it raises DefaultCredentialsError and the whole cog fails
+    to import - tests included - on every install without
+    YOUTUBE_API_KEY set.
+
+    `cache_discovery` is off because the discovery cache needs
+    oauth2client<4.0.0, which is not installed. Leaving it on only logs
+    `file_cache is only supported with oauth2client<4.0.0` and carries
+    on uncached anyway.
+    #autodoc skip#
+    """
+    global _youtube_api
+    if _youtube_api is None:
+        if not config.YOUTUBE_API_KEY:
+            raise ValueError("YOUTUBE_API_KEY is not set in the .env file")
+        _youtube_api = build(
+            "youtube",
+            "v3",
+            developerKey=config.YOUTUBE_API_KEY,
+            cache_discovery=False,
+        )
+    return _youtube_api
 
 
 class YouTubeAPI:
@@ -43,7 +71,7 @@ class YouTubeAPI:
     def extract_yt_channel_info(url: str) -> dict | None:
         def get_channel_id_from_handle(handle: str) -> str | None:
             """handle uten @ foran, f.eks. 'MrBeast'"""
-            request = youtube.channels().list(part="id", forHandle=handle)
+            request = youtube_api().channels().list(part="id", forHandle=handle)
             response = request.execute()
 
             if response["items"]:
@@ -51,7 +79,7 @@ class YouTubeAPI:
             return None
 
         def get_channel_id_from_username(username: str) -> str | None:
-            request = youtube.channels().list(part="id", forUsername=username)
+            request = youtube_api().channels().list(part="id", forUsername=username)
             response = request.execute()
 
             if response["items"]:
@@ -59,7 +87,7 @@ class YouTubeAPI:
             return None
 
         def get_channel_id_from_search(query: str) -> str | None:
-            request = youtube.search().list(
+            request = youtube_api().search().list(
                 part="snippet", q=query, type="channel", maxResults=1
             )
             response = request.execute()
@@ -71,7 +99,7 @@ class YouTubeAPI:
         def get_uploads_playlist_id(channel_id: str) -> str:
             # TODO: Oversett til engelsk
             """Finner kanalens 'uploads'-spilleliste, som alltid inneholder alle videoene i publiseringsrekkefølge."""
-            request = youtube.channels().list(part="contentDetails", id=channel_id)
+            request = youtube_api().channels().list(part="contentDetails", id=channel_id)
             response = request.execute()
 
             if not response["items"]:
@@ -95,7 +123,7 @@ class YouTubeAPI:
             return None
 
     def get_channel_info(channel_id: str) -> dict:
-        request = youtube.channels().list(part="snippet", id=channel_id)
+        request = youtube_api().channels().list(part="snippet", id=channel_id)
         response = request.execute()
 
         if not response["items"]:
@@ -113,7 +141,7 @@ class YouTubeAPI:
     def get_playlist_info(playlist_id_or_url: str) -> dict:
         if "&list=" in playlist_id_or_url:
             playlist_id_or_url = playlist_id_or_url.split("&list=")[1]
-        request = youtube.playlists().list(
+        request = youtube_api().playlists().list(
             part="contentDetails,snippet", id=playlist_id_or_url, maxResults=1
         )
         response = request.execute()
@@ -125,7 +153,7 @@ class YouTubeAPI:
         return {"channel_id": resp["snippet"]["channelId"], "playlist_id": resp["id"]}
 
     def get_playlist_items(playlist_id: str) -> dict:
-        request = youtube.playlistItems().list(
+        request = youtube_api().playlistItems().list(
             part="contentDetails,snippet", playlistId=playlist_id, maxResults=10
         )
         response = request.execute()
@@ -141,7 +169,7 @@ class YouTubeAPI:
 
     def get_latest_video_ids(playlist_id: str, max_results: int = 5) -> list[str]:
         """Henter de N siste video-ID-ene for ÉN spilleliste."""
-        request = youtube.playlistItems().list(
+        request = youtube_api().playlistItems().list(
             part="contentDetails", playlistId=playlist_id, maxResults=max_results
         )
         response = request.execute()
@@ -155,7 +183,7 @@ class YouTubeAPI:
         for i in range(0, len(video_ids), 50):
             batch = video_ids[i : i + 50]
 
-            request = youtube.videos().list(part="snippet", id=",".join(batch))
+            request = youtube_api().videos().list(part="snippet", id=",".join(batch))
             response = request.execute()
 
             for item in response["items"]:
@@ -665,6 +693,11 @@ class Youtube(commands.Cog):
     @tasks.loop(minutes=config.YT_LOOP, reconnect=True)
     async def task_post_videos():
         logger.info("Starting `post_videos`")
+        if not config.YOUTUBE_API_KEY:
+            logger.warning(
+                "YOUTUBE_API_KEY is not set in the .env file, skipping posting"
+            )
+            return
         approved_guilds = await db_helper.get_output(
             envs.guilds_db_schema, where=("status", "approved")
         )
