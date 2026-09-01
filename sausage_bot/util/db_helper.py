@@ -92,6 +92,24 @@ async def ensure_guild_tasks_rows(guild_id) -> None:
         )
 
 
+async def ensure_admin_guild_table() -> None:
+    """
+    Create the `admin_guild` table if missing, and bring an existing one
+    up to the current schema.
+
+    `prep_table()` is a `CREATE TABLE IF NOT EXISTS`, so a table created
+    before `guild_channel` was added to the schema keeps its two
+    columns, and `_persist_admin_guild()`'s three-value insert then
+    fails with `table admin_guild has 2 columns but 3 values were
+    supplied` - leaving the bot with no admin guild stored at all. Every
+    cog-owned schema pairs `prep_table()` with `add_missing_db_setup()`
+    for this reason; do the same for the one table __main__.py owns.
+    #autodoc skip#
+    """
+    await prep_table(envs.admin_guild_db_schema)
+    await add_missing_db_setup(envs.admin_guild_db_schema)
+
+
 def db_exist(db_file_in, guild_id=None):
     db_path = envs.resolve_db_file(db_file_in, guild_id)
     file_io.ensure_folder(Path(db_path).parent)

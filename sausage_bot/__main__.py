@@ -680,7 +680,7 @@ async def load_admin_guild_from_db() -> None:
     `config.ADMIN_GUILD_ID`.
     #autodoc skip#
     """
-    await db_helper.prep_table(envs.admin_guild_db_schema)
+    await db_helper.ensure_admin_guild_table()
     admin_row = await db_helper.get_output(envs.admin_guild_db_schema, single=True)
     # Reset to the env values first, so this function is idempotent
     # rather than dependent on config still holding its import-time state.
@@ -1206,7 +1206,7 @@ async def _persist_admin_guild(
     but the config still follows along so the rest of the run behaves.
     #autodoc skip#
     """
-    await db_helper.prep_table(envs.admin_guild_db_schema)
+    await db_helper.ensure_admin_guild_table()
     await db_helper.empty_table(envs.admin_guild_db_schema)
     written = await db_helper.insert_many_all(
         template_info=envs.admin_guild_db_schema,
