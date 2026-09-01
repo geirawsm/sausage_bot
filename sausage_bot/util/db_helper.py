@@ -478,6 +478,90 @@ async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
         return 0
 
 
+async def db_copy_table_between_files(
+    source_db_file, source_table, template_info, guild_id=None
+):
+    """
+    Copy every row in `source_table` from `source_db_file` into the
+    table described by `template_info`.
+
+    Used when a schema moves to another file or changes its table name:
+    `prep_table()` happily creates the new, empty table, but nothing
+    carries the old rows over, so the data looks lost to the bot even
+    though it is still on disk.
+
+    Only the columns both sides have in common are copied, so a column
+    that has been dropped from the schema is left behind and one that
+    has been added comes out NULL. The source file is only read - it is
+    never written to or deleted, so a migration that goes wrong can be
+    inspected afterwards.
+
+    Nothing is copied when the target table already holds rows: that
+    means the migration has already run (or the table was populated
+    after the upgrade), and copying again would either duplicate rows or
+    collide with the primary key. Safe to call repeatedly (idempotent).
+
+    Returns the number of rows copied. #autodoc skip#
+    """
+    target_db_file = envs.resolve_db_file(template_info, guild_id)
+    target_table = template_info["name"]
+    source_db_file = Path(source_db_file)
+    if not source_db_file.is_file():
+        logger.debug(f"No `{source_db_file}` to copy `{source_table}` from")
+        return 0
+    if args.not_write_database:
+        logger.debug("`not_write_database` activated")
+        return 0
+    try:
+        async with aiosqlite.connect(target_db_file) as db:
+            existing = await db.execute(f"SELECT count(*) FROM {target_table}")
+            existing = await existing.fetchone()
+            if existing[0] > 0:
+                logger.debug(
+                    "`{}` in `{}` already has {} row(s), not copying".format(
+                        target_table, target_db_file, existing[0]
+                    )
+                )
+                return 0
+            await db.execute("ATTACH DATABASE ? AS source", (str(source_db_file),))
+            source_cols = await db.execute(f"PRAGMA source.table_info({source_table})")
+            source_cols = [col[1] for col in await source_cols.fetchall()]
+            if len(source_cols) == 0:
+                logger.debug(f"No `{source_table}` in `{source_db_file}`, nothing to do")
+                await db.execute("DETACH DATABASE source")
+                return 0
+            shared_cols = [
+                col[0] for col in template_info["items"] if col[0] in source_cols
+            ]
+            if len(shared_cols) == 0:
+                logger.error(
+                    "`{}` in `{}` shares no columns with `{}`, not copying".format(
+                        source_table, source_db_file, target_table
+                    )
+                )
+                await db.execute("DETACH DATABASE source")
+                return 0
+            _cols = ", ".join(shared_cols)
+            _cmd = (
+                f"INSERT OR IGNORE INTO main.{target_table} ({_cols}) "
+                f"SELECT {_cols} FROM source.{source_table}"
+            )
+            logger.debug(f"Using this query: {_cmd}")
+            copied = await db.execute(_cmd)
+            copied = copied.rowcount
+            await db.commit()
+            await db.execute("DETACH DATABASE source")
+            logger.info(
+                "Copied {} row(s) from `{}` in `{}` to `{}` in `{}`".format(
+                    copied, source_table, source_db_file, target_table, target_db_file
+                )
+            )
+            return copied
+    except aiosqlite.OperationalError as e:
+        logger.error(f"Error: {e}")
+        return 0
+
+
 async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild=None):
     row_items = await get_output(
         template_info=template_info, select=(id_col, channel_col), guild_id=guild.id
