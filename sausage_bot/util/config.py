@@ -76,9 +76,10 @@ try:
     TIMEZONE = env("BOT_TIMEZONE", default="UTC")
     LANGUAGE = env("BOT_LANGUAGE", default="en")
     ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
-    SPOTIFY_ID = env("SPOTIFY_ID", default=None)
-    SPOTIFY_SECRET = env("SPOTIFY_SECRET", default=None)
-    SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default=None)
+    YOUTUBE_API_KEY = env("YOUTUBE_API_KEY", default="")
+    SPOTIFY_ID = env("SPOTIFY_ID", default="")
+    SPOTIFY_SECRET = env("SPOTIFY_SECRET", default="")
+    SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default="")
     STATS_LOOP = env.int("STATS_LOOP", default=10)
     YT_LOOP = env.int("YT_LOOP", default=10)
     RSS_LOOP = env.int("RSS_LOOP", default=10)
@@ -93,6 +94,22 @@ try:
     if any(envvar is None for envvar in [DISCORD_TOKEN, BOT_ID]):
         print("Something is wrong with the env file.")
         exit()
+    if any(envvar in [None, ""] for envvar in [SPOTIFY_ID, SPOTIFY_SECRET]):
+        print(
+            "API WARNING: If you want Spotify-embedding to work with "
+            "podcasts, you need to set SPOTIFY_ID and SPOTIFY_SECRET in the "
+            ".env file"
+        )
+    if any(envvar in [None, ""] for envvar in [YOUTUBE_API_KEY]):
+        print(
+            "API WARNING: If you want to use youtube posting, you need to set "
+            "YOUTUBE_API_KEY in the .env file"
+        )
+    if any(envvar in [None, ""] for envvar in [SCRAPEOPS_API_KEY]):
+        print(
+            "API WARNING: If you want to avoid being blocked for scraping, "
+            "you need to set YOUTUBE_API_KEY in the .env file"
+        )
 except EnvError as e:
     logger.error(f"You need to set environment variables for the bot to work: {e}")
     exit()

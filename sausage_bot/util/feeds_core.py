@@ -274,31 +274,6 @@ async def get_items_from_rss(
             else:
                 temp_info["img"] = feed_img
             items_out["items"].append(temp_info)
-    # Gets Youtube feed
-    elif soup.find("yt:channelId"):
-        logger.debug("Found Youtube feed")
-        if isinstance(num_items, int) and num_items > 0:
-            all_entries = soup.find_all("entry")[0:num_items]
-        else:
-            all_entries = soup.find_all("entry")
-        for item in all_entries:
-            temp_info = items_info.copy()
-            temp_info["type"] = "youtube"
-            temp_info["title"] = (
-                item.find("title").text
-                if hasattr(item.find("title"), "text")
-                else item.find("title")
-            )
-            temp_info["description"] = (
-                item.find("media:description").text
-                if hasattr(item.find("media:description"), "text")
-                else item.find("media:description")
-            )
-            temp_info["hash"] = md5(
-                str(temp_info["description"]).encode("utf-8")
-            ).hexdigest()
-            temp_info["link"] = item.find("link")["href"]
-            items_out["items"].append(temp_info)
     # Gets plain articles
     else:
         logger.debug("Found normal RSS feed")
@@ -521,17 +496,10 @@ async def get_feed_links(feed_type, feed_info, guild_id):
         URL = feed_info["url"]
         feed_db_filter = envs.rss_db_filter_schema
         feed_db_log = envs.rss_db_log_schema
-    elif feed_type == "youtube":
-        if feed_info["playlist_id"] is not None:
-            URL = envs.YOUTUBE_PLAYLIST_RSS_LINK.format(feed_info["playlist_id"])
-        else:
-            URL = envs.YOUTUBE_RSS_LINK.format(feed_info["youtube_id"])
-        feed_db_filter = envs.youtube_db_filter_schema
-        feed_db_log = envs.youtube_db_log_schema
     else:
         URL = feed_info["url"]
     # Get the url and make it parseable
-    if feed_type in ["rss", "youtube"]:
+    if feed_type in ["rss"]:
         req = await net_io.get_link(URL, status_out=True)
         if req["status"] != 200:
             logger.error(f"Got HTTP status {req['status']} for {URL}")

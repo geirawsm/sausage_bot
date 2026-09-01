@@ -548,8 +548,8 @@ rss_db_log_schema = {
 
 # Youtube
 youtube_db_schema = {
-    "db_file": "youtube_feeds.sqlite",
-    "name": "youtube_feeds",
+    "db_file": "youtube.sqlite",
+    "name": "feeds",
     "items": [
         ["uuid", "TEXT NOT NULL"],
         ["feed_name", "TEXT"],
@@ -568,7 +568,7 @@ youtube_db_schema = {
 }
 
 youtube_db_filter_schema = {
-    "db_file": "youtube_feeds.sqlite",
+    "db_file": "youtube.sqlite",
     "name": "filter",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -580,13 +580,14 @@ youtube_db_filter_schema = {
 }
 
 youtube_db_log_schema = {
-    "db_file": "youtube_log.sqlite",
+    "db_file": "youtube.sqlite",
     "name": "log",
     "items": [
         ["uuid", " TEXT NOT NULL"],
         ["url", " TEXT"],
         ["date", " TEXT"],
-        ["hash", "TEXT"],
+        # TODO: Må legge til rydding av denne kolonnen da den ikke trengs lenger
+        # ["hash", "TEXT"],
     ],
     "primary": None,
     "autoincrement": False,
@@ -626,8 +627,7 @@ DEFAULT_USER_AGENTS = (
     "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) "
-    "Gecko/20100101 Firefox/141.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
     "(KHTML, like Gecko) Version/18.5 Safari/605.1.15",
 )

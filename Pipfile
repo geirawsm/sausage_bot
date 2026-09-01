@@ -32,6 +32,8 @@ yt-dlp = {extras = ["default"], version = "*"}
 audioop-lts = "*"
 typing-extensions = "*"
 environs = "*"
+google-api-python-client = "*"
+cryptography = "*"
 
 [dev-packages]
 astpretty = "*"
