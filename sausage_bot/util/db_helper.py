@@ -1090,6 +1090,7 @@ async def get_output(
     get_row_ids: bool = False,
     rowid_sort: bool = False,
     single: bool = False,
+    single_col_results: bool = False,
     as_settings_json: bool = False,
     guild_id=None,
 ) -> dict:
@@ -1124,6 +1125,8 @@ async def get_output(
         Sort output by rowids
     single: bool
         Only return one single result
+    single_col_results: bool
+        Return results from a single column as a list
     as_settings_json: bool
         Return output as json instead of dict
         Only works for tables with two columns
@@ -1132,6 +1135,9 @@ async def get_output(
     db_file = envs.resolve_db_file(template_info, guild_id)
     logger.debug(f"Opening `{db_file}`")
     table_name = template_info["name"]
+    if single_col_results is True and not isinstance(select, str):
+        logger.error("single_col_results chosen, but number of selects is not 1")
+        return False
     _cmd = "SELECT "
     if get_row_ids:
         _cmd += "rowid, "
@@ -1218,6 +1224,11 @@ async def get_output(
                     for item in out:
                         out_dict[item["setting"]] = item["value"]
                     return out_dict
+                elif single_col_results:
+                    out_list = []
+                    for item in out:
+                        out_list.append(item[select])
+                    return out_list
             logger.debug(f"Returning {len(out)} items from from db")
             return out
     except aiosqlite.OperationalError as e:
