@@ -163,9 +163,12 @@ def configure_logging(
 ):
     logger = logging.getLogger()
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
-    logger.setLevel(console_level if console_level is not None else logging.DEBUG)
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(
+        logging.getLevelName(console_level.upper())
+        if console_level is not None
+        else logging.INFO
+    )
     console_handler.setFormatter(ColorFormatter())
     console_handler.addFilter(GuildContextFilter())
     logger.addHandler(console_handler)
@@ -179,7 +182,11 @@ def configure_logging(
             delay=False,
             backupCount=log_days,
         )
-        file_handler.setLevel(file_level if file_level is not None else logging.DEBUG)
+        file_handler.setLevel(
+            logging.getLevelName(file_level.upper())
+            if file_level is not None
+            else logging.INFO
+        )
         file_formatter = logging.Formatter(LOG_FORMAT, "%Y-%m-%d %H:%M:%S")
         file_handler.setFormatter(file_formatter)
         file_handler.addFilter(GuildContextFilter())
