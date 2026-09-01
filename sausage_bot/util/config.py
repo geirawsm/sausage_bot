@@ -98,9 +98,7 @@ except EnvError as e:
     exit()
 
 
-logger.configure_logging(
-    to_file=True,
-)
+logger.configure_logging(to_file=True)
 logger = logger.logging
 
 
