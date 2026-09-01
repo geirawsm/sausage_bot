@@ -425,7 +425,7 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None, guild
             temp_info["duration"] = ep["duration_ms"] * 1000
             logger.debug(f"Populated `temp_info`:\n{pformat(temp_info)}")
             items_out["items"].append(temp_info)
-        items_out = filter_links(items_out)
+        items_out = FilterLinks(items_out).filter_the_links()
         return items_out
     except TypeError as e:
         _msg = "Error processing episodes from {}: {}".format(
@@ -538,7 +538,7 @@ async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
                 except:
                     temp_info["img"] = feed_img
                 items_out["items"].append(temp_info)
-            items_out = filter_links(items_out)
+            items_out = FilterLinks(items_out).filter_the_links()
             return items_out
         except TypeError as e:
             _msg = "Error processing episodes from {}: {}".format(
@@ -555,15 +555,20 @@ async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
     return None
 
 
-def filter_links(items):
+class FilterLinks:
     """
     Filter incoming links based on active filters
     """
 
+    def __init__(self, items) -> None:
+        super().__init__()
+        self.items = items
+
+    @staticmethod
     def get_filter_priority():
         """
         Get the filter priority from env. Accepts `allow` or `deny`,
-        defaulting to `deny`
+        defaulting to `allow`
         """
         priority = (
             str(config.env("FEED_FILTER_PRIORITY", default="allow")).strip().lower()
@@ -576,6 +581,7 @@ def filter_links(items):
             priority = "deny"
         return priority
 
+    @staticmethod
     def get_item_content(item):
         """
         Get the searchable content (title and description) of an item as
@@ -594,17 +600,22 @@ def filter_links(items):
             content.append(value.lower())
         return content
 
+    @staticmethod
     def get_matching_filters(content, filters_in):
         """
         Get the filters in `filters_in` that are found in `content`
         """
         hits = []
         for filter_in in filters_in:
-            if str(filter_in).lower() in " ".join(content):
+            _filter = str(filter_in).strip().lower()
+            if _filter == "":
+                logger.error("Got an empty filter, skipping it")
+                continue
+            if any(_filter in text for text in content):
                 hits.append(filter_in)
         return hits
 
-    def post_based_on_filter(item, filters_in):
+    def post_based_on_filter(self, item, filters_in):
         """
         Decide if `item` should be posted or not, based on `filters_in` and
         the `FEED_FILTER_PRIORITY` setting in env.
@@ -634,10 +645,10 @@ def filter_links(items):
         if len(allow) == 0 and len(deny) == 0:
             logger.debug("No usable filters, posting")
             return True
-        priority = get_filter_priority()
-        content = get_item_content(item)
-        allow_hits = get_matching_filters(content, allow)
-        deny_hits = get_matching_filters(content, deny)
+        priority = self.get_filter_priority()
+        content = self.get_item_content(item)
+        allow_hits = self.get_matching_filters(content, allow)
+        deny_hits = self.get_matching_filters(content, deny)
         logger.debug(
             "Priority `{}`, allow {} (hits: {}), deny {} (hits: {})".format(
                 priority, allow, allow_hits, deny, deny_hits
@@ -645,55 +656,54 @@ def filter_links(items):
         )
         if priority == "allow":
             if len(deny_hits) > 0:
-                logger.debug("Found deny-filter(s) {} - not posting!".format(deny_hits))
+                logger.info("{} - Found deny-filter(s) {} - not posting!".format(
+                    item["title"], deny_hits
+                ))
                 return False
             if len(allow) > 0 and len(allow_hits) == 0:
-                logger.debug("Found no allow-filter in item - not posting!")
+                logger.info("Found no allow-filter in item - not posting!")
                 return False
-            logger.debug("Nothing is denying this item - posting")
+            logger.info("Nothing is denying {} - posting".format(item["title"]))
             return True
         # priority == "deny"
         if len(allow_hits) > 0:
-            logger.debug("Found allow-filter(s) {} - posting!".format(allow_hits))
+            logger.info("Found allow-filter(s) {} - posting '{}'!".format(
+                allow_hits, item["title"]
+            ))
             return True
         if len(deny) > 0 and len(deny_hits) == 0:
-            logger.debug("Found no deny-filter in item - posting")
+            logger.info("Found no deny-filter in '{}' - posting".format(
+                item["title"]
+            ))
             return True
-        logger.debug("Nothing is allowing this item - not posting!")
+        logger.info("Nothing is allowing '{}' - not posting!".format(
+            item["title"]
+        ))
         return False
 
-    logger.debug(
-        "Got {} `items` (sample): {}".format(
-            len(items["items"]), items["items"][0]["title"]
+    def filter_the_links(self):
+        """
+        Run every item through the active filters and return the items
+        that should be posted
+        """
+        items_in = self.items["items"]
+        filters_in = self.items["filters"]
+        if len(items_in) == 0:
+            logger.debug("Got no `items` to filter")
+            return []
+        logger.debug(
+            "Got {} `items` (sample): {}".format(len(items_in), items_in[0]["title"])
         )
-    )
-    links_out = []
-    for item in items["items"]:
-        logger.debug("Checking item: {}".format(item["title"]))
-        if item["type"] == "youtube":
-            logger.debug("Checking Youtube item")
-            if not config.env("YT_INCLUDE_SHORTS", default="true"):
-                shorts_keywords = ["#shorts", "(shorts)"]
-                if any(
-                    kw in str(item["title"]).lower() for kw in shorts_keywords
-                ) or any(
-                    kw in str(item["description"]).lower() for kw in shorts_keywords
-                ):
-                    logger.debug(
-                        "Skipped {} because of `#Shorts` or `(shorts)`".format(
-                            item["title"]
-                        )
-                    )
-                    continue
-        logger.debug("Filters: {}".format(items["filters"]))
-        if items["filters"] is not None and len(items["filters"]) > 0:
-            logger.debug("Found active filters, checking...")
-            link_filter = post_based_on_filter(item, items["filters"])
-            if link_filter:
+        if filters_in is None or len(filters_in) == 0:
+            logger.debug("Found no active filters, posting all items")
+            return list(items_in)
+        logger.debug("Found active filters: {}".format(filters_in))
+        links_out = []
+        for item in items_in:
+            logger.debug("Checking item: {}".format(item["title"]))
+            if self.post_based_on_filter(item, filters_in):
                 links_out.append(item)
-        else:
-            links_out.append(item)
-    return links_out
+        return links_out
 
 
 async def make_event_start_stop(date, time=None):

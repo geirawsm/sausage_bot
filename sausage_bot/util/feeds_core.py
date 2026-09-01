@@ -338,7 +338,7 @@ async def get_items_from_rss(
                 temp_info["link"] = item.find("link")["href"]
             logger.debug(f"Got `temp_info`: {temp_info}")
             items_out["items"].append(temp_info)
-    links_out = net_io.filter_links(items_out)
+    links_out = net_io.FilterLinks(items_out).filter_the_links()
     return links_out
 
 
