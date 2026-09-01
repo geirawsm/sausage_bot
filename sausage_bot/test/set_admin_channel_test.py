@@ -110,6 +110,7 @@ async def _run(
             mock.patch.object(config, "bot", _make_bot(guilds)),
             mock.patch.object(db, "get_output", mock.AsyncMock(return_value=[])),
             mock.patch.object(db, "prep_table", mock.AsyncMock()),
+            mock.patch.object(db, "add_missing_db_setup", mock.AsyncMock()),
             mock.patch.object(db, "empty_table", mock.AsyncMock()),
             mock.patch.object(db, "insert_many_all", mock.AsyncMock()),
             mock.patch.object(db, "update_fields", mock.AsyncMock()),
