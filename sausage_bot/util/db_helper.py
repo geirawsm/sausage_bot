@@ -437,6 +437,47 @@ async def db_update_to_correct_feed_types(template_info, guild_id=None):
             )
 
 
+async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
+    """
+    Repair filter rows whose `uuid` holds a stringified dict instead of
+    the uuid itself.
+
+    `/rss filter add` used to pass the whole `get_output(single=True)`
+    row on to the insert, so the column ended up with
+    `{'uuid': '814adaed-...'}` rather than `814adaed-...`. Such a row
+    never matches its feed, so the filter is dead and cannot be removed
+    again. Pull the uuid back out and write it in place.
+
+    Safe to call repeatedly (idempotent): a row that already holds a
+    plain uuid is left alone. #autodoc skip#
+    """
+    db_file = envs.resolve_db_file(template_info, guild_id)
+    table_name = template_info["name"]
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            rows = await db.execute(f"SELECT rowid, uuid FROM {table_name}")
+            repairs = []
+            for rowid, uuid_in in await rows.fetchall():
+                found = re.search(r"['\"]uuid['\"]:\s*['\"]([^'\"]+)['\"]", str(uuid_in))
+                if found:
+                    repairs.append((found.group(1), rowid))
+            if len(repairs) == 0:
+                return 0
+            logger.info(
+                "Repairing {} filter row(s) in `{}` with a dict-shaped uuid".format(
+                    len(repairs), db_file
+                )
+            )
+            await db.executemany(
+                f"UPDATE {table_name} SET uuid = ? WHERE rowid = ?", repairs
+            )
+            await db.commit()
+            return len(repairs)
+    except aiosqlite.OperationalError as e:
+        logger.error(f"Error: {e}")
+        return 0
+
+
 async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild=None):
     row_items = await get_output(
         template_info=template_info, select=(id_col, channel_col), guild_id=guild.id

@@ -162,19 +162,16 @@ async def rss_filter_autocomplete(
         order_by=[("allow_or_deny", "ASC"), ("filter", "ASC")],
         guild_id=interaction.guild.id,
     )
-    filters = []
-    for filter in db_filters:
-        filters.append((filter["uuid"], filter["allow_or_deny"], filter["filter"]))
-    logger.debug(f"filters: {filters}")
+    logger.debug(f"filters: {db_filters}")
     return [
         discord.app_commands.Choice(
             name="{} - {} - {}".format(
-                filter["uuid"], filter["allow_or_deny"], filter["filter"]
+                filter["feed_name"], filter["allow_or_deny"], filter["filter"]
             ),
             value=str(filter["filter"]),
         )
-        for filter in filters
-        if current.lower() in filter["filter"].lower()
+        for filter in db_filters
+        if current.lower() in str(filter["filter"]).lower()
     ][:25]
 
 
@@ -569,7 +566,7 @@ class RSSfeed(commands.Cog):
         )
         temp_inserts = []
         for _index, filter in enumerate(_filters_in):
-            temp_inserts.append((_uuid, allow_deny, filter))
+            temp_inserts.append((_uuid["uuid"], allow_deny, filter))
         adding_filter = await db_helper.insert_many_all(
             template_info=envs.rss_db_filter_schema,
             inserts=temp_inserts,
@@ -614,7 +611,7 @@ class RSSfeed(commands.Cog):
         )
         removing_filter = await db_helper.del_row_by_AND_filter(
             template_info=envs.rss_db_filter_schema,
-            where=(("uuid", _uuid), ("filter", filter_in)),
+            where=(("uuid", _uuid["uuid"]), ("filter", filter_in)),
             guild_id=interaction.guild.id,
         )
         if removing_filter:
@@ -1377,6 +1374,11 @@ async def ensure_guild_rss_tables(guild):
             "Missing columns in rss db: {}\n"
             "Make sure to populate missing information".format(missing_tbl_cols_text),
         )
+    # Put back the uuid on filter rows that got a whole db row written
+    # into the column instead
+    await db_helper.db_fix_dict_uuid_in_filters(
+        template_info=envs.rss_db_filter_schema, guild_id=guild.id
+    )
     # Change channel name to id
     await db_helper.db_channel_names_to_ids(
         template_info=envs.rss_db_schema, id_col="uuid", channel_col="channel",
