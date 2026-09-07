@@ -586,8 +586,6 @@ youtube_db_log_schema = {
         ["uuid", " TEXT NOT NULL"],
         ["url", " TEXT"],
         ["date", " TEXT"],
-        # TODO: Må legge til rydding av denne kolonnen da den ikke trengs lenger
-        # ["hash", "TEXT"],
     ],
     "primary": None,
     "autoincrement": False,
@@ -597,7 +595,7 @@ settings_db_schema = {
     "db_file": "settings.sqlite",
     "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT NOT NULL"]],
-    "inserts": [["language", "en"], ["timezone", "UTC"], ["bot_channel", ""]],
+    "inserts": [["language", "en"], ["timezone", "UTC"], ["bot_channel", "bot-log"]],
     "primary": None,
     "autoincrement": False,
 }
