@@ -99,8 +99,7 @@ class YouTubeAPI:
             return None
 
         def get_uploads_playlist_id(channel_id: str) -> str:
-            # TODO: Oversett til engelsk
-            """Finner kanalens 'uploads'-spilleliste, som alltid inneholder alle videoene i publiseringsrekkefølge."""
+            """Getting a channel's uploads playlist, which always contain all videos in order of publication"""
             request = (
                 youtube_api().channels().list(part="contentDetails", id=channel_id)
             )
@@ -131,8 +130,7 @@ class YouTubeAPI:
         response = request.execute()
 
         if not response["items"]:
-            # TODO: i18n
-            raise ValueError(f"Fant ingen kanal med ID {channel_id}")
+            raise ValueError(f"Could not find a channel with id {channel_id}")
 
         resp = response["items"][0]
 
@@ -153,8 +151,7 @@ class YouTubeAPI:
         response = request.execute()
 
         if not response["items"]:
-            # TODO: i18n
-            raise ValueError(f"Fant ingenting i spilleliste {playlist_id_or_url}")
+            raise ValueError(f"Found no videos in playlist {playlist_id_or_url}")
         resp = response["items"][0]
         return {"channel_id": resp["snippet"]["channelId"], "playlist_id": resp["id"]}
 
@@ -167,8 +164,7 @@ class YouTubeAPI:
         response = request.execute()
 
         if not response["items"]:
-            # TODO: i18n
-            raise ValueError(f"Fant ingenting i spilleliste {playlist_id}")
+            raise ValueError(f"Found no videos in playlist {playlist_id}")
         resp = response["items"]
         video_ids = []
         for item in resp:
@@ -380,8 +376,16 @@ class Youtube(commands.Cog):
         else:
             youtube_info = YouTubeAPI.extract_yt_channel_info(str(youtube_link))
             if youtube_info is None:
-                # TODO: i18n
-                print("Fant ikke kanal hos Youtube, riktig link?")
+                logger.error(
+                    "Could not find channel at Youtube, are you sure this is the correct link?"
+                )
+                await discord_commands.log_to_bot_channel(
+                    interaction.guild,
+                    content_in=I18N.t(
+                        "youtube.commands.add.add_error",
+                        youtube_link=youtube_link,
+                    ),
+                )
                 return
         if youtube_info is None:
             await interaction.followup.send(

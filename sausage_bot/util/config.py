@@ -108,7 +108,7 @@ try:
     if any(envvar in [None, ""] for envvar in [SCRAPEOPS_API_KEY]):
         print(
             "API WARNING: If you want to avoid being blocked for scraping, "
-            "you need to set YOUTUBE_API_KEY in the .env file"
+            "you need to set SCRAPEOPS_API_KEY in the .env file"
         )
 except EnvError as e:
     logger.error(f"You need to set environment variables for the bot to work: {e}")

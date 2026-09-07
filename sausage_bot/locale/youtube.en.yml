@@ -22,6 +22,7 @@ en:
       msg_empty_link: "Klarer ikke å hente linken: `%{link}`"
       log_feed_confirm: "%{user} added %{feed_name} (`%{yt_link}`) to #%{channel}"
       msg_added: "Added %{feed_name} to channel %{channel_name}"
+      add_error: "Could not find channel at Youtube, are you sure this is the correct link? (%{youtube_link})"
     remove:
       cmd: Remove a YouTube feed
       desc:
