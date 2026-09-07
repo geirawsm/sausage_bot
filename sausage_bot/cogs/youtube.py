@@ -87,8 +87,10 @@ class YouTubeAPI:
             return None
 
         def get_channel_id_from_search(query: str) -> str | None:
-            request = youtube_api().search().list(
-                part="snippet", q=query, type="channel", maxResults=1
+            request = (
+                youtube_api()
+                .search()
+                .list(part="snippet", q=query, type="channel", maxResults=1)
             )
             response = request.execute()
 
@@ -99,7 +101,9 @@ class YouTubeAPI:
         def get_uploads_playlist_id(channel_id: str) -> str:
             # TODO: Oversett til engelsk
             """Finner kanalens 'uploads'-spilleliste, som alltid inneholder alle videoene i publiseringsrekkefølge."""
-            request = youtube_api().channels().list(part="contentDetails", id=channel_id)
+            request = (
+                youtube_api().channels().list(part="contentDetails", id=channel_id)
+            )
             response = request.execute()
 
             if not response["items"]:
@@ -141,8 +145,10 @@ class YouTubeAPI:
     def get_playlist_info(playlist_id_or_url: str) -> dict:
         if "&list=" in playlist_id_or_url:
             playlist_id_or_url = playlist_id_or_url.split("&list=")[1]
-        request = youtube_api().playlists().list(
-            part="contentDetails,snippet", id=playlist_id_or_url, maxResults=1
+        request = (
+            youtube_api()
+            .playlists()
+            .list(part="contentDetails,snippet", id=playlist_id_or_url, maxResults=1)
         )
         response = request.execute()
 
@@ -153,8 +159,10 @@ class YouTubeAPI:
         return {"channel_id": resp["snippet"]["channelId"], "playlist_id": resp["id"]}
 
     def get_playlist_items(playlist_id: str) -> dict:
-        request = youtube_api().playlistItems().list(
-            part="contentDetails,snippet", playlistId=playlist_id, maxResults=10
+        request = (
+            youtube_api()
+            .playlistItems()
+            .list(part="contentDetails,snippet", playlistId=playlist_id, maxResults=10)
         )
         response = request.execute()
 
@@ -169,8 +177,10 @@ class YouTubeAPI:
 
     def get_latest_video_ids(playlist_id: str, max_results: int = 5) -> list[str]:
         """Henter de N siste video-ID-ene for ÉN spilleliste."""
-        request = youtube_api().playlistItems().list(
-            part="contentDetails", playlistId=playlist_id, maxResults=max_results
+        request = (
+            youtube_api()
+            .playlistItems()
+            .list(part="contentDetails", playlistId=playlist_id, maxResults=max_results)
         )
         response = request.execute()
 
@@ -671,24 +681,6 @@ class Youtube(commands.Cog):
         )
         return
 
-    # async def get_youtube_info(url):
-    #     "Use yt-dlp to get info about a channel"
-    #     # Get more yt-dlp opts here:
-    #     # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
-    #     ydl_opts = {
-    #         "simulate": True,
-    #         "download": False,
-    #         "playlistend": 2,
-    #         "ignoreerrors": True,
-    #         "quiet": True,
-    #     }
-    #     try:
-    #         with YoutubeDL(ydl_opts) as ydl:
-    #             return ydl.extract_info(url)
-    #     except Exception as _error:
-    #         logger.error(f"Could not extract youtube info: {_error}")
-    #         return None
-
     # Tasks
     @tasks.loop(minutes=config.YT_LOOP, reconnect=True)
     async def task_post_videos():
@@ -697,6 +689,11 @@ class Youtube(commands.Cog):
             logger.warning(
                 "YOUTUBE_API_KEY is not set in the .env file, skipping posting"
             )
+            if config.ADMIN_CHANNEL_ID:
+                await discord_commands.post_to_channel(
+                    config.ADMIN_CHANNEL_ID,
+                    content_in="YOUTUBE_API_KEY is not set in the .env file, skipping posting",
+                )
             return
         approved_guilds = await db_helper.get_output(
             envs.guilds_db_schema, where=("status", "approved")
