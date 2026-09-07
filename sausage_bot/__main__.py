@@ -1332,12 +1332,15 @@ class Guild(commands.Cog):
             ),
             ephemeral=True,
         )
+        # May be None if the bot is not a member of the guild any more -
+        # `log_to_bot_channel` handles that and just skips the message.
+        approved_guild = resolve_guild_arg(guild_id_row)
         await discord_commands.log_to_bot_channel(
-            guild=resolve_guild_arg(guild_id_row),
+            guild=approved_guild,
             content_in=I18N.t("main.notify_at_new_guild.approved_at_server"),
         )
         await discord_commands.log_to_bot_channel(
-            guild=resolve_guild_arg(guild_id_row),
+            guild=approved_guild,
             content_in=I18N.t("main.notify_at_new_guild.more_info_after_approval"),
         )
 

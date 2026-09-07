@@ -64,8 +64,8 @@ async def test_log_to_bot_channel_uses_per_guild_setting(
 async def test_log_to_bot_channel_falls_back_to_config_default(
     guild_db_root, monkeypatch
 ):
-    # bot_channel stays "" (its default insert) -> config.BOT_CHANNEL wins.
-    await _prep_settings()
+    # An empty bot_channel -> config.BOT_CHANNEL wins.
+    await _prep_settings("")
     guild, channel = _make_guild()
     monkeypatch.setattr(config, "BOT_CHANNEL", "default-log")
     monkeypatch.setattr(
@@ -78,3 +78,26 @@ async def test_log_to_bot_channel_falls_back_to_config_default(
 
     guild.get_channel.assert_called_once_with(4242)
     channel.send.assert_awaited_once_with(content="hi")
+
+
+async def test_log_to_bot_channel_without_a_guild_is_a_no_op():
+    # Callers resolve the guild from the registry, which also holds guilds
+    # the bot has left - that must not take the calling command down.
+    assert await discord_commands.log_to_bot_channel(None, "hi") is None
+
+
+async def test_log_to_bot_channel_skips_a_channel_the_guild_lacks(
+    guild_db_root, monkeypatch
+):
+    # The default `bot-log` setting is no guarantee that such a channel
+    # actually exists in the guild.
+    await _prep_settings("no-such-channel")
+    guild, channel = _make_guild()
+    monkeypatch.setattr(
+        discord_commands, "get_text_channel_list", lambda g: {"other": "1"}
+    )
+
+    assert await discord_commands.log_to_bot_channel(guild, "hi") is None
+
+    guild.get_channel.assert_not_called()
+    channel.send.assert_not_awaited()
