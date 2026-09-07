@@ -587,6 +587,10 @@ async def on_guild_join(guild: discord.Guild):
     """
     logger.info(f"Joined new guild:\nName: {guild.name}\nGuild ID: {guild.id}")
     await register_guild(guild)
+    await discord_commands.log_to_bot_channel(
+        guild=guild,
+        content_in=I18N.t("main.notify_at_new_guild.added_to_server"),
+    )
 
 
 @config.bot.event
@@ -1302,12 +1306,12 @@ class Guild(commands.Cog):
             )
             return
         # Whatever was submitted, from here on work with the registry's own id
-        guild_id = str(guild_row["guild_id"])
+        guild_id_row = str(guild_row["guild_id"])
         guild_name = guild_row["guild_name"]
         now = await get_dt(format="ISO8601")
         await db_helper.update_fields(
             envs.guilds_db_schema,
-            where=("guild_id", guild_id),
+            where=("guild_id", guild_id_row),
             updates=[
                 ("status", "approved"),
                 ("approved_by", str(interaction.user.id)),
@@ -1317,16 +1321,24 @@ class Guild(commands.Cog):
         await db_helper.prep_table(
             envs.settings_db_schema,
             inserts=envs.settings_db_schema["inserts"],
-            guild_id=guild_id,
+            guild_id=guild_id_row,
         )
-        await db_helper.ensure_guild_tasks_rows(guild_id)
+        await db_helper.ensure_guild_tasks_rows(guild_id_row)
         await interaction.followup.send(
             I18N.t(
                 "main.commands.guild.approve.msg_confirm",
                 guild_name=guild_name,
-                guild_id=guild_id,
+                guild_id=guild_id_row,
             ),
             ephemeral=True,
+        )
+        await discord_commands.log_to_bot_channel(
+            guild=resolve_guild_arg(guild_id_row),
+            content_in=I18N.t("main.notify_at_new_guild.approved_at_server"),
+        )
+        await discord_commands.log_to_bot_channel(
+            guild=resolve_guild_arg(guild_id_row),
+            content_in=I18N.t("main.notify_at_new_guild.more_info_after_approval"),
         )
 
     @discord_commands.is_owner()
@@ -1473,14 +1485,17 @@ class Guild(commands.Cog):
         text_out = "```{}```".format(
             tabulate(
                 guilds,
-                # TODO: i18n
                 headers={
-                    "guild_name": "Name",
-                    "guild_id": "Guild ID",
-                    "status": "Status",
-                    "joined_at": "Joined",
-                    "approved_at": "Approved",
-                    "approved_by": "Approved by",
+                    "guild_name": I18N.t("main.commands.guild.list.headers.guild_name"),
+                    "guild_id": I18N.t("main.commands.guild.list.headers.guild_id"),
+                    "status": I18N.t("main.commands.guild.list.headers.status"),
+                    "joined_at": I18N.t("main.commands.guild.list.headers.joined_at"),
+                    "approved_at": I18N.t(
+                        "main.commands.guild.list.headers.approved_at"
+                    ),
+                    "approved_by": I18N.t(
+                        "main.commands.guild.list.headers.approved_by"
+                    ),
                 },
             )
         )
@@ -2287,7 +2302,6 @@ class Profile(commands.Cog):
                 nick=None, avatar=None, banner=None, bio=None
             )
             await interaction.followup.send(
-                # TODO: Sjekk at denne stemmer
                 I18N.t("main.commands.reset_profile.msg_confirm"),
                 ephemeral=True,
             )

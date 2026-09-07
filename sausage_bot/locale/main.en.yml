@@ -15,10 +15,10 @@ en:
       msg_confirm: Bot profile updated for this server
       msg_failed: "Failed to update bot profile: %{error}"
     reset_profile:
-      command: "Reset the bot's nickname, avatar, banner or bio in this server"
+      command: "Reset the bot's nickname, avatar, banner and bio in this server"
       msg_no_permission: You need Administrator or Manage Nicknames permission to use this command
-      msg_confirm: Bot profile updated for this server
-      msg_failed: "Failed to update bot profile: %{error}"
+      msg_confirm: Bot profile reset for this server
+      msg_failed: "Failed to reset bot profile: %{error}"
     test:
       confirm: English test message
     delete:
@@ -79,6 +79,14 @@ en:
       approve:
         msg_confirm: "✅ Approved guild %{guild_name} (%{guild_id})."
         msg_not_found: "❌ No guild matching `%{guild_id}` is registered. Pick a guild from the autocomplete list instead of typing it - the list submits the guild id, not the name."
+      list:
+        headers:
+          guild_name: Name
+          guild_id: Guild ID
+          status: Status
+          joined_at: Joined
+          approved_at: Approved
+          approved_by: Approved by
       admin_channel:
         ac_create_new: "➕ Create #%{channel}"
         not_yours: This confirmation isn't yours.
@@ -158,3 +166,7 @@ en:
     no_invite: Could not create an invite link for this guild.
     how_to_approve: "Use `/approve-guild guild_id:%{guild_id}` in this channel to activate it."
     auto_approved: This is the admin guild, so it was approved automatically.
+  notify_at_new_guild:
+    added_to_server: "Yay, I've been added to this server! Now we need to wait for the bot creator to accept the join so that the slash commands will work. I will message again here when it happens."
+    approved_at_server: "Congrats! Your guild has been approved! The slash commands will be available in next sync with Discord, or you could also restart your Discord client to see if that helps."
+    more_info_after_approval: "Read up on my slash commands to see what you can do in the [readme on github](%{github_readme_link}). I recommend you check the settings first, making sure that `/language`, `/timezone` and `/bot-channel` is OK."

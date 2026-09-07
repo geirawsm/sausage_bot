@@ -668,6 +668,7 @@ YOUTUBE_RSS_LINK = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
 YOUTUBE_PLAYLIST_RSS_LINK = "https://www.youtube.com/feeds/videos.xml?playlist_id={}"
 
 # VARIABLES
+GITHUB_README_LINK = "https://github.com/geirawsm/sausage_bot/blob/main/README.md"
 input_split_regex = r"[\s\.\-_,;\\\/]+"
 roles_ensure_separator = ("><", "> <")
 scrapeops_url = (

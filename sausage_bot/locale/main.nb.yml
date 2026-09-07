@@ -14,6 +14,11 @@ nb:
       msg_no_permission: Du trenger Administrator- eller Manage Nicknames-tilgang for å bruke denne kommandoen
       msg_confirm: Bot-profilen ble oppdatert for denne serveren
       msg_failed: "Klarte ikke å oppdatere bot-profilen: %{error}"
+    reset_profile:
+      command: "Resett botens kallenavn, avatar, profilbanner og bio på denne serveren"
+      msg_no_permission: Du trenger tilgangene Administrator eller Administrer kallenavn for å kunne kjøre denne kommandoen
+      msg_confirm: Bot profilen er resatt for denne serveren
+      msg_failed: "Resetting av bot profil feilet: %{error}"
     test:
       confirm: Norsk testmelding
     delete:
@@ -74,6 +79,14 @@ nb:
       approve:
         msg_confirm: "✅ Godkjente guild %{guild_name} (%{guild_id})."
         msg_not_found: "❌ Ingen guild som samsvarer med `%{guild_id}` er registrert. Velg en guild fra autofullfør-lista i stedet for å skrive den inn - lista sender inn guild-id, ikke navnet."
+      list:
+        headers:
+          guild_name: Navn
+          guild_id: Server ID
+          status: Status
+          joined_at: Ble med
+          approved_at: Godkjent
+          approved_by: Godkjent av
       admin_channel:
         ac_create_new: "➕ Opprett #%{channel}"
         not_yours: Denne bekreftelsen er ikke din.
@@ -153,3 +166,7 @@ nb:
     no_invite: Kunne ikke lage en invitasjonslenke for denne guilden.
     how_to_approve: "Bruk `/approve-guild guild_id:%{guild_id}` i denne kanalen for å aktivere den."
     auto_approved: Dette er admin-guilden, så den ble godkjent automatisk.
+  notify_at_new_guild:
+    added_to_server: "Yay, da har jeg blitt lagt til i denne serverern! Nå venter vi bare på at bot eieren godkjenner invitasjonen så kommandoene blir tilgjengelig og vil fungere. Jeg kommer med ny melding her når det skjer."
+    approved_at_server: "Gratulerer! serveren din har blitt godkjent! Skråstrek-kommandoene blir tilgjengelig i neste sync med Discord. Du kan også restarte din Discord-app for å se om det hjelper."
+    more_info_after_approval: "Les mer om skråstrek-kommandoene for å se hvilke muligheter du har in [readme-filen på github](%{github_readme_link}). Jeg anbefaler deg å sjekke innstillingene først for å passe på at `/language`, `/timezone` og `/bot-channel` er OK."
