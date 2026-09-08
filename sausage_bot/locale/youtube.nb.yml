@@ -21,7 +21,7 @@ nb:
         channel: Kanalen å poste til
       msg_empty_link: "Klarer ikke å hente linken: `%{link}`"
       log_feed_confirm: "%{user} la til %{feed_name} (`%{yt_link}`) til #%{channel}"
-      msg_added: "La til %{feed_name} til  #%{channel_name}"
+      msg_added: "La til `%{feed_name}` til #%{channel_name}"
       add_error: "Klarte ikke å finne kanalen på youtube, er du sikker på at dette er riktig link? (%{youtube_link})"
     remove:
       cmd: Fjern en YouTube-feed
