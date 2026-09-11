@@ -85,6 +85,7 @@ try:
     RSS_LOOP = env.int("RSS_LOOP", default=5)
     POD_LOOP = env.int("POD_LOOP", default=5)
     FCB_LOOP = env.int("FCB_LOOP", default=20)
+    LOG_LEVEL = env("LOG_LEVEL", default="info")
     INVITATION_CHANNEL = env.int("INVITATION_CHANNEL", default="general")
     # Only the credentials the bot cannot start without are checked here.
     # ADMIN_GUILD_ID/ADMIN_CHANNEL_ID are deliberately not: they can just
@@ -115,9 +116,18 @@ except EnvError as e:
     exit()
 
 
-logger.configure_logging(to_file=True)
+logger.configure_logging(to_file=True, console_level=LOG_LEVEL)
 logger = logger.logging
 
+print("-" * 20)
+print("")
+logger.debug("1 - This is a debug message")
+logger.info("2 - This is an info message")
+logger.warning("3 - This is a warning message")
+logger.error("4 - This is an error message")
+logger.critical("5 - This is a critical message")
+print("")
+print("-" * 20)
 
 # Locale/timezone are per-guild settings (see util/i18n.py and
 # util/datetime_handling.py for the per-guild lookup) - these bootstrap
