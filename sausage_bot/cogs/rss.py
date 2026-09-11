@@ -1090,7 +1090,9 @@ class RSSfeed(commands.Cog):
                 guild_id=guild.id,
             )
             if task_status.get("status") != "started":
-                logger.debug(f"`post_feeds` is not enabled for `{guild.name}`, skipping")
+                logger.debug(
+                    f"`post_feeds` is not enabled for `{guild.name}`, skipping"
+                )
                 continue
             async with db_helper.guild_locale_context(guild.id):
                 # Start processing feeds
@@ -1173,7 +1175,9 @@ class RSSfeed(commands.Cog):
                 guild_id=guild.id,
             )
             if task_status.get("status") != "started":
-                logger.debug(f"`post_feeds` is not enabled for `{guild.name}`, skipping")
+                logger.debug(
+                    f"`post_feeds` is not enabled for `{guild.name}`, skipping"
+                )
                 continue
             async with db_helper.guild_locale_context(guild.id):
                 await feeds_core.retry_failed(
@@ -1381,7 +1385,9 @@ async def ensure_guild_rss_tables(guild):
     )
     # Change channel name to id
     await db_helper.db_channel_names_to_ids(
-        template_info=envs.rss_db_schema, id_col="uuid", channel_col="channel",
+        template_info=envs.rss_db_schema,
+        id_col="uuid",
+        channel_col="channel",
         guild=guild,
     )
     await db_helper.db_update_to_correct_feed_types(

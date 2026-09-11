@@ -421,8 +421,7 @@ async def log_to_bot_channel(guild: discord.Guild, content_in=None):
         # The setting names a channel that does not exist in this guild -
         # nothing to send to, but the caller should not crash either.
         logger.error(
-            f"Guild `{guild.id}` has no channel named `{log_channel}`, "
-            "skipping message"
+            f"Guild `{guild.id}` has no channel named `{log_channel}`, skipping message"
         )
         return None
     channel_out = guild.get_channel(int(channel_id))
