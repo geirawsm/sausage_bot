@@ -32,6 +32,20 @@ nb:
       log_feed_removed: "Youtube-feed `%{feed_name}` fjernet av %{user_name}"
       msg_feed_remove_failed: "Youtube-feed `%{feed_name}` kunne ikke fjernes"
       log_feed_remove_failed: "Bruker %{user_name} prøvde å fjerne Youtube-feed `%{feed_name}`, men det feilet"
+    edit:
+      cmd: Rediger en Youtube-feed
+      desc:
+        feed_name: Navn på Youtube-feeden som skal redigeres
+        new_feed_name: Nytt navn på feeden
+        channel: Ny kanal feeden skal postes til
+        url: Ny URL for feeden
+      changes_out:
+        msg: 'Gjorde følgende endringer på Youtube-feeden %{feed_name}:'
+        feed_name: Feednavn
+        channel: Kanal
+        url: URL
+      msg_not_youtube_link: "`%{url}` ser ikke ut som en Youtube-link"
+      msg_no_changes: "Ingen endringer ble oppgitt for Youtube-feeden `%{feed_name}`"
     reset_url_errors:
       cmd: Sett feeds som er deaktivert av url-feil tilbake i drift
       desc:
@@ -53,7 +67,7 @@ nb:
         feed_name: Navn på Youtube-feeden som skal håndteres
         filter_in: Hvilket nøkkelord en post skal filtreres mot
       msg_confirm: "Fjernet filter `%{filter_in}`"
-      msg_error: Feilet ved forsøk på fjerning av filter, sjekk logger
+      msg_error: "Feilet ved forsøk på fjerning av filter `%{filter_in}`, sjekk logger"
     list:
       cmd: List alle active YouTube-feeder
       desc:
@@ -67,3 +81,17 @@ nb:
       literal_link_type:
         channel: Kanal
         playlist: Spilleliste
+  tasks:
+    post_videos:
+      log_no_api_key: "`YOUTUBE_API_KEY` er ikke satt i .env-filen, hopper over posting av videoer"
+  db:
+    log_migrated: "Migrerte youtube-data til `%{db_file}`: %{copied}. De gamle `%{legacy_feeds_db}` og `%{legacy_log_db}` er ikke lenger i bruk, men ble liggende igjen i `%{db_dir}`."
+    log_missing_columns: "Mangler kolonner i youtube-databasen: %{columns}\nSørg for å fylle inn manglende informasjon"
+    migrated_items:
+      feeds: feeder
+      filters: filtre
+      log_entries: loggoppføringer
+  errors:
+    channel_not_found: "Fant ingen Youtube-kanal med id-en `%{channel_id}`"
+    playlist_not_found: "Fant ingen Youtube-spilleliste i linken `%{url}`"
+    no_videos_in_playlist: "Fant ingen videoer i Youtube-spillelisten `%{playlist_id}`"
