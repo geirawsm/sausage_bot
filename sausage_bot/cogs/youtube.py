@@ -33,6 +33,27 @@ LINK_TYPE_PLAYLIST = I18N.t("youtube.commands.list.literal_link_type.playlist")
 _youtube_api = None
 
 
+class YoutubeApiError(Exception):
+    """
+    A Youtube lookup that came back empty.
+
+    `str(error)` stays English, for the logs. `localized()` is what the
+    user should see - built at raise time from an i18n key, so the
+    message follows the guild's locale and not whatever language the
+    exception happened to be written in.
+    #autodoc skip#
+    """
+
+    def __init__(self, log_msg: str, locale_key: str, **locale_params):
+        self.locale_key = locale_key
+        self.locale_params = locale_params
+        super().__init__(log_msg)
+
+    def localized(self) -> str:
+        "#autodoc skip#"
+        return I18N.t(self.locale_key, **self.locale_params)
+
+
 def youtube_api():
     """
     Build the Youtube API client, once, on first use.
@@ -106,7 +127,11 @@ class YouTubeAPI:
             response = request.execute()
 
             if not response["items"]:
-                raise ValueError(f"Fant ingen kanal med ID {channel_id}")
+                raise YoutubeApiError(
+                    f"Found no channel with the id {channel_id}",
+                    "youtube.errors.channel_not_found",
+                    channel_id=channel_id,
+                )
 
             return response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
@@ -130,7 +155,11 @@ class YouTubeAPI:
         response = request.execute()
 
         if not response["items"]:
-            raise ValueError(f"Could not find a channel with id {channel_id}")
+            raise YoutubeApiError(
+                f"Found no channel with the id {channel_id}",
+                "youtube.errors.channel_not_found",
+                channel_id=channel_id,
+            )
 
         resp = response["items"][0]
 
@@ -154,8 +183,11 @@ class YouTubeAPI:
             response = request.execute()
 
             if not response["items"]:
-                # TODO: i18n
-                raise ValueError(f"Fant ingen kanal med ID {channel_id}")
+                raise YoutubeApiError(
+                    f"Found no playlist in the link {playlist_url}",
+                    "youtube.errors.playlist_not_found",
+                    url=playlist_url,
+                )
             resp = response["items"][0]
             return {
                 "channel_id": resp["snippet"]["channelId"],
@@ -173,7 +205,11 @@ class YouTubeAPI:
         response = request.execute()
 
         if not response["items"]:
-            raise ValueError(f"Found no videos in playlist {playlist_id}")
+            raise YoutubeApiError(
+                f"Found no videos in the playlist {playlist_id}",
+                "youtube.errors.no_videos_in_playlist",
+                playlist_id=playlist_id,
+            )
         resp = response["items"]
         video_ids = []
         for item in resp:
@@ -380,24 +416,33 @@ class Youtube(commands.Cog):
         await interaction.response.defer()
         AUTHOR = interaction.user.name
         # Get yt-id
-        if re.fullmatch(r".*www\.youtube\.com\/.*(&|\?)list=.*", youtube_link):
-            logger.info("Got YT PLaylist")
-            youtube_info = YouTubeAPI.get_playlist_info(str(youtube_link))
-        else:
-            logger.info("Got YT channel")
-            youtube_info = YouTubeAPI.extract_yt_channel_info(str(youtube_link))
-            if youtube_info is None:
-                logger.error(
-                    "Could not find channel at Youtube, are you sure this is the correct link?"
-                )
-                await discord_commands.log_to_bot_channel(
-                    interaction.guild,
-                    content_in=I18N.t(
-                        "youtube.commands.add.add_error",
-                        youtube_link=youtube_link,
-                    ),
-                )
-                return
+        try:
+            if re.fullmatch(r".*www\.youtube\.com\/.*(&|\?)list=.*", youtube_link):
+                logger.info("Got YT PLaylist")
+                youtube_info = YouTubeAPI.get_playlist_info(str(youtube_link))
+            else:
+                logger.info("Got YT channel")
+                youtube_info = YouTubeAPI.extract_yt_channel_info(str(youtube_link))
+                if youtube_info is None:
+                    logger.error(
+                        "Could not find channel at Youtube, are you sure this is the correct link?"
+                    )
+                    await discord_commands.log_to_bot_channel(
+                        interaction.guild,
+                        content_in=I18N.t(
+                            "youtube.commands.add.add_error",
+                            youtube_link=youtube_link,
+                        ),
+                    )
+                    return
+        except YoutubeApiError as error:
+            # The Youtube API had nothing to give us. Without this the
+            # exception would leave the interaction unanswered, and all
+            # the user gets is Discord's own "application did not
+            # respond"
+            logger.error(str(error))
+            await interaction.followup.send(error.localized())
+            return
         if youtube_info is None:
             await interaction.followup.send(
                 I18N.t("youtube.commands.add.msg_empty_link", link=youtube_link),
@@ -497,12 +542,10 @@ class Youtube(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
     @youtube_group.command(
-        # TODO: i18n
         name="edit",
         description=locale_str(I18N.t("youtube.commands.edit.cmd")),
     )
     @describe(
-        # TODO: i18n
         feed_name=I18N.t("youtube.commands.edit.desc.feed_name"),
         new_feed_name=I18N.t("youtube.commands.edit.desc.new_feed_name"),
         new_channel=I18N.t("youtube.commands.edit.desc.channel"),
@@ -524,7 +567,6 @@ class Youtube(commands.Cog):
             guild_id=interaction.guild.id,
         )
         logger.debug(f"`feed_info` is {feed_info}")
-        # TODO: lag locale
         changes_out = I18N.t(
             "youtube.commands.edit.changes_out.msg", feed_name=feed_name
         )
@@ -532,7 +574,6 @@ class Youtube(commands.Cog):
         if new_feed_name != "":
             updates_in.append(("feed_name", new_feed_name))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                # TODO: Lag locale
                 I18N.t("youtube.commands.edit.changes_out.feed_name"),
                 feed_info[0]["feed_name"],
                 new_feed_name,
@@ -540,7 +581,6 @@ class Youtube(commands.Cog):
         if new_channel:
             updates_in.append(("channel", new_channel))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                # TODO: Lag locale
                 I18N.t("youtube.commands.edit.changes_out.channel"),
                 str(
                     discord_commands.get_channel_name(
@@ -553,15 +593,24 @@ class Youtube(commands.Cog):
             if net_io.url_hostname_matches(url_in=new_url, domain="youtube.com"):
                 updates_in.append(("url", new_url))
                 changes_out += "\n- {}: `{}` -> `{}`".format(
-                    # TODO: lag locale
                     I18N.t("youtube.commands.edit.changes_out.url"),
                     feed_info[0]["url"],
                     new_url,
                 )
             else:
                 await interaction.followup.send(
-                    "New url does not look like a youtube link?", ephemeral=True
+                    I18N.t(
+                        "youtube.commands.edit.msg_not_youtube_link", url=new_url
+                    ),
+                    ephemeral=True,
                 )
+                return
+        if len(updates_in) == 0:
+            await interaction.followup.send(
+                I18N.t("youtube.commands.edit.msg_no_changes", feed_name=feed_name),
+                ephemeral=True,
+            )
+            return
         await db_helper.update_fields(
             template_info=envs.youtube_db_schema,
             where=("feed_name", feed_name),
@@ -783,7 +832,7 @@ class Youtube(commands.Cog):
             if config.ADMIN_CHANNEL_ID:
                 await discord_commands.post_to_channel(
                     config.ADMIN_CHANNEL_ID,
-                    content_in="YOUTUBE_API_KEY is not set in the .env file, skipping posting",
+                    content_in=I18N.t("youtube.tasks.post_videos.log_no_api_key"),
                 )
             return
         approved_guilds = await db_helper.get_output(
@@ -1003,7 +1052,7 @@ async def migrate_legacy_youtube_tables(guild):
         # The old log also had a `hash` column, used back when videos
         # were deduplicated on their description. It is not in the
         # schema anymore, so it is simply not carried over.
-        "log entries": await db_helper.db_copy_table_between_files(
+        "log_entries": await db_helper.db_copy_table_between_files(
             source_db_file=legacy_log_db,
             source_table=LEGACY_LOG_TABLE,
             template_info=envs.youtube_db_log_schema,
@@ -1013,15 +1062,16 @@ async def migrate_legacy_youtube_tables(guild):
     if sum(copied.values()) == 0:
         logger.info(f"Nothing left to migrate for `{guild.name}`")
         return
-    _msg = (
-        "Migrated youtube data to `{}`: {}. The old `{}` and `{}` are no "
-        "longer in use, but were left in `{}`.".format(
-            envs.youtube_db_schema["db_file"],
-            ", ".join(f"{count} {name}" for name, count in copied.items()),
-            LEGACY_FEEDS_DB_FILE,
-            LEGACY_LOG_DB_FILE,
-            db_dir,
-        )
+    _msg = I18N.t(
+        "youtube.db.log_migrated",
+        db_file=envs.youtube_db_schema["db_file"],
+        copied=", ".join(
+            "{} {}".format(count, I18N.t(f"youtube.db.migrated_items.{name}"))
+            for name, count in copied.items()
+        ),
+        legacy_feeds_db=LEGACY_FEEDS_DB_FILE,
+        legacy_log_db=LEGACY_LOG_DB_FILE,
+        db_dir=db_dir,
     )
     logger.info(_msg)
     await discord_commands.log_to_bot_channel(guild, _msg)
@@ -1065,8 +1115,9 @@ async def ensure_guild_youtube_tables(guild):
                 missing_tbl_cols_text += "\n\n"
         await discord_commands.log_to_bot_channel(
             guild,
-            "Missing columns in youtube db: {}\n"
-            "Make sure to populate missing information".format(missing_tbl_cols_text),
+            I18N.t(
+                "youtube.db.log_missing_columns", columns=missing_tbl_cols_text
+            ),
         )
     # Put back the uuid on filter rows that got a whole db row written
     # into the column instead
