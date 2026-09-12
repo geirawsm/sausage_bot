@@ -15,7 +15,7 @@ from googleapiclient.discovery import build
 from sausage_bot.util import config, envs, feeds_core, net_io
 from sausage_bot.util import db_helper, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.i18n import I18N, available_languages
 
 logger = config.logger
 
@@ -29,8 +29,47 @@ LIST_TYPE_ADDED = I18N.t("youtube.commands.list.literal_list_type.added")
 LIST_TYPE_FILTER = I18N.t("youtube.commands.list.literal_list_type.filter")
 LINK_TYPE_CHANNEL = I18N.t("youtube.commands.list.literal_link_type.channel")
 LINK_TYPE_PLAYLIST = I18N.t("youtube.commands.list.literal_link_type.playlist")
+ALLOW_DENY_ALLOW = I18N.t("common.literal_allow_deny.allow")
+ALLOW_DENY_DENY = I18N.t("common.literal_allow_deny.deny")
 
 _youtube_api = None
+
+
+def canonical_allow_deny(value) -> str | None:
+    """
+    Translate a filter's `allow_or_deny` back to the English `allow` or
+    `deny`.
+
+    `net_io.post_based_on_filter` matches on those two words alone, so a
+    filter stored as the localized literal the Discord client sent back
+    - `Tillat`/`Nekt` on a Norwegian guild - is a filter that never
+    applies to anything. Any language the bot has locale files for is
+    recognized. Returns None for values that match nothing.
+    #autodoc skip#
+    """
+    _value = str(value).strip().lower()
+    if _value in ("allow", "deny"):
+        return _value
+    for language in available_languages():
+        for canonical in ("allow", "deny"):
+            translated = I18N.t(
+                f"common.literal_allow_deny.{canonical}", locale=language
+            )
+            if _value == str(translated).strip().lower():
+                return canonical
+    return None
+
+
+def localized_allow_deny(value) -> str:
+    """
+    The `allow_or_deny` of a filter, in the language of the guild we are
+    talking to. Values that match no known translation are passed
+    through as they are. #autodoc skip#
+    """
+    canonical = canonical_allow_deny(value)
+    if canonical is None:
+        return str(value)
+    return I18N.t(f"common.literal_allow_deny.{canonical}")
 
 
 class YoutubeApiError(Exception):
@@ -91,7 +130,7 @@ class YouTubeAPI:
 
     def extract_yt_channel_info(url: str) -> dict | None:
         def get_channel_id_from_handle(handle: str) -> str | None:
-            """handle uten @ foran, f.eks. 'MrBeast'"""
+            """Handle without the leading @, e.g. 'MrBeast'"""
             request = youtube_api().channels().list(part="id", forHandle=handle)
             response = request.execute()
 
@@ -169,32 +208,36 @@ class YouTubeAPI:
             "id": resp["id"],
         }
 
-    def get_playlist_info(playlist_url: str) -> dict | {}:
-        print(f"playlist_url is {playlist_url}")
-        playlist_id = re.fullmatch(r".*(&|\?)list=(.*)", playlist_url).group(2)
-        if playlist_id:
-            # if "&list=" in playlist_url:
-            playlist_id = playlist_url.split("list=")[1]
-            request = (
-                youtube_api()
-                .playlists()
-                .list(part="contentDetails,snippet", id=playlist_id, maxResults=1)
+    def get_playlist_info(playlist_url: str) -> dict:
+        logger.debug(f"`playlist_url` is {playlist_url}")
+        # `re.fullmatch` returns None on a link without a `list=` in it,
+        # so check the match before reaching for a group on it
+        url_match = re.fullmatch(r".*(&|\?)list=(.*)", playlist_url)
+        if url_match is None:
+            raise YoutubeApiError(
+                f"Found no playlist id in the link {playlist_url}",
+                "youtube.errors.playlist_not_found",
+                url=playlist_url,
             )
-            response = request.execute()
+        playlist_id = url_match.group(2)
+        request = (
+            youtube_api()
+            .playlists()
+            .list(part="contentDetails,snippet", id=playlist_id, maxResults=1)
+        )
+        response = request.execute()
 
-            if not response["items"]:
-                raise YoutubeApiError(
-                    f"Found no playlist in the link {playlist_url}",
-                    "youtube.errors.playlist_not_found",
-                    url=playlist_url,
-                )
-            resp = response["items"][0]
-            return {
-                "channel_id": resp["snippet"]["channelId"],
-                "playlist_id": resp["id"],
-            }
-        else:
-            print("Could not find playlist")
+        if not response["items"]:
+            raise YoutubeApiError(
+                f"Found no playlist in the link {playlist_url}",
+                "youtube.errors.playlist_not_found",
+                url=playlist_url,
+            )
+        resp = response["items"][0]
+        return {
+            "channel_id": resp["snippet"]["channelId"],
+            "playlist_id": resp["id"],
+        }
 
     def get_playlist_items(playlist_id: str) -> dict:
         request = (
@@ -217,7 +260,7 @@ class YouTubeAPI:
         return video_ids
 
     def get_latest_video_ids(playlist_id: str, max_results: int = 5) -> list[str]:
-        """Henter de N siste video-ID-ene for ÉN spilleliste."""
+        """Get the N latest video ids for ONE playlist."""
         request = (
             youtube_api()
             .playlistItems()
@@ -228,7 +271,7 @@ class YouTubeAPI:
         return [item["contentDetails"]["videoId"] for item in response["items"]]
 
     def get_video_info(video_ids: dict[list[dict]]) -> list[dict]:
-        """Henter tittel, kanalnavn, publiseringsdato og lenke (maks 50 ID-er per kall)."""
+        """Get title, channel name, publishing date and link (max 50 ids per call)."""
         results = []
 
         for i in range(0, len(video_ids), 50):
@@ -307,7 +350,9 @@ async def youtube_filter_autocomplete(
     return [
         discord.app_commands.Choice(
             name="{} - {} - {}".format(
-                filter["feed_name"], filter["allow_or_deny"], filter["filter"]
+                filter["feed_name"],
+                localized_allow_deny(filter["allow_or_deny"]),
+                filter["filter"],
             ),
             value=str(filter["filter"]),
         )
@@ -643,8 +688,8 @@ class Youtube(commands.Cog):
         interaction: discord.Interaction,
         feed_name: str,
         allow_deny: typing.Literal[
-            I18N.t("common.literal_allow_deny.allow"),
-            I18N.t("common.literal_allow_deny.deny"),
+            ALLOW_DENY_ALLOW,
+            ALLOW_DENY_DENY,
         ],
         filters_in: str,
     ):
@@ -659,10 +704,21 @@ class Youtube(commands.Cog):
             single=True,
             guild_id=interaction.guild.id,
         )
+        # Discord hands back the *value* of the picked literal, which is
+        # the translated one. Store the English form the filtering in
+        # `net_io` matches on, and keep `allow_deny` for the reply to
+        # the user.
+        allow_deny_in = canonical_allow_deny(allow_deny)
+        if allow_deny_in is None:
+            logger.error(f"Got an unknown `allow_deny` value: {allow_deny}")
+            await interaction.followup.send(
+                I18N.t("youtube.commands.filter_add.msg_filter_failed"), ephemeral=True
+            )
+            return
         # One filter per command, stored whole - unlike rss, which splits
         # its input on `envs.input_split_regex`. That keeps phrases like
         # `let's play` usable as a single filter here.
-        _inserts = [(_uuid["uuid"], allow_deny, filters_in)]
+        _inserts = [(_uuid["uuid"], allow_deny_in, filters_in)]
         adding_filter = await db_helper.insert_many_all(
             template_info=envs.youtube_db_filter_schema,
             inserts=_inserts,
@@ -891,7 +947,7 @@ class Youtube(commands.Cog):
                     CHANNEL = feed["channel"]
                     logger.info(f"Checking {FEED_NAME}")
                     logger.debug(f"Found channel `{CHANNEL}` in `{FEED_NAME}`")
-                    # Hente de siste videoene til kanalen
+                    # Get the latest videos of the channel
                     last_videos = YouTubeAPI.get_latest_video_ids(feed["playlist_id"])
                     for video in last_videos:
                         video_channels[video] = CHANNEL
@@ -1086,6 +1142,48 @@ async def migrate_legacy_youtube_tables(guild):
     await discord_commands.log_to_bot_channel(guild, _msg)
 
 
+async def normalize_filter_allow_deny(guild):
+    """
+    Rewrite localized `allow_or_deny` values in this guild's youtube
+    filters to the English `allow`/`deny`.
+
+    `/youtube filter add` used to store the literal the Discord client
+    sent back, which is the translated one - so every filter added on a
+    non-English guild went into the database as something
+    `net_io.post_based_on_filter` does not recognize, and was skipped on
+    each posting round. Safe to call repeatedly (idempotent).
+    #autodoc skip#
+    """
+    stored_values = await db_helper.get_output(
+        template_info=envs.youtube_db_filter_schema,
+        select=("allow_or_deny"),
+        guild_id=guild.id,
+        single_col_results=True,
+    )
+    if not stored_values:
+        return
+    for value in set(stored_values):
+        if value in ("allow", "deny"):
+            continue
+        canonical = canonical_allow_deny(value)
+        if canonical is None:
+            logger.error(
+                f"A youtube filter in `{guild.name}` has an unknown "
+                f"`allow_or_deny`: {value}"
+            )
+            continue
+        logger.info(
+            f"Rewriting youtube filter `allow_or_deny` `{value}` to "
+            f"`{canonical}` in `{guild.name}`"
+        )
+        await db_helper.update_fields(
+            template_info=envs.youtube_db_filter_schema,
+            where=("allow_or_deny", value),
+            updates=[("allow_or_deny", canonical)],
+            guild_id=guild.id,
+        )
+
+
 async def ensure_guild_youtube_tables(guild):
     """
     Prep this guild's Youtube tables, and fix up any legacy channel-name
@@ -1133,6 +1231,8 @@ async def ensure_guild_youtube_tables(guild):
     await db_helper.db_fix_dict_uuid_in_filters(
         template_info=envs.youtube_db_filter_schema, guild_id=guild.id
     )
+    # Filters stored with a translated `allow_or_deny` never match
+    await normalize_filter_allow_deny(guild)
     # Change channel name to id
     await db_helper.db_channel_names_to_ids(
         template_info=envs.youtube_db_schema,

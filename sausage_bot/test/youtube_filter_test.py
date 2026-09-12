@@ -117,8 +117,23 @@ async def test_filter_add_stores_the_feeds_uuid(guild_db_root):
     )
 
     assert await _filter_rows() == [
-        {"uuid": UUID_A, "allow_or_deny": "Deny", "filter": "omarchy"}
+        {"uuid": UUID_A, "allow_or_deny": "deny", "filter": "omarchy"}
     ]
+
+
+async def test_filter_add_stores_a_translated_literal_canonically(guild_db_root):
+    """
+    Discord hands back the literal in the guild's own language, but
+    `post_based_on_filter` only knows `allow`/`deny` - a `Nekt` written
+    straight to the database is a filter that never applies.
+    """
+    await _prep_feeds()
+
+    await youtube.Youtube.youtube_filter_add.callback(
+        mock.Mock(), _make_interaction(), "feed a", "Nekt", "omarchy"
+    )
+
+    assert [row["allow_or_deny"] for row in await _filter_rows()] == ["deny"]
 
 
 async def test_filter_add_keeps_a_multi_word_filter_whole(guild_db_root):

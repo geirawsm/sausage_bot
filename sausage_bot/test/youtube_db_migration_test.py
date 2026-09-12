@@ -130,7 +130,10 @@ async def test_filters_are_moved_to_the_new_database(guild_db_root):
         envs.youtube_db_filter_schema, guild_id=GUILD_ID
     )
     assert len(filters) == 2
-    assert (UUID_A, "Deny", "shorts") in [
+    # `allow_or_deny` comes out canonical - the legacy rows hold the
+    # literal as the client sent it, which `normalize_filter_allow_deny`
+    # rewrites on the way in
+    assert (UUID_A, "deny", "shorts") in [
         (row["uuid"], row["allow_or_deny"], row["filter"]) for row in filters
     ]
 
