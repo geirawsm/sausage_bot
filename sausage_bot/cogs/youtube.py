@@ -140,20 +140,29 @@ class YouTubeAPI:
             "id": resp["id"],
         }
 
-    def get_playlist_info(playlist_id_or_url: str) -> dict:
-        if "&list=" in playlist_id_or_url:
-            playlist_id_or_url = playlist_id_or_url.split("&list=")[1]
-        request = (
-            youtube_api()
-            .playlists()
-            .list(part="contentDetails,snippet", id=playlist_id_or_url, maxResults=1)
-        )
-        response = request.execute()
+    def get_playlist_info(playlist_url: str) -> dict | {}:
+        print(f"playlist_url is {playlist_url}")
+        playlist_id = re.fullmatch(r".*(&|\?)list=(.*)", playlist_url).group(2)
+        if playlist_id:
+            # if "&list=" in playlist_url:
+            playlist_id = playlist_url.split("list=")[1]
+            request = (
+                youtube_api()
+                .playlists()
+                .list(part="contentDetails,snippet", id=playlist_id, maxResults=1)
+            )
+            response = request.execute()
 
-        if not response["items"]:
-            raise ValueError(f"Found no videos in playlist {playlist_id_or_url}")
-        resp = response["items"][0]
-        return {"channel_id": resp["snippet"]["channelId"], "playlist_id": resp["id"]}
+            if not response["items"]:
+                # TODO: i18n
+                raise ValueError(f"Fant ingen kanal med ID {channel_id}")
+            resp = response["items"][0]
+            return {
+                "channel_id": resp["snippet"]["channelId"],
+                "playlist_id": resp["id"],
+            }
+        else:
+            print("Could not find playlist")
 
     def get_playlist_items(playlist_id: str) -> dict:
         request = (
@@ -371,9 +380,11 @@ class Youtube(commands.Cog):
         await interaction.response.defer()
         AUTHOR = interaction.user.name
         # Get yt-id
-        if "&list=" in youtube_link:
+        if re.fullmatch(r".*www\.youtube\.com\/.*(&|\?)list=.*", youtube_link):
+            logger.info("Got YT PLaylist")
             youtube_info = YouTubeAPI.get_playlist_info(str(youtube_link))
         else:
+            logger.info("Got YT channel")
             youtube_info = YouTubeAPI.extract_yt_channel_info(str(youtube_link))
             if youtube_info is None:
                 logger.error(
@@ -482,6 +493,82 @@ class Youtube(commands.Cog):
                 ),
             )
         return
+
+    @discord_commands.is_owner_or_manage_guild()
+    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @youtube_group.command(
+        # TODO: i18n
+        name="edit",
+        description=locale_str(I18N.t("youtube.commands.edit.cmd")),
+    )
+    @describe(
+        # TODO: i18n
+        feed_name=I18N.t("youtube.commands.edit.desc.feed_name"),
+        new_feed_name=I18N.t("youtube.commands.edit.desc.new_feed_name"),
+        new_channel=I18N.t("youtube.commands.edit.desc.channel"),
+        new_url=I18N.t("youtube.commands.edit.desc.url"),
+    )
+    async def youtube_edit(
+        self,
+        interaction: discord.Interaction,
+        feed_name: str,
+        new_feed_name: str = "",
+        new_channel: discord.TextChannel = None,
+        new_url: str = "",
+    ):
+        await interaction.response.defer()
+        feed_info = await db_helper.get_output(
+            template_info=envs.youtube_db_schema,
+            select=("feed_name", "channel", "url"),
+            where=(("feed_name", feed_name)),
+            guild_id=interaction.guild.id,
+        )
+        logger.debug(f"`feed_info` is {feed_info}")
+        # TODO: lag locale
+        changes_out = I18N.t(
+            "youtube.commands.edit.changes_out.msg", feed_name=feed_name
+        )
+        updates_in = []
+        if new_feed_name != "":
+            updates_in.append(("feed_name", new_feed_name))
+            changes_out += "\n- {}: `{}` -> `{}`".format(
+                # TODO: Lag locale
+                I18N.t("youtube.commands.edit.changes_out.feed_name"),
+                feed_info[0]["feed_name"],
+                new_feed_name,
+            )
+        if new_channel:
+            updates_in.append(("channel", new_channel))
+            changes_out += "\n- {}: `{}` -> `{}`".format(
+                # TODO: Lag locale
+                I18N.t("youtube.commands.edit.changes_out.channel"),
+                str(
+                    discord_commands.get_channel_name(
+                        interaction.guild, feed_info[0]["channel"]
+                    )
+                ),
+                new_channel,
+            )
+        if new_url != "":
+            if net_io.url_hostname_matches(url_in=new_url, domain="youtube.com"):
+                updates_in.append(("url", new_url))
+                changes_out += "\n- {}: `{}` -> `{}`".format(
+                    # TODO: lag locale
+                    I18N.t("youtube.commands.edit.changes_out.url"),
+                    feed_info[0]["url"],
+                    new_url,
+                )
+            else:
+                await interaction.followup.send(
+                    "New url does not look like a youtube link?", ephemeral=True
+                )
+        await db_helper.update_fields(
+            template_info=envs.youtube_db_schema,
+            where=("feed_name", feed_name),
+            updates=updates_in,
+            guild_id=interaction.guild.id,
+        )
+        await interaction.followup.send(changes_out, ephemeral=True)
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
