@@ -552,11 +552,6 @@ class Youtube(commands.Cog):
                 )
             )
             return
-        # Has to be looked up before the removal - the row holding the
-        # channel id is gone by the time we report back
-        channel_name = discord_commands.get_channel_name(
-            interaction.guild, _uuid["channel"]
-        )
         removal = await feeds_core.remove_feed_from_db(
             feed_type="youtube", feed_name=feed_name, guild_id=interaction.guild.id
         )
@@ -657,9 +652,7 @@ class Youtube(commands.Cog):
                 )
             else:
                 await interaction.followup.send(
-                    I18N.t(
-                        "youtube.commands.edit.msg_not_youtube_link", url=new_url
-                    ),
+                    I18N.t("youtube.commands.edit.msg_not_youtube_link", url=new_url),
                     ephemeral=True,
                 )
                 return
@@ -1226,9 +1219,7 @@ async def ensure_guild_youtube_tables(guild):
                 missing_tbl_cols_text += "\n\n"
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t(
-                "youtube.db.log_missing_columns", columns=missing_tbl_cols_text
-            ),
+            I18N.t("youtube.db.log_missing_columns", columns=missing_tbl_cols_text),
         )
     # Put back the uuid on filter rows that got a whole db row written
     # into the column instead
