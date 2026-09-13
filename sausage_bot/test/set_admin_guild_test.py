@@ -135,6 +135,7 @@ async def _run(interaction, guild, channel, confirm=True, created_channel=None):
             mock.patch.object(config, "bot", _make_bot([target_guild])),
             mock.patch.object(db, "get_output", mock.AsyncMock(return_value=REGISTRY)),
             mock.patch.object(db, "prep_table", mock.AsyncMock()),
+            mock.patch.object(db, "add_missing_db_setup", mock.AsyncMock()),
             mock.patch.object(db, "empty_table", mock.AsyncMock()),
             mock.patch.object(db, "insert_many_all", mock.AsyncMock()),
             mock.patch.object(db, "update_fields", mock.AsyncMock()),

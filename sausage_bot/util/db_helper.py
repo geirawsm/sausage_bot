@@ -92,6 +92,24 @@ async def ensure_guild_tasks_rows(guild_id) -> None:
         )
 
 
+async def ensure_admin_guild_table() -> None:
+    """
+    Create the `admin_guild` table if missing, and bring an existing one
+    up to the current schema.
+
+    `prep_table()` is a `CREATE TABLE IF NOT EXISTS`, so a table created
+    before `guild_channel` was added to the schema keeps its two
+    columns, and `_persist_admin_guild()`'s three-value insert then
+    fails with `table admin_guild has 2 columns but 3 values were
+    supplied` - leaving the bot with no admin guild stored at all. Every
+    cog-owned schema pairs `prep_table()` with `add_missing_db_setup()`
+    for this reason; do the same for the one table __main__.py owns.
+    #autodoc skip#
+    """
+    await prep_table(envs.admin_guild_db_schema)
+    await add_missing_db_setup(envs.admin_guild_db_schema)
+
+
 def db_exist(db_file_in, guild_id=None):
     db_path = envs.resolve_db_file(db_file_in, guild_id)
     file_io.ensure_folder(Path(db_path).parent)
@@ -417,6 +435,131 @@ async def db_update_to_correct_feed_types(template_info, guild_id=None):
                 updates=("feed_type", "podcast"),
                 guild_id=guild_id,
             )
+
+
+async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
+    """
+    Repair filter rows whose `uuid` holds a stringified dict instead of
+    the uuid itself.
+
+    `/rss filter add` used to pass the whole `get_output(single=True)`
+    row on to the insert, so the column ended up with
+    `{'uuid': '814adaed-...'}` rather than `814adaed-...`. Such a row
+    never matches its feed, so the filter is dead and cannot be removed
+    again. Pull the uuid back out and write it in place.
+
+    Safe to call repeatedly (idempotent): a row that already holds a
+    plain uuid is left alone. #autodoc skip#
+    """
+    db_file = envs.resolve_db_file(template_info, guild_id)
+    table_name = template_info["name"]
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            rows = await db.execute(f"SELECT rowid, uuid FROM {table_name}")
+            repairs = []
+            for rowid, uuid_in in await rows.fetchall():
+                found = re.search(r"['\"]uuid['\"]:\s*['\"]([^'\"]+)['\"]", str(uuid_in))
+                if found:
+                    repairs.append((found.group(1), rowid))
+            if len(repairs) == 0:
+                return 0
+            logger.info(
+                "Repairing {} filter row(s) in `{}` with a dict-shaped uuid".format(
+                    len(repairs), db_file
+                )
+            )
+            await db.executemany(
+                f"UPDATE {table_name} SET uuid = ? WHERE rowid = ?", repairs
+            )
+            await db.commit()
+            return len(repairs)
+    except aiosqlite.OperationalError as e:
+        logger.error(f"Error: {e}")
+        return 0
+
+
+async def db_copy_table_between_files(
+    source_db_file, source_table, template_info, guild_id=None
+):
+    """
+    Copy every row in `source_table` from `source_db_file` into the
+    table described by `template_info`.
+
+    Used when a schema moves to another file or changes its table name:
+    `prep_table()` happily creates the new, empty table, but nothing
+    carries the old rows over, so the data looks lost to the bot even
+    though it is still on disk.
+
+    Only the columns both sides have in common are copied, so a column
+    that has been dropped from the schema is left behind and one that
+    has been added comes out NULL. The source file is only read - it is
+    never written to or deleted, so a migration that goes wrong can be
+    inspected afterwards.
+
+    Nothing is copied when the target table already holds rows: that
+    means the migration has already run (or the table was populated
+    after the upgrade), and copying again would either duplicate rows or
+    collide with the primary key. Safe to call repeatedly (idempotent).
+
+    Returns the number of rows copied. #autodoc skip#
+    """
+    target_db_file = envs.resolve_db_file(template_info, guild_id)
+    target_table = template_info["name"]
+    source_db_file = Path(source_db_file)
+    if not source_db_file.is_file():
+        logger.debug(f"No `{source_db_file}` to copy `{source_table}` from")
+        return 0
+    if args.not_write_database:
+        logger.debug("`not_write_database` activated")
+        return 0
+    try:
+        async with aiosqlite.connect(target_db_file) as db:
+            existing = await db.execute(f"SELECT count(*) FROM {target_table}")
+            existing = await existing.fetchone()
+            if existing[0] > 0:
+                logger.debug(
+                    "`{}` in `{}` already has {} row(s), not copying".format(
+                        target_table, target_db_file, existing[0]
+                    )
+                )
+                return 0
+            await db.execute("ATTACH DATABASE ? AS source", (str(source_db_file),))
+            source_cols = await db.execute(f"PRAGMA source.table_info({source_table})")
+            source_cols = [col[1] for col in await source_cols.fetchall()]
+            if len(source_cols) == 0:
+                logger.debug(f"No `{source_table}` in `{source_db_file}`, nothing to do")
+                await db.execute("DETACH DATABASE source")
+                return 0
+            shared_cols = [
+                col[0] for col in template_info["items"] if col[0] in source_cols
+            ]
+            if len(shared_cols) == 0:
+                logger.error(
+                    "`{}` in `{}` shares no columns with `{}`, not copying".format(
+                        source_table, source_db_file, target_table
+                    )
+                )
+                await db.execute("DETACH DATABASE source")
+                return 0
+            _cols = ", ".join(shared_cols)
+            _cmd = (
+                f"INSERT OR IGNORE INTO main.{target_table} ({_cols}) "
+                f"SELECT {_cols} FROM source.{source_table}"
+            )
+            logger.debug(f"Using this query: {_cmd}")
+            copied = await db.execute(_cmd)
+            copied = copied.rowcount
+            await db.commit()
+            await db.execute("DETACH DATABASE source")
+            logger.info(
+                "Copied {} row(s) from `{}` in `{}` to `{}` in `{}`".format(
+                    copied, source_table, source_db_file, target_table, target_db_file
+                )
+            )
+            return copied
+    except aiosqlite.OperationalError as e:
+        logger.error(f"Error: {e}")
+        return 0
 
 
 async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild=None):
@@ -1031,6 +1174,7 @@ async def get_output(
     get_row_ids: bool = False,
     rowid_sort: bool = False,
     single: bool = False,
+    single_col_results: bool = False,
     as_settings_json: bool = False,
     guild_id=None,
 ) -> dict:
@@ -1065,6 +1209,8 @@ async def get_output(
         Sort output by rowids
     single: bool
         Only return one single result
+    single_col_results: bool
+        Return results from a single column as a list
     as_settings_json: bool
         Return output as json instead of dict
         Only works for tables with two columns
@@ -1073,6 +1219,9 @@ async def get_output(
     db_file = envs.resolve_db_file(template_info, guild_id)
     logger.debug(f"Opening `{db_file}`")
     table_name = template_info["name"]
+    if single_col_results is True and not isinstance(select, str):
+        logger.error("single_col_results chosen, but number of selects is not 1")
+        return False
     _cmd = "SELECT "
     if get_row_ids:
         _cmd += "rowid, "
@@ -1159,6 +1308,11 @@ async def get_output(
                     for item in out:
                         out_dict[item["setting"]] = item["value"]
                     return out_dict
+                elif single_col_results:
+                    out_list = []
+                    for item in out:
+                        out_list.append(item[select])
+                    return out_list
             logger.debug(f"Returning {len(out)} items from from db")
             return out
     except aiosqlite.OperationalError as e:

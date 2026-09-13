@@ -131,6 +131,16 @@ LOG_ROTATION_DAYS=
 ADMIN_GUILD_ID=
 ADMIN_CHANNEL_ID=
 
+# Feed settings
+# FEED_FILTER_PRIORITY decides how the allow- and deny-filters on rss,
+# youtube and podcast feeds are weighted against each other. It accepts
+# `allow` or `deny`, and defaults to `allow`.
+# `allow`: post everything - or only what matches an allow-filter, if any
+# allow-filters are given - except what matches a deny-filter
+# `deny`: post nothing - or deny only what matches a deny-filter, if any
+# deny-filters are given - except what matches an allow-filter
+FEED_FILTER_PRIORITY=allow
+
 # Spotify settings
 # To be used if you want Spotify branding on the podcast feeds.
 # Follow the instructions on this page on _Getting started_: https://developer.spotify.com/documentation/web-api
@@ -538,8 +548,8 @@ rss_db_log_schema = {
 
 # Youtube
 youtube_db_schema = {
-    "db_file": "youtube_feeds.sqlite",
-    "name": "youtube_feeds",
+    "db_file": "youtube.sqlite",
+    "name": "feeds",
     "items": [
         ["uuid", "TEXT NOT NULL"],
         ["feed_name", "TEXT"],
@@ -558,7 +568,7 @@ youtube_db_schema = {
 }
 
 youtube_db_filter_schema = {
-    "db_file": "youtube_feeds.sqlite",
+    "db_file": "youtube.sqlite",
     "name": "filter",
     "items": [
         ["uuid", "TEXT NOT NULL"],
@@ -570,13 +580,12 @@ youtube_db_filter_schema = {
 }
 
 youtube_db_log_schema = {
-    "db_file": "youtube_log.sqlite",
+    "db_file": "youtube.sqlite",
     "name": "log",
     "items": [
         ["uuid", " TEXT NOT NULL"],
         ["url", " TEXT"],
         ["date", " TEXT"],
-        ["hash", "TEXT"],
     ],
     "primary": None,
     "autoincrement": False,
@@ -586,7 +595,7 @@ settings_db_schema = {
     "db_file": "settings.sqlite",
     "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT NOT NULL"]],
-    "inserts": [["language", "en"], ["timezone", "UTC"], ["bot_channel", ""]],
+    "inserts": [["language", "en"], ["timezone", "UTC"], ["bot_channel", "bot-log"]],
     "primary": None,
     "autoincrement": False,
 }
@@ -606,6 +615,20 @@ FEEDS_URL_ERROR = "Failed"
 FEEDS_URL_STALE = "Stale"
 FEEDS_URL_ERROR_LIMIT = 3
 FEEDS_URL_SUCCESS = "OK"
+# Fallback when `SCRAPEOPS_API_KEY` is unset and no user-agent has been
+# scraped. aiohttp's own default (`Python/3.12 aiohttp/3.9`) got every
+# Youtube feed throttled with 404/500 within an hour on 2026-08-22.
+DEFAULT_USER_AGENTS = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/18.5 Safari/605.1.15",
+)
 CHANNEL_STATUS_ERROR = "Failed"
 CHANNEL_STATUS_SUCCESS = "OK"
 
@@ -643,6 +666,7 @@ YOUTUBE_RSS_LINK = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
 YOUTUBE_PLAYLIST_RSS_LINK = "https://www.youtube.com/feeds/videos.xml?playlist_id={}"
 
 # VARIABLES
+GITHUB_README_LINK = "https://github.com/geirawsm/sausage_bot/blob/main/README.md"
 input_split_regex = r"[\s\.\-_,;\\\/]+"
 roles_ensure_separator = ("><", "> <")
 scrapeops_url = (

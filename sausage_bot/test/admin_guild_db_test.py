@@ -60,6 +60,7 @@ async def _run(
     persist = persist if persist is not None else mock.AsyncMock(return_value=True)
     with (
         mock.patch.object(db, "prep_table", mock.AsyncMock()),
+        mock.patch.object(db, "add_missing_db_setup", mock.AsyncMock()),
         mock.patch.object(db, "get_output", mock.AsyncMock(return_value=row)),
         mock.patch.object(main_module, "_persist_admin_guild", persist),
         mock.patch.object(config, "bot", bot),
@@ -201,6 +202,7 @@ async def test_persist_writes_a_value_for_every_column():
     channel = SimpleNamespace(id=int(DB_CHANNEL_ID), name=DB_CHANNEL_NAME)
     with (
         mock.patch.object(db, "prep_table", mock.AsyncMock()),
+        mock.patch.object(db, "add_missing_db_setup", mock.AsyncMock()),
         mock.patch.object(db, "empty_table", mock.AsyncMock()),
         mock.patch.object(db, "insert_many_all", insert),
         mock.patch.object(config, "ADMIN_GUILD_ID", None),
@@ -221,6 +223,7 @@ async def test_persist_reports_a_failed_write_and_leaves_config_alone():
     channel = SimpleNamespace(id=int(DB_CHANNEL_ID), name=DB_CHANNEL_NAME)
     with (
         mock.patch.object(db, "prep_table", mock.AsyncMock()),
+        mock.patch.object(db, "add_missing_db_setup", mock.AsyncMock()),
         mock.patch.object(db, "empty_table", mock.AsyncMock()),
         mock.patch.object(db, "insert_many_all", mock.AsyncMock(return_value=False)),
         mock.patch.object(config, "ADMIN_GUILD_ID", "unchanged"),

@@ -155,6 +155,22 @@ class ColorFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+def _level(level_in, default):
+    """
+    Accept `debug`, `DEBUG` or `logging.DEBUG`, falling back to
+    `default` for None and for a name that is not a level.
+
+    `logging.getLevelName()` is not used for the lookup: it hands back
+    the string `"Level DBEUG"` for a typo rather than failing, and a
+    handler holding a string as its level lets everything through.
+    """
+    if level_in is None:
+        return default
+    if isinstance(level_in, int):
+        return level_in
+    return logging.getLevelNamesMapping().get(str(level_in).upper(), default)
+
+
 def configure_logging(
     console_level=None,
     file_level=None,
@@ -163,9 +179,17 @@ def configure_logging(
 ):
     logger = logging.getLogger()
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
-    logger.setLevel(console_level if console_level is not None else logging.DEBUG)
+    console_level = _level(console_level, logging.INFO)
+    file_level = _level(file_level, logging.INFO)
+
+    # The logger's own level is checked before any handler sees the
+    # record, and it defaults to WARNING. Without this line the handlers
+    # below never get an INFO or DEBUG record to print, whatever level
+    # they are set to.
+    logger.setLevel(min(console_level, file_level) if to_file else console_level)
+
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(console_level)
     console_handler.setFormatter(ColorFormatter())
     console_handler.addFilter(GuildContextFilter())
     logger.addHandler(console_handler)
@@ -179,7 +203,7 @@ def configure_logging(
             delay=False,
             backupCount=log_days,
         )
-        file_handler.setLevel(file_level if file_level is not None else logging.DEBUG)
+        file_handler.setLevel(file_level)
         file_formatter = logging.Formatter(LOG_FORMAT, "%Y-%m-%d %H:%M:%S")
         file_handler.setFormatter(file_formatter)
         file_handler.addFilter(GuildContextFilter())

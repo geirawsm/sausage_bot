@@ -31,6 +31,9 @@ with mock.patch.object(config.bot, "run", lambda *args, **kwargs: None):
     )
 
 GUILD_ID = 444444444444444444
+# What a fresh settings table starts out with, so this test keeps working
+# if the default in envs.py changes again.
+DEFAULT_BOT_CHANNEL = dict(envs.settings_db_schema["inserts"])["bot_channel"]
 
 
 async def _prep_settings():
@@ -94,8 +97,9 @@ async def test_set_bot_channel_missing_channel_offers_view(
 
     await set_bot_channel.callback(interaction, bot_channel="brand-new")
 
-    # Nothing stored yet - the setting waits for the view's button flow.
-    assert await _read_bot_channel() == ""
+    # Nothing stored yet - the setting waits for the view's button flow,
+    # so it is still whatever the table was created with.
+    assert await _read_bot_channel() == DEFAULT_BOT_CHANNEL
     # The user was offered the create/duplicate view.
     _, kwargs = interaction.followup.send.call_args
     assert isinstance(kwargs.get("view"), CreateBotChannelView)

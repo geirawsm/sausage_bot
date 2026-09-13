@@ -133,7 +133,7 @@ Command: `/stats`
 
 ### Youtube
 
-Post new videos from given Youtube channels
+Post new videos from given Youtube channels or playlists
 
 Command: `/youtube`
 
@@ -187,6 +187,13 @@ You need to register with Spotify API first:
 - Add "Client ID" and "Client secret" in .env file or as environment argument in docker
 
 ### Running the bot
+
+You can chose to invite the bot as is, or host it yourself.
+
+#### Invite the bot
+
+Invite sausage_bot with [this link](https://discord.com/oauth2/authorize?client_id=868976367293849600&permissions=8&integration_type=0&scope=bot+applications.commands).
+Wait for activation confirmation before using.
 
 #### Docker-compose
 

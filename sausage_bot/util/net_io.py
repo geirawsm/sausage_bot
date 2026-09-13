@@ -85,20 +85,23 @@ async def get_link(url=None, mock_file=None, status_out=None):
 
     def get_random_user_agent():
         """
-        A scraped user-agent, or None when there are none to pick from.
+        A scraped user-agent, or a built-in one when there are none.
 
         `SCRAPEOPS_API_KEY` is optional, and `fetch_random_user_agent()`
         writes nothing without it, so the headers file is regularly
         missing or empty. `file_io.read_json()` creates it as `{}` in
         that case, which used to raise `KeyError: 'result'` here and get
         reported as a url error by the caller's `except`.
+
+        Falling back to `None` left aiohttp announcing itself as
+        `Python/3.x aiohttp/x.y`, which Youtube throttles.
         """
         headers_file = envs.TEMP_DIR / "headers.json"
         scraped = file_io.read_json(headers_file) or {}
         results = scraped.get("result") or []
         if not results:
-            logger.debug("No scraped user-agents available, using the default")
-            return None
+            logger.debug("No scraped user-agents available, using a built-in one")
+            return choice(envs.DEFAULT_USER_AGENTS)
         return choice(results)["user-agent"]
 
     if mock_file:
@@ -120,8 +123,7 @@ async def get_link(url=None, mock_file=None, status_out=None):
         # Get random user agent
         rand_user_agent = get_random_user_agent()
         logger.debug(f"Using user-agent: {rand_user_agent}")
-        # aiohttp falls back to its own user-agent when this is None
-        headers = {"user-agent": rand_user_agent} if rand_user_agent else None
+        headers = {"user-agent": rand_user_agent}
         # async with session.get(url) as resp:
         async with session.get(url, headers=headers) as resp:
             url_status = resp.status
@@ -423,7 +425,7 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None, guild
             temp_info["duration"] = ep["duration_ms"] * 1000
             logger.debug(f"Populated `temp_info`:\n{pformat(temp_info)}")
             items_out["items"].append(temp_info)
-        items_out = filter_links(items_out)
+        items_out = FilterLinks(items_out).filter_the_links()
         return items_out
     except TypeError as e:
         _msg = "Error processing episodes from {}: {}".format(
@@ -536,7 +538,7 @@ async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
                 except:
                     temp_info["img"] = feed_img
                 items_out["items"].append(temp_info)
-            items_out = filter_links(items_out)
+            items_out = FilterLinks(items_out).filter_the_links()
             return items_out
         except TypeError as e:
             _msg = "Error processing episodes from {}: {}".format(
@@ -553,97 +555,155 @@ async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
     return None
 
 
-def filter_links(items):
+class FilterLinks:
     """
     Filter incoming links based on active filters
     """
 
-    def post_based_on_filter(item, filters_in):
+    def __init__(self, items) -> None:
+        super().__init__()
+        self.items = items
+
+    @staticmethod
+    def get_filter_priority():
+        """
+        Get the filter priority from env. Accepts `allow` or `deny`,
+        defaulting to `allow`
+        """
+        priority = (
+            str(config.env("FEED_FILTER_PRIORITY", default="allow")).strip().lower()
+        )
+        if priority not in ("allow", "deny"):
+            logger.error(
+                "`FEED_FILTER_PRIORITY` is `{}`, but has to be `allow` or "
+                "`deny`. Using `deny`".format(priority)
+            )
+            priority = "deny"
+        return priority
+
+    @staticmethod
+    def get_item_content(item):
+        """
+        Get the searchable content (title and description) of an item as
+        a list of lowercase strings
+        """
+        content = []
+        for key in ("title", "description"):
+            value = item.get(key, None)
+            if value is None or value == "":
+                continue
+            if not isinstance(value, str):
+                logger.error(
+                    "`{}` is not correct type: {} ({})".format(key, value, type(value))
+                )
+                continue
+            content.append(value.lower())
+        return content
+
+    @staticmethod
+    def get_matching_filters(content, filters_in):
+        """
+        Get the filters in `filters_in` that are found in `content`
+        """
+        hits = []
+        for filter_in in filters_in:
+            _filter = str(filter_in).strip().lower()
+            if _filter == "":
+                logger.error("Got an empty filter, skipping it")
+                continue
+            if any(_filter in text for text in content):
+                hits.append(filter_in)
+        return hits
+
+    def post_based_on_filter(self, item, filters_in):
+        """
+        Decide if `item` should be posted or not, based on `filters_in` and
+        the `FEED_FILTER_PRIORITY` setting in env.
+
+        Priority `allow`: post everything - or only what matches an
+        allow-filter, if any allow-filters are given - except what matches
+        a deny-filter (deny wins on a double match).
+
+        Priority `deny`: post nothing - or only deny what matches a
+        deny-filter, if any deny-filters are given - except what matches
+        an allow-filter (allow wins on a double match).
+        """
         allow = []
         deny = []
         for filter_in in filters_in:
-            if filter_in["allow_or_deny"].lower() == "allow":
+            allow_or_deny = str(filter_in["allow_or_deny"]).lower()
+            if allow_or_deny == "allow":
                 allow.append(filter_in["filter"])
-            elif filter_in["allow_or_deny"].lower() == "deny":
+            elif allow_or_deny == "deny":
                 deny.append(filter_in["filter"])
-        filter_priority = eval(config.env("RSS_FILTER_PRIORITY", default="deny"))
-        for filter_out in filter_priority:
-            logger.debug(f"Using filter: {filter_out}")
-            try:
-                if item["title"] is not None:
-                    logger.debug(
-                        "Checking filter against title `{}`".format(
-                            item["title"].lower()
-                        )
-                    )
-                    if filter_out.lower() in str(item["title"]).lower():
-                        logger.debug(
-                            f"Found filter `{filter_out}` in "
-                            "title ({}) - not posting!".format(item["title"])
-                        )
-                        return False
-            except TypeError:
+            else:
                 logger.error(
-                    "Title is not correct type: {} ({})".format(
-                        item["title"], type(item["title"])
+                    "Unknown `allow_or_deny` for filter `{}`: {}".format(
+                        filter_in["filter"], filter_in["allow_or_deny"]
                     )
                 )
-            try:
-                if item["description"]:
-                    logger.debug(
-                        "Checking filter against description`{}`".format(
-                            item["description"].lower()
-                        )
-                    )
-                    if filter_out.lower() in str(item["description"]).lower():
-                        logger.debug(
-                            f"Found filter `{filter_out}` in "
-                            "description ({}) - not posting!".format(
-                                item["description"]
-                            )
-                        )
-                        return False
-            except TypeError:
-                logger.error(
-                    "Description is not correct type: {} ({})".format(
-                        item["description"], type(item["description"])
-                    )
-                )
-            logger.debug("Fant ikke noe filter i tittel eller beskrivelse")
+        if len(allow) == 0 and len(deny) == 0:
+            logger.debug("No usable filters, posting")
             return True
-
-    logger.debug(
-        "Got {} `items` (sample): {}".format(
-            len(items["items"]), items["items"][0]["title"]
+        priority = self.get_filter_priority()
+        content = self.get_item_content(item)
+        allow_hits = self.get_matching_filters(content, allow)
+        deny_hits = self.get_matching_filters(content, deny)
+        logger.debug(
+            "Priority `{}`, allow {} (hits: {}), deny {} (hits: {})".format(
+                priority, allow, allow_hits, deny, deny_hits
+            )
         )
-    )
-    links_out = []
-    for item in items["items"]:
-        logger.debug("Checking item: {}".format(item["title"]))
-        if item["type"] == "youtube":
-            logger.debug("Checking Youtube item")
-            if not config.env("YT_INCLUDE_SHORTS", default="true"):
-                shorts_keywords = ["#shorts", "(shorts)"]
-                if any(
-                    kw in str(item["title"]).lower() for kw in shorts_keywords
-                ) or any(
-                    kw in str(item["description"]).lower() for kw in shorts_keywords
-                ):
-                    logger.debug(
-                        "Skipped {} because of `#Shorts` or `(shorts)`".format(
-                            item["title"]
-                        )
-                    )
-                    continue
-        logger.debug("Filters: {}".format(items["filters"]))
-        if items["filters"] is not None and len(items["filters"]) > 0:
-            logger.debug("Found active filters, checking...")
-            link_filter = post_based_on_filter(item, items["filters"])
-            if link_filter:
+        if priority == "allow":
+            if len(deny_hits) > 0:
+                logger.info("{} - Found deny-filter(s) {} - not posting!".format(
+                    item["title"], deny_hits
+                ))
+                return False
+            if len(allow) > 0 and len(allow_hits) == 0:
+                logger.info("Found no allow-filter in item - not posting!")
+                return False
+            logger.info("Nothing is denying {} - posting".format(item["title"]))
+            return True
+        # priority == "deny"
+        if len(allow_hits) > 0:
+            logger.info("Found allow-filter(s) {} - posting '{}'!".format(
+                allow_hits, item["title"]
+            ))
+            return True
+        if len(deny) > 0 and len(deny_hits) == 0:
+            logger.info("Found no deny-filter in '{}' - posting".format(
+                item["title"]
+            ))
+            return True
+        logger.info("Nothing is allowing '{}' - not posting!".format(
+            item["title"]
+        ))
+        return False
+
+    def filter_the_links(self):
+        """
+        Run every item through the active filters and return the items
+        that should be posted
+        """
+        items_in = self.items["items"]
+        filters_in = self.items["filters"]
+        if len(items_in) == 0:
+            logger.debug("Got no `items` to filter")
+            return []
+        logger.debug(
+            "Got {} `items` (sample): {}".format(len(items_in), items_in[0]["title"])
+        )
+        if filters_in is None or len(filters_in) == 0:
+            logger.debug("Found no active filters, posting all items")
+            return list(items_in)
+        logger.debug("Found active filters: {}".format(filters_in))
+        links_out = []
+        for item in items_in:
+            logger.debug("Checking item: {}".format(item["title"]))
+            if self.post_based_on_filter(item, filters_in):
                 links_out.append(item)
-        else:
-            links_out.append(item)
-    return links_out
+        return links_out
 
 
 async def make_event_start_stop(date, time=None):

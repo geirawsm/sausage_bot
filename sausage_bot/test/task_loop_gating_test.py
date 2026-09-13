@@ -64,6 +64,9 @@ async def test_loop_processes_started_guild_and_skips_stopped_and_missing(
         ),
     }
     monkeypatch.setattr(config.bot, "get_guild", lambda gid: fake_guilds.get(gid))
+    # The loop bails out without a key before it reaches the gating this
+    # test is about, so don't leave it up to the runner's .env
+    monkeypatch.setattr(config, "YOUTUBE_API_KEY", "test-key")
 
     processed_guild_ids = []
     real_guild_locale_context = db_helper.guild_locale_context

@@ -17,3 +17,6 @@ en:
   log:
     no_page_hash: "No page hash found for %{feed_link}, logging link instead"
     dead_channel: "Could not post `%{feed_name}` to channel `%{channel}`. The channel is deleted, or the bot has lost access to it. The feed is marked as failed and will not be posted until the channel is fixed."
+    feed_deactivated: "Feed `%{feed_name}` failed %{limit} times in a row (last: `%{return_value}`). Deactivated for now, and retried every 6 hours."
+    feed_gave_up: "Feed `%{feed_name}` still failed after %{limit} retries (last: `%{return_value}`). Giving up on it. Use `reset_url_errors` to try again."
+    feed_recovered: "Feed `%{feed_name}` works again and is back in rotation."

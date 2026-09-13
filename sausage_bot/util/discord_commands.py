@@ -89,6 +89,25 @@ def is_owner_or_has_permission(permission: str):
     return discord.app_commands.check(predicate)
 
 
+def get_channel_name(guild: discord.Guild, channel_in) -> str:
+    """
+    Get the name of the channel `channel_in` in `guild`.
+
+    A feed keeps posting to a channel id in the database long after the
+    channel itself is gone (deleted, or moved out of the bot's reach), so
+    fall back to a placeholder with the raw id instead of raising.
+    #autodoc skip#
+    """
+    try:
+        channel_out = guild.get_channel_or_thread(int(channel_in))
+    except (TypeError, ValueError):
+        channel_out = None
+    if channel_out is None:
+        logger.warning(f"Could not find channel `{channel_in}` in guild {guild.id}")
+        return I18N.t("common.unknown_channel", id=channel_in)
+    return channel_out.name
+
+
 async def get_message_obj(guild: discord.Guild, msg_id: int, channel_id: int) -> dict:
     """
     Get a message object
@@ -384,6 +403,12 @@ async def log_to_bot_channel(guild: discord.Guild, content_in=None):
     # level would create a circular import.
     from sausage_bot.util import db_helper
 
+    if guild is None:
+        # Callers resolve the guild from a registry row, and the bot is not
+        # necessarily a member of it any more - logging must not take the
+        # calling command down with it.
+        logger.error("Got no guild to log to, skipping message")
+        return None
     settings = await db_helper.get_output(
         envs.settings_db_schema, guild_id=guild.id, as_settings_json=True
     )
@@ -391,7 +416,18 @@ async def log_to_bot_channel(guild: discord.Guild, content_in=None):
     # default (config.BOT_CHANNEL) when the guild hasn't set one.
     log_channel = settings.get("bot_channel") or config.BOT_CHANNEL
     logger.debug(f"`log_channel` er {log_channel}")
-    channel_out = guild.get_channel(int(get_text_channel_list(guild)[log_channel]))
+    channel_id = get_text_channel_list(guild).get(log_channel)
+    if channel_id is None:
+        # The setting names a channel that does not exist in this guild -
+        # nothing to send to, but the caller should not crash either.
+        logger.error(
+            f"Guild `{guild.id}` has no channel named `{log_channel}`, skipping message"
+        )
+        return None
+    channel_out = guild.get_channel(int(channel_id))
+    if channel_out is None:
+        logger.error(f"Could not get channel `{log_channel}`, skipping message")
+        return None
     msg_out = await channel_out.send(content=content_in)
     return msg_out
 

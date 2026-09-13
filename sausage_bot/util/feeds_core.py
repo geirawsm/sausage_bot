@@ -274,31 +274,6 @@ async def get_items_from_rss(
             else:
                 temp_info["img"] = feed_img
             items_out["items"].append(temp_info)
-    # Gets Youtube feed
-    elif soup.find("yt:channelId"):
-        logger.debug("Found Youtube feed")
-        if isinstance(num_items, int) and num_items > 0:
-            all_entries = soup.find_all("entry")[0:num_items]
-        else:
-            all_entries = soup.find_all("entry")
-        for item in all_entries:
-            temp_info = items_info.copy()
-            temp_info["type"] = "youtube"
-            temp_info["title"] = (
-                item.find("title").text
-                if hasattr(item.find("title"), "text")
-                else item.find("title")
-            )
-            temp_info["description"] = (
-                item.find("media:description").text
-                if hasattr(item.find("media:description"), "text")
-                else item.find("media:description")
-            )
-            temp_info["hash"] = md5(
-                str(temp_info["description"]).encode("utf-8")
-            ).hexdigest()
-            temp_info["link"] = item.find("link")["href"]
-            items_out["items"].append(temp_info)
     # Gets plain articles
     else:
         logger.debug("Found normal RSS feed")
@@ -338,7 +313,7 @@ async def get_items_from_rss(
                 temp_info["link"] = item.find("link")["href"]
             logger.debug(f"Got `temp_info`: {temp_info}")
             items_out["items"].append(temp_info)
-    links_out = net_io.filter_links(items_out)
+    links_out = net_io.FilterLinks(items_out).filter_the_links()
     return links_out
 
 
@@ -521,17 +496,10 @@ async def get_feed_links(feed_type, feed_info, guild_id):
         URL = feed_info["url"]
         feed_db_filter = envs.rss_db_filter_schema
         feed_db_log = envs.rss_db_log_schema
-    elif feed_type == "youtube":
-        if feed_info["playlist_id"] is not None:
-            URL = envs.YOUTUBE_PLAYLIST_RSS_LINK.format(feed_info["playlist_id"])
-        else:
-            URL = envs.YOUTUBE_RSS_LINK.format(feed_info["youtube_id"])
-        feed_db_filter = envs.youtube_db_filter_schema
-        feed_db_log = envs.youtube_db_log_schema
     else:
         URL = feed_info["url"]
     # Get the url and make it parseable
-    if feed_type in ["rss", "youtube"]:
+    if feed_type in ["rss"]:
         req = await net_io.get_link(URL, status_out=True)
         if req["status"] != 200:
             logger.error(f"Got HTTP status {req['status']} for {URL}")
@@ -558,25 +526,6 @@ async def get_feed_links(feed_type, feed_info, guild_id):
             )
         )
         return links_out
-
-
-def get_channel_name(guild: discord.Guild, channel_in) -> str:
-    """
-    Get the name of the channel `channel_in` in `guild`.
-
-    A feed keeps posting to a channel id in the database long after the
-    channel itself is gone (deleted, or moved out of the bot's reach), so
-    fall back to a placeholder with the raw id instead of raising.
-    #autodoc skip#
-    """
-    try:
-        channel_out = guild.get_channel_or_thread(int(channel_in))
-    except (TypeError, ValueError):
-        channel_out = None
-    if channel_out is None:
-        logger.warning(f"Could not find channel `{channel_in}` in guild {guild.id}")
-        return I18N.t("common.unknown_channel", id=channel_in)
-    return channel_out.name
 
 
 def get_member_name(guild: discord.Guild, member_in) -> str:
@@ -694,7 +643,7 @@ async def get_feed_list(
             return None
         feeds_out = [feed for feed in feeds_out if wanted_link_type(feed)]
         for feed in feeds_out:
-            feed["channel"] = get_channel_name(_guild, feed["channel"])
+            feed["channel"] = discord_commands.get_channel_name(_guild, feed["channel"])
             if "playlist_id" in feed:
                 if feed["playlist_id"] is None:
                     feed["playlist_id"] = I18N.t("common.channel")
@@ -725,7 +674,7 @@ async def get_feed_list(
             return None
         feeds_out = [feed for feed in feeds_out if wanted_link_type(feed)]
         for feed in feeds_out:
-            feed["channel"] = get_channel_name(_guild, feed["channel"])
+            feed["channel"] = discord_commands.get_channel_name(_guild, feed["channel"])
             if feed["added_by"] and re.match(r"(\d+)", feed["added_by"]):
                 feed["added_by"] = get_member_name(_guild, feed["added_by"])
             if has_playlist_id:
@@ -792,7 +741,7 @@ async def get_feed_list(
             logger.debug(f"`filter_deny` is {filter_deny}")
             temp_list = []
             temp_list.append(feed["feed_name"])
-            temp_list.append(get_channel_name(_guild, feed["channel"]))
+            temp_list.append(discord_commands.get_channel_name(_guild, feed["channel"]))
             temp_list.append(", ".join(item for item in filter_allow))
             temp_list.append(", ".join(item for item in filter_deny))
             feeds_out.append(temp_list)
@@ -927,6 +876,161 @@ async def report_dead_channel(feed_db, uuid, feed_name, channel, guild):
         guild,
         I18N.t("feeds_core.log.dead_channel", feed_name=feed_name, channel=channel),
     )
+
+
+async def reg_feed_error(feed_db, feed, guild, status_in):
+    """
+    Count a failed fetch instead of standing the feed down on the first
+    one.
+
+    Youtube answers 404 and 500 while it throttles, so a single bad
+    reply is no proof the feed is dead - on 2026-08-22 that took out all
+    38 feeds in a guild inside an hour, 26 of them on a 404. A feed is
+    only stood down after `envs.FEEDS_URL_ERROR_LIMIT` errors in a row,
+    and only left alone after as many failed retries.
+
+        OK --3 errors--> Failed --3 errors--> Stale
+        every 10 min     every 6 h           left alone
+    #autodoc skip#
+    """
+    status_now = feed["status_url"]
+    feed_name = feed["feed_name"]
+    # Rows migrated from the old json files have no count yet
+    count = (feed["status_url_counter"] or 0) + 1
+    logger.info(
+        "Feed {} returned {} ({}/{}, status `{}`)".format(
+            feed_name, status_in, count, envs.FEEDS_URL_ERROR_LIMIT, status_now
+        )
+    )
+
+    # Below the limit only the count moves - the feed keeps its status
+    if count < envs.FEEDS_URL_ERROR_LIMIT:
+        await db_helper.update_fields(
+            template_info=feed_db,
+            where=("uuid", feed["uuid"]),
+            updates=("status_url_counter", count),
+            guild_id=guild.id,
+        )
+        return
+
+    # Limit reached: step down one level, and start a fresh count so the
+    # next phase gets its own full set of attempts
+    if status_now == envs.FEEDS_URL_ERROR:
+        new_status = envs.FEEDS_URL_STALE
+        msg_key = "feeds_core.log.feed_gave_up"
+    else:
+        new_status = envs.FEEDS_URL_ERROR
+        msg_key = "feeds_core.log.feed_deactivated"
+    await db_helper.update_fields(
+        template_info=feed_db,
+        where=("uuid", feed["uuid"]),
+        updates=[("status_url", new_status), ("status_url_counter", 0)],
+        guild_id=guild.id,
+    )
+    await discord_commands.log_to_bot_channel(
+        guild,
+        I18N.t(
+            msg_key,
+            feed_name=feed_name,
+            return_value=str(status_in),
+            limit=envs.FEEDS_URL_ERROR_LIMIT,
+        ),
+    )
+
+
+async def reg_feed_ok(feed_db, feed, guild):
+    """
+    Clear the failure count after a good fetch, and bring the feed back
+    into rotation if it had been stood down.
+    #autodoc skip#
+    """
+    status_now = feed["status_url"]
+    count = feed["status_url_counter"] or 0
+
+    # A healthy feed with nothing to clear is the common case - don't
+    # write to the db on every single tick for it
+    if status_now == envs.FEEDS_URL_SUCCESS and count == 0:
+        return
+
+    await db_helper.update_fields(
+        template_info=feed_db,
+        where=("uuid", feed["uuid"]),
+        updates=[
+            ("status_url", envs.FEEDS_URL_SUCCESS),
+            ("status_url_counter", 0),
+        ],
+        guild_id=guild.id,
+    )
+    if status_now != envs.FEEDS_URL_SUCCESS:
+        logger.info("Feed {} is working again".format(feed["feed_name"]))
+        await discord_commands.log_to_bot_channel(
+            guild,
+            I18N.t("feeds_core.log.feed_recovered", feed_name=feed["feed_name"]),
+        )
+
+
+async def retry_failed(feed_type, feed_db, guild, not_like=()):
+    """
+    Give feeds that `reg_feed_error()` stood down another chance, on a
+    slower loop than the posting one. `Stale` feeds are past that point
+    and are not touched.
+
+    Nothing is posted from here - a revived feed goes back to `OK` and
+    the normal posting loop picks it up on its next tick.
+    #autodoc skip#
+    """
+    feeds = await db_helper.get_output(
+        template_info=feed_db,
+        where=[("status_url", envs.FEEDS_URL_ERROR)],
+        not_like=not_like,
+        guild_id=guild.id,
+    )
+    if not feeds:
+        logger.debug(f"No failed feeds to retry for `{guild.name}`")
+        return
+    logger.info("Retrying {} failed feeds for `{}`".format(len(feeds), guild.name))
+
+    for feed in feeds:
+        feed_posts = await get_feed_links(
+            feed_type=feed_type, feed_info=feed, guild_id=guild.id
+        )
+        if feed_posts is None or isinstance(feed_posts, int):
+            await reg_feed_error(feed_db, feed, guild, feed_posts)
+        else:
+            await reg_feed_ok(feed_db, feed, guild)
+
+
+async def reset_url_errors(feed_db, guild, feed_name=None):
+    """
+    Put feeds that were stood down for url errors back in rotation, and
+    return the names that were reset. Without `feed_name`, every broken
+    feed in the guild is reset.
+    #autodoc skip#
+    """
+    feeds = await db_helper.get_output(
+        template_info=feed_db,
+        select=("uuid", "feed_name", "status_url"),
+        guild_id=guild.id,
+    )
+    # `get_output`'s `where` only ever builds `=`, so pick out the
+    # non-OK rows here instead
+    broken = [
+        feed
+        for feed in (feeds or [])
+        if feed["status_url"] != envs.FEEDS_URL_SUCCESS
+        and (feed_name is None or feed["feed_name"] == feed_name)
+    ]
+    for feed in broken:
+        await db_helper.update_fields(
+            template_info=feed_db,
+            where=("uuid", feed["uuid"]),
+            updates=[
+                ("status_url", envs.FEEDS_URL_SUCCESS),
+                ("status_url_counter", 0),
+            ],
+            guild_id=guild.id,
+        )
+    return [feed["feed_name"] for feed in broken]
 
 
 async def process_links_for_posting_or_editing(

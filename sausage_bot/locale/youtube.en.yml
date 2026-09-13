@@ -19,32 +19,54 @@ en:
         feed_name: Name of feed to manage
         youtube_link: The link to the YouTube channel to get videos from
         channel: The channel to post to
-      msg_empty_link: 'Klarer ikke å hente linken: `%{link}`'
-      log_feed_confirm: '%{user} added %{feed_name} (`%{yt_link}`) to #%{channel}'
-      msg_added: 'Added %{feed_name} to channel %{channel_name}'
+      msg_empty_link: "Could not fetch the link: `%{link}`"
+      log_feed_confirm: "%{user} added %{feed_name} (`%{yt_link}`) to #%{channel}"
+      msg_added: "Added `%{feed_name}` to channel %{channel_name}"
+      add_error: "Could not find channel at Youtube, are you sure this is the correct link? (%{youtube_link})"
     remove:
       cmd: Remove a YouTube feed
       desc:
         feed_name: Name of Youtube feed to manage
       msg_remove_non_existing_feed: The youtube feed `%{feed_name}` does not exist
-      msg_feed_removed: 'Removed Youtube feed `%{feed_name}` from channel `%{channel_name}`'
-      log_feed_removed: 'Youtube feed `%{feed_name}` removed by %{user_name}'
-      msg_feed_remove_failed: 'The Youtube feed `%{feed_name}` could not be removed'
-      log_feed_remove_failed: 'User %{user_name} tried to remove the Youtube feed `%{feed_name}`, but it failed'
+      msg_feed_removed: "Removed Youtube feed `%{feed_name}` from channel `%{channel_name}`"
+      log_feed_removed: "Youtube feed `%{feed_name}` removed by %{user_name}"
+      msg_feed_remove_failed: "The Youtube feed `%{feed_name}` could not be removed"
+      log_feed_remove_failed: "User %{user_name} tried to remove the Youtube feed `%{feed_name}`, but it failed"
+    edit:
+      cmd: Edit a Youtube feed
+      desc:
+        feed_name: Name of the Youtube feed to edit
+        new_feed_name: The new name of the feed
+        channel: The new channel to post the feed to
+        url: The new url of the feed
+      changes_out:
+        msg: 'Did following changes on the Youtube feed %{feed_name}:'
+        feed_name: Feed name
+        channel: Channel
+        url: URL
+      msg_not_youtube_link: "`%{url}` does not look like a Youtube link"
+      msg_no_changes: "No changes were given for the Youtube feed `%{feed_name}`"
+    reset_url_errors:
+      cmd: Put feeds deactivated by url errors back to work
+      desc:
+        feed_name: A single feed to reset. Leave empty to reset all of them
+      msg_nothing_to_reset: No Youtube feeds are deactivated
+      msg_confirm: "Reset these Youtube feeds:\n- %{feeds}"
+      log_reset: "%{user_name} reset these Youtube feeds:\n- %{feeds}"
     filter_add:
       cmd: Add filters on an Youtube feed
       desc:
         feed_name: Name of Youtube feed to manage
-        allow_deny: 'Should the filter `allow` or `deny`.'
-        filters_in: 'What keyword to filter a post by.'
-      msg_filter_added: 'Added filter `%{filter_in} as `%{allow_deny}`'
-      msg_filter_failed: 'Error when adding filter, check logs'
+        allow_deny: "Should the filter `allow` or `deny`."
+        filters_in: "What keyword to filter a post by."
+      msg_filter_added: "Added filter `%{filter_in}` as `%{allow_deny}`"
+      msg_filter_failed: "Error when adding filter, check logs"
     filter_remove:
       cmd: Remove filters on an Youtube feed
       desc:
         feed_name: Name of feed
         filter_in: What filter to look for
-      msg_confirm: 'Removed filter `%{filter_in}`'
+      msg_confirm: "Removed filter `%{filter_in}`"
       msg_error: Error when removing filter `%{filter_in}`, check logs
     list:
       cmd: List all active YouTube feeds
@@ -60,4 +82,16 @@ en:
         channel: Channel
         playlist: Playlist
   tasks:
-    log_error: 'Feed `%{feed_name}` returned `%{return_value}`. Check the logs.'
+    post_videos:
+      log_no_api_key: "`YOUTUBE_API_KEY` is not set in the .env file, skipping video posting"
+  db:
+    log_migrated: "Migrated youtube data to `%{db_file}`: %{copied}. The old `%{legacy_feeds_db}` and `%{legacy_log_db}` are no longer in use, but were left in `%{db_dir}`."
+    log_missing_columns: "Missing columns in youtube db: %{columns}\nMake sure to populate missing information"
+    migrated_items:
+      feeds: feeds
+      filters: filters
+      log_entries: log entries
+  errors:
+    channel_not_found: "Found no Youtube channel with the id `%{channel_id}`"
+    playlist_not_found: "Found no Youtube playlist in the link `%{url}`"
+    no_videos_in_playlist: "Found no videos in the Youtube playlist `%{playlist_id}`"

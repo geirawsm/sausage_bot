@@ -75,6 +75,30 @@ class scrape_and_post(commands.Cog):
         Post news from https://www.fcbarcelona.com to specific team channels
         """
 
+        async def get_barca_tasks():
+            """
+            If any guilds have active barca posting, return True
+            Else, return False
+            #autodoc skip#
+            """
+            approved_guilds = await db_helper.get_output(
+                envs.guilds_db_schema,
+                select=("guild_id", "guild_name"),
+                where=("status", "approved"),
+                order_by=[("guild_name", "ASC")],
+            )
+            for guild_row in approved_guilds:
+                guild_task = await db_helper.get_output(
+                    template_info=envs.tasks_db_schema,
+                    select=("status"),
+                    where=[("cog", "barca_news"), ("task", "post_news")],
+                    guild_id=guild_row["guild_id"],
+                    single=True,
+                )
+                if guild_task == "started":
+                    return True
+            return False
+
         def scrape_fcb_page(url):
             "Scrape https://www.fcbarcelona.com"
             scrape = requests.get(url)
@@ -125,6 +149,14 @@ class scrape_and_post(commands.Cog):
             return links
 
         feed = "FCB news"
+        # Check if any guilds have activated this cog before scraping
+        barca_tasks_status = await get_barca_tasks()
+        if barca_tasks_status is False:
+            logger.info("No guilds have barca_news activated, will not continue")
+            return
+        approved_guilds = await db_helper.get_output(
+            envs.guilds_db_schema, where=("status", "approved")
+        )
         FEED_POSTS = barca_news_links()
         if FEED_POSTS is None:
             return
@@ -132,9 +164,6 @@ class scrape_and_post(commands.Cog):
             logger.info(f"{feed}: this feed is empty")
             return
         logger.info(f"{feed}: `FEED_POSTS` are good:\n### {FEED_POSTS} ###")
-        approved_guilds = await db_helper.get_output(
-            envs.guilds_db_schema, where=("status", "approved")
-        )
         for guild_row in approved_guilds:
             guild = config.bot.get_guild(int(guild_row["guild_id"]))
             if guild is None:
@@ -147,9 +176,7 @@ class scrape_and_post(commands.Cog):
                 guild_id=guild.id,
             )
             if task_status.get("status") != "started":
-                logger.debug(
-                    f"`post_news` is not enabled for `{guild.name}`, skipping"
-                )
+                logger.debug(f"`post_news` is not enabled for `{guild.name}`, skipping")
                 continue
             guild_channels = discord_commands.get_text_channel_list(guild)
             for team in FEED_POSTS:

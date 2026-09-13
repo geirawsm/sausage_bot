@@ -19,33 +19,55 @@ nb:
         feed_name: Navn på feeden som skal håndteres
         youtube_link: Link til YouTube-kanalen
         channel: Kanalen å poste til
-      msg_empty_link: 'Klarer ikke å hente linken: `%{link}`'
-      log_feed_confirm: '%{user} la til %{feed_name} (`%{yt_link}`) til #%{channel}'
-      msg_added: 'La til %{feed_name} til  #%{channel_name}'
+      msg_empty_link: "Klarer ikke å hente linken: `%{link}`"
+      log_feed_confirm: "%{user} la til %{feed_name} (`%{yt_link}`) til #%{channel}"
+      msg_added: "La til `%{feed_name}` til #%{channel_name}"
+      add_error: "Klarte ikke å finne kanalen på youtube, er du sikker på at dette er riktig link? (%{youtube_link})"
     remove:
       cmd: Fjern en YouTube-feed
       desc:
         feed_name: Navn på YouTube-feeden som skal håndteres
       msg_remove_non_existing_feed: Youtube-feeden `%{feed_name}` finnes ikke
-      msg_feed_removed: 'Fjernet Youtube-feed `%{feed_name}` fra #%{channel_name}'
-      log_feed_removed: 'Youtube-feed `%{feed_name}` fjernet av %{user_name}'
-      msg_feed_remove_failed: 'Youtube-feed `%{feed_name}` kunne ikke fjernes'
-      log_feed_remove_failed: 'Bruker %{user_name} prøvde å fjerne Youtube-feed `%{feed_name}`, men det feilet'
+      msg_feed_removed: "Fjernet Youtube-feed `%{feed_name}` fra #%{channel_name}"
+      log_feed_removed: "Youtube-feed `%{feed_name}` fjernet av %{user_name}"
+      msg_feed_remove_failed: "Youtube-feed `%{feed_name}` kunne ikke fjernes"
+      log_feed_remove_failed: "Bruker %{user_name} prøvde å fjerne Youtube-feed `%{feed_name}`, men det feilet"
+    edit:
+      cmd: Rediger en Youtube-feed
+      desc:
+        feed_name: Navn på Youtube-feeden som skal redigeres
+        new_feed_name: Nytt navn på feeden
+        channel: Ny kanal feeden skal postes til
+        url: Ny URL for feeden
+      changes_out:
+        msg: 'Gjorde følgende endringer på Youtube-feeden %{feed_name}:'
+        feed_name: Feednavn
+        channel: Kanal
+        url: URL
+      msg_not_youtube_link: "`%{url}` ser ikke ut som en Youtube-link"
+      msg_no_changes: "Ingen endringer ble oppgitt for Youtube-feeden `%{feed_name}`"
+    reset_url_errors:
+      cmd: Sett feeds som er deaktivert av url-feil tilbake i drift
+      desc:
+        feed_name: En enkelt feed som skal nullstilles. La stå tom for å nullstille alle
+      msg_nothing_to_reset: Ingen Youtube-feeds er deaktivert
+      msg_confirm: "Nullstilte disse Youtube-feedene:\n- %{feeds}"
+      log_reset: "%{user_name} nullstilte disse Youtube-feedene:\n- %{feeds}"
     filter_add:
       cmd: Legg til filter på en Youtube-feed
       desc:
         feed_name: Navn på Youtube-feeden som skal håndteres
-        allow_deny: 'Om filteret skal `tillate` eller `nekte`'
+        allow_deny: "Om filteret skal `tillate` eller `nekte`"
         filters_in: Hvilket nøkkelord en post skal filtreres mot
-      msg_filter_added: 'La til filter `%{filter_in}` som `%{allow_deny}`'
+      msg_filter_added: "La til filter `%{filter_in}` som `%{allow_deny}`"
       msg_filter_failed: Feilet ved forsøk på å legge til filter, sjekk logger
     filter_remove:
       cmd: Fjern filter på en Youtube-feed
       desc:
         feed_name: Navn på Youtube-feeden som skal håndteres
         filter_in: Hvilket nøkkelord en post skal filtreres mot
-      msg_confirm: 'Fjernet filter `%{filter_in}`'
-      msg_error: Feilet ved forsøk på fjerning av filter, sjekk logger
+      msg_confirm: "Fjernet filter `%{filter_in}`"
+      msg_error: "Feilet ved forsøk på fjerning av filter `%{filter_in}`, sjekk logger"
     list:
       cmd: List alle active YouTube-feeder
       desc:
@@ -60,4 +82,16 @@ nb:
         channel: Kanal
         playlist: Spilleliste
   tasks:
-    log_error: 'Feeden `%{feed_name}` returnerer `%{return_value}`. Sjekk loggfilene.'
+    post_videos:
+      log_no_api_key: "`YOUTUBE_API_KEY` er ikke satt i .env-filen, hopper over posting av videoer"
+  db:
+    log_migrated: "Migrerte youtube-data til `%{db_file}`: %{copied}. De gamle `%{legacy_feeds_db}` og `%{legacy_log_db}` er ikke lenger i bruk, men ble liggende igjen i `%{db_dir}`."
+    log_missing_columns: "Mangler kolonner i youtube-databasen: %{columns}\nSørg for å fylle inn manglende informasjon"
+    migrated_items:
+      feeds: feeder
+      filters: filtre
+      log_entries: loggoppføringer
+  errors:
+    channel_not_found: "Fant ingen Youtube-kanal med id-en `%{channel_id}`"
+    playlist_not_found: "Fant ingen Youtube-spilleliste i linken `%{url}`"
+    no_videos_in_playlist: "Fant ingen videoer i Youtube-spillelisten `%{playlist_id}`"

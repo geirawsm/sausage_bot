@@ -52,6 +52,13 @@ en:
         feed_name: Feed name
         channel: Channel
         url: URL
+    reset_url_errors:
+      cmd: Put feeds deactivated by url errors back to work
+      desc:
+        feed_name: A single feed to reset. Leave empty to reset all of them
+      msg_nothing_to_reset: No feeds are deactivated
+      msg_confirm: "Reset these feeds:\n- %{feeds}"
+      log_reset: "%{user_name} reset these feeds:\n- %{feeds}"
     filter_add:
       cmd: Add a filter to a feed
       desc:

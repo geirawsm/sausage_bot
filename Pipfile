@@ -32,12 +32,15 @@ yt-dlp = {extras = ["default"], version = "*"}
 audioop-lts = "*"
 typing-extensions = "*"
 environs = "*"
+google-api-python-client = "*"
+cryptography = "*"
 
 [dev-packages]
 astpretty = "*"
 autopep8 = "*"
 flake8 = "*"
 flake8-i18n-checker = {path = "./sausage_bot/flake8-I18N-checker"}
+graphifyy = "*"
 pytest = "*"
 pytest-asyncio = "*"
 pytest-mock = "*"

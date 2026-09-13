@@ -52,6 +52,13 @@ nb:
         feed_name: Feednavn
         channel: Kanal
         url: URL
+    reset_url_errors:
+      cmd: Sett feeds som er deaktivert av url-feil tilbake i drift
+      desc:
+        feed_name: En enkelt feed som skal nullstilles. La stå tom for å nullstille alle
+      msg_nothing_to_reset: Ingen feeds er deaktivert
+      msg_confirm: "Nullstilte disse feedene:\n- %{feeds}"
+      log_reset: "%{user_name} nullstilte disse feedene:\n- %{feeds}"
     filter_add:
       cmd: Legg til et filter på en feed
       desc:
