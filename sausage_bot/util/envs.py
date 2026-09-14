@@ -541,6 +541,7 @@ rss_db_log_schema = {
         ["url", "TEXT"],
         ["date", "TEXT"],
         ["hash", "TEXT"],
+        ["msg_id", "TEXT"],
     ],
     "primary": None,
     "autoincrement": False,
