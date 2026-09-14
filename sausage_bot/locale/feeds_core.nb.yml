@@ -15,7 +15,7 @@ nb:
   podcast_rating:
     msg_confirm: "Du ga denne episoden %{rating} ★"
   log:
-    no_page_hash: "Fant ingen side-hash for %{feed_link}, logger lenken i stedet"
+    no_content_hash: "Fant ingen innholds-hash for %{feed_link}, logger lenken i stedet"
     dead_channel: "Klarte ikke å poste `%{feed_name}` til kanalen `%{channel}`. Kanalen er slettet, eller boten har mistet tilgang til den. Feeden er markert som feilet og blir ikke postet før kanalen er fikset."
     feed_deactivated: "Feeden `%{feed_name}` feilet %{limit} ganger på rad (sist: `%{return_value}`). Deaktivert inntil videre, og prøves på nytt hver 6. time."
     feed_gave_up: "Feeden `%{feed_name}` feilet fortsatt etter %{limit} forsøk (sist: `%{return_value}`). Gir opp. Bruk `reset_url_errors` for å prøve igjen."

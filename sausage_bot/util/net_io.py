@@ -21,7 +21,6 @@ from io import BytesIO
 import httpx
 from numpy import array as np_array
 from hashlib import md5
-from yt_dlp import YoutubeDL
 
 from sausage_bot.util import config, envs, datetime_handling, db_helper
 from sausage_bot.util import file_io, discord_commands
@@ -419,7 +418,9 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None, guild
             temp_info["title"] = ep["name"]
             temp_info["description"] = ep["description"]
             temp_info["link"] = ep["external_urls"]["spotify"]
-            temp_info["hash"] = await get_page_hash(temp_info["link"])
+            temp_info["hash"] = get_content_hash(
+                temp_info["description"], temp_info["title"]
+            )
             temp_info["img"] = ep["images"][0]["url"]
             temp_info["id"] = ep["id"]
             temp_info["duration"] = ep["duration_ms"] * 1000
@@ -531,8 +532,9 @@ async def get_other_podcast_links(req, url, uuid, num_items=None, guild=None):
                     logger.error(_msg)
                     await discord_commands.log_to_bot_channel(guild, _msg)
                     continue
-                if temp_info["link"] is not None or temp_info["link"] != "":
-                    temp_info["hash"] = await get_page_hash(temp_info["link"])
+                temp_info["hash"] = get_content_hash(
+                    temp_info["description"], temp_info["title"]
+                )
                 try:
                     temp_info["img"] = item.find("itunes:image")["href"]
                 except:
@@ -656,9 +658,11 @@ class FilterLinks:
         )
         if priority == "allow":
             if len(deny_hits) > 0:
-                logger.info("{} - Found deny-filter(s) {} - not posting!".format(
-                    item["title"], deny_hits
-                ))
+                logger.info(
+                    "{} - Found deny-filter(s) {} - not posting!".format(
+                        item["title"], deny_hits
+                    )
+                )
                 return False
             if len(allow) > 0 and len(allow_hits) == 0:
                 logger.info("Found no allow-filter in item - not posting!")
@@ -667,18 +671,16 @@ class FilterLinks:
             return True
         # priority == "deny"
         if len(allow_hits) > 0:
-            logger.info("Found allow-filter(s) {} - posting '{}'!".format(
-                allow_hits, item["title"]
-            ))
+            logger.info(
+                "Found allow-filter(s) {} - posting '{}'!".format(
+                    allow_hits, item["title"]
+                )
+            )
             return True
         if len(deny) > 0 and len(deny_hits) == 0:
-            logger.info("Found no deny-filter in '{}' - posting".format(
-                item["title"]
-            ))
+            logger.info("Found no deny-filter in '{}' - posting".format(item["title"]))
             return True
-        logger.info("Nothing is allowing '{}' - not posting!".format(
-            item["title"]
-        ))
+        logger.info("Nothing is allowing '{}' - not posting!".format(item["title"]))
         return False
 
     def filter_the_links(self):
@@ -1027,6 +1029,37 @@ def clean_pod_description(desc_in):
     return desc_in.strip()
 
 
+def clean_hash_text(text_in):
+    "Strip markup, urls and stray whitespace from `text_in`"
+    if text_in is None:
+        return ""
+    text_out = BeautifulSoup(str(text_in), features="html.parser").get_text(" ")
+    text_out = re.sub(r"https?://\S+", " ", text_out)
+    return re.sub(r"\s+", " ", text_out).strip()
+
+
+def get_content_hash(description=None, title=None):
+    """
+    Hash the text that identifies a feed item across a link change.
+
+    When a publisher fixes a typo in an url, the item comes back with a
+    new link but the same text - so the text is what we can recognize it
+    by, and it needs no web request to reproduce. Urls are stripped
+    because the same typo usually sits inside the description too:
+
+        "Les mer: https://x.no/artikel/1"  -> "Les mer:"
+        "Les mer: https://x.no/artikkel/1" -> "Les mer:"
+
+    Falls back to the title for feeds without descriptions.
+    """
+    text = clean_hash_text(description)
+    if text == "":
+        text = clean_hash_text(title)
+    if text == "":
+        return None
+    return md5(text.encode("utf-8")).hexdigest()
+
+
 async def get_page_hash(url, debug=False):
     "Get hash of page at `url`"
     req = await get_link(url)
@@ -1035,18 +1068,6 @@ async def get_page_hash(url, debug=False):
         return None
     desc = None
     soup = BeautifulSoup(req, features="html.parser")
-    if desc is None and url_hostname_matches(url, "youtube.com"):
-        logger.debug(f"Trying yt check on {url}")
-        ydl_opts = {
-            "simulate": True,
-            "download": False,
-            "ignoreerrors": True,
-            "quiet": True,
-        }
-        with YoutubeDL(ydl_opts) as ydl:
-            yt_info = ydl.extract_info(url)
-        if yt_info is not None:
-            desc = yt_info["fulltitle"]
     if desc is None and url_hostname_matches(url, "open.spotify.com"):
         logger.debug(f"Trying spotify check on {url}")
         try:

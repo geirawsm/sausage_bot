@@ -4,6 +4,7 @@
 
 import discord
 from discord.utils import get
+import json
 from tabulate import tabulate
 import re
 
@@ -12,6 +13,11 @@ from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
+
+# How far back to look for a message that needs its link fixed. A feed
+# item can take a while to get corrected at the source, so this is more
+# than a handful of posts.
+REPLACE_POST_HISTORY = 75
 
 
 class OwnerOnlyCheckFailure(discord.app_commands.CheckFailure):
@@ -353,25 +359,65 @@ async def post_to_channel(
     return None
 
 
-async def replace_post(guild: discord.Guild, replace_content, replace_with, channel_in):
+async def swap_link_in_msg(msg, replace_content, replace_with):
     """
-    Look through the bot's messages for `replace_content` in channel
-    `channel_in` and replace it with `replace_with.`
+    Swap `replace_content` for `replace_with` in `msg`.
+
+    Podcasts are posted as embeds, so the link can sit in the embed
+    instead of in the message text. Swapping it inside the embed's own
+    dict catches the title url and the listen-link in one go.
+
+    Returns True if the message was edited.
+    #autodoc skip#
+    """
+    if replace_content in msg.content:
+        await msg.edit(content=msg.content.replace(replace_content, replace_with))
+        return True
+    embeds_json = json.dumps([embed.to_dict() for embed in msg.embeds])
+    if replace_content in embeds_json:
+        embeds_json = embeds_json.replace(replace_content, replace_with)
+        await msg.edit(
+            embeds=[
+                discord.Embed.from_dict(embed) for embed in json.loads(embeds_json)
+            ]
+        )
+        return True
+    return False
+
+
+async def replace_post(
+    guild: discord.Guild, replace_content, replace_with, channel_in, msg_id=None
+):
+    """
+    Swap `replace_content` for `replace_with` in one of the bot's
+    messages in `channel_in`.
+
+    `msg_id` goes straight to that message. Log rows written before the
+    id was stored have none, and a message can be gone by now, so the
+    last `REPLACE_POST_HISTORY` messages are searched as a fallback.
+
+    Returns True if a message was edited.
     #autodoc skip#
     """
     channel_out = guild.get_channel(int(channel_in))
-    async for msg in channel_out.history(limit=30):
-        if str(msg.author.id) == config.BOT_ID:
-            if isinstance(replace_content, str):
-                if replace_content in msg.content:
-                    await msg.edit(content=replace_with)
-                    return
-            elif isinstance(replace_content, list) and any(
-                _cont in msg.content for _cont in replace_content
-            ):
-                await msg.edit(content=replace_with)
-                return
-    return
+    if channel_out is None:
+        logger.error(f"Could not find channel `{channel_in}`")
+        return False
+    if msg_id:
+        try:
+            msg = await channel_out.fetch_message(int(msg_id))
+            if await swap_link_in_msg(msg, replace_content, replace_with):
+                return True
+            logger.error(f"Message `{msg_id}` does not hold `{replace_content}`")
+        except (discord.HTTPException, ValueError, TypeError) as e:
+            logger.error(f"Could not get message `{msg_id}`: {e}")
+    async for msg in channel_out.history(limit=REPLACE_POST_HISTORY):
+        if str(msg.author.id) != config.BOT_ID:
+            continue
+        if await swap_link_in_msg(msg, replace_content, replace_with):
+            return True
+    logger.error(f"Found no message with `{replace_content}` in `{channel_in}`")
+    return False
 
 
 async def remove_stats_post(guild: discord.Guild, stats_channel):

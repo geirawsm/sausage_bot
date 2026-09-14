@@ -1217,7 +1217,9 @@ async def get_output(
     """
 
     db_file = envs.resolve_db_file(template_info, guild_id)
-    logger.debug(f"Opening `{db_file}`")
+    # Keep the log line short, but survive a db dir outside DATA_DIR
+    read_friendly_db_file = db_file.replace(str(envs.DATA_DIR), "...")
+    logger.debug(f"Opening `{read_friendly_db_file}`")
     table_name = template_info["name"]
     if single_col_results is True and not isinstance(select, str):
         logger.error("single_col_results chosen, but number of selects is not 1")

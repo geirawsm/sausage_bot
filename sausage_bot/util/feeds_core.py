@@ -8,7 +8,6 @@ from tabulate import tabulate
 from uuid import uuid4
 import discord
 import re
-from hashlib import md5
 from pprint import pformat
 from time import monotonic
 
@@ -260,9 +259,9 @@ async def get_items_from_rss(
             )
             desc_in = net_io.clean_pod_description(desc_in)
             temp_info["description"] = desc_in
-            temp_info["hash"] = md5(
-                str(temp_info["description"]).encode("utf-8")
-            ).hexdigest()
+            temp_info["hash"] = net_io.get_content_hash(
+                temp_info["description"], temp_info["title"]
+            )
             temp_info["link"] = (
                 item.find("link").text
                 if hasattr(item.find("link"), "text")
@@ -301,12 +300,9 @@ async def get_items_from_rss(
                 temp_info["description"] = str(item.find("content").text)
             else:
                 temp_info["description"] = None
-            if temp_info["description"] is not None:
-                temp_info["hash"] = md5(
-                    str(temp_info["description"]).encode("utf-8")
-                ).hexdigest()
-            else:
-                temp_info["hash"] = None
+            temp_info["hash"] = net_io.get_content_hash(
+                temp_info["description"], temp_info["title"]
+            )
             if article_method == "item":
                 temp_info["link"] = item.find("link").text
             elif article_method == "entry":
@@ -759,78 +755,85 @@ async def get_feed_list(
     return await split_lengthy_list(table_out)
 
 
-async def link_is_in_log(link, log_in, log_env, channel, uuid, guild):
+def decide_link_action(link, item_hash, log_in):
     """
-    Check if a link already is in the log. Replace and repost if it is
-    similar to a logged link.
+    Decide what to do with a feed item, given the log for its feed.
+
+    A link that is already logged is done with. A link that is new, but
+    whose text has been posted before, is the same post under a fixed
+    url - then the message that carries the old link is edited instead
+    of posting the item a second time.
+
+        ("skip", None)   - already posted
+        ("replace", row) - edit the message the logged row points at
+        ("post", None)   - never seen before
+
+    #autodoc skip#
     """
-
-    async def replace_post(link, log_in, link_hash, channel, uuid):
-        # Replace link on discord and add link to log
-        list_of_old_links = []
-        for item in log_in:
-            if item["hash"] == link_hash:
-                list_of_old_links.append(item["url"])
-        logger.debug("Replacing link in discord message")
-        await discord_commands.replace_post(guild, list_of_old_links, link, channel)
-
-    link_in_log = None
-    hash_in_log = None
-    link_hash = None
-    if log_in is None:
-        logger.debug("Log is None")
-        return False
-    logger.debug(f"log_in seems to be ok (got {len(log_in)} items)")
-    link_hash = await net_io.get_page_hash(link)
-    logger.debug(f"Link hash is `{link_hash}`")
-    if link in [log_url["url"] for log_url in log_in]:
-        logger.debug("Link in log")
-        link_in_log = True
-    else:
-        link_in_log = False
-    if len(log_in) > 0:
-        if "hash" in log_in[0]:
-            if link_hash in [log_url["hash"] for log_url in log_in]:
-                logger.debug("Hash in log")
-                hash_in_log = True
-            else:
-                hash_in_log = False
-    else:
-        hash_in_log = False
-    if (link_in_log and hash_in_log) or (link_in_log and hash_in_log is None):
-        logger.debug("Link is in log, returning True")
-        return True
-    if link_in_log and not hash_in_log:
-        logger.debug("Link is in log, but hash has changed. Replacing...")
-        await replace_post(link, log_in, link_hash, channel, uuid)
-        logger.debug("Adding link to log")
-        return True
-    elif not link_in_log and hash_in_log:
-        logger.debug("Hash in log, but link is not. Adding to log and replacing post")
-        await replace_post(link, log_in, link_hash, channel, uuid)
-        return True
-    elif not link_in_log and hash_in_log is None:
-        logger.debug("Link is not in log, logging it and returning False")
-        await log_link(log_env, uuid, link, link_hash, guild)
-        return False
+    if not log_in:
+        logger.debug("Log is empty, posting")
+        return "post", None
+    if link in [row["url"] for row in log_in]:
+        logger.debug(f"`{link}` is in log, skipping")
+        return "skip", None
+    if not item_hash:
+        logger.debug("Item has no content hash, posting")
+        return "post", None
+    hits = [row for row in log_in if row.get("hash") == item_hash]
+    if len(hits) == 0:
+        logger.debug("Neither link nor content hash in log, posting")
+        return "post", None
+    # Newest first: if several logged posts share a hash, the newest one
+    # is the likeliest to still be within reach in the channel history
+    hits.sort(key=lambda row: str(row.get("date") or ""), reverse=True)
+    logger.debug("Content hash in log as `{}`, replacing".format(hits[0]["url"]))
+    return "replace", hits[0]
 
 
-async def log_link(template_info, uuid, feed_link, page_hash, guild):
+async def update_log_link(template_info, uuid, old_link, new_link, guild):
+    """
+    Point the logged row for `old_link` at `new_link`.
+
+    Without this the log keeps the old link, and the same message gets
+    edited once per run for as long as the item stays in the feed.
+    #autodoc skip#
+    """
+    logger.info(f"Moving log entry `{old_link}` to `{new_link}`")
+    await db_helper.update_fields(
+        template_info=template_info,
+        where=[("uuid", uuid), ("url", old_link)],
+        updates=[
+            ("url", new_link),
+            ("date", str(await datetime_handling.get_dt(format="ISO8601"))),
+        ],
+        guild_id=guild.id,
+    )
+
+
+async def log_link(template_info, uuid, feed_link, content_hash, guild, msg_id=None):
     logger.info("Logging link to db")
     logger.debug(
         f"Got these vars: template_info: {template_info}, uuid: {uuid}, "
-        f"feed_link: {feed_link}, page_hash: {page_hash}"
+        f"feed_link: {feed_link}, content_hash: {content_hash}, msg_id: {msg_id}"
     )
-    inserts = [uuid, feed_link, str(await datetime_handling.get_dt(format="ISO8601"))]
-    if page_hash is not None:
-        inserts.append(page_hash)
-    else:
-        inserts.append(feed_link)
-        logger.error(f"No page hash found for {feed_link}, logging link instead")
+    if content_hash is None:
+        content_hash = feed_link
+        logger.error(f"No content hash for {feed_link}, logging link instead")
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t("feeds_core.log.no_page_hash", feed_link=feed_link),
+            I18N.t("feeds_core.log.no_content_hash", feed_link=feed_link),
         )
+    values = {
+        "uuid": uuid,
+        "url": feed_link,
+        "date": str(await datetime_handling.get_dt(format="ISO8601")),
+        "hash": content_hash,
+        "msg_id": str(msg_id) if msg_id else None,
+    }
+    # The log tables differ - youtube keeps neither hash nor msg_id - so
+    # the schema decides what goes in, and in which order
+    log_cols = [col[0].strip() for col in template_info["items"]]
+    inserts = [values[col] for col in log_cols if col in values]
     logger.debug(f"Adding this to log:\n{pformat(inserts)}")
     await db_helper.insert_many_all(
         template_info=template_info, inserts=[inserts], guild_id=guild.id
@@ -1080,42 +1083,53 @@ async def process_links_for_posting_or_editing(
         await report_dead_channel(feed_db, uuid, feed_name, CHANNEL, guild)
         return None
     logger.debug(f"Got {len(FEED_POSTS)} items in `FEED_POSTS`")
-    if feed_type in ["rss", "podcast"]:
-        FEED_LOG = await db_helper.get_output(
-            template_info=feed_db_log,
-            select=("url", "hash"),
-            where=[("uuid", uuid)],
-            guild_id=guild.id,
-        )
-    else:
-        FEED_LOG = await db_helper.get_output(
-            template_info=feed_db_log,
-            select=("url"),
-            where=[("uuid", uuid)],
-            guild_id=guild.id,
-        )
+    # Not every log table keeps a hash - youtube dropped its column
+    log_cols = [col[0].strip() for col in feed_db_log["items"]]
+    FEED_LOG = await db_helper.get_output(
+        template_info=feed_db_log,
+        select=tuple(
+            col for col in ("url", "date", "hash", "msg_id") if col in log_cols
+        ),
+        where=[("uuid", uuid)],
+        guild_id=guild.id,
+    )
+    if not isinstance(FEED_LOG, list):
+        FEED_LOG = []
     logger.debug(f"FEED_SETTINGS is {FEED_SETTINGS} for feed type {feed_type}")
-    FEED_POSTS = FEED_POSTS[0:3]
+    FEED_POSTS = FEED_POSTS[0:5]
     FEED_POSTS.reverse()
     for item in FEED_POSTS:
         logger.debug(f"Got this item:\n{item}")
         if isinstance(item, str):
+            # A bare link carries no text to hash, so it can only ever
+            # be recognized by the link itself
             feed_link = item
+            item_hash = item
         elif isinstance(item, dict):
             feed_link = item["link"]
-        # Check if the link is in the log
-        logger.debug(f"Checking if link `{feed_link}` is in log")
-        link_in_log = await link_is_in_log(
-            feed_link, FEED_LOG, feed_db_log, CHANNEL, uuid, guild
-        )
-        if link_in_log:
-            logger.debug(f"Link `{feed_link}` already logged. Skipping.")
+            item_hash = item.get("hash")
+        # Ask the log whether this is known, new, or a known post that
+        # got its link fixed
+        action, old_row = decide_link_action(feed_link, item_hash, FEED_LOG)
+        logger.debug(f"Link `{feed_link}` got action `{action}`")
+        if action == "skip":
             continue
-        elif not link_in_log:
-            logger.debug(f"Link `{feed_link}` not in log. Posting..")
-            # Add link to log
-            _page_hash = await net_io.get_page_hash(feed_link)
-            logger.debug(f"Link {feed_link} got hash {_page_hash}")
+        if action == "replace":
+            old_link = old_row["url"]
+            edited = await discord_commands.replace_post(
+                guild, old_link, feed_link, CHANNEL, msg_id=old_row.get("msg_id")
+            )
+            if edited:
+                await update_log_link(feed_db_log, uuid, old_link, feed_link, guild)
+                old_row["url"] = feed_link
+                continue
+            # The old message is out of reach - deleted, or older than
+            # the history we look through - so nothing was edited
+            logger.error(
+                f"Found no message with `{old_link}` in channel `{CHANNEL}`, "
+                f"posting `{feed_link}` as a new post"
+            )
+        if action in ["post", "replace"]:
             # Consider this a whole new post and post link to channel
             logger.debug(f"Posting link `{feed_link}`")
             logger.debug(
@@ -1125,6 +1139,7 @@ async def process_links_for_posting_or_editing(
             # the db, not by the item itself. A feed registered as `rss`
             # is never posted as a podcast even if it carries audio.
             posted = True
+            posted_msg = None
             if feed_type == "podcast" and isinstance(item, dict):
                 embed_color = await net_io.extract_color_from_image_url(item["img"])
                 embed = discord.Embed(
@@ -1153,6 +1168,7 @@ async def process_links_for_posting_or_editing(
                     CHANNEL, embed_in=embed
                 )
                 posted = episode_msg is not None
+                posted_msg = episode_msg
                 view = None
                 rating_setting = "podcast_ratings_enabled"
                 if (
@@ -1192,10 +1208,10 @@ async def process_links_for_posting_or_editing(
                         f"TESTMODE: Would post this link: {feed_link}", color="yellow"
                     )
                 else:
-                    posted = (
-                        await discord_commands.post_to_channel(CHANNEL, feed_link)
-                        is not None
+                    posted_msg = await discord_commands.post_to_channel(
+                        CHANNEL, feed_link
                     )
+                    posted = posted_msg is not None
             if not posted:
                 # Not logging the link keeps it queued for the next run,
                 # instead of silently dropping it as already posted
@@ -1204,12 +1220,17 @@ async def process_links_for_posting_or_editing(
                     f"`{CHANNEL}`, not logging it as posted"
                 )
                 continue
-            await log_link(
-                feed_db_log,
-                uuid,
-                item["link"] if isinstance(item, dict) else feed_link,
-                item["hash"] if isinstance(item, dict) else _page_hash,
-                guild,
+            # The message id is what lets a later link fix edit this
+            # exact message instead of searching the channel
+            msg_id = posted_msg.id if posted_msg else None
+            await log_link(feed_db_log, uuid, feed_link, item_hash, guild, msg_id)
+            # Later items in the same batch have to see this one too
+            FEED_LOG.append(
+                {
+                    "url": feed_link,
+                    "hash": item_hash,
+                    "msg_id": str(msg_id) if msg_id else None,
+                }
             )
 
 
