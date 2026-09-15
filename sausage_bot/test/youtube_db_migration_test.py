@@ -94,9 +94,15 @@ async def _migrate(guild_db_root):
     """
     Run the whole table prep the cog does on startup, which is what
     calls the migration.
+
+    The startup prep also looks up the `playlist_id` of any feed that
+    has none, which is a call to the Youtube api - patched out here, and
+    covered on its own in `youtube_playlist_id_test.py`.
     """
     with mock.patch.object(
         youtube.db_helper, "db_channel_names_to_ids", mock.AsyncMock()
+    ), mock.patch.object(
+        youtube, "backfill_missing_playlist_ids", mock.AsyncMock()
     ), mock.patch.object(
         youtube.discord_commands, "log_to_bot_channel", mock.AsyncMock()
     ):

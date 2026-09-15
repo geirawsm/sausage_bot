@@ -87,6 +87,8 @@ en:
   db:
     log_migrated: "Migrated youtube data to `%{db_file}`: %{copied}. The old `%{legacy_feeds_db}` and `%{legacy_log_db}` are no longer in use, but were left in `%{db_dir}`."
     log_missing_columns: "Missing columns in youtube db: %{columns}\nMake sure to populate missing information"
+    log_playlist_ids_filled: "Looked up the missing `playlist_id` of these Youtube feeds:\n- %{feeds}"
+    log_playlist_ids_missing: "Could not look up the `playlist_id` of these Youtube feeds:\n- %{feeds}\nThey will not post anything before their link is fixed with `/youtube edit`"
     migrated_items:
       feeds: feeds
       filters: filters
