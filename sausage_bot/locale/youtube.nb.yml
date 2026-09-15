@@ -87,6 +87,8 @@ nb:
   db:
     log_migrated: "Migrerte youtube-data til `%{db_file}`: %{copied}. De gamle `%{legacy_feeds_db}` og `%{legacy_log_db}` er ikke lenger i bruk, men ble liggende igjen i `%{db_dir}`."
     log_missing_columns: "Mangler kolonner i youtube-databasen: %{columns}\nSørg for å fylle inn manglende informasjon"
+    log_playlist_ids_filled: "Slo opp manglende `playlist_id` for disse Youtube-feedene:\n- %{feeds}"
+    log_playlist_ids_missing: "Klarte ikke å slå opp `playlist_id` for disse Youtube-feedene:\n- %{feeds}\nDe kommer ikke til å poste noe før linken er rettet opp med `/youtube edit`"
     migrated_items:
       feeds: feeder
       filters: filtre

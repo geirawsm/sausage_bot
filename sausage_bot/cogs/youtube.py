@@ -13,6 +13,7 @@ from time import sleep
 # from yt_dlp import YoutubeDL
 import re
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from sausage_bot.util import config, envs, feeds_core, net_io
 from sausage_bot.util import db_helper, discord_commands
@@ -944,13 +945,55 @@ class Youtube(commands.Cog):
                     CHANNEL = feed["channel"]
                     logger.info(f"Checking {FEED_NAME}")
                     logger.debug(f"Found channel `{CHANNEL}` in `{FEED_NAME}`")
+                    # A feed from before the `playlist_id` column existed
+                    # has nothing to ask the API for, and `playlistItems`
+                    # answers `400 No filter selected` on an empty
+                    # `playlistId`. `backfill_missing_playlist_ids` fills
+                    # these in at startup - the ones it could not fix are
+                    # counted as feed errors, so they get stood down and
+                    # reported instead of breaking every round.
+                    if not feed.get("playlist_id"):
+                        logger.error(
+                            f"`{FEED_NAME}` has no `playlist_id`, can't check it"
+                        )
+                        await feeds_core.reg_feed_error(
+                            envs.youtube_db_schema, feed, guild, "no playlist_id"
+                        )
+                        continue
                     # Get the latest videos of the channel
-                    last_videos = YouTubeAPI.get_latest_video_ids(feed["playlist_id"])
+                    try:
+                        last_videos = YouTubeAPI.get_latest_video_ids(
+                            feed["playlist_id"]
+                        )
+                    except HttpError as error:
+                        # One bad feed used to take the whole task with
+                        # it: `tasks.loop` retries the network errors in
+                        # its own `_valid_exception` only, so an
+                        # `HttpError` ended the loop for every guild
+                        # until someone restarted the bot.
+                        logger.error(f"Youtube API error on `{FEED_NAME}`: {error}")
+                        await feeds_core.reg_feed_error(
+                            envs.youtube_db_schema,
+                            feed,
+                            guild,
+                            error.resp.status,
+                        )
+                        continue
+                    # Clears the error count of a feed that has been
+                    # failing, and brings it back if it was stood down
+                    await feeds_core.reg_feed_ok(envs.youtube_db_schema, feed, guild)
                     for video in last_videos:
                         video_channels[video] = CHANNEL
                         video_uuids[video] = UUID
                     video_queue += last_videos
-                video_infos = YouTubeAPI.get_video_info(video_queue)
+                try:
+                    video_infos = YouTubeAPI.get_video_info(video_queue)
+                except HttpError as error:
+                    logger.error(
+                        "Youtube API error when getting video info for "
+                        f"`{guild.name}`: {error}"
+                    )
+                    continue
                 log_db = await db_helper.get_output(
                     template_info=envs.youtube_db_log_schema,
                     guild_id=guild.id,
@@ -1181,6 +1224,84 @@ async def normalize_filter_allow_deny(guild):
         )
 
 
+async def backfill_missing_playlist_ids(guild):
+    """
+    Look up the `playlist_id` of the feeds that have none, and write it
+    to the db.
+
+    The column was added after the fact, so every feed added before it -
+    and every feed carried over from `youtube_feeds.sqlite` - has a NULL
+    there. `task_post_videos` hands that id to `playlistItems`, which
+    answers `400 No filter selected` on an empty one, and that used to
+    end the task for every guild. Safe to call repeatedly (idempotent):
+    only a row with an empty `playlist_id` costs an API call.
+    #autodoc skip#
+    """
+    feeds = await db_helper.get_output(
+        template_info=envs.youtube_db_schema,
+        guild_id=guild.id,
+    )
+    broken = [feed for feed in feeds or [] if not feed.get("playlist_id")]
+    if not broken:
+        return
+    if not config.YOUTUBE_API_KEY:
+        logger.warning(
+            "YOUTUBE_API_KEY is not set in the .env file, can not look up the "
+            "missing `playlist_id` of {} feed(s) in `{}`".format(
+                len(broken), guild.name
+            )
+        )
+        return
+    logger.info(
+        "Looking up the missing `playlist_id` of {} feed(s) in `{}`".format(
+            len(broken), guild.name
+        )
+    )
+    filled = []
+    failed = []
+    for feed in broken:
+        feed_name = feed["feed_name"]
+        url = str(feed["url"])
+        try:
+            # Same split as `/youtube add`: a link with a `list=` in it
+            # is a playlist, anything else is a channel and gets its
+            # uploads playlist looked up
+            if re.fullmatch(r".*www\.youtube\.com\/.*(&|\?)list=.*", url):
+                youtube_info = YouTubeAPI.get_playlist_info(url)
+            else:
+                youtube_info = YouTubeAPI.extract_yt_channel_info(url)
+        except (YoutubeApiError, HttpError) as error:
+            logger.error(f"Could not look up `playlist_id` for `{feed_name}`: {error}")
+            failed.append(feed_name)
+            continue
+        if not youtube_info or not youtube_info.get("playlist_id"):
+            logger.error(f"Found no `playlist_id` for `{feed_name}` ({url})")
+            failed.append(feed_name)
+            continue
+        updates = [("playlist_id", youtube_info["playlist_id"])]
+        # A feed missing its `playlist_id` is likely to be missing the
+        # channel id too, but an id that is already there is left alone
+        if not feed.get("youtube_id") and youtube_info.get("channel_id"):
+            updates.append(("youtube_id", youtube_info["channel_id"]))
+        await db_helper.update_fields(
+            template_info=envs.youtube_db_schema,
+            where=("uuid", feed["uuid"]),
+            updates=updates,
+            guild_id=guild.id,
+        )
+        filled.append(feed_name)
+    if filled:
+        await discord_commands.log_to_bot_channel(
+            guild,
+            I18N.t("youtube.db.log_playlist_ids_filled", feeds="\n- ".join(filled)),
+        )
+    if failed:
+        await discord_commands.log_to_bot_channel(
+            guild,
+            I18N.t("youtube.db.log_playlist_ids_missing", feeds="\n- ".join(failed)),
+        )
+
+
 async def ensure_guild_youtube_tables(guild):
     """
     Prep this guild's Youtube tables, and fix up any legacy channel-name
@@ -1228,6 +1349,8 @@ async def ensure_guild_youtube_tables(guild):
     )
     # Filters stored with a translated `allow_or_deny` never match
     await normalize_filter_allow_deny(guild)
+    # Feeds without a `playlist_id` have nothing to ask the api for
+    await backfill_missing_playlist_ids(guild)
     # Change channel name to id
     await db_helper.db_channel_names_to_ids(
         template_info=envs.youtube_db_schema,
