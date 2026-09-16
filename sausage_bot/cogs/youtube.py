@@ -7,8 +7,8 @@ from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
 from discord.utils import get
 
+import asyncio
 import typing
-from time import sleep
 
 # from yt_dlp import YoutubeDL
 import re
@@ -123,6 +123,25 @@ def youtube_api():
             cache_discovery=False,
         )
     return _youtube_api
+
+
+async def api_call(func, *args, **kwargs):
+    """
+    Run one blocking Youtube API call off the event loop.
+
+    `googleapiclient` is synchronous, so an `execute()` called straight
+    from a coroutine holds the whole bot until the request comes back -
+    around half a second per feed. A guild with 38 feeds spends that
+    long enough in a row for discord.py to warn that the shard heartbeat
+    is blocked, and for the gateway to drop a connection it thinks is
+    dead.
+
+    Calls still go out one at a time: the client `youtube_api()` builds
+    is shared, and the httplib2 http object underneath it is not thread
+    safe.
+    #autodoc skip#
+    """
+    return await asyncio.to_thread(func, *args, **kwargs)
 
 
 class YouTubeAPI:
@@ -467,10 +486,14 @@ class Youtube(commands.Cog):
         try:
             if re.fullmatch(r".*www\.youtube\.com\/.*(&|\?)list=.*", youtube_link):
                 logger.info("Got YT PLaylist")
-                youtube_info = YouTubeAPI.get_playlist_info(str(youtube_link))
+                youtube_info = await api_call(
+                    YouTubeAPI.get_playlist_info, str(youtube_link)
+                )
             else:
                 logger.info("Got YT channel")
-                youtube_info = YouTubeAPI.extract_yt_channel_info(str(youtube_link))
+                youtube_info = await api_call(
+                    YouTubeAPI.extract_yt_channel_info, str(youtube_link)
+                )
                 if youtube_info is None:
                     logger.error(
                         "Could not find channel at Youtube, are you sure this is the correct link?"
@@ -841,7 +864,9 @@ class Youtube(commands.Cog):
                 page_counter += 1
                 logger.debug(f"Sending page ({page_counter} / {len(formatted_list)})")
                 await interaction.followup.send(f"```{page}```")
-                sleep(1)
+                # `time.sleep` here held the event loop, and the bot
+                # with it, for a second per page
+                await asyncio.sleep(1)
         else:
             await interaction.followup.send(I18N.t("youtube.commands.list.msg_error"))
         return
@@ -962,8 +987,8 @@ class Youtube(commands.Cog):
                         continue
                     # Get the latest videos of the channel
                     try:
-                        last_videos = YouTubeAPI.get_latest_video_ids(
-                            feed["playlist_id"]
+                        last_videos = await api_call(
+                            YouTubeAPI.get_latest_video_ids, feed["playlist_id"]
                         )
                     except HttpError as error:
                         # One bad feed used to take the whole task with
@@ -987,7 +1012,9 @@ class Youtube(commands.Cog):
                         video_uuids[video] = UUID
                     video_queue += last_videos
                 try:
-                    video_infos = YouTubeAPI.get_video_info(video_queue)
+                    video_infos = await api_call(
+                        YouTubeAPI.get_video_info, video_queue
+                    )
                 except HttpError as error:
                     logger.error(
                         "Youtube API error when getting video info for "
@@ -1267,9 +1294,9 @@ async def backfill_missing_playlist_ids(guild):
             # is a playlist, anything else is a channel and gets its
             # uploads playlist looked up
             if re.fullmatch(r".*www\.youtube\.com\/.*(&|\?)list=.*", url):
-                youtube_info = YouTubeAPI.get_playlist_info(url)
+                youtube_info = await api_call(YouTubeAPI.get_playlist_info, url)
             else:
-                youtube_info = YouTubeAPI.extract_yt_channel_info(url)
+                youtube_info = await api_call(YouTubeAPI.extract_yt_channel_info, url)
         except (YoutubeApiError, HttpError) as error:
             logger.error(f"Could not look up `playlist_id` for `{feed_name}`: {error}")
             failed.append(feed_name)

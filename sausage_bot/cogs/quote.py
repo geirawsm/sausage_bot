@@ -675,7 +675,8 @@ class Quotes(commands.Cog):
             _ephemeral = False
         else:
             _ephemeral = True
-        await interaction.response.defer(ephemeral=_ephemeral)
+        # TODO: ephemeral funker ikke på denne? Må testes
+        # await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
             logger.debug("No quote number given, posting random quote")
