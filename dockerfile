@@ -8,7 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /
 
-COPY / /app/
+COPY /sausage_bot/cogs /app/sausage_bot/cog
+COPY /sausage_bot/data/static /app/sausage_bot/data/static
+COPY /sausage_bot/locale /app/sausage_bot/locale
+COPY /sausage_bot/util /app/sausage_bot/util
+COPY /sausage_bot/__init__.py /app/sausage_bot/
+COPY /sausage_bot/__main__.py /app/sausage_bot/
+COPY /Pipfile /app/Pipfile
+COPY /Pipfile.lock /app/Pipfile.lock
+
 WORKDIR /app/
 
 RUN pip install pipenv
