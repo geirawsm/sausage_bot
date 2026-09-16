@@ -69,6 +69,7 @@ async def fetch_random_user_agent():
     if config.SCRAPEOPS_API_KEY is None:
         logger.error("SCRAPEOPS_API_KEY is not set")
         return
+    file_io.ensure_file(envs.TEMP_DIR / "headers.json")
     # Get new headers if the file is older than 1 hour or does not exist
     if (
         file_io.file_age(envs.TEMP_DIR / "headers.json") > 60 * 60
