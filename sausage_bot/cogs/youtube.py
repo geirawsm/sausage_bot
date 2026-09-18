@@ -1012,9 +1012,7 @@ class Youtube(commands.Cog):
                         video_uuids[video] = UUID
                     video_queue += last_videos
                 try:
-                    video_infos = await api_call(
-                        YouTubeAPI.get_video_info, video_queue
-                    )
+                    video_infos = await api_call(YouTubeAPI.get_video_info, video_queue)
                 except HttpError as error:
                     logger.error(
                         "Youtube API error when getting video info for "
