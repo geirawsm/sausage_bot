@@ -96,19 +96,18 @@ try:
         print("Something is wrong with the env file.")
         exit()
     if any(envvar in [None, ""] for envvar in [SPOTIFY_ID, SPOTIFY_SECRET]):
-        print(
-            "API WARNING: If you want Spotify-embedding to work with "
-            "podcasts, you need to set SPOTIFY_ID and SPOTIFY_SECRET in the "
-            ".env file"
+        logger.warning(
+            "SPOTIFY API: If you want Spotify-embedding to work with podcasts, you "
+            "need to set SPOTIFY_ID and SPOTIFY_SECRET in the .env file"
         )
     if any(envvar in [None, ""] for envvar in [YOUTUBE_API_KEY]):
-        print(
-            "API WARNING: If you want to use youtube posting, you need to set "
+        logger.warning(
+            "YOUTUBE API: If you want to use youtube posting, you need to set "
             "YOUTUBE_API_KEY in the .env file"
         )
     if any(envvar in [None, ""] for envvar in [SCRAPEOPS_API_KEY]):
-        print(
-            "API WARNING: If you want to avoid being blocked for scraping, "
+        logger.warning(
+            "SCRAPEOPS API: If you want to avoid being blocked for scraping, "
             "you need to set SCRAPEOPS_API_KEY in the .env file"
         )
 except EnvError as e:
