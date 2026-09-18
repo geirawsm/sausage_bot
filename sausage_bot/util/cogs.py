@@ -3,8 +3,8 @@
 "cogs: Manage cogs"
 
 import os
-from discord.ext import commands
 from contextlib import suppress
+from discord.ext import commands
 
 from sausage_bot.util import envs, config
 from sausage_bot.util.args import args
