@@ -4,6 +4,7 @@
 
 import discord
 from discord.ext import commands
+import logging
 from sys import exit
 from environs import Env, EnvError
 from contextlib import suppress
@@ -12,7 +13,7 @@ from pathlib import Path
 import pendulum
 
 from . import envs
-from . import logger
+from . import logger as logger_setup
 
 
 def ensure_file(file_path_in: str, file_template=False):
@@ -50,6 +51,11 @@ def ensure_file(file_path_in: str, file_template=False):
 # Create necessary files before starting
 print("Ensuring env file")
 ensure_file(envs.env_file, envs.env_template)
+
+# Logging is not configured until LOG_LEVEL has been read out of the env
+# file below, so warnings raised while reading it are collected here and
+# emitted once the handlers are in place.
+startup_warnings = []
 
 try:
     env = Env()
@@ -96,27 +102,30 @@ try:
         print("Something is wrong with the env file.")
         exit()
     if any(envvar in [None, ""] for envvar in [SPOTIFY_ID, SPOTIFY_SECRET]):
-        logger.warning(
+        startup_warnings.append(
             "SPOTIFY API: If you want Spotify-embedding to work with podcasts, you "
             "need to set SPOTIFY_ID and SPOTIFY_SECRET in the .env file"
         )
     if any(envvar in [None, ""] for envvar in [YOUTUBE_API_KEY]):
-        logger.warning(
+        startup_warnings.append(
             "YOUTUBE API: If you want to use youtube posting, you need to set "
             "YOUTUBE_API_KEY in the .env file"
         )
     if any(envvar in [None, ""] for envvar in [SCRAPEOPS_API_KEY]):
-        logger.warning(
+        startup_warnings.append(
             "SCRAPEOPS API: If you want to avoid being blocked for scraping, "
             "you need to set SCRAPEOPS_API_KEY in the .env file"
         )
 except EnvError as e:
-    logger.error(f"You need to set environment variables for the bot to work: {e}")
+    logger_setup.configure_logging()
+    logging.error(f"You need to set environment variables for the bot to work: {e}")
     exit()
 
 
-logger.configure_logging(to_file=True, console_level=LOG_LEVEL)
-logger = logger.logging
+logger_setup.configure_logging(to_file=True, console_level=LOG_LEVEL)
+logger = logging
+for startup_warning in startup_warnings:
+    logger.warning(startup_warning)
 
 print("-" * 20)
 print("")
