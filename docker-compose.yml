@@ -10,7 +10,6 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD=${DISCORD_GUILD}
-      - BOT_ID=${BOT_ID}
       - BOT_CHANNEL=${BOT_CHANNEL}
       - PREFIX=${PREFIX}
       - ADMIN_GUILD_ID=${ADMIN_GUILD_ID}

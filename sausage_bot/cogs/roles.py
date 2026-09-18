@@ -2211,7 +2211,7 @@ async def on_raw_reaction_add(payload):
     logger.debug("Checking added reaction role")
     if payload.guild_id is None:
         return
-    if str(payload.user_id) == str(config.BOT_ID):
+    if str(payload.user_id) == str(config.bot.user.id):
         logger.debug("Change made by bot, skip")
         return
     else:
@@ -2267,7 +2267,7 @@ async def on_raw_reaction_remove(payload):
     logger.debug("Checking removed reaction role")
     if payload.guild_id is None:
         return
-    if str(payload.user_id) == str(config.BOT_ID):
+    if str(payload.user_id) == str(config.bot.user.id):
         logger.debug("Change made by bot, skip")
         return
     else:
@@ -2355,7 +2355,7 @@ async def on_member_update(before, after):
         return
     if unique_role:
         logger.debug("Check for unique role")
-        if str(before.id) == str(config.BOT_ID):
+        if str(before.id) == str(config.bot.user.id):
             logger.debug("Change made by bot, skip")
             return
         logger.debug(f"Before ({len(before.roles)}) vs after ({len(after.roles)})")

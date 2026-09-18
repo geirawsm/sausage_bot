@@ -212,7 +212,6 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
 - Run the bot once to get the `.env` file: `python -m sausage_bot`
 - Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key:
   - `DISCORD_TOKEN` Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
-  - `BOT_ID` Also found in the [Discord Developer portal](https://discord.com/developers/applications), under "OAuth2", "General", "Client information", "CLIENT ID"
   - `ADMIN_GUILD_ID` The ID of your own/main Discord server - see [Multiple servers](#multiple-servers)
   - `ADMIN_CHANNEL_ID` The ID of a channel in that server for new-server notifications and `/approve-guild`
 - Invite the bot to your discord server:

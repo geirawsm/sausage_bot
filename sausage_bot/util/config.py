@@ -62,7 +62,6 @@ try:
     env.read_env(path=envs.env_file)
     # Set basic env values
     DISCORD_TOKEN = env("DISCORD_TOKEN", default=None)
-    BOT_ID = env("BOT_ID", default=None)
     # ADMIN_GUILD_ID is the bot's home guild - it is auto-approved and is
     # where the /approve-guild flow and new-guild notifications run from.
     # The `admin_guild` table is the source of truth for these: at startup
@@ -98,7 +97,7 @@ try:
     # as well come from the `admin_guild` table, and demanding them here
     # would exit before any db read is possible. Missing them in both
     # places is reported by `load_admin_guild_from_db()` in on_ready.
-    if any(envvar is None for envvar in [DISCORD_TOKEN, BOT_ID]):
+    if any(envvar is None for envvar in [DISCORD_TOKEN]):
         print("Something is wrong with the env file.")
         exit()
     if any(envvar in [None, ""] for envvar in [SPOTIFY_ID, SPOTIFY_SECRET]):

@@ -412,7 +412,7 @@ async def replace_post(
         except (discord.HTTPException, ValueError, TypeError) as e:
             logger.error(f"Could not get message `{msg_id}`: {e}")
     async for msg in channel_out.history(limit=REPLACE_POST_HISTORY):
-        if str(msg.author.id) != config.BOT_ID:
+        if str(msg.author.id) != config.bot.user.id:
             continue
         if await swap_link_in_msg(msg, replace_content, replace_with):
             return True
@@ -432,7 +432,7 @@ async def remove_stats_post(guild: discord.Guild, stats_channel):
         found_stats_msg = False
         async for msg in channel_out.history(limit=10):
             logger.debug(f"Got msg: ({msg.author.id}) {msg.content[0:50]}...")
-            if str(msg.author.id) == config.BOT_ID and "Serverstats sist" in str(
+            if str(msg.author.id) == config.bot.user.id and "Serverstats sist" in str(
                 msg.content
             ):
                 logger.debug("Found post with `Serverstats sist`, removing...")

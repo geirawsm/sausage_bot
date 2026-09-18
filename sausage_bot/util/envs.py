@@ -119,7 +119,6 @@ roles_settings_file = JSON_DIR / "roles_settings.json"
 # Template content
 env_template = """# Basic settings
 DISCORD_TOKEN=
-BOT_ID=
 PREFIX=
 BOT_CHANNEL=
 LOG_ROTATION_DAYS=

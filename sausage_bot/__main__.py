@@ -480,7 +480,7 @@ async def register_guild(guild: discord.Guild):
             # `_approve_admin_guild()` calls back into `register_guild()`
             # when the row is missing - unreachable from here, since this
             # branch only runs when the row exists.
-            await _approve_admin_guild(guild, config.BOT_ID)
+            await _approve_admin_guild(guild, config.bot.user.id)
             logger.info(f"Auto-approved admin guild `{guild.name}` ({guild.id})")
             await notify_admin_of_new_guild(
                 guild,
