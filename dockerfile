@@ -3,7 +3,7 @@ LABEL org.opencontainers.image.authors="geirawsm@pm.me"
 
 WORKDIR /
 
-COPY /sausage_bot/cogs /app/sausage_bot/cog
+COPY /sausage_bot/cogs /app/sausage_bot/cogs
 COPY /sausage_bot/data/static /app/sausage_bot/data/static
 COPY /sausage_bot/locale /app/sausage_bot/locale
 COPY /sausage_bot/util /app/sausage_bot/util
