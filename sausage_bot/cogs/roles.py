@@ -40,9 +40,8 @@ class DropdownPermissions(discord.ui.Select):
 
 
 class ButtonConfirm(discord.ui.Button):
-    def __init__(self, label, style, value):
-        super().__init__(label=label, style=style)
-        self.value = value
+    def __init__(self, label, style):
+        super().__init__(label=label, style=discord.ButtonStyle.green)
 
     async def callback(self, interaction: discord.Interaction):
         self.value = True
@@ -255,7 +254,7 @@ async def sync_reaction_message_from_settings(
     for react in db_reactions:
         logger.debug(f"Processing `react`:\n{pformat(react)}")
         try:
-            role_name = get(_guild.roles, id=int(react["role"])).name
+            role_name = str(get(_guild.roles, id=int(react["role"])).name).lower()
             reactions_out[role_name] = {
                 "role_id": react["role"],
                 "emoji": react["emoji"],
@@ -309,11 +308,11 @@ async def sync_reaction_message_from_settings(
     )
     emoji_out = ""
     role_out = ""
-    if len(emoji_errors) >= 0:
+    if len(emoji_errors) > 0:
         emoji_out = "These emojis had some issues when syncing:\n- {}".format(
             "- ".join(emoji for emoji in emoji_errors)
         )
-    if len(roles_errors) >= 0:
+    if len(roles_errors) > 0:
         role_out = "These roles had some issues when syncing:\n- {}".format(
             "- ".join(role for role in roles_errors)
         )
