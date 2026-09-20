@@ -3,9 +3,13 @@
 """
 Shared pytest fixtures for the multi-guild test suite.
 """
+from types import SimpleNamespace
+
 import pytest
 
-from sausage_bot.util import envs
+from sausage_bot.util import config, envs
+
+BOT_USER_ID = 1234567890123456789
 
 
 @pytest.fixture
@@ -26,3 +30,18 @@ def guild_db_root(tmp_path, monkeypatch):
         envs.admin_guild_db_schema, "db_file", str(tmp_path / "guilds.sqlite")
     )
     return tmp_path
+
+
+@pytest.fixture
+def bot_user(monkeypatch):
+    """
+    Give the code a logged-in bot to read `config.bot.user.id` from.
+
+    `bot.user` is None until discord.py has logged in, and it is a
+    read-only property on the client, so the whole `config.bot` object is
+    swapped for a stand-in that carries the id. The id is an `int`, just
+    like the real `ClientUser.id`.
+    """
+    user = SimpleNamespace(id=BOT_USER_ID, name="sausage-bot")
+    monkeypatch.setattr(config, "bot", SimpleNamespace(user=user))
+    return user

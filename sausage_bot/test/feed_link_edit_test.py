@@ -49,13 +49,15 @@ def guild(guild_db_root, monkeypatch):
     edited = []
     bot_channel = []
 
-    async def _post(channel_in, content_in=None, embed_in=None, files_in=None,
-                    view=None):
+    async def _post(
+        channel_in, content_in=None, embed_in=None, files_in=None, view=None
+    ):
         posted.append((channel_in, content_in))
         return SimpleNamespace(id=MSG_ID, content=content_in)
 
-    async def _replace(guild_in, replace_content, replace_with, channel_in,
-                       msg_id=None):
+    async def _replace(
+        guild_in, replace_content, replace_with, channel_in, msg_id=None
+    ):
         edited.append((replace_content, replace_with, msg_id))
         return True
 
@@ -149,7 +151,9 @@ def test_hash_ignores_markup():
 
 
 def test_hash_falls_back_to_the_title():
-    assert net_io.get_content_hash(None, "Tittel") == net_io.get_content_hash("", "Tittel")
+    assert net_io.get_content_hash(None, "Tittel") == net_io.get_content_hash(
+        "", "Tittel"
+    )
     assert net_io.get_content_hash(None, "Tittel") is not None
 
 
@@ -206,8 +210,9 @@ async def test_a_fixed_link_moves_the_log_row(guild, no_web):
 async def test_an_unfound_message_is_posted_as_new(guild, no_web, monkeypatch):
     # The original post can be older than the message history we look
     # through, or deleted. Then there is nothing to edit.
-    async def _replace(guild_in, replace_content, replace_with, channel_in,
-                       msg_id=None):
+    async def _replace(
+        guild_in, replace_content, replace_with, channel_in, msg_id=None
+    ):
         guild.edited.append((replace_content, replace_with, msg_id))
         return False
 
@@ -221,8 +226,9 @@ async def test_an_unfound_message_is_posted_as_new(guild, no_web, monkeypatch):
 
 
 async def test_a_failed_post_is_not_logged(guild, no_web, monkeypatch):
-    async def _post(channel_in, content_in=None, embed_in=None, files_in=None,
-                    view=None):
+    async def _post(
+        channel_in, content_in=None, embed_in=None, files_in=None, view=None
+    ):
         return None
 
     monkeypatch.setattr(feeds_core.discord_commands, "post_to_channel", _post)
@@ -264,7 +270,7 @@ async def test_an_edited_post_keeps_its_message_id(guild, no_web):
 class FakeMsg:
     "A bot message that records what it was edited to"
 
-    def __init__(self, content="", embeds=None, author_id="1"):
+    def __init__(self, content="", embeds=None, author_id=0):
         self.content = content
         self.embeds = embeds or []
         self.author = SimpleNamespace(id=author_id)
@@ -282,54 +288,53 @@ def _channel(*messages):
     return SimpleNamespace(history=_history)
 
 
-@pytest.fixture
-def bot_guild(monkeypatch):
-    "A guild where the bot is author `1`"
-    monkeypatch.setattr(discord_commands.config, "BOT_ID", "1")
-    return monkeypatch
-
-
-async def test_replace_post_edits_the_message_text(bot_guild):
-    msg = FakeMsg(content=TYPO_LINK)
+async def test_replace_post_edits_the_message_text(bot_user):
+    msg = FakeMsg(content=TYPO_LINK, author_id=bot_user.id)
     guild = SimpleNamespace(get_channel=lambda _id: _channel(msg))
-    assert await discord_commands.replace_post(
-        guild, TYPO_LINK, FIXED_LINK, CHANNEL
-    ) is True
+    assert (
+        await discord_commands.replace_post(guild, TYPO_LINK, FIXED_LINK, CHANNEL)
+        is True
+    )
     assert msg.edits[0]["content"] == FIXED_LINK
 
 
-async def test_replace_post_edits_a_podcast_embed(bot_guild):
+async def test_replace_post_edits_a_podcast_embed(bot_user):
     # Podcast episodes are posted as embeds, so the link is not in
     # `msg.content` at all
     embed = discord.Embed(title="Episode", url=TYPO_LINK)
     embed.add_field(name="", value=f"[HØR PÅ EPISODEN]({TYPO_LINK})")
-    msg = FakeMsg(embeds=[embed])
+    msg = FakeMsg(embeds=[embed], author_id=bot_user.id)
     guild = SimpleNamespace(get_channel=lambda _id: _channel(msg))
-    assert await discord_commands.replace_post(
-        guild, TYPO_LINK, FIXED_LINK, CHANNEL
-    ) is True
+    assert (
+        await discord_commands.replace_post(guild, TYPO_LINK, FIXED_LINK, CHANNEL)
+        is True
+    )
     edited = msg.edits[0]["embeds"][0]
     assert edited.url == FIXED_LINK
     assert FIXED_LINK in edited.fields[0].value
 
 
-async def test_replace_post_skips_other_authors(bot_guild):
-    msg = FakeMsg(content=TYPO_LINK, author_id="999")
+async def test_replace_post_skips_other_authors(bot_user):
+    # Someone else posted the same link - not ours to edit
+    msg = FakeMsg(content=TYPO_LINK, author_id=999)
     guild = SimpleNamespace(get_channel=lambda _id: _channel(msg))
-    assert await discord_commands.replace_post(
-        guild, TYPO_LINK, FIXED_LINK, CHANNEL
-    ) is False
+    assert (
+        await discord_commands.replace_post(guild, TYPO_LINK, FIXED_LINK, CHANNEL)
+        is False
+    )
     assert msg.edits == []
 
 
-async def test_replace_post_reports_a_missing_message(bot_guild):
-    guild = SimpleNamespace(get_channel=lambda _id: _channel(FakeMsg(content="hei")))
-    assert await discord_commands.replace_post(
-        guild, TYPO_LINK, FIXED_LINK, CHANNEL
-    ) is False
+async def test_replace_post_reports_a_missing_message(bot_user):
+    msg = FakeMsg(content="hei", author_id=bot_user.id)
+    guild = SimpleNamespace(get_channel=lambda _id: _channel(msg))
+    assert (
+        await discord_commands.replace_post(guild, TYPO_LINK, FIXED_LINK, CHANNEL)
+        is False
+    )
 
 
-async def test_replace_post_goes_straight_to_the_message(bot_guild):
+async def test_replace_post_goes_straight_to_the_message():
     msg = FakeMsg(content=TYPO_LINK)
 
     def _history(limit=None):
@@ -341,16 +346,19 @@ async def test_replace_post_goes_straight_to_the_message(bot_guild):
 
     channel = SimpleNamespace(history=_history, fetch_message=_fetch)
     guild = SimpleNamespace(get_channel=lambda _id: channel)
-    assert await discord_commands.replace_post(
-        guild, TYPO_LINK, FIXED_LINK, CHANNEL, msg_id=MSG_ID
-    ) is True
+    assert (
+        await discord_commands.replace_post(
+            guild, TYPO_LINK, FIXED_LINK, CHANNEL, msg_id=MSG_ID
+        )
+        is True
+    )
     assert msg.edits[0]["content"] == FIXED_LINK
 
 
-async def test_replace_post_falls_back_to_the_history(bot_guild):
+async def test_replace_post_falls_back_to_the_history(bot_user):
     # Rows logged before the id column existed have no id, and a message
     # can be deleted after it was logged
-    msg = FakeMsg(content=TYPO_LINK)
+    msg = FakeMsg(content=TYPO_LINK, author_id=bot_user.id)
 
     async def _fetch(msg_id):
         raise discord.NotFound(
@@ -360,9 +368,12 @@ async def test_replace_post_falls_back_to_the_history(bot_guild):
     channel = _channel(msg)
     channel.fetch_message = _fetch
     guild = SimpleNamespace(get_channel=lambda _id: channel)
-    assert await discord_commands.replace_post(
-        guild, TYPO_LINK, FIXED_LINK, CHANNEL, msg_id=MSG_ID
-    ) is True
+    assert (
+        await discord_commands.replace_post(
+            guild, TYPO_LINK, FIXED_LINK, CHANNEL, msg_id=MSG_ID
+        )
+        is True
+    )
     assert msg.edits[0]["content"] == FIXED_LINK
 
 
@@ -374,9 +385,7 @@ async def test_an_older_log_table_gets_the_id_column(guild_db_root):
         col for col in envs.rss_db_log_schema["items"] if col[0] != "msg_id"
     ]
     await db_helper.prep_table(old_schema, guild_id=GUILD_ID)
-    await db_helper.add_missing_db_setup(
-        envs.rss_db_log_schema, {}, guild_id=GUILD_ID
-    )
+    await db_helper.add_missing_db_setup(envs.rss_db_log_schema, {}, guild_id=GUILD_ID)
     await feeds_core.log_link(
         envs.rss_db_log_schema,
         UUID,

@@ -26,6 +26,7 @@ with mock.patch.object(config.bot, "run", lambda *args, **kwargs: None):
     from sausage_bot import __main__ as main_module
 
 ADMIN_GUILD_ID = "111"
+BOT_USER_ID = 1234567890123456789
 ADMIN_GUILD_NAME = "sausage-bot"
 OTHER_GUILD_ID = "868902121834176513"
 OTHER_GUILD_NAME = "Gutteklubben Ugrei"
@@ -57,6 +58,11 @@ async def _register(guild, row):
     `register_guild()` asks for `single=True` and gets the row itself,
     `resolve_guild_row()` (via `_approve_admin_guild()`) asks for the
     whole table and gets a list.
+
+    The admin guild is approved by the bot itself, and the bot reads its
+    own id off `config.bot.user` - which is None until discord.py has
+    logged in - so `config.bot` is swapped for a stand-in holding that
+    id.
     """
     rows = [] if row is None else [row]
 
@@ -66,13 +72,13 @@ async def _register(guild, row):
     notify = mock.AsyncMock()
     with (
         mock.patch.object(config, "ADMIN_GUILD_ID", ADMIN_GUILD_ID),
-        mock.patch.object(config, "BOT_ID", "botbotbot"),
+        mock.patch.object(
+            config, "bot", SimpleNamespace(user=SimpleNamespace(id=BOT_USER_ID))
+        ),
         mock.patch.object(main_module.db_helper, "get_output", get_output),
         mock.patch.object(main_module.db_helper, "prep_table", mock.AsyncMock()),
         mock.patch.object(main_module.db_helper, "update_fields", mock.AsyncMock()),
-        mock.patch.object(
-            main_module.db_helper, "insert_many_some", mock.AsyncMock()
-        ),
+        mock.patch.object(main_module.db_helper, "insert_many_some", mock.AsyncMock()),
         mock.patch.object(
             main_module.db_helper, "ensure_guild_tasks_rows", mock.AsyncMock()
         ),
@@ -90,12 +96,17 @@ async def _register(guild, row):
         )
 
 
-def _status_written(update_fields):
-    "Pull the status value out of whatever shape update_fields was given"
+def _updates_written(update_fields):
+    "Pull the updates out of whatever shape update_fields was given"
     updates = update_fields.await_args.kwargs["updates"]
     if isinstance(updates, tuple):
         updates = [updates]
-    return dict(updates)["status"]
+    return dict(updates)
+
+
+def _status_written(update_fields):
+    "Pull the status value out of whatever shape update_fields was given"
+    return _updates_written(update_fields)["status"]
 
 
 # --- the admin guild coming back ---
@@ -132,6 +143,15 @@ async def test_a_pending_admin_guild_is_promoted_to_approved():
     db = await _register(guild, row)
     assert _status_written(db.update_fields) == "approved"
     assert db.notify.await_args.kwargs["rejoined"] is False
+
+
+async def test_the_rejoined_admin_guild_is_approved_by_the_bot():
+    # `approved_by` is the bot's own user id - nobody ran
+    # `/approve-guild` for this one
+    guild = _make_guild(ADMIN_GUILD_ID, ADMIN_GUILD_NAME)
+    row = _make_row(ADMIN_GUILD_ID, ADMIN_GUILD_NAME, "removed")
+    db = await _register(guild, row)
+    assert _updates_written(db.update_fields)["approved_by"] == str(BOT_USER_ID)
 
 
 async def test_an_already_approved_admin_guild_is_left_alone():
