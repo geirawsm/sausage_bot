@@ -116,7 +116,6 @@ def get_stats_codebase():
 
 
 async def get_db_settings(guild):
-    "#autodoc skip#"
     stats_settings_db = await db_helper.get_output(
         template_info=envs.stats_db_settings_schema,
         select=("setting", "value"),
@@ -131,7 +130,6 @@ async def get_db_settings(guild):
 
 
 async def get_db_hide_roles(guild):
-    "#autodoc skip#"
     hide_roles_exist = await db_helper.table_exist(
         envs.stats_db_hide_roles_schema, guild_id=guild.id
     )
@@ -146,7 +144,6 @@ async def get_db_hide_roles(guild):
 
 
 async def log_guild_stats(guild, files_in_codebase, lines_in_codebase, total_members):
-    "#autodoc skip#"
     stats_log_inserts = []
     date_exist = await db_helper.get_output(
         template_info=envs.stats_db_log_schema,
@@ -194,7 +191,6 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
     the log db, for `guild`. The channel is defined in that guild's
     stats settings db. The caller (`task_update_stats`) is responsible
     for checking whether stats posting is enabled for this guild.
-    #autodoc skip#
     """
     stats_settings = await get_db_settings(guild)
 
@@ -890,7 +886,6 @@ class Stats(commands.Cog):
 
     @task_update_stats.before_loop
     async def before_update_stats():
-        "#autodoc skip#"
         logger.debug("`update_stats` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -900,7 +895,6 @@ async def ensure_guild_stats_tables(guild):
     Prep this guild's stats tables, run legacy column/value fixups, and
     fix up any legacy channel-name data. Safe to call repeatedly
     (idempotent).
-    #autodoc skip#
     """
     await db_helper.prep_table(
         table_in=envs.stats_db_settings_schema,

@@ -79,7 +79,6 @@ class scrape_and_post(commands.Cog):
             """
             If any guilds have active barca posting, return True
             Else, return False
-            #autodoc skip#
             """
             approved_guilds = await db_helper.get_output(
                 envs.guilds_db_schema,
@@ -205,7 +204,6 @@ class scrape_and_post(commands.Cog):
 
     @post_fcb_news.before_loop
     async def before_post_fcb_news():
-        "#autodoc skip#"
         logger.debug("`post_fcb_news` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 

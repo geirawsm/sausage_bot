@@ -110,7 +110,6 @@ class GuildContextFilter(logging.Filter):
     filters only see records logged directly on it, so records that
     propagate up from a child logger (discord.py, aiosqlite) would reach
     the formatter without a `guild` attribute and raise on format.
-    #autodoc skip#
     """
 
     def filter(self, record):

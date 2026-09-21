@@ -27,7 +27,6 @@ class OwnerOnlyCheckFailure(discord.app_commands.CheckFailure):
     tree-level error handler in `__main__.py` can reply with a precise
     "bot owner only" message instead of the more general
     `common.msg_no_manage_guild_permission` used for the other checks.
-    #autodoc skip#
     """
 
 
@@ -41,7 +40,6 @@ def is_owner_or_manage_guild():
     access. A `discord.app_commands.CheckFailure` raised by this is
     caught by the tree-level error handler in `__main__.py`, which
     replies with `common.msg_no_manage_guild_permission`.
-    #autodoc skip#
     """
 
     async def predicate(interaction: discord.Interaction) -> bool:
@@ -64,7 +62,6 @@ def is_owner():
     subclass) on rejection, rather than just returning `False`, so the
     tree-level error handler in `__main__.py` can reply with a precise
     "bot owner only" message.
-    #autodoc skip#
     """
 
     async def predicate(interaction: discord.Interaction) -> bool:
@@ -84,7 +81,6 @@ def is_owner_or_has_permission(permission: str):
     Discord's own precise moderation permissions rather than the
     broader `manage_guild`. A `discord.app_commands.CheckFailure` raised
     by this is caught by the tree-level error handler in `__main__.py`.
-    #autodoc skip#
     """
 
     async def predicate(interaction: discord.Interaction) -> bool:
@@ -102,7 +98,6 @@ def get_channel_name(guild: discord.Guild, channel_in) -> str:
     A feed keeps posting to a channel id in the database long after the
     channel itself is gone (deleted, or moved out of the bot's reach), so
     fall back to a placeholder with the raw id instead of raising.
-    #autodoc skip#
     """
     try:
         channel_out = guild.get_channel_or_thread(int(channel_in))
@@ -145,7 +140,6 @@ async def get_message_obj(guild: discord.Guild, msg_id: int, channel_id: int) ->
 def get_text_channel_list(guild: discord.Guild):
     """
     Get a dict of all text channels and their ID's
-    #autodoc skip#
     """
     channel_dict = {}
     if guild is None:
@@ -159,7 +153,6 @@ def get_text_channel_list(guild: discord.Guild):
 def channel_exist(guild: discord.Guild, channel_in):
     """
     Check if channel actually exist on server
-    #autodoc skip#
     """
     all_channels = get_text_channel_list(guild)
     return channel_in in all_channels
@@ -218,7 +211,6 @@ async def create_missing_channel(
 def get_voice_channel_list(guild: discord.Guild):
     """
     Get a dict of all voice channels and their ID's
-    #autodoc skip#
     #"""
     channel_dict = {}
     # Get all channels and their IDs
@@ -230,7 +222,6 @@ def get_voice_channel_list(guild: discord.Guild):
 async def get_scheduled_events(guild: discord.Guild):
     """
     Get all scheduled events from server
-    #autodoc skip#
     """
     event_dict = {}
     if guild.scheduled_events is None:
@@ -263,7 +254,6 @@ async def get_scheduled_events(guild: discord.Guild):
 async def get_sorted_scheduled_events(guild: discord.Guild):
     """
     Get a sorted list of events and prettify it
-    #autodoc skip#
     """
     # Sort the dict based on epoch
     events_in = await get_scheduled_events(guild)
@@ -302,7 +292,6 @@ def get_roles(
 ):
     """
     Get a dict of all roles on server and their ID's
-    #autodoc skip#
     """
     hide_empties = eval(hide_empties) if hide_empties else False
     filter_bots = eval(filter_bots) if filter_bots else False
@@ -368,7 +357,6 @@ async def swap_link_in_msg(msg, replace_content, replace_with):
     dict catches the title url and the listen-link in one go.
 
     Returns True if the message was edited.
-    #autodoc skip#
     """
     if replace_content in msg.content:
         await msg.edit(content=msg.content.replace(replace_content, replace_with))
@@ -397,7 +385,6 @@ async def replace_post(
     last `REPLACE_POST_HISTORY` messages are searched as a fallback.
 
     Returns True if a message was edited.
-    #autodoc skip#
     """
     channel_out = guild.get_channel(int(channel_in))
     if channel_out is None:
@@ -423,7 +410,6 @@ async def replace_post(
 async def remove_stats_post(guild: discord.Guild, stats_channel):
     """
     Remove stats-post
-    #autodoc skip#
     """
     server_channels = get_text_channel_list(guild)
     if stats_channel in server_channels:

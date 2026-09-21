@@ -53,7 +53,6 @@ async def is_guild_approved(guild_id) -> bool:
     bot-wide event handlers (reaction/member events etc.) that don't go
     through a slash command interaction, to make sure a guild's services
     stay inactive until it's been approved via /approve-guild.
-    #autodoc skip#
     """
     row = await get_output(
         envs.guilds_db_schema, where=("guild_id", str(guild_id)), single=True
@@ -74,7 +73,6 @@ async def ensure_guild_tasks_rows(guild_id) -> None:
     a two-column `setting`/`value` schema, which `tasks_db_schema`
     (`cog`/`task`/`status`) is not - using it here would silently
     re-insert every canonical row on every call.
-    #autodoc skip#
     """
     await prep_table(envs.tasks_db_schema, guild_id=guild_id)
     existing = await get_output(
@@ -104,7 +102,6 @@ async def ensure_admin_guild_table() -> None:
     supplied` - leaving the bot with no admin guild stored at all. Every
     cog-owned schema pairs `prep_table()` with `add_missing_db_setup()`
     for this reason; do the same for the one table __main__.py owns.
-    #autodoc skip#
     """
     await prep_table(envs.admin_guild_db_schema)
     await add_missing_db_setup(envs.admin_guild_db_schema)
@@ -449,7 +446,7 @@ async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
     again. Pull the uuid back out and write it in place.
 
     Safe to call repeatedly (idempotent): a row that already holds a
-    plain uuid is left alone. #autodoc skip#
+    plain uuid is left alone.
     """
     db_file = envs.resolve_db_file(template_info, guild_id)
     table_name = template_info["name"]
@@ -501,7 +498,7 @@ async def db_copy_table_between_files(
     after the upgrade), and copying again would either duplicate rows or
     collide with the primary key. Safe to call repeatedly (idempotent).
 
-    Returns the number of rows copied. #autodoc skip#
+    Returns the number of rows copied.
     """
     target_db_file = envs.resolve_db_file(template_info, guild_id)
     target_table = template_info["name"]
@@ -706,7 +703,6 @@ async def json_to_db_inserts(cog_name):
     """
     This is a cleanup function to be used for converting from old json
     files to sqlite files
-    #autodoc skip#
     """
     logger.info("Converting json to db")
     logger.info(f"Processing `{cog_name}`")

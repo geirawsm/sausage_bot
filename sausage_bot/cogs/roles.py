@@ -2166,7 +2166,6 @@ async def ensure_guild_roles_tables(guild):
     """
     Prep this guild's roles tables, and fix up any legacy channel-name
     data. Safe to call repeatedly (idempotent).
-    #autodoc skip#
     """
     await db_helper.prep_table(table_in=envs.roles_db_msgs_schema, guild_id=guild.id)
     await db_helper.prep_table(table_in=envs.roles_db_roles_schema, guild_id=guild.id)

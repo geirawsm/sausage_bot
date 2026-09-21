@@ -528,7 +528,6 @@ def get_member_name(guild: discord.Guild, member_in) -> str:
     """
     Get the name of the member `member_in` in `guild`, falling back to a
     placeholder with the raw id if the member has left the guild.
-    #autodoc skip#
     """
     try:
         member_out = guild.get_member(int(member_in))
@@ -608,7 +607,6 @@ async def get_feed_list(
         Check a feed against `link_type`. Doing this in the query would
         need an `IS (NOT) NULL`, which `db_helper.get_output` doesn't
         support.
-        #autodoc skip#
         """
         if not show_playlist_id:
             return True
@@ -767,8 +765,6 @@ def decide_link_action(link, item_hash, log_in):
         ("skip", None)   - already posted
         ("replace", row) - edit the message the logged row points at
         ("post", None)   - never seen before
-
-    #autodoc skip#
     """
     if not log_in:
         logger.debug("Log is empty, posting")
@@ -796,7 +792,6 @@ async def update_log_link(template_info, uuid, old_link, new_link, guild):
 
     Without this the log keeps the old link, and the same message gets
     edited once per run for as long as the item stays in the feed.
-    #autodoc skip#
     """
     logger.info(f"Moving log entry `{old_link}` to `{new_link}`")
     await db_helper.update_fields(
@@ -846,7 +841,6 @@ def channel_is_gone(guild: discord.Guild, channel_in) -> bool:
 
     A feed keeps its channel id in the database long after the channel
     itself is gone (deleted, or moved out of the bot's reach).
-    #autodoc skip#
     """
     try:
         return guild.get_channel_or_thread(int(channel_in)) is None
@@ -860,7 +854,6 @@ async def report_dead_channel(feed_db, uuid, feed_name, channel, guild):
     Mark the feed as failed so it stops being picked up, and tell the
     guild's bot channel about it. Repeats within
     `DEAD_CHANNEL_ALERT_COOLDOWN` seconds are logged but not posted.
-    #autodoc skip#
     """
     await db_helper.update_fields(
         template_info=feed_db,
@@ -894,7 +887,6 @@ async def reg_feed_error(feed_db, feed, guild, status_in):
 
         OK --3 errors--> Failed --3 errors--> Stale
         every 10 min     every 6 h           left alone
-    #autodoc skip#
     """
     status_now = feed["status_url"]
     feed_name = feed["feed_name"]
@@ -945,7 +937,6 @@ async def reg_feed_ok(feed_db, feed, guild):
     """
     Clear the failure count after a good fetch, and bring the feed back
     into rotation if it had been stood down.
-    #autodoc skip#
     """
     status_now = feed["status_url"]
     count = feed["status_url_counter"] or 0
@@ -980,7 +971,6 @@ async def retry_failed(feed_type, feed_db, guild, not_like=()):
 
     Nothing is posted from here - a revived feed goes back to `OK` and
     the normal posting loop picks it up on its next tick.
-    #autodoc skip#
     """
     feeds = await db_helper.get_output(
         template_info=feed_db,
@@ -1008,7 +998,6 @@ async def reset_url_errors(feed_db, guild, feed_name=None):
     Put feeds that were stood down for url errors back in rotation, and
     return the names that were reset. Without `feed_name`, every broken
     feed in the guild is reset.
-    #autodoc skip#
     """
     feeds = await db_helper.get_output(
         template_info=feed_db,

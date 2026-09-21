@@ -32,7 +32,6 @@ class Cogs(commands.Cog):
         extensions loaded by an earlier run stay loaded - reloading one
         raises `ExtensionAlreadyLoaded`, which used to abort the rest of
         `on_ready` (including the bot channel check) on every reconnect.
-        #autodoc skip#
         """
         try:
             await config.bot.load_extension(
@@ -46,7 +45,6 @@ class Cogs(commands.Cog):
     async def unload_cog_internal(cog_name):
         """
         Unload a specific cog by `cog_name`
-        #autodoc skip#
         """
         try:
             await config.bot.unload_extension(
@@ -59,7 +57,6 @@ class Cogs(commands.Cog):
     async def reload_cog_internal(cog_name):
         """
         Reload a specific cog by `cog_name`
-        #autodoc skip#
         """
         await config.bot.reload_extension(
             "{}.{}".format(envs.COGS_REL_DIR, f"{cog_name}")
@@ -69,7 +66,6 @@ class Cogs(commands.Cog):
     async def load_and_clean_cogs_internal():
         """
         Load cogs from the cog-dir
-        #autodoc skip#
         """
         if args.selected_cogs:
             logger.debug(f"selected_cogs is activated: {args.selected_cogs}")

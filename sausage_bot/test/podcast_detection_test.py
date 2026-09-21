@@ -19,7 +19,6 @@ from sausage_bot.util.net_io import (
 
 
 def soup_from(path):
-    "#autodoc skip#"
     with open(path, "rb") as fd:
         return BeautifulSoup(fd.read(), features="xml")
 

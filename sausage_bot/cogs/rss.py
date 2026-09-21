@@ -1147,7 +1147,6 @@ class RSSfeed(commands.Cog):
 
     @task_post_feeds.before_loop
     async def before_post_new_feeds():
-        "#autodoc skip#"
         logger.debug("`post_feeds` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -1191,7 +1190,6 @@ class RSSfeed(commands.Cog):
 
     @task_retry_failed.before_loop
     async def before_retry_failed():
-        "#autodoc skip#"
         logger.debug("`retry_failed` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -1330,7 +1328,6 @@ class RSSfeed(commands.Cog):
 
     @task_post_podcasts.before_loop
     async def before_post_new_podcasts():
-        "#autodoc skip#"
         logger.debug("`task_post_podcasts` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -1339,7 +1336,6 @@ async def ensure_guild_rss_tables(guild):
     """
     Prep this guild's RSS/podcast tables, and fix up any legacy
     channel-name/feed-type data. Safe to call repeatedly (idempotent).
-    #autodoc skip#
     """
     missing_tbl_cols = {}
     await db_helper.prep_table(table_in=envs.rss_db_schema, guild_id=guild.id)

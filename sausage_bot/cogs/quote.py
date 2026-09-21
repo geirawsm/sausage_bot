@@ -237,7 +237,6 @@ def get_quote_channel_name(guild: discord.Guild, quote: dict) -> str:
     never posted in a Discord channel in the first place), so fall back
     to `channel_backup` both when the id is missing and when it no longer
     resolves to a channel in this guild.
-    #autodoc skip#
     """
     channel_id = quote.get("channel_id")
     if channel_id in [None, ""]:
@@ -258,7 +257,6 @@ async def delete_quote_with_content(guild_id, uuid: str, rowid) -> None:
     base64 image is by far the largest thing this database stores - plus
     log rows that kept a no longer existing uuid excluded from random
     picks for good.
-    #autodoc skip#
     """
     comment_rows = await db_helper.get_output(
         template_info=envs.quote_content_db_schema,
@@ -296,7 +294,6 @@ async def delete_quote_with_content(guild_id, uuid: str, rowid) -> None:
 async def get_random_quote(guild_id, testmode=False):
     """
     Return rowid for random quote
-    #autodoc skip#
     """
     row_id = await db_helper.get_row_ids(envs.quote_db_schema, guild_id=guild_id)
     if row_id is None or len(row_id) == 0:
@@ -1540,7 +1537,6 @@ class Quotes(commands.Cog):
 
     @task_autopost.before_loop
     async def before_task_autopost():
-        "#autodoc skip#"
         logger.debug("`task_autopost` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -1702,7 +1698,6 @@ async def ensure_guild_quote_tables(guild):
     """
     Prep this guild's quote tables, and fix up any legacy channel-name
     data. Safe to call repeatedly (idempotent).
-    #autodoc skip#
     """
     await db_helper.prep_table(table_in=envs.quote_db_schema, guild_id=guild.id)
     await db_helper.prep_table(table_in=envs.quote_db_log_schema, guild_id=guild.id)
@@ -1740,5 +1735,4 @@ async def setup(bot):
 
 
 async def teardown(bot):
-    "#autodoc skip#"
     Quotes.task_autopost.cancel()

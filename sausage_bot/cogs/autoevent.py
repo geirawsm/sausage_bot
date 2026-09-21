@@ -45,7 +45,6 @@ async def event_names_autocomplete(
 
 
 class AutoEvent(commands.Cog):
-    "#autodoc skip#"
 
     def __init__(self, bot):
         self.bot = bot

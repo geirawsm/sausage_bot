@@ -29,7 +29,6 @@ class Dilemmas(commands.Cog):
         def prettify(dilemmas_in):
             """
             Enclosing `dilemmas_in` in quotation marks
-            #autodoc skip#
             """
             out = "```{}```".format(dilemmas_in)
             return out

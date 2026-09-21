@@ -48,7 +48,6 @@ def canonical_allow_deny(value) -> str | None:
     - `Tillat`/`Nekt` on a Norwegian guild - is a filter that never
     applies to anything. Any language the bot has locale files for is
     recognized. Returns None for values that match nothing.
-    #autodoc skip#
     """
     _value = str(value).strip().lower()
     if _value in ("allow", "deny"):
@@ -67,7 +66,7 @@ def localized_allow_deny(value) -> str:
     """
     The `allow_or_deny` of a filter, in the language of the guild we are
     talking to. Values that match no known translation are passed
-    through as they are. #autodoc skip#
+    through as they are.
     """
     canonical = canonical_allow_deny(value)
     if canonical is None:
@@ -83,7 +82,6 @@ class YoutubeApiError(Exception):
     user should see - built at raise time from an i18n key, so the
     message follows the guild's locale and not whatever language the
     exception happened to be written in.
-    #autodoc skip#
     """
 
     def __init__(self, log_msg: str, locale_key: str, **locale_params):
@@ -92,7 +90,6 @@ class YoutubeApiError(Exception):
         super().__init__(log_msg)
 
     def localized(self) -> str:
-        "#autodoc skip#"
         return I18N.t(self.locale_key, **self.locale_params)
 
 
@@ -110,7 +107,6 @@ def youtube_api():
     oauth2client<4.0.0, which is not installed. Leaving it on only logs
     `file_cache is only supported with oauth2client<4.0.0` and carries
     on uncached anyway.
-    #autodoc skip#
     """
     global _youtube_api
     if _youtube_api is None:
@@ -139,7 +135,6 @@ async def api_call(func, *args, **kwargs):
     Calls still go out one at a time: the client `youtube_api()` builds
     is shared, and the httplib2 http object underneath it is not thread
     safe.
-    #autodoc skip#
     """
     return await asyncio.to_thread(func, *args, **kwargs)
 
@@ -1090,7 +1085,6 @@ class Youtube(commands.Cog):
 
     @task_post_videos.before_loop
     async def before_post_new_videos():
-        "#autodoc skip#"
         logger.debug("`post_videos` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -1129,7 +1123,6 @@ class Youtube(commands.Cog):
 
     @task_retry_failed.before_loop
     async def before_retry_failed():
-        "#autodoc skip#"
         logger.debug("`retry_failed` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
@@ -1157,7 +1150,7 @@ async def migrate_legacy_youtube_tables(guild):
 
     The legacy files are left on disk untouched. Safe to call repeatedly
     (idempotent): `db_copy_table_between_files()` skips any table that
-    already holds rows. #autodoc skip#
+    already holds rows.
     """
     db_dir = envs.guild_db_dir(guild.id)
     legacy_feeds_db = db_dir / LEGACY_FEEDS_DB_FILE
@@ -1217,7 +1210,6 @@ async def normalize_filter_allow_deny(guild):
     non-English guild went into the database as something
     `net_io.post_based_on_filter` does not recognize, and was skipped on
     each posting round. Safe to call repeatedly (idempotent).
-    #autodoc skip#
     """
     stored_values = await db_helper.get_output(
         template_info=envs.youtube_db_filter_schema,
@@ -1260,7 +1252,6 @@ async def backfill_missing_playlist_ids(guild):
     answers `400 No filter selected` on an empty one, and that used to
     end the task for every guild. Safe to call repeatedly (idempotent):
     only a row with an empty `playlist_id` costs an API call.
-    #autodoc skip#
     """
     feeds = await db_helper.get_output(
         template_info=envs.youtube_db_schema,
@@ -1331,7 +1322,6 @@ async def ensure_guild_youtube_tables(guild):
     """
     Prep this guild's Youtube tables, and fix up any legacy channel-name
     data. Safe to call repeatedly (idempotent).
-    #autodoc skip#
     """
     await db_helper.prep_table(table_in=envs.youtube_db_schema, guild_id=guild.id)
     await db_helper.prep_table(

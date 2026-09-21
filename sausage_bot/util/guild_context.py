@@ -12,8 +12,6 @@ gets its own copy of these vars.
 Read from here directly in synchronous code (`i18n.py`, `datetime_handling.py`).
 Set via `db_helper.guild_locale_context()`, which does the async DB lookup
 needed to populate these values for a given guild.
-
-#autodoc skip#
 """
 
 import contextvars

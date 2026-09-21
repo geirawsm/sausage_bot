@@ -209,7 +209,6 @@ def guild_choice_label(guild_name, guild_id) -> str:
     makes it obvious that the *value* behind a choice is the guild id,
     not the name. Discord caps choice labels at 100 characters, so the
     name is trimmed rather than the id.
-    #autodoc skip#
     """
     suffix = " ({})".format(guild_id)
     name = str(guild_name or "")
@@ -226,7 +225,6 @@ def guild_choice_matches(current: str, guild_name, guild_id) -> bool:
     against a cased guild name meant a lowercase search returned no
     choices at all, which is what makes people type the guild name out
     in full instead of picking a choice.
-    #autodoc skip#
     """
     haystack = "{} ({})".format(guild_name, guild_id).lower()
     return current.lower() in haystack
@@ -244,7 +242,6 @@ async def resolve_guild_row(guild_id: str) -> dict | None:
     that free text (quotes included) never reaches the query builder.
 
     Returns the matching row, or None when nothing matches.
-    #autodoc skip#
     """
     all_guilds = await db_helper.get_output(envs.guilds_db_schema)
     if not all_guilds:
@@ -277,7 +274,6 @@ def resolve_guild_arg(guild_arg) -> discord.Guild | None:
 
     Accepts a guild id or, since autocomplete never restricts what can
     be submitted, a typed guild name.
-    #autodoc skip#
     """
     if guild_arg in (None, ""):
         return None
@@ -348,7 +344,6 @@ async def admin_guild_autocomplete(
     Unlike `all_guilds_autocomplete` this reads `config.bot.guilds`
     rather than the registry: the admin guild has to be one the bot can
     actually read and post in, so guilds it has left don't belong here.
-    #autodoc skip#
     """
     return [
         discord.app_commands.Choice(
@@ -364,7 +359,6 @@ def current_admin_guild() -> discord.Guild | None:
     """
     The guild `config.ADMIN_GUILD_ID` currently points at, or None when
     none is configured or the bot isn't in it.
-    #autodoc skip#
     """
     return resolve_guild_arg(config.ADMIN_GUILD_ID)
 
@@ -383,7 +377,6 @@ def admin_channel_choices(
     Filtering on what's typed also means the 25 choice cap acts as a
     search limit rather than a ceiling on how many channels a guild may
     have.
-    #autodoc skip#
     """
     if guild is None:
         return []
@@ -429,7 +422,6 @@ async def admin_channel_autocomplete(
 
     Returns nothing while `guild` is still empty. The user can type a
     channel name anyway - `set_admin_guild()` reports the missing guild.
-    #autodoc skip#
     """
     guild = resolve_guild_arg(getattr(interaction.namespace, "guild", None))
     return admin_channel_choices(guild, current)
@@ -443,7 +435,6 @@ async def admin_channel_only_autocomplete(
     Text channels in the guild that is *already* the admin guild, for
     `/guild set_admin_channel`. There is no `guild` parameter to read
     here - the target is whatever `config.ADMIN_GUILD_ID` points at.
-    #autodoc skip#
     """
     return admin_channel_choices(current_admin_guild(), current)
 
@@ -457,7 +448,6 @@ async def register_guild(guild: discord.Guild):
     is the admin guild, which is auto-approved again on the way back in.
     Other existing rows are left untouched. Status change via
     `/approve-guild` or `on_guild_remove`.
-    #autodoc skip#
     """
     # Defensive: on_ready() already preps this table, but on_guild_join()
     # can also reach this function directly - prep_table is a cheap,
@@ -527,7 +517,6 @@ async def register_guild(guild: discord.Guild):
 async def notify_admin_of_new_guild(
     guild: discord.Guild, rejoined=False, auto_approved=False
 ):
-    "#autodoc skip#"
     if not config.ADMIN_CHANNEL_ID:
         return
     content = ""
@@ -583,7 +572,6 @@ async def notify_admin_of_new_guild(
 async def on_guild_join(guild: discord.Guild):
     """
     Called when the bot is added to a new guild.
-    #autodoc skip#
     """
     logger.info(f"Joined new guild:\nName: {guild.name}\nGuild ID: {guild.id}")
     await register_guild(guild)
@@ -599,7 +587,6 @@ async def on_guild_remove(guild: discord.Guild):
     Called when the bot is removed from a guild. Data is kept, not
     deleted - only the guild's status is updated, so re-adding the bot
     later does not require going through approval again.
-    #autodoc skip#
     """
     logger.info(f"Removed from guild: `{guild.name}` ({guild.id})")
     await db_helper.update_fields(
@@ -623,7 +610,6 @@ async def seed_admin_guild_from_env() -> bool:
     typo in the env file into a db row that outlives the env file itself.
 
     Returns True when a row was written.
-    #autodoc skip#
     """
     guild_id = str(config.ADMIN_GUILD_ID or "").strip()
     channel_id = str(config.ADMIN_CHANNEL_ID or "").strip()
@@ -682,7 +668,6 @@ async def load_admin_guild_from_db() -> None:
     Called from `on_ready()` *before* guilds are registered, because
     `register_guild()` decides auto-approval by comparing against
     `config.ADMIN_GUILD_ID`.
-    #autodoc skip#
     """
     await db_helper.ensure_admin_guild_table()
     admin_row = await db_helper.get_output(envs.admin_guild_db_schema, single=True)
@@ -744,7 +729,6 @@ async def on_ready():
     every guild it's currently a member of (covers guilds joined while
     the bot was offline), and make sure the bot channel exists in every
     approved guild.
-    #autodoc skip#
     """
     await config.bot.tree.set_translator(MyTranslator())
     logger.info(
@@ -842,7 +826,6 @@ async def on_app_command_error(
     `discord_commands.OwnerOnlyCheckFailure` (raised by `is_owner()`) is
     checked first, since it's a subclass of the generic
     `CheckFailure`, so it gets its own more precise message.
-    #autodoc skip#
     """
     if isinstance(error, discord_commands.OwnerOnlyCheckFailure):
         msg = I18N.t("common.msg_owner_only")
@@ -934,7 +917,6 @@ class LeaveGuildConfirm_view(discord.ui.View):
     Yes/no confirmation for `/leave_guild`. `value` is True when the
     owner confirmed, False when they cancelled, and stays None when the
     view timed out without a press.
-    #autodoc skip#
     """
 
     def __init__(self, user_id: int, timeout: int = 60):
@@ -952,7 +934,6 @@ class LeaveGuildConfirm_view(discord.ui.View):
         return True
 
     def disable_buttons(self):
-        "#autodoc skip#"
         for _btn in self.children:
             _btn.disabled = True
 
@@ -963,7 +944,6 @@ class LeaveGuildConfirm_view(discord.ui.View):
     async def confirm(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        "#autodoc skip#"
         self.value = True
         self.disable_buttons()
         await interaction.response.edit_message(view=self)
@@ -974,14 +954,12 @@ class LeaveGuildConfirm_view(discord.ui.View):
         style=discord.ButtonStyle.secondary,
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        "#autodoc skip#"
         self.value = False
         self.disable_buttons()
         await interaction.response.edit_message(view=self)
         self.stop()
 
     async def on_timeout(self):
-        "#autodoc skip#"
         self.disable_buttons()
 
 
@@ -995,7 +973,6 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
     channel nobody asked for. `value` is True when the owner confirmed,
     False when they cancelled, and stays None when the view timed out
     without a press.
-    #autodoc skip#
     """
 
     def __init__(self, user_id: int, timeout: int = 60):
@@ -1014,7 +991,6 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
         return True
 
     def disable_buttons(self):
-        "#autodoc skip#"
         for _btn in self.children:
             _btn.disabled = True
 
@@ -1025,7 +1001,6 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
     async def confirm(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        "#autodoc skip#"
         self.value = True
         self.disable_buttons()
         await interaction.response.edit_message(view=self)
@@ -1036,14 +1011,12 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
         style=discord.ButtonStyle.secondary,
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        "#autodoc skip#"
         self.value = False
         self.disable_buttons()
         await interaction.response.edit_message(view=self)
         self.stop()
 
     async def on_timeout(self):
-        "#autodoc skip#"
         self.disable_buttons()
 
 
@@ -1068,7 +1041,6 @@ async def resolve_admin_channel(
     just return. `prompt` is the confirmation message when one was
     shown, so callers can edit their own prompt into the final answer
     instead of stacking a second message below it.
-    #autodoc skip#
     """
     channel_arg = str(channel_arg or "").strip()
     if not channel_arg:
@@ -1208,7 +1180,6 @@ async def _persist_admin_guild(
     expected to report that instead of confirming a change that did not
     happen. `--not-write-database` is not a failure: nothing is written,
     but the config still follows along so the rest of the run behaves.
-    #autodoc skip#
     """
     await db_helper.ensure_admin_guild_table()
     await db_helper.empty_table(envs.admin_guild_db_schema)
@@ -1236,7 +1207,6 @@ async def _approve_admin_guild(guild: discord.Guild, approved_by: int) -> None:
 
     A guild that is already approved keeps its original approver and
     timestamp.
-    #autodoc skip#
     """
     guild_row = await resolve_guild_row(str(guild.id))
     if guild_row is None:
@@ -1282,7 +1252,6 @@ class Guild(commands.Cog):
     )
     @discord.app_commands.autocomplete(guild_id=pending_guilds_autocomplete)
     async def approve_guild(self, interaction: discord.Interaction, guild_id: str):
-        "#autodoc skip#"
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
@@ -1350,7 +1319,6 @@ class Guild(commands.Cog):
     )
     @discord.app_commands.autocomplete(guild_id=all_guilds_autocomplete)
     async def leave_guild(self, interaction: discord.Interaction, guild_id: str):
-        "#autodoc skip#"
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
@@ -1452,7 +1420,6 @@ class Guild(commands.Cog):
         self,
         interaction: discord.Interaction,
     ):
-        "#autodoc skip#"
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
@@ -1531,7 +1498,6 @@ class Guild(commands.Cog):
         guild commands: this is the command that fixes a wrong admin
         guild, so requiring the admin guild to be right would lock the
         owner out of the only way back.
-        #autodoc skip#
         """
         await interaction.response.defer(ephemeral=True)
         target_guild = resolve_guild_arg(guild)
@@ -1600,7 +1566,6 @@ class Guild(commands.Cog):
         this only ever touches the admin guild's own channel, so there
         is no lockout to escape from. A wrong *guild* is still fixed
         with `/guild set_admin_guild` from anywhere.
-        #autodoc skip#
         """
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
@@ -1890,7 +1855,6 @@ async def say(
 async def get_tasks_list(interaction: discord.Interaction):
     """
     Get a pretty list of this guild's own posting tasks and their status.
-    #autodoc skip#
     """
     await interaction.response.defer(ephemeral=True)
     tasks_in_db = await db_helper.get_output(
@@ -1919,7 +1883,6 @@ async def get_tasks_global_list(interaction: discord.Interaction):
     """
     Get a pretty, aggregated list of every approved guild's posting
     tasks and their status. Admin-guild only.
-    #autodoc skip#
     """
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
@@ -2013,7 +1976,7 @@ async def language(interaction: discord.Interaction, language: str):
 
 
 async def _persist_bot_channel(guild: discord.Guild, name: str) -> None:
-    "Store `name` as the guild's `bot_channel` setting. #autodoc skip#"
+    "Store `name` as the guild's `bot_channel` setting.
     await db_helper.update_fields(
         envs.settings_db_schema,
         where=("setting", "bot_channel"),
@@ -2028,7 +1991,6 @@ class DuplicateChannelModal(discord.ui.Modal):
     new bot channel. The new channel inherits the source channel's
     permission overwrites and category, and is placed right after the
     source in the channel list.
-    #autodoc skip#
     """
 
     def __init__(self, default_name: str):
@@ -2095,7 +2057,6 @@ class CreateBotChannelView(discord.ui.View):
     Shown when the requested bot channel does not exist yet. Offers to
     duplicate an existing channel (opens `DuplicateChannelModal`), create a
     fresh empty channel, or cancel.
-    #autodoc skip#
     """
 
     def __init__(self, channel_name: str):
@@ -2204,7 +2165,6 @@ async def timezone(interaction: discord.Interaction, timezone: str):
 def _has_manage_bot_profile_permission(
     interaction: discord.Interaction,
 ) -> bool:
-    "#autodoc skip#"
     perms = interaction.user.guild_permissions
     return perms.administrator or perms.manage_nicknames
 
