@@ -15,7 +15,7 @@ import asyncio
 from contextlib import suppress
 
 from sausage_bot.util import envs, config, datetime_handling, net_io
-from sausage_bot.util import discord_commands
+from sausage_bot.util import discord_commands, guild_context
 from sausage_bot.util.i18n import I18N
 
 logger = config.logger
@@ -99,7 +99,8 @@ class AutoEvent(commands.Cog):
                 stadium = scr["stadium"]
                 _dt = scr["datetime"]
                 start_text = _dt["start_dt"].format(
-                    "d. MMMM, HH:mm"
+                    "D. MMMM, HH:mm",
+                    locale=guild_context.current_locale.get()
                 )
                 rel_start = _dt["rel_start"]
                 start_event = _dt["start_event"]

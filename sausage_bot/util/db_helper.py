@@ -19,6 +19,31 @@ from .datetime_handling import get_dt
 logger = config.logger
 
 
+async def set_guild_context(guild_id):
+    """
+    Load `guild_id`'s language/timezone settings and set them as the
+    active guild context (see `util.guild_context`) for the rest of the
+    current asyncio Task, without resetting them again.
+
+    Used by `config.GuildContextTree.interaction_check()`, which runs in
+    the same Task as the slash command it precedes - the Task ends with
+    the command, so there is nothing to reset. Code that needs the
+    context only for a block (background tasks) uses
+    `guild_locale_context()` instead.
+
+    Returns the contextvar tokens, so callers that do need to restore the
+    previous context can reset them.
+    """
+    settings = await get_output(
+        envs.settings_db_schema, guild_id=guild_id, as_settings_json=True
+    )
+    return (
+        guild_context.current_guild_id.set(guild_id),
+        guild_context.current_locale.set(settings.get("language", "en")),
+        guild_context.current_timezone.set(dict(settings).get("timezone", "UTC")),
+    )
+
+
 @asynccontextmanager
 async def guild_locale_context(guild_id):
     """
@@ -33,12 +58,7 @@ async def guild_locale_context(guild_id):
         async with db_helper.guild_locale_context(guild.id):
             await interaction.response.send_message(I18N.t("..."))
     """
-    settings = await get_output(
-        envs.settings_db_schema, guild_id=guild_id, as_settings_json=True
-    )
-    id_token = guild_context.current_guild_id.set(guild_id)
-    locale_token = guild_context.current_locale.set(settings.get("language", "en"))
-    tz_token = guild_context.current_timezone.set(dict(settings).get("timezone", "UTC"))
+    id_token, locale_token, tz_token = await set_guild_context(guild_id)
     try:
         yield
     finally:

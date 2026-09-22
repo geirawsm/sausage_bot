@@ -152,10 +152,42 @@ for folder in check_and_create_folders:
         os.makedirs(folder)
 
 
+class GuildContextTree(discord.app_commands.CommandTree):
+    """
+    Command tree that loads the guild's language/timezone settings before
+    any interaction is invoked, so `I18N.t()` and `get_dt()`/`make_dt()`
+    resolve per guild inside slash commands - not just in the background
+    tasks, which set the context themselves.
+
+    discord.py runs `interaction_check()` in the same asyncio Task as the
+    command callback, and contextvars follow that Task:
+
+        _call() -> interaction_check()  <- context set here
+                -> command callback     <- still set here
+
+    An interaction is never blocked by this check; a failed settings
+    lookup only means the guild falls back to the `guild_context`
+    defaults (en/UTC).
+    """
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Imported here, since db_helper imports this module
+        from . import db_helper
+
+        if interaction.guild_id is not None:
+            try:
+                await db_helper.set_guild_context(interaction.guild_id)
+            except Exception as e:
+                logger.error(f"Could not set guild context: {e}")
+        return True
+
+
 try:
     intents = discord.Intents.all()
     intents.members = True
-    bot = commands.Bot(command_prefix=PREFIX, intents=intents)
+    bot = commands.Bot(
+        command_prefix=PREFIX, intents=intents, tree_cls=GuildContextTree
+    )
 except KeyError as e:
     logger.error(f"Couldn't load basic env: {e}")
     exit()
