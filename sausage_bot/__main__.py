@@ -1976,7 +1976,7 @@ async def language(interaction: discord.Interaction, language: str):
 
 
 async def _persist_bot_channel(guild: discord.Guild, name: str) -> None:
-    "Store `name` as the guild's `bot_channel` setting.
+    "Store `name` as the guild's `bot_channel` setting."
     await db_helper.update_fields(
         envs.settings_db_schema,
         where=("setting", "bot_channel"),
