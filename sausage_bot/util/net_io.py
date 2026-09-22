@@ -812,7 +812,7 @@ async def parse(url: str = None, guild=None):
             logger.error(error_msg)
             return None
     elif PARSER == "vglive":
-        if not re.fullmatch(r'http?s:\/\/vglive\.vg\.no\/.*/rapport', url):
+        if not re.fullmatch(r'http?s:\/\/vglive\.vg\.no\/.*/(rapport|info|tabell|statistikk)', url):
             logger.error("The vglive url is not from a match page")
             return None
         try:
@@ -890,7 +890,7 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
 
     # Get info relevant for the event
     if url_in:
-        _id = re.match(r".*/(\d+)\/rapport", url_in).group(1)
+        _id = re.match(r".*/(\d+)\/(rapport|info|tabell|statistikk)", url_in).group(1)
         _match_info = await get_link(base_url.format(_id))
         match_json = json.loads(_match_info)
     elif mock_in:

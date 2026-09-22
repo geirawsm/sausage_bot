@@ -99,7 +99,7 @@ class AutoEvent(commands.Cog):
                 stadium = scr["stadium"]
                 _dt = scr["datetime"]
                 start_text = _dt["start_dt"].format(
-                    "d. MMMM, HH:mm", locale=datetime_handling.locale
+                    "d. MMMM, HH:mm"
                 )
                 rel_start = _dt["rel_start"]
                 start_event = _dt["start_event"]
