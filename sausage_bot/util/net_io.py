@@ -740,7 +740,7 @@ async def make_event_start_stop(date, time=None):
         logger.debug(f"`start_event` is {start_event}")
         # Make an enddate for the event that should stop approximately
         # 30 minutes after the match is over
-        end_dt = datetime_handling.change_dt(start_dt, "add", 2.5, "hours")
+        end_dt = datetime_handling.change_dt(start_dt, "add", 2, "hours")
         logger.debug(f"`end_dt` is {end_dt}")
         # Make the epochs that the event will use
         event_start_epoch = await datetime_handling.get_dt(dt=start_event)
@@ -752,6 +752,7 @@ async def make_event_start_stop(date, time=None):
         event_rel_start = discord.utils.format_dt(
             datetime.fromtimestamp(event_start_epoch), "R"
         )
+        logger.debug("Returning event start stop info successfully")
         return {
             "start_date": start_date,
             "start_time": start_time,
@@ -811,7 +812,7 @@ async def parse(url: str = None, guild=None):
             logger.error(error_msg)
             return None
     elif PARSER == "vglive":
-        if "/kamp/" not in url:
+        if not re.fullmatch(r'http?s:\/\/vglive\.vg\.no\/.*/rapport', url):
             logger.error("The vglive url is not from a match page")
             return None
         try:
@@ -889,7 +890,7 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
 
     # Get info relevant for the event
     if url_in:
-        _id = re.match(r".*/kamp/.*/(\d+)/.*", url_in).group(1)
+        _id = re.match(r".*/(\d+)\/rapport", url_in).group(1)
         _match_info = await get_link(base_url.format(_id))
         match_json = json.loads(_match_info)
     elif mock_in:
@@ -911,7 +912,11 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
         tv_json = json.loads(_tv_info)
     logger.debug(f"Got `tv_json`:\n{pformat(tv_json)}")
     teams = match_json["event"]["participantIds"]
-    if "venue" in match_json["event"]["details"]:
+    logger.debug("Fant kamp mellom {} og {}".format(
+        match_json["participants"][str(teams[0])]["name"],
+        match_json["participants"][str(teams[1])]["name"]
+    ))
+    if "venue" in match_json["event"]["details"] and "name" in match_json["event"]["details"]["venue"]:
         stadium = match_json["event"]["details"]["venue"]["name"]
     else:
         stadium = None
@@ -933,8 +938,8 @@ async def parse_vglive(url_in=None, mock_in=None, mock_in_tv=None, guild=None):
         return None
     return {
         "teams": {
-            "home": match_json["participants"][teams[0]]["name"],
-            "away": match_json["participants"][teams[1]]["name"],
+            "home": match_json["participants"][str(teams[0])]["name"],
+            "away": match_json["participants"][str(teams[1])]["name"],
         },
         "tournament": match_json["tournament"]["name"],
         "tv": tv,
