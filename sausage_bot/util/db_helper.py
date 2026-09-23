@@ -277,6 +277,109 @@ async def find_cols(template_info, cols_find: list = None, guild_id=None):
     return found_cols
 
 
+async def list_cols(template_info, guild_id=None) -> list:
+    """
+    List a table's columns, in the order the table holds them.
+
+    Returns an empty list if the table does not exist.
+    """
+    db_file = envs.resolve_db_file(template_info, guild_id)
+    table_name = template_info["name"]
+    logger.debug(f"Got `db_file`: {db_file}")
+    logger.debug(f"Got `table_name`: {table_name}")
+    table_info = f"PRAGMA table_info({table_name})"
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            db_out = await db.execute(table_info)
+            list_out = await db_out.fetchall()
+        return [col[1] for col in list_out]
+    except aiosqlite.Error as e:
+        logger.error(f"Error: {e}")
+        return []
+
+
+async def add_cols(template_info, cols_add: list = None, guild_id=None):
+    """
+    Add columns to an existing table, using the types the schema in
+    `envs` states for them.
+    """
+    db_file = envs.resolve_db_file(template_info, guild_id)
+    table_name = template_info["name"]
+    col_types = {item[0]: item[1] for item in template_info["items"]}
+    logger.debug(f"Got `db_file`: {db_file}")
+    logger.debug(f"Got `table_name`: {table_name}")
+    if args.not_write_database:
+        logger.debug("`not_write_database` activated")
+        return
+    # A column added to a table that already has rows cannot be NOT NULL
+    # without a default, so the constraint is left to the rebuild
+    _cmd = "ALTER TABLE {} ADD COLUMN {} {};"
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            for col_in in cols_add:
+                _type = col_types.get(col_in, "TEXT").replace("NOT NULL", "").strip()
+                __cmd = _cmd.format(table_name, col_in, _type)
+                logger.debug(f"Using this query: {__cmd}")
+                await db.execute(__cmd)
+            await db.commit()
+    except aiosqlite.Error as e:
+        logger.error(f"Error: {e}")
+        return
+    return
+
+
+async def rebuild_table_from_schema(template_info, guild_id=None):
+    """
+    Recreate a table straight from its schema in `envs` and move the rows
+    over, so column order and primary key match the schema again.
+
+    `ALTER TABLE ... ADD COLUMN` always appends, and a primary key cannot
+    be altered at all. Since `insert_many_all` inserts by position, a
+    table that has grown a column out of order will take new rows into
+    the wrong columns - this puts it back in line.
+
+    Columns the old table does not have are left empty, and columns the
+    schema no longer holds are dropped.
+    """
+    db_file = envs.resolve_db_file(template_info, guild_id)
+    table_name = template_info["name"]
+    tmp_name = f"{table_name}_rebuild"
+    wanted_cols = [item[0] for item in template_info["items"]]
+    if args.not_write_database:
+        logger.debug("`not_write_database` activated")
+        return False
+    existing_cols = await list_cols(template_info, guild_id=guild_id)
+    if len(existing_cols) == 0:
+        logger.debug(f"No `{table_name}` table to rebuild")
+        return False
+    _cmd = "CREATE TABLE {} ({}".format(
+        tmp_name,
+        ", ".join(f"{item[0]} {item[1]}" for item in template_info["items"]),
+    )
+    if template_info.get("primary") is not None:
+        _cmd += ", PRIMARY KEY({})".format(template_info["primary"])
+    _cmd += ")"
+    shared_cols = ", ".join(col for col in wanted_cols if col in existing_cols)
+    try:
+        async with aiosqlite.connect(db_file) as db:
+            await db.execute(f"DROP TABLE IF EXISTS {tmp_name}")
+            logger.debug(f"Using this query: {_cmd}")
+            await db.execute(_cmd)
+            await db.execute(
+                "INSERT INTO {} ({}) SELECT {} FROM {}".format(
+                    tmp_name, shared_cols, shared_cols, table_name
+                )
+            )
+            await db.execute(f"DROP TABLE {table_name}")
+            await db.execute(f"ALTER TABLE {tmp_name} RENAME TO {table_name}")
+            await db.commit()
+        logger.info(f"Rebuilt `{table_name}` in `{db_file}` in schema order")
+        return True
+    except aiosqlite.Error as e:
+        logger.error(f"Error: {e}")
+        return False
+
+
 async def remove_cols(template_info, cols_remove: list = None, guild_id=None):
     db_file = envs.resolve_db_file(template_info, guild_id)
     table_name = template_info["name"]
@@ -697,22 +800,11 @@ async def db_remove_old_cols(template_info, guild_id=None):
     Fjern disse
     """
 
-    async def list_cols(template_info):
-        db_file = envs.resolve_db_file(template_info, guild_id)
-        table_name = template_info["name"]
-        logger.debug(f"Got `db_file`: {db_file}")
-        logger.debug(f"Got `table_name`: {table_name}")
-        table_info = f"PRAGMA table_info({table_name})"
-        async with aiosqlite.connect(db_file) as db:
-            db_out = await db.execute(table_info)
-            list_out = await db_out.fetchall()
-        return [col[1] for col in list_out] if list_out is not None else None
-
     logger.debug(f"Received `template_info`:\n{pformat(template_info)}")
     cols = template_info["items"]
     cols_to_remove = []
     # Check existing columns in db
-    cols_in_db = await list_cols(template_info)
+    cols_in_db = await list_cols(template_info, guild_id=guild_id)
     for db_col in cols_in_db:
         if db_col not in [col[0] for col in cols]:
             cols_to_remove.append(db_col)
