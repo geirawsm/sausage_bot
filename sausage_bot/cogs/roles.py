@@ -1429,12 +1429,12 @@ class Autoroles(commands.Cog):
         self,
         interaction: discord.Interaction,
         msg_name: str,
-        message_text: str,
         order: int,
         channel: discord.TextChannel,
         roles: str,
         emojis: str,
         header: str = None,
+        message_text: str = "",
     ):
         """
         Add a reaction message
@@ -1501,10 +1501,11 @@ class Autoroles(commands.Cog):
             embed_json = None
         else:
             embed_json = discord.Embed.from_dict({"description": desc_out})
+        content = ""
         if header:
-            content = f"## {header}\n{message_text}"
-        else:
-            content = message_text
+            content = f"## {header}"
+        if message_text:
+            content = f"{content}\n{message_text}"
         # Post the reaction message
         reaction_msg = await channel.send(content=content, embed=embed_json)
         # This uuid ties the message to its reaction roles for as long as
