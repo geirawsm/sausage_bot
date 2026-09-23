@@ -8,6 +8,7 @@ from discord.utils import get
 from discord.app_commands import locale_str, describe
 from tabulate import tabulate
 import re
+import shutil
 import typing
 from pprint import pformat
 from uuid import uuid4
@@ -275,12 +276,13 @@ async def sync_reaction_message_from_settings(
     new_embed_desc = ""
     await msg_obj.clear_reactions()
     # Add header if in db, the same way the message was built when it was
-    # added
+    # added. Older content can already open with the header line
+    # (`## Eliteserien`), so don't repeat it
     new_msg_header = db_message["header"]
-    if new_msg_header:
-        new_msg_content = "## {}\n{}".format(new_msg_header, db_message["content"])
-    else:
-        new_msg_content = db_message["content"]
+    new_msg_content = db_message["content"]
+    header_line = f"## {new_msg_header}"
+    if new_msg_header and str(new_msg_content).split("\n")[0] != header_line:
+        new_msg_content = "{}\n{}".format(header_line, new_msg_content)
     emoji_errors = []
     for reaction in reactions_out:
         _emoji_id = reactions_out[reaction]["emoji"]
@@ -304,12 +306,15 @@ async def sync_reaction_message_from_settings(
             new_embed_desc += "{} {}".format(
                 emoji_out, get(_guild.roles, id=int(_role_id))
             )
-    embed_json = {"description": new_embed_desc}
+    # Discord refuses an embed with an empty description, so a message
+    # without reaction roles gets no embed
+    if new_embed_desc:
+        new_embed = discord.Embed.from_dict({"description": new_embed_desc})
+    else:
+        new_embed = None
     # Edit discord message
     logger.debug(f"`new_msg_content`: {new_msg_content}")
-    await msg_obj.edit(
-        content=new_msg_content, embed=discord.Embed.from_dict(embed_json)
-    )
+    await msg_obj.edit(content=new_msg_content, embed=new_embed)
     emoji_out = ""
     role_out = ""
     if len(emoji_errors) > 0:
@@ -1424,12 +1429,12 @@ class Autoroles(commands.Cog):
         self,
         interaction: discord.Interaction,
         msg_name: str,
-        message_text: str,
         order: int,
         channel: discord.TextChannel,
         roles: str,
         emojis: str,
         header: str = None,
+        message_text: str = "",
     ):
         """
         Add a reaction message
@@ -1496,10 +1501,11 @@ class Autoroles(commands.Cog):
             embed_json = None
         else:
             embed_json = discord.Embed.from_dict({"description": desc_out})
+        content = ""
         if header:
-            content = f"## {header}\n{message_text}"
-        else:
-            content = message_text
+            content = f"## {header}"
+        if message_text:
+            content = f"{content}\n{message_text}"
         # Post the reaction message
         reaction_msg = await channel.send(content=content, embed=embed_json)
         # This uuid ties the message to its reaction roles for as long as
@@ -2213,6 +2219,12 @@ async def convert_roles_db_to_uuid(guild):
         logger.debug("Roles tables are already keyed on `uuid`")
         return False
     logger.info(f"Converting roles tables in `{guild.name}` to `uuid`")
+    # Step 3 deletes reaction roles it cannot match - keep the old
+    # database so they can be restored by hand
+    db_file = envs.resolve_db_file(msgs_schema, guild.id)
+    db_backup = f"{db_file}.pre-uuid.bak"
+    shutil.copy2(db_file, db_backup)
+    logger.info(f"Backed up `{db_file}` to `{db_backup}`")
 
     # 1. Give every reaction message a uuid
     if "uuid" not in msgs_cols:
@@ -2271,7 +2283,9 @@ async def convert_roles_db_to_uuid(guild):
         if len(orphans) > 0:
             logger.error(
                 "Deleting {} reaction role(s) in `{}` with no matching"
-                " reaction message".format(len(orphans), guild.name)
+                " reaction message (backup: `{}`)".format(
+                    len(orphans), guild.name, db_backup
+                )
             )
             await db_helper.del_row_ids(
                 roles_schema, numbers=orphans, guild_id=guild.id
