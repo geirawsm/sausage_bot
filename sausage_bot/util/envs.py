@@ -380,21 +380,22 @@ roles_db_msgs_schema = {
     "db_file": "roles.sqlite",
     "name": "messages",
     "items": [
-        ["msg_id", " TEXT NOT NULL"],
-        ["channel", " TEXT"],
-        ["name", " TEXT"],
-        ["header", " TEXT"],
-        ["content", " TEXT"],
-        ["description", " TEXT"],
-        ["msg_order", " INTEGER"],
+        ["uuid", "TEXT NOT NULL"],
+        ["msg_id", "TEXT"],
+        ["channel", "TEXT"],
+        ["name", "TEXT"],
+        ["header", "TEXT"],
+        ["content", "TEXT"],
+        ["description", "TEXT"],
+        ["msg_order", "INTEGER"],
     ],
-    "primary": "msg_id",
+    "primary": "uuid",
 }
 
 roles_db_roles_schema = {
     "db_file": "roles.sqlite",
     "name": "roles",
-    "items": [["msg_id", "TEXT NOT NULL"], ["role", "TEXT"], ["emoji", "TEXT"]],
+    "items": [["uuid", "TEXT NOT NULL"], ["role", "TEXT"], ["emoji", "TEXT"]],
 }
 
 roles_db_settings_schema = {
