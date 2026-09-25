@@ -356,6 +356,17 @@ class RSSfeed(commands.Cog):
         """Add a RSS feed"""
         await interaction.response.defer(ephemeral=True)
         AUTHOR = interaction.user.name
+
+        # Spotify shows have no RSS feed and are only read by the podcast
+        # loop. As `rss` they fail on every tick until given up
+        if net_io.url_hostname_matches(feed_link, "open.spotify.com") and (
+            "/show/" in feed_link
+        ):
+            await interaction.followup.send(
+                I18N.t("rss.commands.add.msg_use_podcast_add"), ephemeral=True
+            )
+            return
+
         # Verify that the url is a proper feed
         valid_feed = await feeds_core.check_feed_validity(
             feed_link, guild=interaction.guild

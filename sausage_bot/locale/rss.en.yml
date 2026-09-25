@@ -28,6 +28,7 @@ en:
         feed_link: Link to the feed
         channel: The channel to post from the feed
       msg_feed_failed: The url is not a RSS/XML feed
+      msg_use_podcast_add: Spotify podcasts must be added with `/podcast add`
       msg_feed_confirm: '%{feed_name} was added to #%{channel_name}'
       log_feed_confirm: '%{user_name} added the feed %{feed_name} til #%{channel_name}'
     remove:

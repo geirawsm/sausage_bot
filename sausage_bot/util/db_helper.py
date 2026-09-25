@@ -556,6 +556,29 @@ async def db_update_to_correct_feed_types(template_info, guild_id=None):
                 guild_id=guild_id,
             )
 
+    # Spotify shows added with `/rss add` got `rss` and were given up by
+    # the RSS loop. Move them to the podcast loop with a clean error count
+    spotify_feeds = await get_output(
+        template_info,
+        select=("uuid", "feed_type"),
+        like=("url", "spotify.com/show/"),
+        guild_id=guild_id,
+    )
+    for feed in spotify_feeds:
+        if feed["feed_type"] == "podcast":
+            continue
+        logger.info(f"Moving Spotify feed `{feed['uuid']}` to `podcast`")
+        await update_fields(
+            template_info=template_info,
+            where=("uuid", feed["uuid"]),
+            updates=[
+                ("feed_type", "podcast"),
+                ("status_url", envs.FEEDS_URL_SUCCESS),
+                ("status_url_counter", 0),
+            ],
+            guild_id=guild_id,
+        )
+
 
 async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
     """
