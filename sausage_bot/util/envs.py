@@ -358,7 +358,11 @@ quote_db_settings_schema = {
     "name": "settings",
     "items": [["setting", "TEXT NOT NULL"], ["value", "TEXT"]],
     "inserts": [
-        ["channel", "quotes"],
+        # `channel` holds a channel *id*, not a name - it used to default to
+        # the name "quotes", which every reader then fed straight to `int()`.
+        # An unset value makes `resolve_autopost_channel()` in `cogs/quote.py`
+        # look up (and create) the `quotes` channel and write its id back.
+        ["channel", ""],
         # No default prefix: it would be posted verbatim in every guild
         # regardless of that guild's own language. Guilds that want a
         # heading above their autoposted quotes set it themselves with

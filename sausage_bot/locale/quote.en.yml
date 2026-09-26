@@ -21,6 +21,7 @@ en:
       errors:
         channel_error: Error when getting channel for autopost, check logs
         no_quotes_stop_task: No quotes available for autoposting in db, disabling autoposting
+        guild_failed: Autoposting failed for this server and was skipped this round - %{error}
       start:
         cmd: Start autoposting
         msg_confirm_ok: Autoposting started, next posting is at %{time}
