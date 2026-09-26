@@ -1375,6 +1375,12 @@ async def ensure_guild_youtube_tables(guild):
     )
 
 
+# Uniform name so a guild approved while the bot is running can get its
+# tables prepped without a restart - see `util/cogs.py`'s
+# `ensure_guild_tables_for_loaded_cogs()`
+ensure_guild_tables = ensure_guild_youtube_tables
+
+
 async def setup(bot):
     cog_name = "youtube"
     logger.info(envs.COG_STARTING.format(cog_name))

@@ -1767,6 +1767,12 @@ async def ensure_guild_quote_tables(guild):
     await db_helper.prep_table(table_in=envs.quote_img_db_schema, guild_id=guild.id)
 
 
+# Uniform name so a guild approved while the bot is running can get its
+# tables prepped without a restart - see `util/cogs.py`'s
+# `ensure_guild_tables_for_loaded_cogs()`
+ensure_guild_tables = ensure_guild_quote_tables
+
+
 async def setup(bot):
     cog_name = "quote"
     logger.info(envs.COG_STARTING.format(cog_name))

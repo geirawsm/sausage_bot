@@ -80,6 +80,10 @@ def _make_bot(guilds):
             (guild for guild in guilds if guild.id == wanted), None
         ),
         user=SimpleNamespace(name="sausage-bot"),
+        # `extensions` is what `cogs.ensure_guild_tables_for_loaded_cogs`
+        # walks to prep each loaded cog's tables for a newly approved
+        # guild - empty here, since no cogs are loaded in these tests
+        extensions={},
     )
 
 

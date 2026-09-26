@@ -89,3 +89,35 @@ class Cogs(commands.Cog):
                     cog_name = filename[:-3]
                     if await Cogs.load_cog_internal(cog_name):
                         logger.info("Loaded cog: {}".format(cog_name))
+
+
+async def ensure_guild_tables_for_loaded_cogs(guild) -> None:
+    """
+    Prep every loaded cog's per-guild tables for `guild`.
+
+    Each cog preps its own tables in `setup()`, which only runs when the
+    cog is loaded at startup - so a guild approved while the bot was
+    already running got nothing but its `settings` and `tasks` rows, and
+    every cog stayed silently inactive there until the next restart.
+    Cogs that keep per-guild tables expose an idempotent
+    `ensure_guild_tables(guild)` for this; the rest are skipped.
+
+    One cog failing must not stop the others: a guild set up except for
+    one cog is a lot better than a guild half set up.
+    """
+    if guild is None:
+        # Callers resolve the guild from a registry row, and the bot is
+        # not necessarily a member of it any more
+        logger.error("Got no guild to prep cog tables for, skipping")
+        return
+    for cog_name, cog_module in list(config.bot.extensions.items()):
+        ensure_tables = getattr(cog_module, "ensure_guild_tables", None)
+        if ensure_tables is None:
+            continue
+        logger.debug(f"Prepping `{cog_name}` tables for `{guild.name}`")
+        try:
+            await ensure_tables(guild)
+        except Exception as error:
+            logger.error(
+                f"Could not prep `{cog_name}` tables for `{guild.name}`: {error}"
+            )

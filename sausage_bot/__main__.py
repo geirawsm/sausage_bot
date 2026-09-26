@@ -504,6 +504,7 @@ async def register_guild(guild: discord.Guild):
         # `/approve-guild`, so it needs its posting-task rows prepped
         # here instead - `/approve-guild` does the same for other guilds.
         await db_helper.ensure_guild_tasks_rows(guild.id)
+        await cogs.ensure_guild_tables_for_loaded_cogs(guild)
         logger.info(f"Registered admin guild `{guild.name}` ({guild.id})")
         # Seeding the `admin_guild` table is deliberately *not* done here.
         # This branch is only reached the first time a guild is registered,
@@ -1232,6 +1233,7 @@ async def _approve_admin_guild(guild: discord.Guild, approved_by: int) -> None:
         guild_id=guild.id,
     )
     await db_helper.ensure_guild_tasks_rows(guild.id)
+    await cogs.ensure_guild_tables_for_loaded_cogs(guild)
 
 
 class Guild(commands.Cog):
@@ -1293,6 +1295,15 @@ class Guild(commands.Cog):
             guild_id=guild_id_row,
         )
         await db_helper.ensure_guild_tasks_rows(guild_id_row)
+        # May be None if the bot is not a member of the guild any more -
+        # `log_to_bot_channel` and `ensure_guild_tables_for_loaded_cogs`
+        # both handle that and just skip.
+        approved_guild = resolve_guild_arg(guild_id_row)
+        # Every cog preps its tables in its own `setup()`, which only runs
+        # at startup - without this the guild would sit approved but with
+        # no cog tables, and every cog silently inactive, until the bot
+        # was restarted.
+        await cogs.ensure_guild_tables_for_loaded_cogs(approved_guild)
         await interaction.followup.send(
             I18N.t(
                 "main.commands.guild.approve.msg_confirm",
@@ -1301,9 +1312,6 @@ class Guild(commands.Cog):
             ),
             ephemeral=True,
         )
-        # May be None if the bot is not a member of the guild any more -
-        # `log_to_bot_channel` handles that and just skips the message.
-        approved_guild = resolve_guild_arg(guild_id_row)
         await discord_commands.log_to_bot_channel(
             guild=approved_guild,
             content_in=I18N.t("main.notify_at_new_guild.approved_at_server"),
