@@ -601,7 +601,9 @@ async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
             rows = await db.execute(f"SELECT rowid, uuid FROM {table_name}")
             repairs = []
             for rowid, uuid_in in await rows.fetchall():
-                found = re.search(r"['\"]uuid['\"]:\s*['\"]([^'\"]+)['\"]", str(uuid_in))
+                found = re.search(
+                    r"['\"]uuid['\"]:\s*['\"]([^'\"]+)['\"]", str(uuid_in)
+                )
                 if found:
                     repairs.append((found.group(1), rowid))
             if len(repairs) == 0:
@@ -670,7 +672,9 @@ async def db_copy_table_between_files(
             source_cols = await db.execute(f"PRAGMA source.table_info({source_table})")
             source_cols = [col[1] for col in await source_cols.fetchall()]
             if len(source_cols) == 0:
-                logger.debug(f"No `{source_table}` in `{source_db_file}`, nothing to do")
+                logger.debug(
+                    f"No `{source_table}` in `{source_db_file}`, nothing to do"
+                )
                 await db.execute("DETACH DATABASE source")
                 return 0
             shared_cols = [

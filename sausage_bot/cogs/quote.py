@@ -98,8 +98,7 @@ async def resolve_autopost_channel(guild: discord.Guild, channel_value):
             )
         except discord.DiscordException as error:
             logger.error(
-                f"Could not create channel `{channel_name}` in "
-                f"`{guild.name}`: {error}"
+                f"Could not create channel `{channel_name}` in `{guild.name}`: {error}"
             )
             channel_object = None
     if channel_object is None:
@@ -154,9 +153,7 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
         # table once the rotation is exhausted, and `post_random_quote`
         # draws its own quote anyway - drawing one here just to test for
         # emptiness perturbed the no-repeat rotation.
-        quote_ids = await db_helper.get_row_ids(
-            envs.quote_db_schema, guild_id=guild.id
-        )
+        quote_ids = await db_helper.get_row_ids(envs.quote_db_schema, guild_id=guild.id)
         if quote_ids is None or len(quote_ids) == 0:
             logger.debug(f"No quotes in db for `{guild.name}`, disabling autopost")
             await db_helper.update_fields(
@@ -170,9 +167,7 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
                 I18N.t("quote.commands.autopost.errors.no_quotes_stop_task"),
             )
             return
-        channel = await resolve_autopost_channel(
-            guild, settings_db_json.get("channel")
-        )
+        channel = await resolve_autopost_channel(guild, settings_db_json.get("channel"))
         if channel is None:
             logger.error(f"No usable autopost channel for `{guild.name}`")
             return
