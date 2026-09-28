@@ -67,36 +67,36 @@ nb:
         role_name: Navn på rollen som skal legges til
         hoist: Angi om rollen skal skilles ut i brukerliste eller ikke
         mentionable: Angi om rollen skal kunne nevnes for alle eller ikke
-        color: 'Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
+        color: "Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)"
         display_icon: Angi et ikon for rollen. Kun mulig hvis guilden har nok booster
       set_perms: Angi tillatelser
       msg_confirm: Rolle er opprettet
-      msg_error: 'Feil ved opprettelse av rolle: %{_error}'
+      msg_error: "Feil ved opprettelse av rolle: %{_error}"
     remove_role:
       cmd: Fjern en rolle fra serveren
       desc:
         role_name: Navn på rollen som skal fjernes
-      msg_confirm: 'Rollen `%{rolename}` har blitt fjernet'
+      msg_confirm: "Rollen `%{rolename}` har blitt fjernet"
     edit_role:
       cmd: Rediger en rolle på serveren
       desc:
         role_name: Navn på rollen som skal redigeres
         new_name: Nytt navn for rollen
-        color: 'Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)'
+        color: "Farge for rollen. Aksepterer 0x<hex>, #<hex>, 0x#<hex>, rgb(<number>, <number>, <number>)"
         hoist: Angir om rollen skal skilles ut i brukerliste eller ikke
         permissions: Angir om tillatelser skal redigeres også
-      changes_out: 'Utførte følgende endringer på rollen `%{role_name}`'
+      changes_out: "Utførte følgende endringer på rollen `%{role_name}`"
       no_changes: Ingen endringer etter redigering
       change_perms: Endre tillatelser
-      msg_confirm: 'Rollen `%{role_name}` har blitt redigert'
-      msg_error: 'Feil ved redigering av rolle: %{_error}'
+      msg_confirm: "Rollen `%{role_name}` har blitt redigert"
+      msg_error: "Feil ved redigering av rolle: %{_error}"
     react_list:
       cmd: Vis reaksjonsmeldinger eller info om en reaksjonsmelding
       desc:
         reaction_msg: Reaksjonsmelding som skal vises
-      msg_error: 'Fant ikke %{reaction_msg}'
-      role_error: 'Rolle ikke funnet'
-      emoji_error: 'Emoji ikke funnet'
+      msg_error: "Fant ikke %{reaction_msg}"
+      role_error: "Rolle ikke funnet"
+      emoji_error: "Emoji ikke funnet"
       msg_no_msgs: Ingen meldinger i databasen
       headers:
         role: Rolle
@@ -109,7 +109,7 @@ nb:
         channel: Kanalen å poste reaksjonsmelding på
         order: Gi reaksjonsmeldingen en rekkefølge
         header: Tittel for melingen
-      msg_order_exist: 'En annen melding har allerede det nummeret i kanalen %{channel}, prøv istedet %{num}'
+      msg_order_exist: "En annen melding har allerede det nummeret i kanalen %{channel}, prøv istedet %{num}"
       msg_reaction_already_exist: Reaksjonsmeldingen %{msg_name} finnes allerede
       msg_roles_emojis_error: Klarte ikke å finne verken roller eller emojier
       msg_confirm: Melding lagt til
@@ -135,20 +135,20 @@ nb:
       cmd: Sorter reaksjonsmeldinger alfabetisk
       desc:
         reaction_msg: Meldingen fra databasen
-      msg_error: 'Fant ikke %{reaction_msg}'
+      msg_error: "Fant ikke %{reaction_msg}"
       msg_confirm: Roller sortert
     remove_msg:
       cmd: Fjern en reaksjonsmelding
       desc:
         reaction_msg: Meldingen fra databasen
       msg_confirm: Reaksjonsmelding fjernet
-      msg_error: Klarte ikke finne reaksjonsmeldingen
+      msg_error: "Klarte ikke finne reaksjonsmeldingen"
     remove_msg_role:
       cmd: Fjern en reaksjon fra en reaksjonsmelding
       desc:
         reaction_msg: Meldingen fra databasen
         role_name: Navn på en rolle som er knyttet mot en reaksjon
-      msg_confirm: 'Rollen `%{rolename}` er fjernet'
+      msg_confirm: "Rollen `%{rolename}` er fjernet"
     reorder:
       cmd: Sjekk og fiks rekkefølgen på reaksjonsmeldinger i en kanal
       desc:
@@ -170,7 +170,7 @@ nb:
       cmd: Fjern ern innstilling for roller
       desc:
         setting: Innstillingen som skal fjernes
-      msg_confirm: Innstilling `%{setting}` er fjernet
+      msg_confirm: "Innstilling `%{setting}` er fjernet"
     list_settings:
       cmd: List opp innstillinger for roller
       headers:
@@ -182,7 +182,7 @@ nb:
       desc:
         setting: Innstillingen som skal redigeres
         role: Rollen som skal legges til innstillingen
-      confirm_msg: 'Redigerte innstillingen (%{setting} = %{role})'
+      confirm_msg: "Redigerte innstillingen (%{setting} = %{role})"
     emojis:
       cmd: Administrer emojier
     add_emoji:
@@ -190,23 +190,23 @@ nb:
       desc:
         emoji_name: Navn på emojien
         image: Bilde for emojien
-      msg_error: 'Feil ved opprettelse av emoji: `%{error}`'
-      confirm_msg: 'Emoji `%{emoji_name}` har blitt opprettet'
+      msg_error: "Feil ved opprettelse av emoji: `%{error}`"
+      confirm_msg: "Emoji `%{emoji_name}` har blitt opprettet"
     remove_emoji:
       cmd: Fjern en emoji fra serveren
       desc:
         emoji_name: Navn på emojien som skal fjernes
-      error_msg: 'Feil ved fjerning av emojien: `%{error}`'
-      confirm_msg: 'Emojien `%{emoji_name}` er fjernet'
+      error_msg: "Feil ved fjerning av emojien: `%{error}`"
+      confirm_msg: "Emojien `%{emoji_name}` er fjernet"
     edit_emoji:
       cmd: Rediger en emoji på serveren
       desc:
         emoji_name: Navn på emojien
         new_name: Nytt navn på emojien
-        roles: 'En liste med roller som kan bruke denne emojien. (Standard: Alle)'
+        roles: "En liste med roller som kan bruke denne emojien. (Standard: Alle)"
         reason: Årsaken til endring av denne emojien. Blir synlig i revisjonsloggen.
-      changes_out: 'Gjorde følgende endringer på emojien `%{emoji_name}`'
-      no_changes: 'Gjorde ingen edits på emojien `%{emoji_name}`'
+      changes_out: "Gjorde følgende endringer på emojien `%{emoji_name}`"
+      no_changes: "Gjorde ingen edits på emojien `%{emoji_name}`"
     emoji_info:
       cmd: Hent informasjon om en spesifikk emoji
       desc:
@@ -236,3 +236,10 @@ nb:
       reaction_header: Reaksjonsoverskrift
       confirm: Endret reaksjonsmelding
       error: "Feil ved endring av reaksjonsmelding: %{error}"
+    reaction_remove_role:
+      title_in: Slett roller fra reaksjonsmelding
+      dropdown_placeholder: Velg roller som skal slettes
+      text_info: Velg hvilke roller som skal slettes fra reaksjonsmelding
+      no_roles_for_deletion: Ingen roller ligger til sletting
+      roles_confirmed_deleted: "Slettet følgende roller: %{role_names}"
+      error: "Feil ved fjerning av roller fra reaksjonsmelding: %{error}"
