@@ -20,18 +20,19 @@ nb:
       cmd: Autopost sitater
       errors:
         channel_error: Feil ved henting av kanal for autopost, sjekk logger
-        no_quotes_stop_task: Ingen sitater tilgjengelig for autoposting i databasen, stopper autopostdisabling autoposting
+        no_quotes_stop_task: Ingen sitater tilgjengelig for autoposting i databasen, stopper autoposting
+        guild_failed: Autoposting feilet for denne serveren og ble hoppet over denne runden - %{error}
       start:
         cmd: Start autopost
         msg_confirm_ok: Autoposting startet, neste post kommer %{time}
         msg_already_running: Oppgaven kjører allerede
       stop:
         cmd: Stopp autopost
-        msg_confirm_ok: Autoposting stoppet, neste post kommer %{time}
+        msg_confirm_ok: Autoposting stoppet
         msg_already_stopped: Autoposting er allerede stoppet
       restart:
         cmd: Restart autopost
-        msg_confirm_ok: Autoposting restartet
+        msg_confirm_ok: Autoposting restartet, neste post kommer %{time}
     quote:
       cmd: Sitater
     post:

@@ -28,6 +28,7 @@ nb:
         feed_link: Link til en feed
         channel: Kanalen som det skal postes til
       msg_feed_failed: Urlen er ikke en RSS/XML feed
+      msg_use_podcast_add: Spotify-podcaster må legges til med `/podcast add`
       msg_feed_confirm: '%{feed_name} ble lagt til i #%{channel_name}'
       log_feed_confirm: '%{user_name} la til feeden %{feed_name} i #%{channel_name}'
     remove:

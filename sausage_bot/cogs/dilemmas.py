@@ -115,6 +115,18 @@ class Dilemmas(commands.Cog):
         return
 
 
+async def ensure_guild_tables(guild):
+    """
+    Prep this guild's dilemmas tables. Safe to call repeatedly
+    (idempotent). Named the same in every cog that keeps per-guild
+    tables, so a guild approved while the bot is running can get them
+    without a restart - see `util/cogs.py`'s
+    `ensure_guild_tables_for_loaded_cogs()`.
+    """
+    await db_helper.prep_table(envs.dilemmas_db_schema, guild_id=guild.id)
+    await db_helper.prep_table(envs.dilemmas_db_log_schema, guild_id=guild.id)
+
+
 async def setup(bot):
     cog_name = "dilemmas"
     logger.info(envs.COG_STARTING.format(cog_name))
@@ -127,8 +139,7 @@ async def setup(bot):
         guild = config.bot.get_guild(int(guild_row["guild_id"]))
         if guild is None:
             continue
-        await db_helper.prep_table(envs.dilemmas_db_schema, guild_id=guild.id)
-        await db_helper.prep_table(envs.dilemmas_db_log_schema, guild_id=guild.id)
+        await ensure_guild_tables(guild)
 
     logger.debug("Registering cog to bot")
     await bot.add_cog(Dilemmas(bot))

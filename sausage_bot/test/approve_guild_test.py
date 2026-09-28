@@ -73,18 +73,43 @@ def _patch_env(registry=None):
         mock.patch.object(
             main_module.db_helper, "ensure_guild_tasks_rows", mock.AsyncMock()
         ),
+        mock.patch.object(
+            main_module.cogs,
+            "ensure_guild_tables_for_loaded_cogs",
+            mock.AsyncMock(),
+        ),
+        mock.patch.object(
+            main_module,
+            "resolve_guild_arg",
+            lambda guild_id: SimpleNamespace(id=int(guild_id), name=TARGET_GUILD_NAME),
+        ),
+        # With `resolve_guild_arg` handing back a guild, the approval's
+        # welcome messages actually try to reach a channel
+        mock.patch.object(
+            main_module.discord_commands, "log_to_bot_channel", mock.AsyncMock()
+        ),
     )
 
 
 async def _run(interaction, guild_id, registry=None):
     "Run the command and hand back the patched db_helper mocks"
     patches = _patch_env(registry)
-    with patches[0], patches[1], patches[2], patches[3], patches[4]:
+    with (
+        patches[0],
+        patches[1],
+        patches[2],
+        patches[3],
+        patches[4],
+        patches[5],
+        patches[6],
+        patches[7],
+    ):
         await Guild.approve_guild.callback(None, interaction, guild_id)
         return SimpleNamespace(
             update_fields=main_module.db_helper.update_fields,
             prep_table=main_module.db_helper.prep_table,
             ensure_guild_tasks_rows=main_module.db_helper.ensure_guild_tasks_rows,
+            ensure_cog_tables=(main_module.cogs.ensure_guild_tables_for_loaded_cogs),
         )
 
 
@@ -137,6 +162,7 @@ async def test_unknown_guild_is_reported_and_writes_nothing():
     db.update_fields.assert_not_awaited()
     db.prep_table.assert_not_awaited()
     db.ensure_guild_tasks_rows.assert_not_awaited()
+    db.ensure_cog_tables.assert_not_awaited()
 
 
 async def test_empty_registry_is_reported_not_crashed():
@@ -144,6 +170,20 @@ async def test_empty_registry_is_reported_not_crashed():
     db = await _run(interaction, TARGET_GUILD_ID, registry=[])
     assert "No guild matching" in interaction.followup.send.await_args.args[0]
     db.update_fields.assert_not_awaited()
+
+
+async def test_approved_guild_gets_every_loaded_cogs_tables():
+    """
+    Each cog preps its per-guild tables in its own `setup()`, which only
+    runs at startup - a guild approved while the bot was running used to
+    sit approved with no cog tables, every cog silently inactive, until
+    the next restart.
+    """
+    interaction = _make_interaction()
+    db = await _run(interaction, TARGET_GUILD_ID)
+    db.ensure_cog_tables.assert_awaited_once()
+    approved_guild = db.ensure_cog_tables.await_args.args[0]
+    assert str(approved_guild.id) == TARGET_GUILD_ID
 
 
 # --- autocomplete labels ---

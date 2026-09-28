@@ -107,6 +107,90 @@ class PermissionsView(discord.ui.View):
         self.add_item(button_ok)
 
 
+class ModalReactionRoleRemove(discord.ui.Modal):
+    def prep_dropdown(
+        self, roles_in: list[discord.Message], guild_object
+    ) -> list[discord.SelectOption] | None:
+        "Prepare dropdown selections"
+        list_out = []
+        if len(roles_in) == 0:
+            return None
+        for _role in roles_in:
+            logger.debug("Checking role: {}".format(_role["role"]))
+            list_out.append(
+                discord.SelectOption(
+                    label=get(guild_object.roles, id=int(_role["role"])).name,
+                    value=str(_role["role"]),
+                    emoji=get(guild_object.emojis, id=int(_role["emoji"])),
+                    default=False,
+                )
+            )
+        return list_out
+
+    def __init__(
+        self,
+        guild_object: discord.Interaction,
+        msg_name: str,
+        roles_in: list = [],
+        title_in: str = "Dummy title",
+    ) -> None:
+        super().__init__(title=title_in)
+
+        self.roles_in = roles_in
+        self.roles_out = []
+        self.msg_name = msg_name
+        logger.debug(f"self.roles_in: {self.roles_in}")
+
+        self.roles_prep = self.prep_dropdown(roles_in, guild_object)
+        logger.debug(
+            f"self.roles_prep ({len(self.roles_prep)}: {str(self.roles_prep)[0:500]}"
+        )
+        self.roles_dropdown = discord.ui.Select(
+            placeholder=I18N.t(
+                "roles.modals.reaction_remove_role.dropdown_placeholder"
+            ),
+            options=self.roles_prep,
+            max_values=int(len(self.roles_prep) if self.roles_prep else 25),
+            required=True,
+        )
+        self.add_item(
+            discord.ui.TextDisplay(
+                content=I18N.t("roles.modals.reaction_remove_role.text_info")
+            )
+        )
+        self.add_item(
+            discord.ui.Label(text="Remove roles", component=self.roles_dropdown)
+        )
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not self.roles_dropdown.values:
+            await interaction.response.send_message(
+                I18N.t("roles.modals.reaction_remove_role.no_roles_for_deletion"),
+                ephemeral=True,
+            )
+        else:
+            self.roles_out = self.roles_dropdown.values
+            role_names = [
+                get(interaction.guild.roles, id=int(role_id)).name
+                for role_id in self.roles_out
+            ]
+            await interaction.response.send_message(
+                I18N.t(
+                    "roles.modals.reaction_remove_role.roles_confirmed_deleted",
+                    role_names="{}".format(", ".join(role_names)),
+                ),
+                ephemeral=True,
+            )
+
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception
+    ) -> None:
+        await interaction.response.send_message(
+            I18N.t("roles.modals.reaction_remove_role.error", error=error),
+            ephemeral=True,
+        )
+
+
 async def settings_autocomplete(
     interaction: discord.Interaction,
     current: str,
@@ -539,7 +623,9 @@ async def reaction_msgs_autocomplete(
         )
         for reaction in db_reactions
         if current.lower()
-        in "{}-{}".format(reaction["name"], reaction["msg_id"]).lower()
+        in "{}{sep}{}".format(
+            reaction["name"], reaction["msg_id"], sep=AUTOCOMPLETE_SEP
+        ).lower()
     ][:25]
 
 
@@ -831,7 +917,6 @@ class Autoroles(commands.Cog):
             name=I18N.t("roles.embed.position"), value=role_in.position, inline=False
         )
         await interaction.followup.send(embed=embed, ephemeral=_ephemeral)
-        return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
@@ -1821,35 +1906,60 @@ class Autoroles(commands.Cog):
         await _msg.edit(content=content)
         return
 
-    @describe(reaction_role=I18N.t("roles.commands.remove_role.desc.role_name"))
-    @discord.app_commands.autocomplete(reaction_role=reaction_msgs_roles_autocomplete)
+    @describe(reaction_msg=I18N.t("roles.commands.remove_msg_role.desc.reaction_msg"))
+    @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
+    @roles_reaction_remove_group.command(
+        name="role", description=locale_str(I18N.t("roles.commands.react_list.cmd"))
+    )
     async def remove_reaction_role(
-        self, interaction: discord.Interaction, reaction_role: str, sort: bool = False
+        self, interaction: discord.Interaction, reaction_msg: str, sort: bool = False
     ):
         """
-        Remove a reaction from reaction message
+        Remove reactions from reaction message
         """
-        await interaction.response.defer(ephemeral=True)
+        msg_in = await db_helper.get_output(
+            envs.roles_db_msgs_schema,
+            select=("name"),
+            where=[("uuid", reaction_msg)],
+            guild_id=interaction.guild.id,
+            single=True,
+        )
+        msg_in = msg_in["name"]
+        roles_in = await db_helper.get_output(
+            envs.roles_db_roles_schema,
+            select=("role", "emoji"),
+            where=[("uuid", reaction_msg)],
+            guild_id=interaction.guild.id,
+        )
+        modal_in = ModalReactionRoleRemove(
+            title_in=I18N.t("roles.modals.reaction_remove_role.title_in"),
+            msg_name=msg_in,
+            roles_in=roles_in,
+            guild_object=interaction.guild,
+        )
+        await interaction.response.send_modal(modal_in)
+        await modal_in.wait()
+        logger.debug(f"`modal_in.roles_out` is {modal_in.roles_out}")
         # Delete reaction from db
-        reaction_role = reaction_role.split(AUTOCOMPLETE_SEP)
-        msg_uuid = reaction_role[0]
-        role_id = reaction_role[1]
-        logger.debug(f"Got `msg_uuid` {msg_uuid} and `role_id` {role_id}")
+        where_in = [
+            ("uuid", str(reaction_msg)),
+        ]
+        for role in modal_in.roles_out:
+            if role != modal_in.roles_out[-1]:
+                role_in = ("role", role, "OR")
+            else:
+                role_in = ("role", role)
+            where_in.append(role_in)
+
         await db_helper.del_row_by_AND_filter(
             template_info=envs.roles_db_roles_schema,
-            where=[("uuid", str(msg_uuid)), ("role", str(role_id))],
+            where=where_in,
             guild_id=interaction.guild.id,
         )
         # Sync settings
         await sync_reaction_message_from_settings(
-            msg_uuid=msg_uuid, sort=sort, guild=interaction.guild
+            msg_uuid=reaction_msg, sort=sort, guild=interaction.guild
         )
-        _role_name = get(interaction.guild.roles, id=int(role_id)).name
-        await interaction.followup.send(
-            I18N.t("roles.commands.remove_role.msg_confirm", rolename=_role_name),
-            ephemeral=True,
-        )
-        return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_move_group.command(
@@ -1985,7 +2095,7 @@ class Autoroles(commands.Cog):
         if len(discord_msgs) != len(react_msgs):
             logger.info(
                 "Number of reaction messages in {} and database are not"
-                "the same nubmer ({} vs {})".format(
+                "the same number ({} vs {})".format(
                     channel, len(discord_msgs), len(react_msgs)
                 )
             )
@@ -2036,7 +2146,6 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(
                 I18N.t("roles.commands.reorder.msg_already_sorted")
             )
-        return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
@@ -2319,6 +2428,12 @@ async def ensure_guild_roles_tables(guild):
         channel_col="channel",
         guild=guild,
     )
+
+
+# Uniform name so a guild approved while the bot is running can get its
+# tables prepped without a restart - see `util/cogs.py`'s
+# `ensure_guild_tables_for_loaded_cogs()`
+ensure_guild_tables = ensure_guild_roles_tables
 
 
 async def setup(bot):

@@ -151,6 +151,7 @@ async def table_exist(template_info, guild_id=None):
 async def prep_table(table_in, inserts: list = [], guild_id=None):
     logger.debug(f"Got `table_in`: {table_in}")
     db_file = envs.resolve_db_file(table_in, guild_id)
+    logger.debug(f"Got `db_file`: {db_file}")
     file_io.ensure_folder(Path(db_file).parent)
     table_name = table_in["name"]
     item_list = table_in["items"]
@@ -556,6 +557,29 @@ async def db_update_to_correct_feed_types(template_info, guild_id=None):
                 guild_id=guild_id,
             )
 
+    # Spotify shows added with `/rss add` got `rss` and were given up by
+    # the RSS loop. Move them to the podcast loop with a clean error count
+    spotify_feeds = await get_output(
+        template_info,
+        select=("uuid", "feed_type"),
+        like=("url", "spotify.com/show/"),
+        guild_id=guild_id,
+    )
+    for feed in spotify_feeds:
+        if feed["feed_type"] == "podcast":
+            continue
+        logger.info(f"Moving Spotify feed `{feed['uuid']}` to `podcast`")
+        await update_fields(
+            template_info=template_info,
+            where=("uuid", feed["uuid"]),
+            updates=[
+                ("feed_type", "podcast"),
+                ("status_url", envs.FEEDS_URL_SUCCESS),
+                ("status_url_counter", 0),
+            ],
+            guild_id=guild_id,
+        )
+
 
 async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
     """
@@ -578,7 +602,9 @@ async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
             rows = await db.execute(f"SELECT rowid, uuid FROM {table_name}")
             repairs = []
             for rowid, uuid_in in await rows.fetchall():
-                found = re.search(r"['\"]uuid['\"]:\s*['\"]([^'\"]+)['\"]", str(uuid_in))
+                found = re.search(
+                    r"['\"]uuid['\"]:\s*['\"]([^'\"]+)['\"]", str(uuid_in)
+                )
                 if found:
                     repairs.append((found.group(1), rowid))
             if len(repairs) == 0:
@@ -647,7 +673,9 @@ async def db_copy_table_between_files(
             source_cols = await db.execute(f"PRAGMA source.table_info({source_table})")
             source_cols = [col[1] for col in await source_cols.fetchall()]
             if len(source_cols) == 0:
-                logger.debug(f"No `{source_table}` in `{source_db_file}`, nothing to do")
+                logger.debug(
+                    f"No `{source_table}` in `{source_db_file}`, nothing to do"
+                )
                 await db.execute("DETACH DATABASE source")
                 return 0
             shared_cols = [
@@ -1821,10 +1849,13 @@ async def del_row_by_OR_filter(template_info, where=None, guild_id=None):
         _cmd += f" WHERE {where[0]} = '{where[1]}'"
     elif isinstance(where, list):
         _cmd += " WHERE "
-        for id in where:
-            _cmd += f"{id[0]} = '{id[1]}'"
-            if id != where[-1]:
-                _cmd += " OR "
+        for item in where:
+            if len(item) == 3:
+                _cmd += f" {item[0]} = '{item[1]}' {item[2]}"
+            elif len(item) == 2:
+                _cmd += f" {item[0]} = '{item[1]}'"
+                if item != where[-1]:
+                    _cmd += " OR "
     logger.debug(f"Using this query: {_cmd}")
     if args.not_write_database:
         logger.debug("`not_write_database` activated")
@@ -1855,12 +1886,15 @@ async def del_row_by_AND_filter(template_info, where: list = None, guild_id=None
     if isinstance(where[0], str):
         _cmd += f" WHERE {where[0]} = '{where[1]}'"
     elif isinstance(where, (list, tuple)):
-        _cmd += " WHERE "
-        for id in where:
-            logger.debug(f"`id` is {type(id)}: {id}")
-            _cmd += f"{id[0]} = '{id[1]}'"
-            if id != where[-1]:
-                _cmd += " AND "
+        _cmd += " WHERE"
+        for item in where:
+            if isinstance(item, (list, tuple)):
+                if len(item) == 3:
+                    _cmd += f" {item[0]} = '{item[1]}' {item[2]}"
+                elif len(item) == 2:
+                    _cmd += f" {item[0]} = '{item[1]}'"
+                    if item != where[-1]:
+                        _cmd += " AND "
     logger.debug(f"Using this query: {_cmd}")
     if args.not_write_database:
         logger.debug("`not_write_database` activated")

@@ -73,7 +73,14 @@ async def _register(guild, row):
     with (
         mock.patch.object(config, "ADMIN_GUILD_ID", ADMIN_GUILD_ID),
         mock.patch.object(
-            config, "bot", SimpleNamespace(user=SimpleNamespace(id=BOT_USER_ID))
+            config,
+            "bot",
+            # `extensions` is what `cogs.ensure_guild_tables_for_loaded_cogs`
+            # walks to prep each loaded cog's tables - empty here, since
+            # these tests are about the registry, not the cogs
+            SimpleNamespace(
+                user=SimpleNamespace(id=BOT_USER_ID), extensions={}
+            ),
         ),
         mock.patch.object(main_module.db_helper, "get_output", get_output),
         mock.patch.object(main_module.db_helper, "prep_table", mock.AsyncMock()),

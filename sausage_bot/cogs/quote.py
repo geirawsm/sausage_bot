@@ -58,6 +58,133 @@ async def get_autopost_time(guild_id):
     return time_out
 
 
+async def resolve_autopost_channel(guild: discord.Guild, channel_value):
+    """
+    Turn a guild's stored `channel` setting into a usable text channel id.
+
+    `/quote settings add|change channel` stores a channel *id*, but the
+    settings table used to be seeded with the channel *name* `quotes`, and
+    a stored id can point at a channel that has since been deleted. Both
+    went unguarded into `int()` - which raised and took the whole shared
+    autopost loop down with it - or into `post_to_channel()`, which quietly
+    posted into nothing. Resolve it here instead: create the channel when
+    it is missing, and write the resolved id back so the next tick is a
+    plain lookup.
+
+    Returns None when the channel could neither be found nor created.
+    """
+    default_name = "quotes"
+    if str(channel_value).isdigit():
+        channel_object = get(guild.text_channels, id=int(channel_value))
+        if channel_object is not None:
+            return channel_object.id
+        logger.info(
+            f"Quote channel `{channel_value}` no longer exists in "
+            f"`{guild.name}`, resolving it by name instead"
+        )
+        channel_name = default_name
+    else:
+        # An unset setting, or the old name-based default
+        channel_name = str(channel_value) if channel_value else default_name
+    channel_object = get(guild.text_channels, name=channel_name)
+    if channel_object is None:
+        try:
+            # `create_missing_channel` locks the channel down itself, there
+            # is no `overwrites` to pass in
+            channel_object = await discord_commands.create_missing_channel(
+                guild=guild,
+                channel_name=channel_name,
+                topic=I18N.t("quote.commands.settings.add_channel_topic"),
+            )
+        except discord.DiscordException as error:
+            logger.error(
+                f"Could not create channel `{channel_name}` in `{guild.name}`: {error}"
+            )
+            channel_object = None
+    if channel_object is None:
+        await discord_commands.log_to_bot_channel(
+            guild, I18N.t("quote.commands.autopost.errors.channel_error")
+        )
+        return None
+    await db_helper.update_fields(
+        template_info=envs.quote_db_settings_schema,
+        where=[("setting", "channel")],
+        updates=[("value", channel_object.id)],
+        guild_id=guild.id,
+    )
+    return channel_object.id
+
+
+async def autopost_for_guild(guild: discord.Guild) -> None:
+    """
+    Run one autopost tick for a single guild: check that guild's own
+    `autopost_time` window and, if this tick falls inside it, resolve the
+    guild's quote channel and post a random quote there. Called once per
+    approved, opted-in guild by `Quotes.task_autopost`.
+    """
+    async with db_helper.guild_locale_context(guild.id):
+        settings_in_db = await db_helper.get_output(
+            template_info=envs.quote_db_settings_schema,
+            select=("setting", "value"),
+            guild_id=guild.id,
+        )
+        settings_db_json = file_io.make_db_output_to_json(
+            ["setting", "value"], settings_in_db
+        )
+        autopost_time_str = settings_db_json.get("autopost_time") or "12:00:00"
+        try:
+            target = datetime.strptime(autopost_time_str, "%H:%M:%S").time()
+        except ValueError:
+            logger.error(
+                f"Invalid `autopost_time` for `{guild.name}`: {autopost_time_str}"
+            )
+            return
+        now_dt = await get_dt(format="datetimeobject")
+        now_minutes = now_dt.hour * 60 + now_dt.minute
+        target_minutes = target.hour * 60 + target.minute
+        # Post once per day, in the 5-minute window the target time
+        # falls in (matches this loop's own polling interval)
+        if (now_minutes - target_minutes) % (24 * 60) >= 5:
+            return
+        logger.info(f"Running autopost task for `{guild.name}`")
+        # A guild with nothing to post should not have a channel created
+        # for it either, so check the quotes first. Count the row ids
+        # rather than drawing a quote: `get_random_quote` empties the log
+        # table once the rotation is exhausted, and `post_random_quote`
+        # draws its own quote anyway - drawing one here just to test for
+        # emptiness perturbed the no-repeat rotation.
+        quote_ids = await db_helper.get_row_ids(envs.quote_db_schema, guild_id=guild.id)
+        if quote_ids is None or len(quote_ids) == 0:
+            logger.debug(f"No quotes in db for `{guild.name}`, disabling autopost")
+            await db_helper.update_fields(
+                template_info=envs.tasks_db_schema,
+                where=[("cog", "quotes"), ("task", "autopost")],
+                updates=("status", "stopped"),
+                guild_id=guild.id,
+            )
+            await discord_commands.log_to_bot_channel(
+                guild,
+                I18N.t("quote.commands.autopost.errors.no_quotes_stop_task"),
+            )
+            return
+        channel = await resolve_autopost_channel(guild, settings_db_json.get("channel"))
+        if channel is None:
+            logger.error(f"No usable autopost channel for `{guild.name}`")
+            return
+        autopost_settings = {"prefix": "", "tag_role": ""}
+        if settings_db_json.get("autopost_prefix"):
+            autopost_settings["prefix"] = settings_db_json["autopost_prefix"]
+        if settings_db_json.get("autopost_tag_role") and re.match(
+            r"\d{19,22}", settings_db_json["autopost_tag_role"]
+        ):
+            _role = guild.get_role(int(settings_db_json["autopost_tag_role"]))
+            if _role is not None:
+                autopost_settings["tag_role"] = _role.id
+        await post_random_quote(
+            guild=guild, autopost=autopost_settings, channel=channel
+        )
+
+
 class EitherOrButtons(discord.ui.View):
     def __init__(self, *, timeout=60, yes_label=None, no_label=None):
         super().__init__(timeout=timeout)
@@ -1241,25 +1368,12 @@ class Quotes(commands.Cog):
             _guild = interaction.guild
             channel_object = get(_guild.text_channels, name=str(value_in))
             if channel_object is None:
-                overwrites = {
-                    _guild.default_role: discord.PermissionOverwrite(
-                        send_messages=False,
-                        read_messages=True,
-                        send_tts_messages=False,
-                        use_external_emojis=True,
-                        send_messages_in_threads=False,
-                        use_external_stickers=True,
-                        create_polls=False,
-                    ),
-                    _guild.me: discord.PermissionOverwrite(
-                        send_messages=True, read_messages=True
-                    ),
-                }
+                # `create_missing_channel` locks the channel down itself,
+                # there is no `overwrites` to pass in
                 channel_object = await discord_commands.create_missing_channel(
                     guild=_guild,
                     channel_name=value_in,
                     topic=I18N.t("quote.commands.settings.add_channel_topic"),
-                    overwrites=overwrites,
                 )
             value_in = channel_object.id
             value_in_check = type(value_in)
@@ -1422,14 +1536,14 @@ class Quotes(commands.Cog):
             )
         )
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=5, reconnect=True)
     async def task_autopost():
         """
         Shared, always-running loop (like rss/youtube). Every 5 minutes,
         checks each approved guild's own `tasks_db_schema` row (cog=
-        "quotes", task="autopost") and, if enabled, its `autopost_time`
-        setting - posting a quote if this tick falls in that guild's
-        target 5-minute window, in that guild's own timezone.
+        "quotes", task="autopost") and, if enabled, hands that guild to
+        `autopost_for_guild()`, which posts a quote if this tick falls in
+        that guild's target 5-minute window, in that guild's own timezone.
         """
         approved_guilds = await db_helper.get_output(
             envs.guilds_db_schema, where=("status", "approved")
@@ -1437,102 +1551,40 @@ class Quotes(commands.Cog):
         for guild_row in approved_guilds:
             guild = config.bot.get_guild(int(guild_row["guild_id"]))
             if guild is None:
+                logger.debug(f"Guild `{guild_row['guild_id']}` not in cache, skipping")
                 continue
-            task_status = await db_helper.get_output(
-                template_info=envs.tasks_db_schema,
-                where=[("cog", "quotes"), ("task", "autopost")],
-                select=("status"),
-                single=True,
-                guild_id=guild.id,
-            )
-            if task_status.get("status") != "started":
-                continue
-            async with db_helper.guild_locale_context(guild.id):
-                settings_in_db = await db_helper.get_output(
-                    template_info=envs.quote_db_settings_schema,
-                    select=("setting", "value"),
+            try:
+                task_status = await db_helper.get_output(
+                    template_info=envs.tasks_db_schema,
+                    where=[("cog", "quotes"), ("task", "autopost")],
+                    select=("status"),
+                    single=True,
                     guild_id=guild.id,
                 )
-                settings_db_json = file_io.make_db_output_to_json(
-                    ["setting", "value"], settings_in_db
-                )
-                if settings_db_json.get("channel") is None:
-                    logger.debug(f"No autopost channel set for `{guild.name}`")
+                # A guild approved after the bot started has no row yet -
+                # a missing row counts as "stopped", not as a crash
+                if not task_status or task_status.get("status") != "started":
                     continue
-                autopost_time_str = settings_db_json.get("autopost_time") or "12:00:00"
+                await autopost_for_guild(guild)
+            except Exception as error:
+                # One guild used to take the whole loop with it: an
+                # unhandled error here ended `task_autopost` for every
+                # other guild until someone restarted the bot.
+                logger.error(f"Autopost failed for `{guild.name}`: {error}")
                 try:
-                    target = datetime.strptime(autopost_time_str, "%H:%M:%S").time()
-                except ValueError:
+                    async with db_helper.guild_locale_context(guild.id):
+                        await discord_commands.log_to_bot_channel(
+                            guild,
+                            I18N.t(
+                                "quote.commands.autopost.errors.guild_failed",
+                                error=error,
+                            ),
+                        )
+                except Exception as log_error:
                     logger.error(
-                        f"Invalid `autopost_time` for `{guild.name}`: "
-                        f"{autopost_time_str}"
+                        f"Could not report the autopost error to "
+                        f"`{guild.name}`: {log_error}"
                     )
-                    continue
-                now_dt = await get_dt(format="datetimeobject")
-                now_minutes = now_dt.hour * 60 + now_dt.minute
-                target_minutes = target.hour * 60 + target.minute
-                # Post once per day, in the 5-minute window the target time
-                # falls in (matches this loop's own polling interval)
-                if (now_minutes - target_minutes) % (24 * 60) >= 5:
-                    continue
-                channel = settings_db_json["channel"]
-                logger.info(f"Running autopost task for `{guild.name}`")
-                # Create the channel if it does not exist
-                overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(
-                        send_messages=False,
-                        read_messages=True,
-                        send_tts_messages=False,
-                        use_external_emojis=True,
-                        send_messages_in_threads=False,
-                        use_external_stickers=True,
-                        create_polls=False,
-                    ),
-                    guild.me: discord.PermissionOverwrite(
-                        send_messages=True, read_messages=True
-                    ),
-                }
-                await discord_commands.create_missing_channel(
-                    guild=guild,
-                    channel_id=channel,
-                    channel_name="quotes",
-                    topic=I18N.t("quote.commands.settings.add_channel_topic"),
-                    overwrites=overwrites,
-                )
-                # Load quote from database
-                # If in testmode, get the same quote every time
-                rand_quote = await get_random_quote(guild.id, testmode=args.testmode)
-                logger.debug(f"rand_quote is `{rand_quote}`")
-                if rand_quote is None or len(rand_quote) <= 0:
-                    logger.debug(
-                        f"No quotes in db for `{guild.name}`, disabling autopost"
-                    )
-                    await db_helper.update_fields(
-                        template_info=envs.tasks_db_schema,
-                        where=[("cog", "quotes"), ("task", "autopost")],
-                        updates=("status", "stopped"),
-                        guild_id=guild.id,
-                    )
-                    await discord_commands.log_to_bot_channel(
-                        guild,
-                        I18N.t("quote.commands.autopost.errors.no_quotes_stop_task"),
-                    )
-                    continue
-                logger.debug("Got quote, posting it")
-                rand_quote = rand_quote[0]
-                logger.debug(f"rand_quote: {rand_quote}")
-                autopost_settings = {"prefix": "", "tag_role": ""}
-                if settings_db_json.get("autopost_prefix"):
-                    autopost_settings["prefix"] = settings_db_json["autopost_prefix"]
-                if settings_db_json.get("autopost_tag_role") and re.match(
-                    r"\d{19,22}", settings_db_json["autopost_tag_role"]
-                ):
-                    _role = guild.get_role(int(settings_db_json["autopost_tag_role"]))
-                    if _role is not None:
-                        autopost_settings["tag_role"] = _role.id
-                await post_random_quote(
-                    guild=guild, autopost=autopost_settings, channel=channel
-                )
         return
 
     @task_autopost.before_loop
@@ -1708,6 +1760,12 @@ async def ensure_guild_quote_tables(guild):
     )
     await db_helper.prep_table(table_in=envs.quote_content_db_schema, guild_id=guild.id)
     await db_helper.prep_table(table_in=envs.quote_img_db_schema, guild_id=guild.id)
+
+
+# Uniform name so a guild approved while the bot is running can get its
+# tables prepped without a restart - see `util/cogs.py`'s
+# `ensure_guild_tables_for_loaded_cogs()`
+ensure_guild_tables = ensure_guild_quote_tables
 
 
 async def setup(bot):
