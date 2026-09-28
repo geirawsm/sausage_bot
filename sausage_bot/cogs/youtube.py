@@ -879,7 +879,7 @@ class Youtube(commands.Cog):
         """
         Put feeds that url errors took out of rotation back to work
         """
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         reset = await feeds_core.reset_url_errors(
             envs.youtube_db_schema, interaction.guild, feed_name
         )
