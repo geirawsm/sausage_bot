@@ -1238,22 +1238,36 @@ class Quotes(commands.Cog):
             template_info=envs.quote_db_settings_schema,
             select=("setting", "value"),
             guild_id=interaction.guild.id,
+            as_settings_json=True,
         )
-        for setting in enumerate(settings_in_db):
-            object = None
-            if re.match(r"\d{19,22}", setting[1]["value"]):
-                object = discord_commands.get_user_channel_role_id(
-                    interaction.guild, setting[1]["value"]
-                )
-                if object is not None:
-                    settings_in_db[setting[0]]["value"] = f"{object.name} ({object.id})"
+        if isinstance(settings_in_db["channel"], int):
+            channel_obj = discord_commands.get_user_channel_role_id(
+                interaction.guild, settings_in_db["channel"]
+            )
+        elif isinstance(settings_in_db["channel"], str):
+            channel_obj = discord_commands.get_user_channel_role_name(
+                interaction.guild, settings_in_db["channel"]
+            )
+        if channel_obj is not None:
+            settings_in_db["channel"] = f"{channel_obj.name} ({channel_obj.id})"
+        else:
+            logger.error("Channel in quote settings is not a Discord id")
+            await discord_commands.log_to_bot_channel(
+                guild=interaction.guild,
+                # TODO: i18n
+                content_in='Channel "{}" in quote settings is not a Discord id'.format(
+                    settings_in_db["channel"]
+                ),
+            )
+            return
         headers_settings = {
             "setting": I18N.t("common.settings.setting"),
             "value": I18N.t("common.settings.value"),
         }
+        settings_out = [[item, settings_in_db[item]] for item in settings_in_db]
         out = "## {}\n```{}```".format(
             I18N.t("stats.commands.list.stats_msg_out.sub_settings"),
-            tabulate(settings_in_db, headers=headers_settings),
+            tabulate(settings_out, headers=headers_settings),
         )
         await interaction.followup.send(content=out, ephemeral=True)
 
