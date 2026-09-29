@@ -1240,11 +1240,11 @@ class Quotes(commands.Cog):
             guild_id=interaction.guild.id,
             as_settings_json=True,
         )
-        if isinstance(settings_in_db["channel"], int):
+        if re.fullmatch(r"\d{18,22}", settings_in_db["channel"]):
             channel_obj = discord_commands.get_user_channel_role_id(
                 interaction.guild, settings_in_db["channel"]
             )
-        elif isinstance(settings_in_db["channel"], str):
+        else:
             channel_obj = discord_commands.get_user_channel_role_name(
                 interaction.guild, settings_in_db["channel"]
             )
