@@ -101,5 +101,8 @@ jobs:
           gh pr create --base main --head dev \
             --title "Promote dev to main" \
             --body "Automatic promotion after green build on dev" \
-            || echo "PR already exists or no changes"
+            || echo "PR finnes fra før (eller ingen endringer)"
+
+          # Vent litt slik at test-sjekken rekker å registreres på PR-en
+          sleep 10
           gh pr merge dev --auto --merge

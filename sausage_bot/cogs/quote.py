@@ -1240,14 +1240,9 @@ class Quotes(commands.Cog):
             guild_id=interaction.guild.id,
             as_settings_json=True,
         )
-        if re.fullmatch(r"\d{18,22}", settings_in_db["channel"]):
-            channel_obj = discord_commands.get_user_channel_role_id(
-                interaction.guild, settings_in_db["channel"]
-            )
-        else:
-            channel_obj = discord_commands.get_user_channel_role_name(
-                interaction.guild, settings_in_db["channel"]
-            )
+        channel_obj = discord_commands.get_user_channel_role_id(
+            interaction.guild, settings_in_db["channel"]
+        )
         if channel_obj is not None:
             settings_in_db["channel"] = f"{channel_obj.name} ({channel_obj.id})"
         else:
@@ -1257,6 +1252,21 @@ class Quotes(commands.Cog):
                 # TODO: i18n
                 content_in='Channel "{}" in quote settings is not a Discord id'.format(
                     settings_in_db["channel"]
+                ),
+            )
+            return
+        role_obj = discord_commands.get_user_channel_role_id(
+            interaction.guild, settings_in_db["autopost_tag_role"]
+        )
+        if role_obj is not None:
+            settings_in_db["autopost_tag_role"] = f"{role_obj.name} ({role_obj.id})"
+        else:
+            logger.error("autopost_tag_tole in quote settings is not a Discord id")
+            await discord_commands.log_to_bot_channel(
+                guild=interaction.guild,
+                # TODO: i18n
+                content_in='autopost_tag_role "{}" in quote settings is not a Discord id'.format(
+                    settings_in_db["autopost_tag_role"]
                 ),
             )
             return
@@ -1312,13 +1322,25 @@ class Quotes(commands.Cog):
                 logger.error(f"Invalid input for `value_in`: {_error}")
                 await interaction.followup.send(I18N.t("stats.setting_input_reply"))
                 return
-        if setting_type == "role_id":
-            value_obj = discord_commands.get_user_channel_role_name(
-                interaction.guild, value_in
-            )
-            value_in = value_obj.id
+        elif setting_type == "int":
+            try:
+                value_in = int(value_in)
+            except ValueError:
+                logger.error(f"Invalid input for `value_in`: {value_in}")
+                await interaction.followup.send(
+                    content=I18N.t(
+                        "quote.commands.settings.change_type_incorrect",
+                        value_in=value_in,
+                        value_type=type(value_in).__name__,
+                        value_type_check=setting_type,
+                    ),
+                    ephemeral=True,
+                )
+                return
+        elif setting_type == "role_id":
+            value_in = int(re.fullmatch(r"<@&(\d+)>", value_in).group(1))
             setting_type = "int"
-        if name_of_setting == "channel":
+        elif name_of_setting == "channel":
             # `channel` holds a channel *id*, but a slash command always
             # hands us a string, so the type check further down never
             # matched `int` - the change was dropped and still reported as
@@ -1347,29 +1369,12 @@ class Quotes(commands.Cog):
                 )
                 return
             value_in = channel_object.id
-        elif setting_type == "int":
-            try:
-                value_in = int(value_in)
-            except ValueError:
-                logger.error(f"Invalid input for `value_in`: {value_in}")
-                await interaction.followup.send(
-                    content=I18N.t(
-                        "quote.commands.settings.change_type_incorrect",
-                        value_in=value_in,
-                        value_type=type(value_in).__name__,
-                        value_type_check=setting_type,
-                    ),
-                    ephemeral=True,
-                )
-                return
         elif name_of_setting == "autopost_time":
             # Stored as HH:MM:SS - task_autopost polls every 5 minutes and
             # checks each guild's own stored time, so there is no shared
             # loop interval to update here anymore.
             try:
-                value_in = str(
-                    datetime.strptime(value_in, "%H:%M").astimezone().time()
-                )
+                value_in = str(datetime.strptime(value_in, "%H:%M").astimezone().time())
             except ValueError:
                 logger.error(f"Invalid input for `value_in`: {value_in}")
                 await interaction.followup.send(
