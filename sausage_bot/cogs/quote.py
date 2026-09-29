@@ -1318,29 +1318,92 @@ class Quotes(commands.Cog):
             )
             value_in = value_obj.id
             setting_type = "int"
-        if name_of_setting == "autopost_time":
+        if name_of_setting == "channel":
+            # `channel` holds a channel *id*, but a slash command always
+            # hands us a string, so the type check further down never
+            # matched `int` - the change was dropped and still reported as
+            # confirmed. Resolve names, mentions and raw ids to an id here.
+            channel_in = str(value_in).strip()
+            channel_mention = re.fullmatch(r"<#(\d{17,22})>", channel_in)
+            if channel_mention:
+                channel_in = channel_mention.group(1)
+            if channel_in.isdigit():
+                channel_object = get(
+                    interaction.guild.text_channels, id=int(channel_in)
+                )
+            else:
+                channel_object = get(
+                    interaction.guild.text_channels, name=channel_in.lstrip("#")
+                )
+            if channel_object is None:
+                logger.error(
+                    "Could not find channel `{}` in `{}`".format(
+                        value_in, interaction.guild.name
+                    )
+                )
+                await interaction.followup.send(
+                    content=I18N.t("common.error.channel_not_found", channel=value_in),
+                    ephemeral=True,
+                )
+                return
+            value_in = channel_object.id
+        elif setting_type == "int":
+            try:
+                value_in = int(value_in)
+            except ValueError:
+                logger.error(f"Invalid input for `value_in`: {value_in}")
+                await interaction.followup.send(
+                    content=I18N.t(
+                        "quote.commands.settings.change_type_incorrect",
+                        value_in=value_in,
+                        value_type=type(value_in).__name__,
+                        value_type_check=setting_type,
+                    ),
+                    ephemeral=True,
+                )
+                return
+        elif name_of_setting == "autopost_time":
             # Stored as HH:MM:SS - task_autopost polls every 5 minutes and
             # checks each guild's own stored time, so there is no shared
             # loop interval to update here anymore.
-            time_out = datetime.strptime(value_in, "%H:%M").astimezone().time()
-            await db_helper.update_fields(
-                template_info=envs.quote_db_settings_schema,
-                where=[("setting", name_of_setting)],
-                updates=[("value", str(time_out))],
-                guild_id=interaction.guild.id,
-            )
+            try:
+                value_in = str(
+                    datetime.strptime(value_in, "%H:%M").astimezone().time()
+                )
+            except ValueError:
+                logger.error(f"Invalid input for `value_in`: {value_in}")
+                await interaction.followup.send(
+                    content=I18N.t(
+                        "quote.commands.settings.change_type_incorrect",
+                        value_in=value_in,
+                        value_type=type(value_in).__name__,
+                        value_type_check="HH:MM",
+                    ),
+                    ephemeral=True,
+                )
+                return
         logger.debug(f"`value_in` is {value_in} ({type(value_in)})")
-        logger.debug(
-            f"`settings_type` is {settings_type[name_of_setting]} "
-            f"({type(settings_type[name_of_setting])})"
-        )
-        if type(value_in) is eval(setting_type) and name_of_setting != "autopost_time":
-            await db_helper.update_fields(
-                template_info=envs.quote_db_settings_schema,
-                where=[("setting", name_of_setting)],
-                updates=[("value", value_in)],
-                guild_id=interaction.guild.id,
+        logger.debug(f"`setting_type` is {setting_type}")
+        if type(value_in) is not eval(setting_type):
+            logger.error(
+                "`value_in` ({}) is not of type `{}`".format(value_in, setting_type)
             )
+            await interaction.followup.send(
+                content=I18N.t(
+                    "quote.commands.settings.change_type_incorrect",
+                    value_in=value_in,
+                    value_type=type(value_in).__name__,
+                    value_type_check=setting_type,
+                ),
+                ephemeral=True,
+            )
+            return
+        await db_helper.update_fields(
+            template_info=envs.quote_db_settings_schema,
+            where=[("setting", name_of_setting)],
+            updates=[("value", value_in)],
+            guild_id=interaction.guild.id,
+        )
         await interaction.followup.send(
             content=I18N.t("quote.commands.settings.change_confirmed"), ephemeral=True
         )
