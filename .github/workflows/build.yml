@@ -63,6 +63,10 @@ jobs:
           username: ${{secrets.DOCKER_USER}}
           password: ${{secrets.DOCKER_TOKEN}}
 
+      - name: Short SHA
+        id: vars
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
@@ -71,14 +75,31 @@ jobs:
           file: ./dockerfile
           tags: |
             ${{ secrets.DOCKER_USER }}/sausage_bot:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
-            ${{ secrets.DOCKER_USER }}/sausage_bot:${{ github.sha }}
+            ${{ secrets.DOCKER_USER }}/sausage_bot:dev-${{ steps.vars.outputs.short_sha }}
+
           labels: |
-            Branch=${{ github.ref_name }}
+            Branch=dev-${{ steps.vars.outputs.short_sha }}
             Last commit msg=${{ github.event.head_commit.message }}
             Last commit=${{ github.sha }}
             Last run number=${{ github.run_number }}
           build-args: |
-            BRANCH=${{ github.ref_name }}
+            BRANCH=dev-${{ steps.vars.outputs.short_sha }}
             LAST_COMMIT_MSG=${{ github.event.head_commit.message }}
             LAST_COMMIT=${{ github.sha }}
             LAST_RUN_NUMBER=${{ github.run_number }}
+
+  promote_to_main:
+    needs: build_push
+    if: github.event_name == 'push' && github.ref_name == 'dev'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open PR dev -> main and enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.PROMOTE_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh pr create --base main --head dev \
+            --title "Promote dev to main" \
+            --body "Automatic promotion after green build on dev" \
+            || echo "PR already exists or no changes"
+          gh pr merge dev --auto --merge
