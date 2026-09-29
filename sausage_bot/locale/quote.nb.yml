@@ -76,6 +76,7 @@ nb:
     settings:
       cmd: Innstillinger
       change_confirmed: Innstilling endret
+      change_type_incorrect: "Verdien (%{value_in}, %{value_type}) er ikke riktig type (%{value_type_check})"
       add_channel_topic: Poster sitater
       add_setting_exist: Innstillingen eksisterer allerede
       add_type_incorrect: "Verdien (%{value_in}, %{value_type}) er ikke riktig type (%{value_type_check})"
