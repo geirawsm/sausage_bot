@@ -182,6 +182,25 @@ admin_guild_db_schema = {
     "autoincrement": False,
 }
 
+# Youtube API quota (global - the API key/quota is bot-wide, not scoped to
+# a guild). One row per Pacific calendar day, since Google resets quota at
+# midnight America/Los_Angeles; `units_used` is the bot's own estimate of
+# Youtube Data API cost (Google doesn't expose the real counter through the
+# API itself). `warned_90` tracks whether the 90%-of-cap admin warning has
+# already been sent for that day, so it only fires once.
+youtube_quota_db_schema = {
+    "db_file": GUILDS_DB_FILE,
+    "scope": "global",
+    "name": "youtube_quota",
+    "items": [
+        ["date", "TEXT NOT NULL UNIQUE"],
+        ["units_used", "INTEGER NOT NULL"],
+        ["warned_90", "INTEGER NOT NULL"],
+    ],
+    "primary": "date",
+    "autoincrement": False,
+}
+
 # Stats
 stats_template = {
     "channel": "stats",

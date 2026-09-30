@@ -13,6 +13,10 @@ en:
     restart:
       cmd: Restart posting
       msg_confirm: Youtube posting restarted
+    quota:
+      cmd: Show today's estimated API quota usage (admin guild only)
+      msg_not_admin_guild: This command can only be used in the admin guild.
+      msg_report: "Estimated Youtube API quota used %{date}: %{used} / %{cap} units. Resets at %{reset_time} local time."
     add:
       cmd: Add a YouTube-feed
       desc:
@@ -40,7 +44,7 @@ en:
         channel: The new channel to post the feed to
         url: The new url of the feed
       changes_out:
-        msg: 'Did following changes on the Youtube feed %{feed_name}:'
+        msg: "Did following changes on the Youtube feed %{feed_name}:"
         feed_name: Feed name
         channel: Channel
         url: URL
@@ -97,3 +101,5 @@ en:
     channel_not_found: "Found no Youtube channel with the id `%{channel_id}`"
     playlist_not_found: "Found no Youtube playlist in the link `%{url}`"
     no_videos_in_playlist: "Found no videos in the Youtube playlist `%{playlist_id}`"
+  warnings:
+    quota_90pct: "Youtube API quota has reached 90 percent or more of the cap for %{date}: %{used} / %{cap} units used"
