@@ -13,6 +13,10 @@ nb:
     restart:
       cmd: Restart posting
       msg_confirm: Youtube posting restartet
+    quota:
+      cmd: Vis dagens estimerte API-kvoteforbruk (kun admin-server)
+      msg_not_admin_guild: Denne kommandoen kan kun brukes på admin-serveren.
+      msg_report: "Estimert Youtube API-kvote brukt %{date}: %{used} / %{cap} units. Nullstilles kl. %{reset_time} lokal tid."
     add:
       cmd: Legg til en YouTube-feed
       desc:
@@ -40,7 +44,7 @@ nb:
         channel: Ny kanal feeden skal postes til
         url: Ny URL for feeden
       changes_out:
-        msg: 'Gjorde følgende endringer på Youtube-feeden %{feed_name}:'
+        msg: "Gjorde følgende endringer på Youtube-feeden %{feed_name}:"
         feed_name: Feednavn
         channel: Kanal
         url: URL
@@ -97,3 +101,5 @@ nb:
     channel_not_found: "Fant ingen Youtube-kanal med id-en `%{channel_id}`"
     playlist_not_found: "Fant ingen Youtube-spilleliste i linken `%{url}`"
     no_videos_in_playlist: "Fant ingen videoer i Youtube-spillelisten `%{playlist_id}`"
+  warnings:
+    quota_90pct: "Youtube API-kvoten har nådd 90 prosent eller mer av taket for %{date}: %{used} / %{cap} units brukt"

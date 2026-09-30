@@ -8,15 +8,17 @@ from discord.app_commands import locale_str, describe
 from discord.utils import get
 
 import asyncio
+import threading
 import typing
 
 # from yt_dlp import YoutubeDL
 import re
+import pendulum
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from sausage_bot.util import config, envs, feeds_core, net_io
-from sausage_bot.util import db_helper, discord_commands
+from sausage_bot.util import db_helper, discord_commands, guild_context
 from sausage_bot.util.datetime_handling import get_dt
 from sausage_bot.util.i18n import I18N, available_languages
 
@@ -36,6 +38,17 @@ ALLOW_DENY_ALLOW = I18N.t("common.literal_allow_deny.allow")
 ALLOW_DENY_DENY = I18N.t("common.literal_allow_deny.deny")
 
 _youtube_api = None
+
+# Quota units accumulated since the last flush to the db - see
+# `_track_quota()` and `_flush_quota()`. Guarded by a plain `threading.Lock`
+# rather than an asyncio lock, since `_track_quota()` is called from the
+# worker threads `api_call()` runs the sync `YouTubeAPI` methods in.
+_quota_lock = threading.Lock()
+_quota_pending = 0
+
+
+def _in_admin_guild(interaction: discord.Interaction) -> bool:
+    return str(interaction.guild_id) == str(config.ADMIN_GUILD_ID)
 
 
 def canonical_allow_deny(value) -> str | None:
@@ -136,7 +149,71 @@ async def api_call(func, *args, **kwargs):
     is shared, and the httplib2 http object underneath it is not thread
     safe.
     """
-    return await asyncio.to_thread(func, *args, **kwargs)
+    result = await asyncio.to_thread(func, *args, **kwargs)
+    await _flush_quota()
+    return result
+
+
+def _track_quota(units: int) -> None:
+    """
+    Record quota cost for one Youtube API `.execute()` call. Called from
+    inside a `YouTubeAPI` method, so from whichever worker thread
+    `api_call()` is currently running it in - not from the event loop.
+    """
+    global _quota_pending
+    with _quota_lock:
+        _quota_pending += units
+
+
+async def _flush_quota() -> None:
+    """
+    Persist quota accumulated since the last flush, and warn the admin
+    channel the first time a day crosses 90% of the daily cap.
+
+    A single `api_call()` invocation can run a variable number of
+    `.execute()` calls internally (branching lookups, per-batch video
+    fetches), so the cost is only known after the fact - `_track_quota()`
+    collects it, this reads it out and writes it to the `date`-keyed row
+    for today (Pacific time, since that is when Google resets quota).
+    """
+    global _quota_pending
+    with _quota_lock:
+        units, _quota_pending = _quota_pending, 0
+    if not units:
+        return
+    today = pendulum.now("America/Los_Angeles").to_date_string()
+    existing = await db_helper.get_output(
+        envs.youtube_quota_db_schema, where=("date", today), single=True
+    )
+    already_warned = bool(int(existing["warned_90"])) if existing else False
+    new_used = (int(existing["units_used"]) if existing else 0) + units
+    should_warn = (
+        not already_warned and new_used >= 0.9 * config.YOUTUBE_QUOTA_DAILY_CAP
+    )
+    if existing:
+        await db_helper.update_fields(
+            envs.youtube_quota_db_schema,
+            where=("date", today),
+            updates=[
+                ("units_used", new_used),
+                ("warned_90", 1 if should_warn else int(already_warned)),
+            ],
+        )
+    else:
+        await db_helper.insert_many_all(
+            envs.youtube_quota_db_schema,
+            inserts=(today, new_used, 1 if should_warn else 0),
+        )
+    if should_warn and config.ADMIN_CHANNEL_ID:
+        await discord_commands.post_to_channel(
+            config.ADMIN_CHANNEL_ID,
+            content_in=I18N.t(
+                "youtube.warnings.quota_90pct",
+                date=today,
+                used=new_used,
+                cap=config.YOUTUBE_QUOTA_DAILY_CAP,
+            ),
+        )
 
 
 class YouTubeAPI:
@@ -150,6 +227,7 @@ class YouTubeAPI:
             """Handle without the leading @, e.g. 'MrBeast'"""
             request = youtube_api().channels().list(part="id", forHandle=handle)
             response = request.execute()
+            _track_quota(1)  # channels.list = 1 unit
 
             if response["items"]:
                 return response["items"][0]["id"]
@@ -158,6 +236,7 @@ class YouTubeAPI:
         def get_channel_id_from_username(username: str) -> str | None:
             request = youtube_api().channels().list(part="id", forUsername=username)
             response = request.execute()
+            _track_quota(1)  # channels.list = 1 unit
 
             if response["items"]:
                 return response["items"][0]["id"]
@@ -170,6 +249,7 @@ class YouTubeAPI:
                 .list(part="snippet", q=query, type="channel", maxResults=1)
             )
             response = request.execute()
+            _track_quota(100)  # search.list = 100 units
 
             if response["items"]:
                 return response["items"][0]["snippet"]["channelId"]
@@ -181,6 +261,7 @@ class YouTubeAPI:
                 youtube_api().channels().list(part="contentDetails", id=channel_id)
             )
             response = request.execute()
+            _track_quota(1)  # channels.list = 1 unit
 
             if not response["items"]:
                 raise YoutubeApiError(
@@ -209,6 +290,7 @@ class YouTubeAPI:
     def get_channel_info(channel_id: str) -> dict:
         request = youtube_api().channels().list(part="snippet", id=channel_id)
         response = request.execute()
+        _track_quota(1)  # channels.list = 1 unit
 
         if not response["items"]:
             raise YoutubeApiError(
@@ -243,6 +325,7 @@ class YouTubeAPI:
             .list(part="contentDetails,snippet", id=playlist_id, maxResults=1)
         )
         response = request.execute()
+        _track_quota(1)  # playlists.list = 1 unit
 
         if not response["items"]:
             raise YoutubeApiError(
@@ -263,6 +346,7 @@ class YouTubeAPI:
             .list(part="contentDetails,snippet", playlistId=playlist_id, maxResults=10)
         )
         response = request.execute()
+        _track_quota(1)  # playlistItems.list = 1 unit
 
         if not response["items"]:
             raise YoutubeApiError(
@@ -284,6 +368,7 @@ class YouTubeAPI:
             .list(part="contentDetails", playlistId=playlist_id, maxResults=max_results)
         )
         response = request.execute()
+        _track_quota(1)  # playlistItems.list = 1 unit
 
         return [item["contentDetails"]["videoId"] for item in response["items"]]
 
@@ -296,6 +381,7 @@ class YouTubeAPI:
 
             request = youtube_api().videos().list(part="snippet", id=",".join(batch))
             response = request.execute()
+            _track_quota(1)  # videos.list = 1 unit, per batch
 
             for item in response["items"]:
                 results.append(
@@ -454,6 +540,50 @@ class Youtube(commands.Cog):
         logger.info("Video posting loop restarted")
         Youtube.task_post_videos.restart()
         await interaction.followup.send(I18N.t("youtube.commands.restart.msg_confirm"))
+
+    @discord_commands.is_owner()
+    @youtube_group.command(
+        name="quota", description=locale_str(I18N.t("youtube.commands.quota.cmd"))
+    )
+    async def youtube_quota(self, interaction: discord.Interaction):
+        """
+        Estimated Youtube Data API quota used today. Admin-guild only,
+        since the quota is bot-wide, not per guild.
+        """
+        await interaction.response.defer(ephemeral=True)
+        if not _in_admin_guild(interaction):
+            await interaction.followup.send(
+                I18N.t("youtube.commands.quota.msg_not_admin_guild"), ephemeral=True
+            )
+            return
+        today = pendulum.now("America/Los_Angeles").to_date_string()
+        row = await db_helper.get_output(
+            envs.youtube_quota_db_schema, where=("date", today), single=True
+        )
+        used = int(row["units_used"]) if row else 0
+        # Google resets quota at midnight Pacific time - converted here to
+        # this guild's own configured timezone. Not routed through
+        # `get_dt(dt=...)`: it round-trips through `make_dt()`'s string
+        # parsing, which only recognizes "Z"/"T"/"+" markers and misses a
+        # pendulum object's own `str()` (space-separated, "-" offset in
+        # Pacific), silently falling back to "now" instead of erroring.
+        reset_at_pacific = pendulum.now("America/Los_Angeles").start_of("day").add(
+            days=1
+        )
+        reset_local = reset_at_pacific.in_timezone(
+            guild_context.current_timezone.get()
+        )
+        reset_time = reset_local.format("HH.mm")
+        await interaction.followup.send(
+            I18N.t(
+                "youtube.commands.quota.msg_report",
+                date=today,
+                used=used,
+                cap=config.YOUTUBE_QUOTA_DAILY_CAP,
+                reset_time=reset_time,
+            ),
+            ephemeral=True,
+        )
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
@@ -1385,6 +1515,9 @@ async def setup(bot):
     cog_name = "youtube"
     logger.info(envs.COG_STARTING.format(cog_name))
     logger.debug("Checking db")
+
+    # Global, not guild-scoped - the API key/quota is bot-wide
+    await db_helper.prep_table(table_in=envs.youtube_quota_db_schema)
 
     approved_guilds = await db_helper.get_output(
         envs.guilds_db_schema, where=("status", "approved")
