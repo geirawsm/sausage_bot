@@ -556,9 +556,9 @@ class Youtube(commands.Cog):
                 I18N.t("youtube.commands.quota.msg_not_admin_guild"), ephemeral=True
             )
             return
-        today = pendulum.now("America/Los_Angeles").to_date_string()
+        today_utc_string = pendulum.now("America/Los_Angeles").to_date_string()
         row = await db_helper.get_output(
-            envs.youtube_quota_db_schema, where=("date", today), single=True
+            envs.youtube_quota_db_schema, where=("date", today_utc_string), single=True
         )
         used = int(row["units_used"]) if row else 0
         # Google resets quota at midnight Pacific time - converted here to
@@ -567,17 +567,15 @@ class Youtube(commands.Cog):
         # parsing, which only recognizes "Z"/"T"/"+" markers and misses a
         # pendulum object's own `str()` (space-separated, "-" offset in
         # Pacific), silently falling back to "now" instead of erroring.
-        reset_at_pacific = pendulum.now("America/Los_Angeles").start_of("day").add(
-            days=1
+        reset_at_pacific = (
+            pendulum.now("America/Los_Angeles").start_of("day").add(days=1)
         )
-        reset_local = reset_at_pacific.in_timezone(
-            guild_context.current_timezone.get()
-        )
+        reset_local = reset_at_pacific.in_timezone(guild_context.current_timezone.get())
         reset_time = reset_local.format("HH.mm")
         await interaction.followup.send(
             I18N.t(
                 "youtube.commands.quota.msg_report",
-                date=today,
+                date=today_utc_string,
                 used=used,
                 cap=config.YOUTUBE_QUOTA_DAILY_CAP,
                 reset_time=reset_time,
