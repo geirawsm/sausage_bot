@@ -82,6 +82,10 @@ try:
     LANGUAGE = env("BOT_LANGUAGE", default="en")
     ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
     YOUTUBE_API_KEY = env("YOUTUBE_API_KEY", default="")
+    # Google's default free-tier quota, in units/day. Overridable for
+    # projects with a raised quota, so `/youtube quota` reports against
+    # the real cap instead of always assuming the default.
+    YOUTUBE_QUOTA_DAILY_CAP = env.int("YOUTUBE_QUOTA_DAILY_CAP", default=10000)
     SPOTIFY_ID = env("SPOTIFY_ID", default="")
     SPOTIFY_SECRET = env("SPOTIFY_SECRET", default="")
     SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default="")
