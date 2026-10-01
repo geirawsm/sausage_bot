@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "prettier": "3.8.4"
-  },
-  "dependencies": {
-    "npm": "^10.9.9"
-  }
-}
