@@ -204,8 +204,15 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
         )
 
 
-def trunc(s, n=30):
-    return s if len(s) <= n else s[: n - 1] + "…"
+def trunc(value, n=30):
+    "Shorten every string in `value`, also inside nested dicts, lists and tuples"
+    if isinstance(value, str):
+        return value if len(value) <= n else value[: n - 1] + "…"
+    if isinstance(value, dict):
+        return {key: trunc(item, n) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return type(value)(trunc(item, n) for item in value)
+    return value
 
 
 class EitherOrButtons(discord.ui.View):
@@ -563,11 +570,7 @@ async def post_random_quote(
     if random_quote is not None:
         # `get_imgs_with_quote` returns a list of quote dicts - log the
         # one being posted, not the list
-        short_quote = {
-            key: trunc(value) if isinstance(value, str) else value
-            for key, value in random_quote.items()
-        }
-        logger.debug(f"random_quote: {short_quote}")
+        logger.debug(f"random_quote: {trunc(random_quote)}")
         quote = random_quote
         paginated = []
         msg = ""
@@ -712,11 +715,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
     if quote_out is not None:
         # `get_imgs_with_quote` returns a list of quote dicts - log the
         # one being posted, not the list
-        short_quote = {
-            key: trunc(value) if isinstance(value, str) else value
-            for key, value in quote_out.items()
-        }
-        logger.debug(pformat(f"short_quote: {short_quote}"))
+        logger.debug(f"quote_out: {trunc(quote_out)}")
         quote = quote_out
         paginated = []
         msg = ""

@@ -100,3 +100,39 @@ async def test_post_selected_quote_posts_from_the_list(monkeypatch):
 
     posted = interaction.followup.send.await_args.args[0]
     assert "anna: hei" in posted and "bob : hallo" in posted
+
+
+def test_trunc_shortens_strings_in_nested_values():
+    long_text = "✅✅ Local commands synced with global commands"
+    quote_in = {
+        "rowid": 2,
+        "uuid": "8ec9a0a4-dfa1-4829-b09f-660b2137b232",
+        "comments": {
+            1554946394320539750: {
+                "author_id": 1000831048483094638,
+                "content": long_text,
+                "imgs": {1: "QUJD" * 100},
+            }
+        },
+        "tags": ["kort", long_text],
+        "pair": ("kort", long_text),
+        "missing": None,
+    }
+
+    out = quote.trunc(quote_in)
+
+    comment = out["comments"][1554946394320539750]
+    assert out["uuid"] == quote_in["uuid"][:29] + "…"
+    assert comment["content"] == "✅✅ Local commands synced with…"
+    assert len(comment["imgs"][1]) == 30
+    assert comment["author_id"] == 1000831048483094638
+    assert out["tags"] == ["kort", "✅✅ Local commands synced with…"]
+    assert isinstance(out["pair"], tuple) and out["pair"][0] == "kort"
+    assert out["missing"] is None
+    # Logging a shortened copy must not touch the quote that gets posted
+    assert quote_in["comments"][1554946394320539750]["content"] == long_text
+
+
+def test_trunc_respects_n():
+    assert quote.trunc("abcdef", n=4) == "abc…"
+    assert quote.trunc("abcd", n=4) == "abcd"
