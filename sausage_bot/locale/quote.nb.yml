@@ -83,6 +83,10 @@ nb:
       add_confirmed: Innstilling lagt til
       remove_confirmed: Innstilling fjernet
       remove_failed: "Kunne ikke fjerne innstilling: %{error}"
+      channel_not_exist: "Kanalen #%{channel} finnes ikke ennå. Hva vil du gjøre?"
+      channel_modal_title: Lag kanal fra en eksisterende kanal
+      channel_name_label: Navn på den nye kanalen
+      channel_created: "✅ Laget %{channel} og lagret den som `%{setting}`."
   modals:
     quote_num: Sitat nummer
     quote_text: Sitat tekst
@@ -107,3 +111,16 @@ nb:
       edit_confirm: Message was edited
       edit_confirm_with_errors: ", but some tagging failed: %{errors}"
       edit_error: "Error when editing, check logs"
+    suggest_quote:
+      name: Foreslå sitat
+      modal_title: Foreslå sitat
+      disabled: Forslag til sitater er ikke aktivert på denne serveren
+      msg_sent: Forslaget ditt er sendt til moderatorene
+      channel_topic: Foreslåtte sitater som venter på godkjenning
+      review_header: "Sitat foreslått av %{user} fra #%{channel}"
+      btn_approve: Godkjenn
+      btn_deny: Avvis
+      approved_by: "Godkjent av %{user} som sitat # %{quote_number}"
+      denied_by: "Avvist av %{user}"
+      already_handled: Dette forslaget er allerede behandlet
+      no_permission: Du trenger tillatelsen «Administrer server» for å behandle forslag

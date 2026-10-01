@@ -389,13 +389,41 @@ quote_db_settings_schema = {
         ["autopost_prefix", ""],
         ["autopost_tag_role", ""],
         ["autopost_time", ""],
+        # Let members without "Manage Server" suggest quotes for approval.
+        # `suggest_channel` works like `channel`: an unset value makes
+        # `resolve_setting_channel()` look up (and create) `quote-suggest`.
+        ["suggest_enabled", "False"],
+        ["suggest_channel", ""],
     ],
     "type_checking": {
         "channel": "int",
         "autopost_prefix": "str",
         "autopost_tag_role": "role_id",
         "autopost_time": "str",
+        "suggest_enabled": "bool",
+        "suggest_channel": "int",
     },
+}
+
+# Quotes suggested by members, waiting for a moderator in the suggest
+# channel. `payload` is a JSON snapshot of the `quote_content` and
+# `quote_img` rows, so approving does not depend on the original messages
+# still existing.
+quote_suggest_db_schema = {
+    "db_file": "quote.sqlite",
+    "name": "suggest",
+    "items": [
+        ["uuid", "TEXT NOT NULL UNIQUE"],
+        ["channel_id", "INT"],
+        ["channel_backup", "TEXT"],
+        ["datetime", "TEXT"],
+        ["suggested_by", "INT"],
+        ["status", "TEXT"],
+        ["review_msg_id", "INT"],
+        ["payload", "TEXT"],
+    ],
+    "primary": "uuid",
+    "autoincrement": False,
 }
 
 # Roles

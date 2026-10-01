@@ -9,6 +9,15 @@ en:
     allow: Allow
     deny: Deny
   cancel: Cancel
+  create_channel:
+    select_placeholder: Select the channel to copy permissions from
+    copy_from_label: "Copy permissions from:"
+    source_not_found: Could not find the source channel. Try again.
+    reason_copy: "Creating channel (copied from #%{source})"
+    reason_fresh: Creating new channel
+    btn_duplicate: Duplicate existing
+    btn_fresh: Create new
+    cancelled: Cancelled. Not creating a channel.
   name: Name
   channel: Channel
   message_id: Message ID

@@ -1993,133 +1993,39 @@ async def _persist_bot_channel(guild: discord.Guild, name: str) -> None:
     )
 
 
-class DuplicateChannelModal(discord.ui.Modal):
-    """
-    Lets the user pick an existing text channel to copy from and name the
-    new bot channel. The new channel inherits the source channel's
-    permission overwrites and category, and is placed right after the
-    source in the channel list.
-    """
-
-    def __init__(self, default_name: str):
-        super().__init__(title=I18N.t("main.commands.bot_channel.create_modal.title"))
-        # Kept as an attribute so on_submit can read the picked channel.
-        self.channel_select = discord.ui.ChannelSelect(
-            channel_types=[discord.ChannelType.text],
-            min_values=1,
-            max_values=1,
-            required=True,
-            placeholder=I18N.t(
-                "main.commands.bot_channel.create_modal.select_placeholder"
-            ),
+async def _bot_channel_created(
+    guild: discord.Guild, new_channel: discord.TextChannel, source
+) -> str:
+    "Store a channel made from `CreateBotChannelView` as the bot channel"
+    await _persist_bot_channel(guild, new_channel.name)
+    if source is None:
+        return I18N.t(
+            "main.commands.bot_channel.msg_confirm_fresh",
+            channel=new_channel.mention,
         )
-        self.add_item(
-            discord.ui.Label(
-                text=I18N.t("main.commands.bot_channel.create_modal.copy_from_label"),
-                component=self.channel_select,
-            )
-        )
-        self.name_input = discord.ui.TextInput(
-            label=I18N.t("main.commands.bot_channel.create_modal.name_label"),
-            default=default_name,
-            max_length=100,
-        )
-        self.add_item(self.name_input)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        # ChannelSelect.values holds partial AppCommandChannels; resolve the
-        # full channel so we can read overwrites/category/position.
-        picked = self.channel_select.values[0]
-        source = interaction.guild.get_channel(picked.id)
-        new_name = str(self.name_input.value).strip()
-        if source is None:
-            await interaction.followup.send(
-                I18N.t("main.commands.bot_channel.create_modal.source_not_found"),
-                ephemeral=True,
-            )
-            return
-        new_channel = await interaction.guild.create_text_channel(
-            name=new_name,
-            category=source.category,
-            position=source.position + 1,
-            overwrites=source.overwrites,
-            reason=I18N.t(
-                "main.commands.bot_channel.create_modal.reason",
-                source=source.name,
-            ),
-        )
-        await _persist_bot_channel(interaction.guild, new_name)
-        await interaction.followup.send(
-            I18N.t(
-                "main.commands.bot_channel.create_modal.msg_confirm",
-                channel=new_channel.mention,
-                source=source.name,
-            ),
-            ephemeral=True,
-        )
+    return I18N.t(
+        "main.commands.bot_channel.create_modal.msg_confirm",
+        channel=new_channel.mention,
+        source=source.name,
+    )
 
 
-class CreateBotChannelView(discord.ui.View):
+class CreateBotChannelView(discord_commands.CreateChannelView):
     """
     Shown when the requested bot channel does not exist yet. Offers to
-    duplicate an existing channel (opens `DuplicateChannelModal`), create a
-    fresh empty channel, or cancel.
+    duplicate an existing channel, create a fresh empty channel, or cancel
+    - see `discord_commands.CreateChannelView`.
     """
 
     def __init__(self, channel_name: str):
-        super().__init__(timeout=120)
-        self.channel_name = channel_name
-
-    @discord.ui.button(
-        label=I18N.t("main.commands.bot_channel.btn_duplicate"),
-        style=discord.ButtonStyle.secondary,
-    )
-    async def duplicate(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        # A modal must be the response to this button interaction.
-        await interaction.response.send_modal(
-            DuplicateChannelModal(default_name=self.channel_name)
-        )
-        self.stop()
-
-    @discord.ui.button(
-        label=I18N.t("main.commands.bot_channel.btn_fresh"),
-        style=discord.ButtonStyle.secondary,
-    )
-    async def fresh(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        overwrites = {
-            interaction.guild.default_role: discord.PermissionOverwrite(
-                read_messages=False
+        super().__init__(
+            channel_name,
+            on_created=_bot_channel_created,
+            modal_title=I18N.t("main.commands.bot_channel.create_modal.title"),
+            modal_name_label=I18N.t(
+                "main.commands.bot_channel.create_modal.name_label"
             ),
-            interaction.guild.me: discord.PermissionOverwrite(read_messages=True),
-        }
-        new_channel = await interaction.guild.create_text_channel(
-            name=self.channel_name,
-            overwrites=overwrites,
-            reason=I18N.t("main.commands.bot_channel.reason_fresh"),
         )
-        await _persist_bot_channel(interaction.guild, self.channel_name)
-        await interaction.followup.send(
-            I18N.t(
-                "main.commands.bot_channel.msg_confirm_fresh",
-                channel=new_channel.mention,
-            ),
-            ephemeral=True,
-        )
-        self.stop()
-
-    @discord.ui.button(
-        label=I18N.t("common.cancel"),
-        style=discord.ButtonStyle.danger,
-    )
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(
-            content=I18N.t("main.commands.bot_channel.cancelled"), view=None
-        )
-        self.stop()
 
 
 @discord_commands.is_owner_or_manage_guild()

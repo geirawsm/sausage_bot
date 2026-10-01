@@ -9,6 +9,15 @@ nb:
     allow: Tillat
     deny: Nekt
   cancel: Avbryt
+  create_channel:
+    select_placeholder: Velg kanalen tillatelsene skal kopieres fra
+    copy_from_label: "Kopier tillatelser fra:"
+    source_not_found: Fant ikke kilde-kanalen. Prøv igjen.
+    reason_copy: "Oppretter kanal (kopiert fra #%{source})"
+    reason_fresh: Oppretter ny kanal
+    btn_duplicate: Dupliser eksisterende
+    btn_fresh: Lag helt ny
+    cancelled: Avbrutt. Lager ingen kanal.
   name: Navn
   channel: Kanal
   message_id: Meldings-ID
