@@ -204,6 +204,10 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
         )
 
 
+def trunc(s, n=30):
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
 class EitherOrButtons(discord.ui.View):
     def __init__(self, *, timeout=60, yes_label=None, no_label=None):
         super().__init__(timeout=timeout)
@@ -530,7 +534,6 @@ async def post_random_quote(
         where=[("quote.rowid", str(random_quote_number[0][0]))],
         guild_id=guild.id,
     )
-    logger.debug(f"random_quote: {random_quote}")
     channel_id = interaction.channel.id if interaction else channel
     if random_quote is None:
         if len(autopost) > 0:
@@ -558,6 +561,13 @@ async def post_random_quote(
         return
     random_quote = random_quote[0]
     if random_quote is not None:
+        # `get_imgs_with_quote` returns a list of quote dicts - log the
+        # one being posted, not the list
+        short_quote = {
+            key: trunc(value) if isinstance(value, str) else value
+            for key, value in random_quote.items()
+        }
+        logger.debug(f"random_quote: {short_quote}")
         quote = random_quote
         paginated = []
         msg = ""
@@ -692,7 +702,6 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         where=[("quote.rowid", int(quote_in))],
         guild_id=interaction.guild.id,
     )
-    logger.debug(f"quote: {quote}")
     if len(quote) == 0:
         await interaction.followup.send(
             I18N.t("quote.commands.list.msg_nonexisting_quote"),
@@ -701,6 +710,13 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
         return
     quote_out = quote[0]
     if quote_out is not None:
+        # `get_imgs_with_quote` returns a list of quote dicts - log the
+        # one being posted, not the list
+        short_quote = {
+            key: trunc(value) if isinstance(value, str) else value
+            for key, value in quote_out.items()
+        }
+        logger.debug(pformat(f"short_quote: {short_quote}"))
         quote = quote_out
         paginated = []
         msg = ""
@@ -846,8 +862,11 @@ class Quotes(commands.Cog):
             _ephemeral = False
         else:
             _ephemeral = True
-        # TODO: ephemeral funker ikke på denne? Må testes
-        # await interaction.response.defer(ephemeral=_ephemeral)
+        # Every reply below goes through `interaction.followup`, which only
+        # exists once the interaction has been responded to - without this
+        # Discord answers `404 Unknown Webhook`. The defer also decides
+        # whether the post is ephemeral.
+        await interaction.response.defer(ephemeral=_ephemeral)
         # If no `quote_in` is given, get a random quote
         if not quote_in:
             logger.debug("No quote number given, posting random quote")
