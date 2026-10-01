@@ -125,17 +125,9 @@ nb:
     bot_channel:
       create_modal:
         title: Lag bot-kanal fra en eksisterende kanal
-        select_placeholder: Velg kanalen tillatelsene skal kopieres fra
-        copy_from_label: "Kopier tillatelser fra:"
         name_label: Navn på den nye bot-kanalen
-        source_not_found: Fant ikke kilde-kanalen. Prøv igjen.
-        reason: "Oppretter bot-kanal (kopiert fra #%{source})"
         msg_confirm: "✅✅ Laget %{channel} (tillatelser kopiert fra #%{source}) og satt som bot-kanal."
-      btn_duplicate: Dupliser eksisterende
-      btn_fresh: Lag helt ny
-      reason_fresh: Oppretter ny bot-kanal
       msg_confirm_fresh: "✅✅ Laget %{channel} og satt som bot-kanal."
-      cancelled: Avbrutt. Lager ingen kanal.
       msg_not_exist: "Kanalen #%{channel} finnes ikke ennå. Hva vil du gjøre?"
       msg_confirm: "✅✅ Satt bot-kanal til #%{channel}."
     profile:

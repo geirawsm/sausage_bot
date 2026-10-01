@@ -125,17 +125,9 @@ en:
     bot_channel:
       create_modal:
         title: Create bot channel from an existing channel
-        select_placeholder: Select the channel to copy permissions from
-        copy_from_label: "Copy permissions from:"
         name_label: Name of the new bot channel
-        source_not_found: Could not find the source channel. Try again.
-        reason: "Creating bot channel (copied from #%{source})"
         msg_confirm: "✅✅ Created %{channel} (permissions copied from #%{source}) and set as bot channel."
-      btn_duplicate: Duplicate existing
-      btn_fresh: Create new
-      reason_fresh: Creating new bot channel
       msg_confirm_fresh: "✅✅ Created %{channel} and set as bot channel."
-      cancelled: Cancelled. Not creating a channel.
       msg_not_exist: "The channel #%{channel} doesn't exist yet. What do you want to do?"
       msg_confirm: "✅✅ Set bot channel to #%{channel}."
     profile:

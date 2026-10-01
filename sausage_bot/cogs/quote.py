@@ -10,6 +10,7 @@ from discord.app_commands import (
 )
 from discord.utils import get
 import uuid
+import json
 from tabulate import tabulate
 import typing
 from pprint import pformat
@@ -73,7 +74,25 @@ async def resolve_autopost_channel(guild: discord.Guild, channel_value):
 
     Returns None when the channel could neither be found nor created.
     """
-    default_name = "quotes"
+    return await resolve_setting_channel(
+        guild,
+        setting_name="channel",
+        channel_value=channel_value,
+        default_name="quotes",
+        topic=I18N.t("quote.commands.settings.add_channel_topic"),
+    )
+
+
+async def resolve_setting_channel(
+    guild: discord.Guild, setting_name, channel_value, default_name, topic
+):
+    """
+    Turn a channel setting (`channel` or `suggest_channel`) into a usable
+    text channel id, creating `default_name` when it is missing and
+    writing the resolved id back to `setting_name`.
+
+    Returns None when the channel could neither be found nor created.
+    """
     if str(channel_value).isdigit():
         channel_object = get(guild.text_channels, id=int(channel_value))
         if channel_object is not None:
@@ -94,7 +113,7 @@ async def resolve_autopost_channel(guild: discord.Guild, channel_value):
             channel_object = await discord_commands.create_missing_channel(
                 guild=guild,
                 channel_name=channel_name,
-                topic=I18N.t("quote.commands.settings.add_channel_topic"),
+                topic=topic,
             )
         except discord.DiscordException as error:
             logger.error(
@@ -108,7 +127,7 @@ async def resolve_autopost_channel(guild: discord.Guild, channel_value):
         return None
     await db_helper.update_fields(
         template_info=envs.quote_db_settings_schema,
-        where=[("setting", "channel")],
+        where=[("setting", setting_name)],
         updates=[("value", channel_object.id)],
         guild_id=guild.id,
     )
@@ -256,6 +275,7 @@ class ModalQuoteAdd(discord.ui.Modal):
         defaults: list = [],
         title_in: str = "Dummy title",
         row_ids: int = 0,
+        confirm_msg: str = None,
     ) -> None:
         super().__init__(title=title_in)
 
@@ -263,6 +283,9 @@ class ModalQuoteAdd(discord.ui.Modal):
         self.defaults = defaults
         self.msgs_out = []
         self.row_ids = row_ids
+        # Overrides the "quote saved" reply, e.g. for suggestions that are
+        # not saved until a moderator approves them
+        self.confirm_msg = confirm_msg
         logger.debug(f"self.msgs_in: {self.msgs_in}")
         logger.debug(f"self.defaults: {self.defaults}")
 
@@ -287,7 +310,9 @@ class ModalQuoteAdd(discord.ui.Modal):
             )
         else:
             self.msgs_out = self.quote_dropdown.values
-            if self.row_ids == 0:
+            if self.confirm_msg:
+                msg_out = self.confirm_msg
+            elif self.row_ids == 0:
                 msg_out = I18N.t("quote.modals.add.msg_confirm")
             else:
                 msg_out = I18N.t(
@@ -303,6 +328,28 @@ class ModalQuoteAdd(discord.ui.Modal):
         await interaction.response.send_message(
             I18N.t("quote.modals.error", error=error), ephemeral=True
         )
+
+
+def channel_setting_saver(setting_name: str):
+    """
+    `on_created` callback for `discord_commands.CreateChannelView`: store
+    the new channel's id in the quote setting `setting_name`
+    """
+
+    async def _save(guild: discord.Guild, new_channel, source) -> str:
+        await db_helper.update_fields(
+            template_info=envs.quote_db_settings_schema,
+            where=[("setting", setting_name)],
+            updates=[("value", new_channel.id)],
+            guild_id=guild.id,
+        )
+        return I18N.t(
+            "quote.commands.settings.channel_created",
+            channel=new_channel.mention,
+            setting=setting_name,
+        )
+
+    return _save
 
 
 async def settings_db_autocomplete(
@@ -1316,12 +1363,63 @@ class Quotes(commands.Cog):
         settings_type = envs.quote_db_settings_schema["type_checking"]
         setting_type = settings_type[name_of_setting]
         if setting_type == "bool":
-            try:
-                value_in = eval(str(value_in).capitalize())
-            except NameError as _error:
-                logger.error(f"Invalid input for `value_in`: {_error}")
+            if str(value_in).strip().lower() not in ["true", "false"]:
+                logger.error(f"Invalid input for `value_in`: {value_in}")
                 await interaction.followup.send(I18N.t("stats.setting_input_reply"))
                 return
+            value_in = str(value_in).strip().lower() == "true"
+        elif name_of_setting in ["channel", "suggest_channel"]:
+            # Channel settings hold a channel *id*, but a slash command
+            # always hands us a string. Resolve names, mentions and raw ids
+            # to an id here - before the generic `int` branch, which would
+            # otherwise reject a channel name outright.
+            channel_in = str(value_in).strip()
+            channel_mention = re.fullmatch(r"<#(\d{17,22})>", channel_in)
+            if channel_mention:
+                channel_in = channel_mention.group(1)
+            if channel_in.isdigit():
+                channel_object = get(
+                    interaction.guild.text_channels, id=int(channel_in)
+                )
+            else:
+                channel_object = get(
+                    interaction.guild.text_channels, name=channel_in.lstrip("#")
+                )
+            if channel_object is None and not channel_in.isdigit():
+                # A name that does not exist yet - offer to create it, the
+                # same way `/bot_channel` does. The view's buttons store the
+                # setting once the channel exists.
+                channel_name = channel_in.lstrip("#")
+                await interaction.followup.send(
+                    content=I18N.t(
+                        "quote.commands.settings.channel_not_exist",
+                        channel=channel_name,
+                    ),
+                    view=discord_commands.CreateChannelView(
+                        channel_name,
+                        on_created=channel_setting_saver(name_of_setting),
+                        modal_title=I18N.t(
+                            "quote.commands.settings.channel_modal_title"
+                        ),
+                        modal_name_label=I18N.t(
+                            "quote.commands.settings.channel_name_label"
+                        ),
+                    ),
+                    ephemeral=True,
+                )
+                return
+            if channel_object is None:
+                logger.error(
+                    "Could not find channel `{}` in `{}`".format(
+                        value_in, interaction.guild.name
+                    )
+                )
+                await interaction.followup.send(
+                    content=I18N.t("common.error.channel_not_found", channel=value_in),
+                    ephemeral=True,
+                )
+                return
+            value_in = channel_object.id
         elif setting_type == "int":
             try:
                 value_in = int(value_in)
@@ -1340,35 +1438,6 @@ class Quotes(commands.Cog):
         elif setting_type == "role_id":
             value_in = int(re.fullmatch(r"<@&(\d+)>", value_in).group(1))
             setting_type = "int"
-        elif name_of_setting == "channel":
-            # `channel` holds a channel *id*, but a slash command always
-            # hands us a string, so the type check further down never
-            # matched `int` - the change was dropped and still reported as
-            # confirmed. Resolve names, mentions and raw ids to an id here.
-            channel_in = str(value_in).strip()
-            channel_mention = re.fullmatch(r"<#(\d{17,22})>", channel_in)
-            if channel_mention:
-                channel_in = channel_mention.group(1)
-            if channel_in.isdigit():
-                channel_object = get(
-                    interaction.guild.text_channels, id=int(channel_in)
-                )
-            else:
-                channel_object = get(
-                    interaction.guild.text_channels, name=channel_in.lstrip("#")
-                )
-            if channel_object is None:
-                logger.error(
-                    "Could not find channel `{}` in `{}`".format(
-                        value_in, interaction.guild.name
-                    )
-                )
-                await interaction.followup.send(
-                    content=I18N.t("common.error.channel_not_found", channel=value_in),
-                    ephemeral=True,
-                )
-                return
-            value_in = channel_object.id
         elif name_of_setting == "autopost_time":
             # Stored as HH:MM:SS - task_autopost polls every 5 minutes and
             # checks each guild's own stored time, so there is no shared
@@ -1403,6 +1472,10 @@ class Quotes(commands.Cog):
                 ephemeral=True,
             )
             return
+        if setting_type == "bool":
+            # Store as "True"/"False" like the defaults - sqlite would turn
+            # a Python bool into "1"/"0" in this TEXT column
+            value_in = str(value_in)
         await db_helper.update_fields(
             template_info=envs.quote_db_settings_schema,
             where=[("setting", name_of_setting)],
@@ -1446,7 +1519,7 @@ class Quotes(commands.Cog):
             value_in_check = type(
                 eval("{}({})".format(settings_types[setting_in], value_in))
             )
-        elif setting_in == "channel":
+        elif setting_in in ["channel", "suggest_channel"]:
             _guild = interaction.guild
             channel_object = get(_guild.text_channels, name=str(value_in))
             if channel_object is None:
@@ -1455,7 +1528,11 @@ class Quotes(commands.Cog):
                 channel_object = await discord_commands.create_missing_channel(
                     guild=_guild,
                     channel_name=value_in,
-                    topic=I18N.t("quote.commands.settings.add_channel_topic"),
+                    topic=(
+                        I18N.t("quote.commands.settings.add_channel_topic")
+                        if setting_in == "channel"
+                        else I18N.t("quote.context_menu.suggest_quote.channel_topic")
+                    ),
                 )
             value_in = channel_object.id
             value_in_check = type(value_in)
@@ -1744,20 +1821,7 @@ def convert_b64_to_img_in_mem(b64string: str):
 )
 async def quote_add(interaction: discord.Interaction, message: discord.Message):
     "Add a quote"
-    channel_out = interaction.channel
-    msgs = []
-    msg_defaults = [message.id]
-    logger.debug("Getting msg history")
-    msgs_before = channel_out.history(limit=12, before=message)
-    async for _msg in msgs_before:
-        msgs.append(_msg)
-    msgs.reverse()
-    msgs.append(message)
-    msgs_after = channel_out.history(limit=12, after=message)
-    logger.debug(f"msgs is {msgs}")
-    logger.debug(f"msg_defaults is {msg_defaults}")
-    async for _msg in msgs_after:
-        msgs.append(_msg)
+    msgs = await collect_context_msgs(interaction.channel, message)
     q_row_ids = len(
         await db_helper.get_row_ids(
             template_info=envs.quote_db_schema,
@@ -1768,63 +1832,372 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
     addquote_view = ModalQuoteAdd(
         title_in=I18N.t("quote.modals.add.modal_title"),
         msgs_in=msgs,
-        defaults=msg_defaults,
+        defaults=[message.id],
         row_ids=q_row_ids,
     )
     await interaction.response.send_modal(addquote_view)
     await addquote_view.wait()
-    # Get quotes and add to db
-    quote_msgs_out = addquote_view.msgs_out
-    quotes_out = []
-    for quote in quote_msgs_out:
-        quote_object = await discord_commands.get_message_obj(
-            guild=interaction.guild, msg_id=quote, channel_id=interaction.channel.id
-        )
-        quotes_out.append(quote_object)
-    # Add the quote
+    quotes_out = await get_selected_msgs(interaction, addquote_view.msgs_out)
+    if len(quotes_out) == 0:
+        # The modal timed out or was dismissed - do not save an empty quote
+        return
     _uuid = str(uuid.uuid4())
-    quote_to_db = []
-    imgs_to_db = []
-    quote_insert_order = 0
-    for _q in quotes_out:
-        content = _q.content
-        quote_to_db.append(
+    content_rows, img_rows = build_quote_rows(_uuid, quotes_out)
+    await save_quote(
+        guild_id=interaction.guild.id,
+        quote_uuid=_uuid,
+        channel_id=int(interaction.channel.id),
+        channel_name=str(interaction.channel.name),
+        created_at=message.created_at,
+        content_rows=content_rows,
+        img_rows=img_rows,
+    )
+    return
+
+
+async def collect_context_msgs(
+    channel: discord.abc.Messageable, message: discord.Message
+) -> list[discord.Message]:
+    "Get `message` with up to 12 messages before and after it, oldest first"
+    msgs = []
+    logger.debug("Getting msg history")
+    async for _msg in channel.history(limit=12, before=message):
+        msgs.append(_msg)
+    msgs.reverse()
+    msgs.append(message)
+    async for _msg in channel.history(limit=12, after=message):
+        msgs.append(_msg)
+    logger.debug(f"msgs is {msgs}")
+    return msgs
+
+
+async def get_selected_msgs(
+    interaction: discord.Interaction, msg_ids: list
+) -> list[discord.Message]:
+    "Fetch the messages picked in `ModalQuoteAdd`, skipping deleted ones"
+    msgs_out = []
+    for msg_id in msg_ids:
+        msg_object = await discord_commands.get_message_obj(
+            guild=interaction.guild, msg_id=msg_id, channel_id=interaction.channel.id
+        )
+        if msg_object is not None:
+            msgs_out.append(msg_object)
+    return msgs_out
+
+
+def build_quote_rows(quote_uuid: str, msgs: list[discord.Message]) -> tuple:
+    """
+    Turn the selected messages into rows for `quote_content` and
+    `quote_img`, in the order they were selected
+    """
+    content_rows = []
+    img_rows = []
+    for content_order, _q in enumerate(msgs):
+        content_rows.append(
             (
-                _uuid,
+                quote_uuid,
                 _q.id,
                 _q.author.id,
                 _q.author.name,
-                content,
-                quote_insert_order,
+                _q.content,
+                content_order,
             )
         )
-        quote_insert_order += 1
         imgs_in = get_imgs_to_db_format(_q)
         if imgs_in:
-            imgs_to_db += imgs_in
+            img_rows += imgs_in
+    return content_rows, img_rows
+
+
+async def save_quote(
+    guild_id,
+    quote_uuid: str,
+    channel_id: int,
+    channel_name: str,
+    created_at,
+    content_rows: list,
+    img_rows: list,
+) -> None:
+    "Insert a quote with its comments and images"
     await db_helper.insert_many_all(
         template_info=envs.quote_db_schema,
-        inserts=[
-            (
-                _uuid,
-                int(interaction.channel.id),
-                str(interaction.channel.name),
-                message.created_at,
-            )
-        ],
-        guild_id=interaction.guild.id,
+        inserts=[(quote_uuid, channel_id, channel_name, created_at)],
+        guild_id=guild_id,
     )
     await db_helper.insert_many_all(
         template_info=envs.quote_content_db_schema,
-        inserts=quote_to_db,
-        guild_id=interaction.guild.id,
+        inserts=[tuple(row) for row in content_rows],
+        guild_id=guild_id,
     )
-    if len(imgs_to_db) > 0:
+    if len(img_rows) > 0:
         await db_helper.insert_many_all(
             template_info=envs.quote_img_db_schema,
-            inserts=imgs_to_db,
-            guild_id=interaction.guild.id,
+            inserts=[tuple(row) for row in img_rows],
+            guild_id=guild_id,
         )
+
+
+async def get_quote_settings(guild_id) -> dict:
+    "Get this guild's quote settings as `{setting: value}`"
+    settings_in_db = await db_helper.get_output(
+        template_info=envs.quote_db_settings_schema,
+        select=("setting", "value"),
+        guild_id=guild_id,
+    )
+    return file_io.make_db_output_to_json(["setting", "value"], settings_in_db) or {}
+
+
+def is_suggest_enabled(settings: dict) -> bool:
+    return str(settings.get("suggest_enabled")).strip().lower() in ["true", "1"]
+
+
+async def can_review_suggestions(interaction: discord.Interaction) -> bool:
+    "Same rule as `discord_commands.is_owner_or_manage_guild()`"
+    if await interaction.client.is_owner(interaction.user):
+        return True
+    return interaction.user.guild_permissions.manage_guild
+
+
+def format_suggestion(content_rows: list, channel_name: str, suggested_by: str) -> str:
+    "Text for the review message posted in the suggest channel"
+    author_max_len = max(len(str(row[3])) for row in content_rows)
+    lines = [
+        "`{}: {}`".format(str(row[3]).ljust(author_max_len, " "), row[4])
+        for row in content_rows
+    ]
+    msg_out = "{}\n\n{}".format(
+        I18N.t(
+            "quote.context_menu.suggest_quote.review_header",
+            user=suggested_by,
+            channel=channel_name,
+        ),
+        "\n".join(lines),
+    )
+    # Leave room for the "approved by"/"denied by" line added later
+    if len(msg_out) > 1800:
+        msg_out = f"{msg_out[:1797]}..."
+    return msg_out
+
+
+class DynamicSuggestButton(
+    discord.ui.DynamicItem[discord.ui.Button],
+    template=r"quote\.suggest:(?P<action>approve|deny):(?P<suggest_uuid>[0-9a-f-]+)",
+):
+    """
+    Approve/deny button on a suggested quote. A `DynamicItem` so the
+    buttons keep working after the bot restarts - see `setup()`.
+    """
+
+    def __init__(self, action: str, suggest_uuid: str) -> None:
+        self.action = action
+        self.suggest_uuid = suggest_uuid
+        if action == "approve":
+            label = I18N.t("quote.context_menu.suggest_quote.btn_approve")
+            style = discord.ButtonStyle.green
+        else:
+            label = I18N.t("quote.context_menu.suggest_quote.btn_deny")
+            style = discord.ButtonStyle.red
+        super().__init__(
+            discord.ui.Button(
+                label=label,
+                style=style,
+                custom_id=f"quote.suggest:{action}:{suggest_uuid}",
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(
+        cls,
+        interaction: discord.Interaction,
+        item: discord.ui.Button,
+        match: re.Match[str],
+        /,
+    ):
+        return cls(str(match["action"]), str(match["suggest_uuid"]))
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await can_review_suggestions(interaction):
+            await interaction.response.send_message(
+                I18N.t("quote.context_menu.suggest_quote.no_permission"),
+                ephemeral=True,
+            )
+            return
+        status, quote_number = await handle_suggestion(
+            interaction.guild.id, self.suggest_uuid, self.action
+        )
+        if status == "approved":
+            status_line = I18N.t(
+                "quote.context_menu.suggest_quote.approved_by",
+                user=interaction.user.mention,
+                quote_number=quote_number,
+            )
+        elif status == "denied":
+            status_line = I18N.t(
+                "quote.context_menu.suggest_quote.denied_by",
+                user=interaction.user.mention,
+            )
+        else:
+            await interaction.response.send_message(
+                I18N.t("quote.context_menu.suggest_quote.already_handled"),
+                ephemeral=True,
+            )
+            return
+        await interaction.response.edit_message(
+            content=f"{interaction.message.content}\n\n{status_line}", view=None
+        )
+
+
+async def handle_suggestion(guild_id, suggest_uuid: str, action: str) -> tuple:
+    """
+    Approve or deny a pending suggestion.
+
+    Returns `(status, quote_number)`: status is `approved`, `denied`,
+    `already_handled` or `missing`, and `quote_number` is the new quote's
+    rowid when it was approved.
+    """
+    rows = await db_helper.get_output(
+        template_info=envs.quote_suggest_db_schema,
+        where=[("uuid", suggest_uuid)],
+        guild_id=guild_id,
+    )
+    if not rows:
+        logger.error(f"Could not find quote suggestion `{suggest_uuid}`")
+        return "missing", None
+    suggestion = rows[0]
+    if suggestion["status"] != "pending":
+        return "already_handled", None
+    if action == "deny":
+        await db_helper.update_fields(
+            template_info=envs.quote_suggest_db_schema,
+            where=[("uuid", suggest_uuid)],
+            updates=[("status", "denied")],
+            guild_id=guild_id,
+        )
+        return "denied", None
+    # Mark it first, so a second click while saving finds it handled
+    await db_helper.update_fields(
+        template_info=envs.quote_suggest_db_schema,
+        where=[("uuid", suggest_uuid)],
+        updates=[("status", "approved")],
+        guild_id=guild_id,
+    )
+    payload = json.loads(suggestion["payload"])
+    await save_quote(
+        guild_id=guild_id,
+        quote_uuid=suggest_uuid,
+        channel_id=suggestion["channel_id"],
+        channel_name=suggestion["channel_backup"],
+        created_at=suggestion["datetime"],
+        content_rows=payload["content"],
+        img_rows=payload["imgs"],
+    )
+    quote_rows = await db_helper.get_output(
+        template_info=envs.quote_db_schema,
+        select=("rowid", "uuid"),
+        where=[("uuid", suggest_uuid)],
+        guild_id=guild_id,
+    )
+    quote_number = quote_rows[0]["rowid"] if quote_rows else None
+    return "approved", quote_number
+
+
+async def post_suggestion(
+    guild: discord.Guild,
+    suggest_uuid: str,
+    channel,
+    created_at,
+    suggested_by: discord.abc.User,
+    content_rows: list,
+    img_rows: list,
+    suggest_channel_value,
+):
+    """
+    Save a suggestion as pending and post it with approve/deny buttons in
+    the guild's suggest channel. Returns the posted review message, or
+    None if there was no usable suggest channel.
+    """
+    await db_helper.insert_many_all(
+        template_info=envs.quote_suggest_db_schema,
+        inserts=[
+            (
+                suggest_uuid,
+                int(channel.id),
+                str(channel.name),
+                str(created_at),
+                int(suggested_by.id),
+                "pending",
+                None,
+                json.dumps({"content": content_rows, "imgs": img_rows}),
+            )
+        ],
+        guild_id=guild.id,
+    )
+    review_channel_id = await resolve_setting_channel(
+        guild,
+        setting_name="suggest_channel",
+        channel_value=suggest_channel_value,
+        default_name="quote-suggest",
+        topic=I18N.t("quote.context_menu.suggest_quote.channel_topic"),
+    )
+    if review_channel_id is None:
+        logger.error(f"No usable quote suggest channel for `{guild.name}`")
+        return None
+    review_channel = guild.get_channel(review_channel_id)
+    # Discord allows at most 10 files per message
+    files_out = [convert_b64_to_img_in_mem(str(img[2])) for img in img_rows][:10]
+    files_out = [_file for _file in files_out if _file is not None]
+    view = discord.ui.View(timeout=None)
+    view.add_item(DynamicSuggestButton("approve", suggest_uuid))
+    view.add_item(DynamicSuggestButton("deny", suggest_uuid))
+    review_msg = await review_channel.send(
+        content=format_suggestion(content_rows, channel.name, suggested_by.mention),
+        files=files_out,
+        view=view,
+    )
+    await db_helper.update_fields(
+        template_info=envs.quote_suggest_db_schema,
+        where=[("uuid", suggest_uuid)],
+        updates=[("review_msg_id", review_msg.id)],
+        guild_id=guild.id,
+    )
+    return review_msg
+
+
+@config.bot.tree.context_menu(
+    name=locale_str(I18N.t("quote.context_menu.suggest_quote.name"))
+)
+async def quote_suggest(interaction: discord.Interaction, message: discord.Message):
+    "Suggest a quote for a moderator to approve"
+    settings = await get_quote_settings(interaction.guild.id)
+    if not is_suggest_enabled(settings):
+        await interaction.response.send_message(
+            I18N.t("quote.context_menu.suggest_quote.disabled"), ephemeral=True
+        )
+        return
+    msgs = await collect_context_msgs(interaction.channel, message)
+    suggest_view = ModalQuoteAdd(
+        title_in=I18N.t("quote.context_menu.suggest_quote.modal_title"),
+        msgs_in=msgs,
+        defaults=[message.id],
+        confirm_msg=I18N.t("quote.context_menu.suggest_quote.msg_sent"),
+    )
+    await interaction.response.send_modal(suggest_view)
+    await suggest_view.wait()
+    quotes_out = await get_selected_msgs(interaction, suggest_view.msgs_out)
+    if len(quotes_out) == 0:
+        return
+    _uuid = str(uuid.uuid4())
+    content_rows, img_rows = build_quote_rows(_uuid, quotes_out)
+    await post_suggestion(
+        guild=interaction.guild,
+        suggest_uuid=_uuid,
+        channel=interaction.channel,
+        created_at=message.created_at,
+        suggested_by=interaction.user,
+        content_rows=content_rows,
+        img_rows=img_rows,
+        suggest_channel_value=settings.get("suggest_channel"),
+    )
     return
 
 
@@ -1842,6 +2215,7 @@ async def ensure_guild_quote_tables(guild):
     )
     await db_helper.prep_table(table_in=envs.quote_content_db_schema, guild_id=guild.id)
     await db_helper.prep_table(table_in=envs.quote_img_db_schema, guild_id=guild.id)
+    await db_helper.prep_table(table_in=envs.quote_suggest_db_schema, guild_id=guild.id)
 
 
 # Uniform name so a guild approved while the bot is running can get its
@@ -1867,6 +2241,8 @@ async def setup(bot):
 
     logger.debug("Registering cog to bot")
     await bot.add_cog(Quotes(bot))
+    # Approve/deny buttons on pending suggestions must survive a restart
+    bot.add_dynamic_items(DynamicSuggestButton)
     logger.info(envs.COG_STARTED.format(cog_name))
 
     # Shared, always-running loop - each tick checks every guild's own

@@ -65,6 +65,13 @@ Command: `/quote`
 - Count no. of quote
 - List quote from quote number or search for a keyword
 
+Members without "Manage Server" can suggest quotes with the "Suggest
+quote" context menu, when `/quote settings change suggest_enabled true`
+is set. Suggestions are posted in `suggest_channel` (default
+`#quote-suggest`), where a moderator approves or denies them. Setting
+`channel` or `suggest_channel` to a channel that does not exist offers to
+create it, the same way `/bot_channel` does.
+
 ### Manage roles
 
 Manage roles and reaction messages.

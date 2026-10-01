@@ -606,5 +606,139 @@ def check_user_channel_role(guild: discord.Guild, text_in):
     }
 
 
+class DuplicateChannelModal(discord.ui.Modal):
+    """
+    Lets the user pick an existing text channel to copy from and name the
+    new channel. The new channel inherits the source channel's permission
+    overwrites and category, and is placed right after the source in the
+    channel list.
+
+    `on_created(guild, new_channel, source)` stores whatever setting the
+    channel was made for and returns the confirmation message.
+    """
+
+    def __init__(self, default_name: str, on_created, title: str, name_label: str):
+        super().__init__(title=title)
+        self.on_created = on_created
+        # Kept as an attribute so on_submit can read the picked channel.
+        self.channel_select = discord.ui.ChannelSelect(
+            channel_types=[discord.ChannelType.text],
+            min_values=1,
+            max_values=1,
+            required=True,
+            placeholder=I18N.t("common.create_channel.select_placeholder"),
+        )
+        self.add_item(
+            discord.ui.Label(
+                text=I18N.t("common.create_channel.copy_from_label"),
+                component=self.channel_select,
+            )
+        )
+        self.name_input = discord.ui.TextInput(
+            label=name_label,
+            default=default_name,
+            max_length=100,
+        )
+        self.add_item(self.name_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        # ChannelSelect.values holds partial AppCommandChannels; resolve the
+        # full channel so we can read overwrites/category/position.
+        picked = self.channel_select.values[0]
+        source = interaction.guild.get_channel(picked.id)
+        new_name = str(self.name_input.value).strip()
+        if source is None:
+            await interaction.followup.send(
+                I18N.t("common.create_channel.source_not_found"),
+                ephemeral=True,
+            )
+            return
+        new_channel = await interaction.guild.create_text_channel(
+            name=new_name,
+            category=source.category,
+            position=source.position + 1,
+            overwrites=source.overwrites,
+            reason=I18N.t("common.create_channel.reason_copy", source=source.name),
+        )
+        msg_out = await self.on_created(interaction.guild, new_channel, source)
+        await interaction.followup.send(msg_out, ephemeral=True)
+
+
+class CreateChannelView(discord.ui.View):
+    """
+    Shown when a requested channel does not exist yet. Offers to duplicate
+    an existing channel (opens `DuplicateChannelModal`), create a fresh
+    channel only the bot can see, or cancel.
+
+    `on_created(guild, new_channel, source)` is called once the channel
+    exists - `source` is None for a fresh channel - and returns the
+    confirmation message. `modal_title` and `modal_name_label` label the
+    duplicate modal.
+    """
+
+    def __init__(
+        self,
+        channel_name: str,
+        on_created,
+        modal_title: str,
+        modal_name_label: str,
+    ):
+        super().__init__(timeout=120)
+        self.channel_name = channel_name
+        self.on_created = on_created
+        self.modal_title = modal_title
+        self.modal_name_label = modal_name_label
+
+    @discord.ui.button(
+        label=I18N.t("common.create_channel.btn_duplicate"),
+        style=discord.ButtonStyle.secondary,
+    )
+    async def duplicate(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        # A modal must be the response to this button interaction.
+        await interaction.response.send_modal(
+            DuplicateChannelModal(
+                default_name=self.channel_name,
+                on_created=self.on_created,
+                title=self.modal_title,
+                name_label=self.modal_name_label,
+            )
+        )
+        self.stop()
+
+    @discord.ui.button(
+        label=I18N.t("common.create_channel.btn_fresh"),
+        style=discord.ButtonStyle.secondary,
+    )
+    async def fresh(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(
+                read_messages=False
+            ),
+            interaction.guild.me: discord.PermissionOverwrite(read_messages=True),
+        }
+        new_channel = await interaction.guild.create_text_channel(
+            name=self.channel_name,
+            overwrites=overwrites,
+            reason=I18N.t("common.create_channel.reason_fresh"),
+        )
+        msg_out = await self.on_created(interaction.guild, new_channel, None)
+        await interaction.followup.send(msg_out, ephemeral=True)
+        self.stop()
+
+    @discord.ui.button(
+        label=I18N.t("common.cancel"),
+        style=discord.ButtonStyle.danger,
+    )
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(
+            content=I18N.t("common.create_channel.cancelled"), view=None
+        )
+        self.stop()
+
+
 if __name__ == "__main__":
     pass
