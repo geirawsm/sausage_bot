@@ -443,11 +443,11 @@ async def register_guild(guild: discord.Guild):
     """
     Make sure `guild` has a row in the guild registry. New guilds are
     `pending` unless they are the configured ADMIN_GUILD_ID, which is
-    auto-approved and never needs to go through `/approve-guild`.
+    auto-approved and never needs to go through `/guild approve`.
     If guild is marked as `removed`, it resets to `pending` - unless it
     is the admin guild, which is auto-approved again on the way back in.
     Other existing rows are left untouched. Status change via
-    `/approve-guild` or `on_guild_remove`.
+    `/guild approve` or `on_guild_remove`.
     """
     # Defensive: on_ready() already preps this table, but on_guild_join()
     # can also reach this function directly - prep_table is a cheap,
@@ -464,7 +464,7 @@ async def register_guild(guild: discord.Guild):
             # The admin guild is auto-approved wherever it turns up in the
             # registry, not only the first time it's seen. Re-adding the
             # bot to it must not leave the guild that hosts
-            # `/approve-guild` sitting in `pending`, unable to approve
+            # `/guild approve` sitting in `pending`, unable to approve
             # itself back into service.
             #
             # `_approve_admin_guild()` calls back into `register_guild()`
@@ -501,8 +501,8 @@ async def register_guild(guild: discord.Guild):
     )
     if is_admin_guild:
         # The admin guild is auto-approved and never goes through
-        # `/approve-guild`, so it needs its posting-task rows prepped
-        # here instead - `/approve-guild` does the same for other guilds.
+        # `/guild approve`, so it needs its posting-task rows prepped
+        # here instead - `/guild approve` does the same for other guilds.
         await db_helper.ensure_guild_tasks_rows(guild.id)
         await cogs.ensure_guild_tables_for_loaded_cogs(guild)
         logger.info(f"Registered admin guild `{guild.name}` ({guild.id})")
