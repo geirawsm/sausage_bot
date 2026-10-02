@@ -1672,8 +1672,8 @@ async def syncglobal(ctx):
 
 
 @commands.is_owner()
-@config.bot.command(name="clearglobals")
-async def clear_globals(ctx):
+@config.bot.command(name="clearglobal")
+async def clear_global(ctx):
     logger.debug("Deleting global commands...")
     _reply = await ctx.reply(
         "💭 {}".format(I18N.t("main.commands.clearglobals.msg_starting"))
@@ -1687,8 +1687,8 @@ async def clear_globals(ctx):
 
 
 @commands.is_owner()
-@config.bot.command(name="clearlocals")
-async def clear_locals(ctx):
+@config.bot.command(name="clearlocal")
+async def clear_local(ctx):
     logger.debug("Deleting local commands...")
     _reply = await ctx.reply(
         "💭 {}".format(I18N.t("main.commands.clearlocals.msg_starting"))
