@@ -29,8 +29,9 @@ en:
           hidden_name: Name
           hidden_id: ID
       stats_msg_out:
-        sub_settings: Innstillinger
+        sub_settings: Settings
         sub_hidden: Hidden roles
+      channel_not_id: "Channel '%{channel_in}' is not a channel id. Add the channel again."
     change:
       desc:
         name_of_setting: Name of setting

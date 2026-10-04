@@ -225,6 +225,7 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
                 )
 
             # Tabulate the output
+            logger.debug("Tabulating the output")
             dict_out = {"name": [], "members": []}
             for role in dict_in:
                 if hide_roles is not None and str(dict_in[role]["id"]) in hide_roles:
@@ -251,15 +252,16 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
         # Get `stats_msg_id` from db to update stats post
         stats_settings = await get_db_settings(guild)
         channel_setting = stats_settings.get("channel")
-        if channel_setting is None or not re.match(r"^\d+$", str(channel_setting)):
+        logger.debug(f"Got info channel_setting ({channel_setting})")
+        if channel_setting is None or not re.fullmatch(r"\d+", str(channel_setting)):
             logger.error("`stats_channel` is not a channel")
-            return None
+            return
         stats_channel = guild.get_channel(int(channel_setting))
         logger.debug(f"Got `stats_channel` {stats_channel} ({type(stats_channel)})")
         # If `stats_msg_id` is not in db, check if `stats_msg` is in db
         # If `stats_msg` is not in db, add `stats_msg_id` to db
         stats_msg_id = None
-        if "stats_msg_id" not in stats_settings:
+        if "stats_msg_id" not in stats_settings or stats_settings["stats_msg_id"] == "":
             # Add new post and update db
             if "stats_msg" in stats_settings:
                 stats_msg_id = stats_settings.get("stats_msg")
@@ -408,7 +410,6 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
                 guild,
                 I18N.t("stats.tasks.update_stats.log.roles_truncated"),
             )
-
         members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
         stats_info += f"### {members_sub}\n"
     if eval(stats_settings["show_members_total"]):
@@ -535,7 +536,7 @@ class Stats(commands.Cog):
         List the available settings for this cog
         """
         await interaction.response.defer(ephemeral=True)
-        settings_in_db = await db_helper.get_output(
+        stats_settings = await db_helper.get_output(
             template_info=envs.stats_db_settings_schema,
             select=("setting", "value"),
             guild_id=interaction.guild.id,
@@ -544,9 +545,28 @@ class Stats(commands.Cog):
             "setting": I18N.t("stats.commands.list.headers.settings.setting"),
             "value": I18N.t("stats.commands.list.headers.settings.value"),
         }
+        for item in stats_settings:
+            if item["setting"] == "channel":
+                if re.fullmatch(r"\d+", str(item["value"])):
+                    _name = discord_commands.get_user_channel_role_name(
+                        interaction.guild, item["value"]
+                    )
+                    _id = item["value"]
+                    stats_settings["channel"] = f"{_name} ({_id})"
+                else:
+                    logger.debug("channel in stats settings is not an ID. Notifying.")
+                    await discord_commands.log_to_bot_channel(
+                        interaction.guild,
+                        I18N.t(
+                            "Channel '{}' is not a channel id. Add the channel again.",
+                            channel_in=item["value"],
+                        ),
+                    )
+                    return
+        return
         out = "## {}\n```{}```".format(
             I18N.t("stats.commands.list.stats_msg_out.sub_settings"),
-            tabulate(settings_in_db, headers=headers_settings),
+            tabulate(stats_settings, headers=headers_settings),
         )
         hidden_roles_in_db = await db_helper.get_output(
             template_info=envs.stats_db_hide_roles_schema, guild_id=interaction.guild.id
@@ -611,61 +631,86 @@ class Stats(commands.Cog):
             settings_from_db[setting["setting"]] = setting["value"]
         logger.debug(f"settings_from_db:\n{pformat(settings_from_db)}")
         settings_type = envs.stats_db_settings_schema["type_checking"]
-        for setting in settings_from_db:
-            logger.debug(f"Checking '{name_of_setting}' against '{setting}'")
-            if setting == name_of_setting:
-                if settings_type[setting] == "bool":
-                    if value_in.lower() in ["true", "false"]:
-                        value_in = str(value_in).capitalize()
-                        logger.debug(f"Changing as bool: {value_in}")
-                    else:
-                        logger.error(f"Invalid input for value_in: {value_in}")
-                        await interaction.followup.send(
-                            I18N.t("stats.setting_input_reply")
-                        )
-                        return
-                # Sorting should actually behave like a switch, so if abc is
-                # True, then 321 will turn False, and vice versa
-                if setting in ["sort_roles_abc", "sort_roles_321"]:
-                    if setting == "sort_roles_abc":
-                        await db_helper.update_fields(
-                            template_info=envs.stats_db_settings_schema,
-                            where=[("setting", "sort_roles_abc")],
-                            updates=[("value", value_in)],
-                            guild_id=interaction.guild.id,
-                        )
-                        await db_helper.update_fields(
-                            template_info=envs.stats_db_settings_schema,
-                            where=[("setting", "sort_roles_321")],
-                            updates=[("value", bool_switch((value_in)))],
-                            guild_id=interaction.guild.id,
-                        )
-                    elif setting == "sort_roles_321":
-                        await db_helper.update_fields(
-                            template_info=envs.stats_db_settings_schema,
-                            where=[("setting", "sort_roles_321")],
-                            updates=[("value", value_in)],
-                            guild_id=interaction.guild.id,
-                        )
-                        await db_helper.update_fields(
-                            template_info=envs.stats_db_settings_schema,
-                            where=[("setting", "sort_roles_abc")],
-                            updates=[("value", bool_switch((value_in)))],
-                            guild_id=interaction.guild.id,
-                        )
-                elif type(eval(value_in)) is eval(settings_type[setting]):
-                    logger.debug(f"Updating '{setting}' with '{value_in}'")
-                    await db_helper.update_fields(
-                        template_info=envs.stats_db_settings_schema,
-                        where=[("setting", name_of_setting)],
-                        updates=[("value", value_in)],
-                        guild_id=interaction.guild.id,
-                    )
+        if name_of_setting not in settings_from_db:
+            return
+        setting_type = settings_type[name_of_setting]
+        logger.debug(
+            f"'value_in' is {value_in} ({type(value_in)}), "
+            f"setting_type for '{name_of_setting}' is {setting_type}"
+        )
+        if setting_type == "bool":
+            if value_in.lower() not in ["true", "false"]:
+                logger.error(f"Invalid input for value_in: {value_in}")
                 await interaction.followup.send(
-                    content=I18N.t("stats.commands.change.update_confirmed"),
+                    content=I18N.t("stats.setting_input_reply"), ephemeral=True
+                )
+                return
+            value_in = value_in.capitalize()
+            # Sorting should actually behave like a switch, so if abc is
+            # True, then 321 will turn False, and vice versa
+            if name_of_setting in ["sort_roles_abc", "sort_roles_321"]:
+                other_setting = (
+                    "sort_roles_321"
+                    if name_of_setting == "sort_roles_abc"
+                    else "sort_roles_abc"
+                )
+                await db_helper.update_fields(
+                    template_info=envs.stats_db_settings_schema,
+                    where=[("setting", other_setting)],
+                    updates=[("value", bool_switch(value_in))],
+                    guild_id=interaction.guild.id,
+                )
+        elif name_of_setting == "channel":
+            channel_in = value_in.strip()
+            channel_mention = re.fullmatch(r"<#(\d+)>", channel_in)
+            if channel_mention:
+                channel_object = get(
+                    interaction.guild.text_channels, id=int(channel_mention.group(1))
+                )
+            elif channel_in.isdigit():
+                channel_object = get(
+                    interaction.guild.text_channels, id=int(channel_in)
+                )
+            else:
+                channel_object = get(
+                    interaction.guild.text_channels, name=channel_in.lstrip("#")
+                )
+            if channel_object is None:
+                logger.error(
+                    f"Could not find channel `{value_in}` in `{interaction.guild.name}`"
+                )
+                await interaction.followup.send(
+                    content=I18N.t("common.error.channel_not_found", channel=value_in),
                     ephemeral=True,
                 )
-                break
+                return
+            value_in = str(channel_object.id)
+        elif setting_type == "int":
+            try:
+                int(value_in)
+            except ValueError:
+                logger.error(f"Invalid input for value_in: {value_in}")
+                await interaction.followup.send(
+                    content=I18N.t(
+                        "stats.commands.add.msg.type_incorrect",
+                        value_in=value_in,
+                        value_type=type(value_in).__name__,
+                        value_type_check=setting_type,
+                    ),
+                    ephemeral=True,
+                )
+                return
+
+        await db_helper.update_fields(
+            template_info=envs.stats_db_settings_schema,
+            where=[("setting", name_of_setting)],
+            updates=[("value", value_in)],
+            guild_id=interaction.guild.id,
+        )
+        await interaction.followup.send(
+            content=I18N.t("stats.commands.change.update_confirmed"),
+            ephemeral=True,
+        )
         return
 
     @discord_commands.is_owner_or_manage_guild()

@@ -32,6 +32,7 @@ nb:
       stats_msg_out:
         sub_settings: Innstillinger
         sub_hidden: Skjulte roller
+      channel_not_id: "Kanalen '%{channel_in}' er ikke en kanal id. Legg til kanalen pånytt."
     change:
       desc:
         name_of_setting: Navn på innstilling

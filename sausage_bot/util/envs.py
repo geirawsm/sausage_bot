@@ -488,7 +488,7 @@ stats_db_settings_schema = {
         ["hide_empty_roles", "False"],
     ],
     "type_checking": {
-        "channel": "str",
+        "channel": "int",
         "hide_bot_roles": "bool",
         "hide_empty_roles": "bool",
         "show_code_stats": "bool",
@@ -497,7 +497,7 @@ stats_db_settings_schema = {
         "sort_min_role_members": "int",
         "sort_roles_321": "bool",
         "sort_roles_abc": "bool",
-        "stats_msg_id": "str",
+        "stats_msg_id": "int",
     },
 }
 
