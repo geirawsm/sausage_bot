@@ -392,7 +392,7 @@ async def get_spotify_podcast_links(feed_id=str, uuid=str, num_items=None, guild
     log_db = await db_helper.get_output(
         template_info=envs.rss_db_log_schema, where=[("uuid", uuid)], guild_id=guild.id
     )
-    episodes = _show["episodes"]["items"] or []
+    episodes = _show["episodes"]["items"]
     if isinstance(num_items, int) and num_items > 0:
         episodes = episodes[0:num_items]
     items_out = {"filters": filters_db, "items": [], "log": log_db}
