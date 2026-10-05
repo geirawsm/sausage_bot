@@ -94,7 +94,7 @@ class scrape_and_post(commands.Cog):
                     guild_id=guild_row["guild_id"],
                     single=True,
                 )
-                if guild_task == "started":
+                if guild_task["status"] == "started":
                     return True
             return False
 
