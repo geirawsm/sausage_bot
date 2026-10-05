@@ -63,9 +63,16 @@ jobs:
           username: ${{secrets.DOCKER_USER}}
           password: ${{secrets.DOCKER_TOKEN}}
 
-      - name: Short SHA
+      - name: Short SHA and commit msg
         id: vars
-        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          # First line only, no quotes/backslashes: the value ends up in
+          # a JSON string in the dockerfile and in a multi-line label list
+          msg=$(printf '%s' "$COMMIT_MSG" | head -n1 | tr -d '"\\')
+          echo "commit_msg=$msg" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -79,12 +86,12 @@ jobs:
 
           labels: |
             Branch=dev-${{ steps.vars.outputs.short_sha }}
-            Last commit msg=${{ github.event.head_commit.message }}
+            Last commit msg=${{ steps.vars.outputs.commit_msg }}
             Last commit=${{ github.sha }}
             Last run number=${{ github.run_number }}
           build-args: |
             BRANCH=dev-${{ steps.vars.outputs.short_sha }}
-            LAST_COMMIT_MSG=${{ github.event.head_commit.message }}
+            LAST_COMMIT_MSG=${{ steps.vars.outputs.commit_msg }}
             LAST_COMMIT=${{ github.sha }}
             LAST_RUN_NUMBER=${{ github.run_number }}
 
@@ -103,6 +110,9 @@ jobs:
             --body "Automatic promotion after green build on dev" \
             || echo "PR already exist (or no changes discovered)"
 
-          # Wait a bit for the test check to be registered on the PR
-          sleep 10
-          gh pr merge dev --auto --merge
+          # Retry: checks may not be registered on the PR right away
+          for i in 1 2 3 4 5; do
+            gh pr merge dev --auto --merge && exit 0
+            sleep 10
+          done
+          exit 1
