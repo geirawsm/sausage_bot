@@ -394,6 +394,10 @@ quote_db_settings_schema = {
         # `resolve_setting_channel()` look up (and create) `quote-suggest`.
         ["suggest_enabled", "False"],
         ["suggest_channel", ""],
+        # `approved_channel` works the same way: an unset value makes
+        # `resolve_setting_channel()` look up (and create) `quote-approved`.
+        # A quote approved from a suggestion is posted there right away.
+        ["approved_channel", ""],
     ],
     "type_checking": {
         "channel": "int",
@@ -402,6 +406,7 @@ quote_db_settings_schema = {
         "autopost_time": "str",
         "suggest_enabled": "bool",
         "suggest_channel": "int",
+        "approved_channel": "int",
     },
 }
 

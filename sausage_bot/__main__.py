@@ -1711,10 +1711,12 @@ async def get_version(interaction: discord.Interaction):
     logger.debug(f"Got `version_in`: {version_in}")
     await interaction.followup.send(
         "Branch: {}\n"
+        "Prefix: {}\n"
         "Last commit message: {}\n"
         "Last commit: {}\n"
-        "Last run number: {}".format(
+        "Last run number: {}\n".format(
             version_in["BRANCH"],
+            config.PREFIX,
             version_in["LAST_COMMIT_MSG"],
             version_in["LAST_COMMIT"],
             version_in["LAST_RUN_NUMBER"],

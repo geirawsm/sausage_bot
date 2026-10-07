@@ -711,11 +711,20 @@ class RSSfeed(commands.Cog):
             LIST_TYPE_ADDED,
             LIST_TYPE_FILTER,
         ],
+        public: typing.Literal[
+            I18N.t("common.literal_yes_no.lit_yes"),
+            I18N.t("common.literal_yes_no.lit_no"),
+        ] = None,
+
     ):
         """
         List all active rss feeds
         """
-        await interaction.response.defer()
+        if public == I18N.t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         if list_type == LIST_TYPE_ADDED:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
@@ -742,13 +751,12 @@ class RSSfeed(commands.Cog):
             for page in formatted_list:
                 page_counter += 1
                 logger.debug(f"Sending page ({page_counter} / {len(formatted_list)})")
-                await interaction.followup.send(f"```{page}```")
+                await interaction.followup.send(f"```{page}```", ephemeral=_ephemeral)
                 sleep(1)
         else:
             await interaction.followup.send(
                 I18N.t("rss.commands.list.msg_error"), ephemeral=True
             )
-        return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_uuid_autocomplete)
