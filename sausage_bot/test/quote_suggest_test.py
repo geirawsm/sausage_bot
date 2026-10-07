@@ -219,6 +219,7 @@ async def test_post_suggestion_stores_pending_and_posts_buttons(guild_db_root):
     assert custom_ids == [
         f"quote.suggest:approve:{POST_UUID}",
         f"quote.suggest:deny:{POST_UUID}",
+        f"quote.suggest:edit:{POST_UUID}",
     ]
     # Nothing is a real quote until it has been approved
     assert await _count(envs.quote_db_schema) == 0
