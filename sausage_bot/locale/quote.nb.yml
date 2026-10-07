@@ -120,7 +120,12 @@ nb:
       review_header: "Sitat foreslått av %{user} fra #%{channel}"
       btn_approve: Godkjenn
       btn_deny: Avvis
+      btn_edit: Endre
       approved_by: "Godkjent av %{user} som sitat # %{quote_number}"
       denied_by: "Avvist av %{user}"
       already_handled: Dette forslaget er allerede behandlet
       no_permission: Du trenger tillatelsen «Administrer server» for å behandle forslag
+      approved_channel_topic: Sitater godkjent fra forslag
+      edit_modal_title: Endre foreslått sitat
+      edit_msg_sent: Forslaget er oppdatert
+      edit_unavailable: De opprinnelige meldingene for dette forslaget finnes ikke lenger, og kan derfor ikke endres

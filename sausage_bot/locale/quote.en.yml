@@ -120,7 +120,12 @@ en:
       review_header: "Quote suggested by %{user} from #%{channel}"
       btn_approve: Approve
       btn_deny: Deny
+      btn_edit: Edit
       approved_by: "Approved by %{user} as quote # %{quote_number}"
       denied_by: "Denied by %{user}"
       already_handled: This suggestion has already been handled
       no_permission: You need the "Manage Server" permission to handle suggestions
+      approved_channel_topic: Quotes approved from suggestions
+      edit_modal_title: Edit suggested quote
+      edit_msg_sent: The suggestion has been updated
+      edit_unavailable: The original messages for this suggestion are no longer available, so it cannot be edited
