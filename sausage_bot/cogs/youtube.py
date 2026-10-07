@@ -398,22 +398,26 @@ class YouTubeAPI:
         return results
 
 
-async def feed_name_autocomplete(
+async def feed_name_url_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[discord.app_commands.Choice[str]]:
-    feed_names = [
-        name["feed_name"]
-        for name in await db_helper.get_output(
-            template_info=envs.youtube_db_schema,
-            select=("feed_name"),
-            guild_id=interaction.guild.id,
-        )
-    ]
+    feeds = await db_helper.get_output(
+        template_info=envs.youtube_db_schema,
+        select=("feed_name", "url"),
+        guild_id=interaction.guild.id,
+    )
     return [
-        discord.app_commands.Choice(name=feed_name, value=feed_name)
-        for feed_name in feed_names
-        if current.lower() in feed_name.lower()
+        discord.app_commands.Choice(
+            name="{} ({})".format(
+                feed_in["feed_name"], re.fullmatch(r"^https:\/\/www\.youtube\.com\/(.*)", str(feed_in["url"])).group(1)
+            ), value=feed_in["feed_name"]
+        )
+        for feed_in in feeds
+        if current.lower() in "{}-{}".format(
+            feed_in["feed_name"].lower(),
+            feed_in["url"].lower()
+        )
     ][:25]
 
 
@@ -584,7 +588,7 @@ class Youtube(commands.Cog):
         )
 
     @discord_commands.is_owner_or_manage_guild()
-    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_group.command(
         name="add", description=locale_str(I18N.t("youtube.commands.add.cmd"))
     )
@@ -672,7 +676,7 @@ class Youtube(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_group.command(
         name="remove", description=locale_str(I18N.t("youtube.commands.remove.cmd"))
     )
@@ -740,7 +744,7 @@ class Youtube(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_group.command(
         name="edit",
         description=locale_str(I18N.t("youtube.commands.edit.cmd")),
@@ -818,7 +822,7 @@ class Youtube(commands.Cog):
         await interaction.followup.send(changes_out, ephemeral=True)
 
     @discord_commands.is_owner_or_manage_guild()
-    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_filter_group.command(
         name="add", description=locale_str(I18N.t("youtube.commands.filter_add.cmd"))
     )
@@ -884,7 +888,7 @@ class Youtube(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @discord.app_commands.autocomplete(feed_name=feed_name_autocomplete)
+    @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @discord.app_commands.autocomplete(filter_in=youtube_filter_autocomplete)
     @youtube_filter_group.command(
         name="remove",
