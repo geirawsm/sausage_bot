@@ -334,9 +334,12 @@ async def check_for_new_spotify_podcast_episodes(guild):
                 checklist.pop(show["id"])
         else:
             _msg = "Error when checking for new episodes for {}".format(
-                feed["feed_name"]
+                checklist[show["id"]]["name"]
             )
-            logger.error(_msg)
+            logger.error(
+                f"{_msg} (old_eps: {_old_eps!r}, new_eps: {_new_eps!r}, "
+                f"raw_show: {show!r})"
+            )
             await discord_commands.log_to_bot_channel(guild, _msg)
     return checklist
 
