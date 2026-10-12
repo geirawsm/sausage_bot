@@ -150,8 +150,8 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
         settings_db_json = file_io.make_db_output_to_json(
             ["setting", "value"], settings_in_db
         )
-        autopost_time_str = settings_db_json.get("autopost_time") or "12:00:00"
         try:
+            autopost_time_str = settings_db_json.get("autopost_time") or "12:00:00"
             target = datetime.strptime(autopost_time_str, "%H:%M:%S").time()
         except ValueError:
             logger.error(
@@ -173,8 +173,16 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
         # draws its own quote anyway - drawing one here just to test for
         # emptiness perturbed the no-repeat rotation.
         quote_ids = await db_helper.get_row_ids(envs.quote_db_schema, guild_id=guild.id)
-        if quote_ids is None or len(quote_ids) == 0:
-            logger.debug(f"No quotes in db for `{guild.name}`, disabling autopost")
+        if quote_ids is None:
+            # The query itself failed (eg. a transient db lock) - skip
+            # this tick rather than treating it as an empty database
+            logger.warning(
+                f"Could not read quotes for `{guild.name}`, skipping this "
+                "autopost tick"
+            )
+            return
+        if len(quote_ids) == 0:
+            logger.warning(f"No quotes in db for `{guild.name}`, disabling autopost")
             await db_helper.update_fields(
                 template_info=envs.tasks_db_schema,
                 where=[("cog", "quotes"), ("task", "autopost")],
@@ -500,7 +508,12 @@ async def get_random_quote(guild_id, testmode=False):
         ("rowid", "uuid", "datetime"),
         guild_id=guild_id,
     )
-    if random_quote is None or len(random_quote) == 0:
+    if random_quote is None:
+        # The query itself failed - do not treat this as an exhausted
+        # rotation, that would wipe the no-repeat log for no reason
+        logger.warning(f"Could not draw a random quote for guild `{guild_id}`")
+        return None
+    if len(random_quote) == 0:
         await db_helper.empty_table(envs.quote_db_log_schema, guild_id=guild_id)
         random_quote = await db_helper.get_random_left_exclude_output(
             envs.quote_db_schema,
@@ -514,8 +527,9 @@ async def get_random_quote(guild_id, testmode=False):
 
 async def post_random_quote(
     guild: discord.Guild,
-    interaction=None,
-    _ephemeral=None,
+    _ephemeral,
+    # TODO: interaction må inkluderes i post_random_quote for å kunne sende feilmeldinger
+    interaction,
     autopost={},
     channel: int = 0,
     quote_rowid=None,
@@ -613,9 +627,7 @@ async def post_random_quote(
                         channel_id=channel_id, content_in=msg_in, files_in=img_list
                     )
                 else:
-                    await interaction.followup.send(
-                        msg_in, files=img_list, ephemeral=_ephemeral
-                    )
+                    await interaction.followup.send(msg_in, files=img_list)
                 await db_helper.insert_many_all(
                     envs.quote_db_log_schema,
                     [
@@ -639,7 +651,7 @@ async def post_random_quote(
         if len(autopost) > 0:
             if autopost["tag_role"]:
                 logger.debug("Adding tag_role to msg_in")
-                msg_in += "\nPing <@&{}>".format(autopost["tag_role"])
+                msg_in += "\n\nPing <@&{}>".format(autopost["tag_role"])
         if len(msg_in) > 0:
             if len(autopost) > 0:
                 await discord_commands.post_to_channel(
@@ -647,7 +659,7 @@ async def post_random_quote(
                     content_in=msg_in,
                 )
             else:
-                await interaction.followup.send(msg_in, ephemeral=_ephemeral)
+                await interaction.followup.send(msg_in)
             await db_helper.insert_many_all(
                 envs.quote_db_log_schema,
                 [
@@ -685,7 +697,7 @@ async def post_random_quote(
                         content_in=str(page),
                     )
                 else:
-                    await interaction.followup.send(str(page), ephemeral=_ephemeral)
+                    await interaction.followup.send(str(page))
                 await db_helper.insert_many_all(
                     envs.quote_db_log_schema,
                     [
@@ -1168,7 +1180,7 @@ class Quotes(commands.Cog):
             return quote_in
         # List all quotes
         else:
-            if len(quote_rowids) == 0:
+            if not quote_rowids:
                 return []
             else:
                 logger.debug("List all quotes")
@@ -1855,6 +1867,7 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
             sort=True,
             guild_id=interaction.guild.id,
         )
+        or []
     )
     addquote_view = ModalQuoteAdd(
         title_in=I18N.t("quote.modals.add.modal_title"),
@@ -2074,7 +2087,7 @@ class DynamicSuggestButton(
                 user=interaction.user.mention,
                 quote_number=quote_number,
             )
-            await post_approved_quote(interaction.guild, quote_number)
+            await post_approved_quote(guild=interaction.guild, quote_rowid=quote_number)
         elif status == "denied":
             status_line = I18N.t(
                 "quote.context_menu.suggest_quote.denied_by",
@@ -2146,7 +2159,9 @@ async def handle_suggestion(guild_id, suggest_uuid: str, action: str) -> tuple:
     return "approved", quote_number
 
 
-async def post_approved_quote(guild: discord.Guild, quote_rowid) -> None:
+async def post_approved_quote(
+    interaction: discord.Interaction, guild: discord.Guild, quote_rowid
+) -> None:
     "Post a freshly approved suggestion's quote to the guild's `approved_channel`"
     if quote_rowid is None:
         return
@@ -2166,6 +2181,8 @@ async def post_approved_quote(guild: discord.Guild, quote_rowid) -> None:
         autopost={"prefix": "", "tag_role": ""},
         channel=approved_channel_id,
         quote_rowid=quote_rowid,
+        _ephemeral=False,
+        interaction=interaction,
     )
 
 
