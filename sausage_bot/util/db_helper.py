@@ -1501,7 +1501,8 @@ async def get_random_left_exclude_output(
             out = await db.execute(_cmd)
             out = await out.fetchall()
             return out
-    except aiosqlite.OperationalError:
+    except aiosqlite.OperationalError as e:
+        logger.error(f"Error getting random left-exclude output from `{table_name1}`: {e}")
         return None
 
 
@@ -1774,7 +1775,12 @@ async def get_output_by_rowid(
         return None
 
 
-async def get_row_ids(template_info, sort=False, guild_id=None) -> list:
+async def get_row_ids(template_info, sort=False, guild_id=None) -> list | None:
+    """
+    Returns a list of row ids, or `None` if the query itself failed (eg.
+    the database was locked) - distinct from an empty list, which means
+    the table was queried successfully and is genuinely empty.
+    """
     db_file = envs.resolve_db_file(template_info, guild_id)
     table_name = template_info["name"]
     _cmd = f"SELECT rowid, uuid FROM {table_name}"
@@ -1786,8 +1792,9 @@ async def get_row_ids(template_info, sort=False, guild_id=None) -> list:
             out = await db.execute(_cmd)
             out = await out.fetchall()
             return [id[0] for id in out]
-    except aiosqlite.OperationalError:
-        return []
+    except aiosqlite.OperationalError as e:
+        logger.error(f"Error getting row ids from `{table_name}`: {e}")
+        return None
 
 
 async def del_row_id(template_info, numbers, guild_id=None):

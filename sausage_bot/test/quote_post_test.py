@@ -87,7 +87,9 @@ async def test_post_random_quote_posts_from_the_list(monkeypatch):
         AsyncMock(return_value=[(2, QUOTE_ROWS[0]["uuid"], "2026-09-30")]),
     )
 
-    await quote.post_random_quote(guild=MagicMock(), interaction=interaction)
+    await quote.post_random_quote(
+        guild=MagicMock(), _ephemeral=False, interaction=interaction
+    )
 
     posted = interaction.followup.send.await_args.args[0]
     assert "anna: hei" in posted and "bob : hallo" in posted
