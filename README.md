@@ -35,16 +35,6 @@ Command: `/dilemmas`
 - Post dilemma
 - Count no. of dilemmas
 
-### Log Maintenance
-
-Manage logging settings. How many days of logs to keep, or how big the log files should be.
-
-Command: `/log_maintenance`
-
-- Start and stop log maintenance
-- List available settings
-- Change settings
-
 ### Poll
 
 Make a simple poll.

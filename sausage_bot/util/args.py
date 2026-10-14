@@ -106,15 +106,6 @@ version_info_args.add_argument(
     dest="last_run_number",
 )
 
-maintenance_args = parser.add_argument_group("Maintenance")
-maintenance_args.add_argument(
-    "--maintenance",
-    help="Start the bot in maintenance mode",
-    action="store_true",
-    default=False,
-    dest="maintenance",
-)
-
 autodoc_args = parser.add_argument_group("Autodocumentation")
 autodoc_args.add_argument(
     "--file",
