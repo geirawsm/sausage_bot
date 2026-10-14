@@ -208,7 +208,11 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
             if _role is not None:
                 autopost_settings["tag_role"] = _role.id
         await post_random_quote(
-            guild=guild, autopost=autopost_settings, channel=channel
+            guild=guild,
+            _ephemeral=False,
+            interaction=None,
+            autopost=autopost_settings,
+            channel=channel,
         )
 
 
@@ -2087,7 +2091,11 @@ class DynamicSuggestButton(
                 user=interaction.user.mention,
                 quote_number=quote_number,
             )
-            await post_approved_quote(guild=interaction.guild, quote_rowid=quote_number)
+            await post_approved_quote(
+                interaction=interaction,
+                guild=interaction.guild,
+                quote_rowid=quote_number,
+            )
         elif status == "denied":
             status_line = I18N.t(
                 "quote.context_menu.suggest_quote.denied_by",
