@@ -277,11 +277,22 @@ async def check_spotify_podcast(url, mock_file=None, guild=None):
         return False
 
 
+# Per (guild_id, show_id) bookkeeping across ticks for
+# `check_for_new_spotify_podcast_episodes`: when a show last checked out
+# fine, and since when (if at all) it's been failing. Lets a degraded
+# Spotify response be reported with real history instead of a bare
+# repeat of the same per-podcast error on every tick. In-memory only -
+# resets on restart, which is fine for a diagnostic aid.
+_spotify_episode_check_state = {}
+_spotify_episode_check_batch = 0
+
+
 async def check_for_new_spotify_podcast_episodes(guild):
     """
     Create a dict of Spotify podcasts that have more available episodes
     than registered in the db
     """
+    global _spotify_episode_check_batch
     logger.debug("Getting num of episodes...")
     if _spotipy is None:
         _spotipy_error = "Spotipy has no credentials. Check README"
@@ -314,33 +325,70 @@ async def check_for_new_spotify_podcast_episodes(guild):
             "uuid": feed["uuid"],
             "channel": feed["channel"],
         }
+    _spotify_episode_check_batch += 1
+    batch_no = _spotify_episode_check_batch
     try:
         show_ids = [feed for feed in checklist]
         _shows = _spotipy.shows(show_ids)["shows"]
         logger.debug(f"Got ({len(_shows)}) shows")
+    except spotipy.SpotifyException as e:
+        # The one case where we actually have HTTP-level detail: a
+        # non-2xx response from Spotify's own API (rate limiting,
+        # auth, etc).
+        logger.error(
+            f"Spotify API error on episode-check batch #{batch_no} "
+            f"({len(checklist)} shows): {e} (http_status={e.http_status}, "
+            f"reason={e.reason}, headers={dict(e.headers or {})})"
+        )
+        return False
     except Exception as e:
         logger.error(f"ERROR: {e}")
         return False
+    now = await datetime_handling.get_dt(format="datetimefull")
+    failed_shows = []
     for show in _shows:
-        checklist[show["id"]]["num_episodes_new"] = show["total_episodes"]
-        _old_eps = checklist[show["id"]]["num_episodes_old"]
+        show_id = show["id"]
+        checklist[show_id]["num_episodes_new"] = show["total_episodes"]
+        _old_eps = checklist[show_id]["num_episodes_old"]
         logger.debug(f"Got `old_eps`: {_old_eps}")
-        _new_eps = checklist[show["id"]]["num_episodes_new"]
+        _new_eps = checklist[show_id]["num_episodes_new"]
         logger.debug(f"Got `new_eps`: {_new_eps}")
+        state = _spotify_episode_check_state.setdefault(
+            (guild.id, show_id), {"last_success": None, "failing_since": None}
+        )
         if isinstance(_old_eps, int) and isinstance(_new_eps, int):
             if _new_eps > _old_eps:
                 _old_eps = _new_eps
             else:
-                checklist.pop(show["id"])
+                checklist.pop(show_id)
+            if state["failing_since"] is not None:
+                logger.info(
+                    f"`{checklist.get(show_id, {}).get('name', show.get('name'))}`: "
+                    "episode-sjekk er OK igjen, etter å ha feilet "
+                    f"sammenhengende siden {state['failing_since']} (forrige "
+                    f"kjente suksess før det: {state['last_success'] or 'ukjent'})"
+                )
+                state["failing_since"] = None
+            state["last_success"] = now
         else:
-            _msg = "Error when checking for new episodes for {}".format(
-                checklist[show["id"]]["name"]
+            if state["failing_since"] is None:
+                state["failing_since"] = now
+            failed_shows.append(
+                {
+                    "name": checklist[show_id]["name"],
+                    "new_eps": _new_eps,
+                    "last_success": state["last_success"] or "ukjent",
+                }
             )
-            logger.error(
-                f"{_msg} (old_eps: {_old_eps!r}, new_eps: {_new_eps!r}, "
-                f"raw_show: {show!r})"
-            )
-            await discord_commands.log_to_bot_channel(guild, _msg)
+    if failed_shows:
+        _names = ", ".join(f"`{s['name']}`" for s in failed_shows)
+        _msg = (
+            f"Episode-sjekk batch #{batch_no} feilet for {len(failed_shows)} "
+            f"av {len(_shows)} podcaster - Spotify svarte uten HTTP-feil, "
+            f"men med et ugyldig episode-antall: {_names}"
+        )
+        logger.error(f"{_msg} - detaljer per podcast: {pformat(failed_shows)}")
+        await discord_commands.log_to_bot_channel(guild, _msg)
     return checklist
 
 

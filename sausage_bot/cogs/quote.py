@@ -177,8 +177,7 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
             # The query itself failed (eg. a transient db lock) - skip
             # this tick rather than treating it as an empty database
             logger.warning(
-                f"Could not read quotes for `{guild.name}`, skipping this "
-                "autopost tick"
+                f"Could not read quotes for `{guild.name}`, skipping this autopost tick"
             )
             return
         if len(quote_ids) == 0:
