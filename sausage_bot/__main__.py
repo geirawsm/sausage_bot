@@ -775,10 +775,6 @@ async def on_ready():
     if config.SCRAPEOPS_API_KEY and not get_random_user_agent.is_running():
         get_random_user_agent.start()
 
-    if args.maintenance:
-        logger.info("Maintenance mode activated", color="RED")
-        await config.bot.change_presence(status=discord.Status.dnd)
-
     # Make sure that each approved guild's configured bot channel exists.
     # The channel name is the guild's own `bot_channel` setting, falling
     # back to the bot-wide default (config.BOT_CHANNEL) when unset.
