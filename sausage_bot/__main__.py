@@ -1837,11 +1837,7 @@ async def say_as_bot(
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
-    if reply_msg:
-        await reply_msg.reply(modal_in.comment_out)
-    elif channel:
-        await channel.send(modal_in.comment_out)
-    return
+    await message.channel.send(modal_in.comment_out)
 
 
 @discord_commands.is_owner_or_manage_guild()
@@ -2201,6 +2197,20 @@ async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Me
     await modal_in.wait()
     await message.edit(content=modal_in.comment_out)
     return
+
+
+@discord_commands.is_owner_or_manage_guild()
+@config.bot.tree.context_menu(
+    name=locale_str(I18N.t("main.context_menu.reply_msg.name"))
+)
+async def reply_as_bot_msg(interaction: discord.Interaction, message: discord.Message):
+    modal_in = SayModal(
+        title_in=I18N.t("main.context_menu.reply_msg.name"),
+        channel=message.channel,
+    )
+    await interaction.response.send_modal(modal_in)
+    await modal_in.wait()
+    await message.reply(modal_in.comment_out)
 
 
 # Locale db is per-guild - created in `register_guild()` (see on_ready

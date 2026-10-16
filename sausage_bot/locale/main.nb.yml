@@ -145,6 +145,8 @@ nb:
       edit_confirm_with_errors: ", men noen nevninger fungerte ikke: %{errors}"
       edit_error: "Feil ved endring av melding, sjekk loggen"
       channel_errors: "\nKanaler: %{errors}"
+    reply_msg:
+      name: Svar som bot
   notify_new_guild:
     rejoined: "🔔 Guild ble med igjen:"
     new: "🔔 Ny guild vil bruke boten:"

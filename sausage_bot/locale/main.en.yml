@@ -145,6 +145,8 @@ en:
       edit_confirm_with_errors: ", but some tagging failed: %{errors}"
       edit_error: "Error when editing, check logs"
       channel_errors: "\nChannels: %{errors}"
+    reply_msg:
+      name: Reply as bot
   notify_new_guild:
     rejoined: "🔔 Rejoined guild:"
     new: "🔔 New guild wants to use the bot:"
