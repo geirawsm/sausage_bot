@@ -10,7 +10,6 @@ from tabulate import tabulate
 from pendulum import timezones as p_timezones
 import os
 
-from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.datetime_handling import get_dt
@@ -1827,23 +1826,14 @@ async def ban(
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.command(
-    name="say", description=locale_str(I18N.t("main.commands.say.command"))
-)
-async def say(
+@config.bot.tree.context_menu(name=I18N.t("main.commands.say.modal.name"))
+async def say_as_bot(
     interaction: discord.Interaction,
-    channel: discord.TextChannel,
-    message_id: str = None,
+    message: discord.Message,
 ):
-    reply_msg = None
-    logger.debug(f"`channel` is {channel} ({type(channel)})")
-    if message_id:
-        reply_msg = await discord_commands.get_message_obj(
-            guild=interaction.guild, msg_id=message_id, channel_id=channel.id
-        )
-        logger.debug(f"Got `reply_msg`: {reply_msg}")
     modal_in = SayModal(
-        title_in=I18N.t("main.commands.say.modal.title"), channel=channel
+        title_in=I18N.t("main.commands.say.modal.title"),
+        channel=message.channel,
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
