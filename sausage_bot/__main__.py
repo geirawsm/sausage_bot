@@ -889,7 +889,7 @@ class Sync(commands.Cog):
         name="dev",
         description=locale_str(I18N.t("main.owner_only")),
     )
-    async def sync_dev(self, interaction: discord.Interaction):
+    async def sync_local(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         await interaction.followup.send(
             content="✅💭 {}".format(I18N.t("main.commands.syncdev.msg_starting"))
