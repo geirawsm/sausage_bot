@@ -27,14 +27,13 @@ en:
       log_confirm: Mass delete via bot
       msg_confirm: Deleted %{amount} messages
     say:
-      command: Post a message to a channel. Enter `message_id` if replying to a specific post
+      command: Post a message to a channel
       modal:
+        name: Say as bot
         title: Make the bot say a message
         comment: Comment
-        reply: "Mention %{member}"
         confirm: "Comment sendt to `#%{channel}`"
         error_sending: "Error when sending comment to %{channel}: %{error}"
-        error_both_args: Both `message_id` and `reply` were provided, please only use one
     tasks:
       command: List this server's own posting tasks and their status
     tasks_global:
@@ -66,9 +65,6 @@ en:
     clearlocals:
       msg_starting: Deleting local commands...
       msg_confirm: Local commands deleted
-    syncdev:
-      msg_starting: Starting commands sync...
-      msg_confirm: Commands synced
     sync:
       group_desc: Sync slash commands
       msg_confirm_list: |-
@@ -146,6 +142,8 @@ en:
       edit_confirm_with_errors: ", but some tagging failed: %{errors}"
       edit_error: "Error when editing, check logs"
       channel_errors: "\nChannels: %{errors}"
+    reply_msg:
+      name: Reply as bot
   notify_new_guild:
     rejoined: "🔔 Rejoined guild:"
     new: "🔔 New guild wants to use the bot:"

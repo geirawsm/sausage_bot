@@ -10,7 +10,6 @@ from tabulate import tabulate
 from pendulum import timezones as p_timezones
 import os
 
-from sausage_bot.util.args import args
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.datetime_handling import get_dt
@@ -890,7 +889,7 @@ class Sync(commands.Cog):
         name="dev",
         description=locale_str(I18N.t("main.owner_only")),
     )
-    async def sync_dev(self, interaction: discord.Interaction):
+    async def sync_local(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         await interaction.followup.send(
             content="✅💭 {}".format(I18N.t("main.commands.syncdev.msg_starting"))
@@ -1827,31 +1826,18 @@ async def ban(
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.command(
-    name="say", description=locale_str(I18N.t("main.commands.say.command"))
-)
-async def say(
+@config.bot.tree.context_menu(name=I18N.t("main.commands.say.modal.name"))
+async def say_as_bot(
     interaction: discord.Interaction,
-    channel: discord.TextChannel,
-    message_id: str = None,
+    message: discord.Message,
 ):
-    reply_msg = None
-    logger.debug(f"`channel` is {channel} ({type(channel)})")
-    if message_id:
-        reply_msg = await discord_commands.get_message_obj(
-            guild=interaction.guild, msg_id=message_id, channel_id=channel.id
-        )
-        logger.debug(f"Got `reply_msg`: {reply_msg}")
     modal_in = SayModal(
-        title_in=I18N.t("main.commands.say.modal.title"), channel=channel
+        title_in=I18N.t("main.commands.say.modal.title"),
+        channel=message.channel,
     )
     await interaction.response.send_modal(modal_in)
     await modal_in.wait()
-    if reply_msg:
-        await reply_msg.reply(modal_in.comment_out)
-    elif channel:
-        await channel.send(modal_in.comment_out)
-    return
+    await message.channel.send(modal_in.comment_out)
 
 
 @discord_commands.is_owner_or_manage_guild()
@@ -2211,6 +2197,20 @@ async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Me
     await modal_in.wait()
     await message.edit(content=modal_in.comment_out)
     return
+
+
+@discord_commands.is_owner_or_manage_guild()
+@config.bot.tree.context_menu(
+    name=locale_str(I18N.t("main.context_menu.reply_msg.name"))
+)
+async def reply_as_bot_msg(interaction: discord.Interaction, message: discord.Message):
+    modal_in = SayModal(
+        title_in=I18N.t("main.context_menu.reply_msg.name"),
+        channel=message.channel,
+    )
+    await interaction.response.send_modal(modal_in)
+    await modal_in.wait()
+    await message.reply(modal_in.comment_out)
 
 
 # Locale db is per-guild - created in `register_guild()` (see on_ready
