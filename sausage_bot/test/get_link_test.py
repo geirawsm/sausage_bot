@@ -116,7 +116,9 @@ async def test_a_failed_request_keeps_the_dict_shape_for_status_out():
         mock.patch.object(net_io.aiohttp, "ClientSession", _explode),
     ):
         result = await net_io.get_link(URL, status_out=True)
-    assert result["status"] != 200
+    # `url_status` never leaves its 0 initial value: the exception fires
+    # before any response arrives, so there's no real status to report.
+    assert result["status"] == 0
     assert result["content"] is None
 
 

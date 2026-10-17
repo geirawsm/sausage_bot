@@ -157,7 +157,9 @@ async def test_existing_channel_is_stored_against_the_current_admin_guild():
     db.create_missing_channel.assert_not_awaited()
     inserts = db.insert_many_all.await_args.kwargs["inserts"]
     assert inserts == [(ADMIN_GUILD_ID, ADMIN_GUILD_NAME, EXISTING_CHANNEL_ID)]
-    assert EXISTING_CHANNEL_NAME in _last_sent(interaction)
+    assert _last_sent(interaction) == (
+        f"✅ Admin channel set to #{EXISTING_CHANNEL_NAME} in {ADMIN_GUILD_NAME}."
+    )
 
 
 async def test_existing_channel_by_name_resolves_to_that_channel():
@@ -193,7 +195,9 @@ async def test_unknown_channel_name_is_created_after_confirmation():
     )
     assert db.create_missing_channel.await_args.kwargs["channel_name"] == "admin-log"
     assert db.insert_many_all.await_args.kwargs["inserts"][0][2] == str(new_channel.id)
-    assert "admin-log" in _last_edited(interaction)
+    assert _last_edited(interaction) == (
+        f"✅ Admin channel set to #admin-log in {ADMIN_GUILD_NAME}."
+    )
 
 
 async def test_the_autocomplete_create_choice_is_unwrapped():
@@ -221,28 +225,39 @@ async def test_cancelling_creates_nothing_and_changes_nothing():
 async def test_rejects_use_outside_the_admin_guild():
     interaction = _make_interaction(guild_id=OTHER_GUILD_ID)
     db = await _run(interaction, EXISTING_CHANNEL_ID)
-    assert "admin guild" in _last_sent(interaction)
+    assert _last_sent(interaction) == (
+        "This command can only be used in the admin guild."
+    )
     db.insert_many_all.assert_not_awaited()
 
 
 async def test_reports_when_the_bot_is_no_longer_in_its_admin_guild():
     interaction = _make_interaction()
     db = await _run(interaction, EXISTING_CHANNEL_ID, bot_in_admin_guild=False)
-    assert "no longer in its own admin guild" in _last_sent(interaction)
+    assert _last_sent(interaction) == (
+        "❌ The bot is no longer in its own admin guild. Use "
+        "`/guild set_admin_guild` to point it at one it can reach."
+    )
     db.insert_many_all.assert_not_awaited()
 
 
 async def test_a_channel_id_that_no_longer_exists_writes_nothing():
     interaction = _make_interaction()
     db = await _run(interaction, "123456789012345678")
-    assert "No channel with id" in _last_sent(interaction)
+    assert _last_sent(interaction) == (
+        f"❌ No channel with id `123456789012345678` exists in "
+        f"{ADMIN_GUILD_NAME}. It may have been deleted - try again."
+    )
     db.insert_many_all.assert_not_awaited()
 
 
 async def test_empty_channel_argument_writes_nothing():
     interaction = _make_interaction()
     db = await _run(interaction, "   ")
-    assert "No channel given" in _last_sent(interaction)
+    assert _last_sent(interaction) == (
+        "❌ No channel given. Pick one from the autocomplete list, or "
+        "type the name of a channel to create."
+    )
     db.insert_many_all.assert_not_awaited()
 
 

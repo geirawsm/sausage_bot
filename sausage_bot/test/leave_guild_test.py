@@ -205,6 +205,7 @@ async def test_the_invoking_user_may_press_the_buttons():
 
 async def test_timeout_disables_the_buttons():
     view = LeaveGuildConfirm_view(user_id=42)
-    assert any(not btn.disabled for btn in view.children)
+    assert len(view.children) == 2
+    assert [btn.disabled for btn in view.children] == [False, False]
     await view.on_timeout()
-    assert all(btn.disabled for btn in view.children)
+    assert [btn.disabled for btn in view.children] == [True, True]
