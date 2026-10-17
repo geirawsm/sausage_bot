@@ -7,34 +7,34 @@ sausage-bot - affectionately known as "pølsa" among its Norwegian users - is a 
 ### Administration (main)
 
 #### Guild administration
-- Approve a pending server, admin-guild only (/guild approve)
-- List servers and their status, admin-guild only (/guild list)
-- Leave a server, admin-guild only (/guild leave)
-- Set which guild is the admin guild, admin-guild only (/guild set_admin_guild)
-- Set the admin channel in the admin guild, admin-guild only (/guild set_admin_channel)
+- Approve a pending server, admin-guild only (`/guild approve`)
+- List servers and their status, admin-guild only (`/guild list`)
+- Leave a server, admin-guild only (`/guild leave`)
+- Set which guild is the admin guild, admin-guild only (`/guild set_admin_guild`)
+- Set the admin channel in the admin guild, admin-guild only (`/guild set_admin_channel`)
 
 #### General commands
-- Check latency (/ping)
+- Check latency (`/ping`)
 - Kick/ban users (/kick, /ban)
-- Delete a number of messages in a channel (/delete)
+- Delete a number of messages in a channel (`/delete`)
 - Make the bot say something in a channel, via the "Say as bot" context menu (right-click any message in that channel)
 - Reply to a message as the bot, via the "Reply as bot" context menu (right-click the message to reply to)
 - Edit an already-posted bot message, via the "Edit bot message" context menu (right-click the message)
-- Show this server's active tasks (/tasks)
-- List active tasks for every approved server, admin-guild only (/tasks-global)
-- Show today's estimated YouTube API quota usage, admin-guild only (/youtube quota)
-- Set language (/language)
-- Set timezone (/timezone)
-- Set or create the bot's channel for logs and notifications (/bot_channel)
-- Change the bot's nickname, avatar, banner or bio on this server (/profile set), or reset it (/profile reset)
-- Show the bot's current version and branch info (/version)
+- Show this server's active tasks (`/tasks`)
+- List active tasks for every approved server, admin-guild only (`/tasks-global`)
+- Show today's estimated YouTube API quota usage, admin-guild only (`/youtube quota`)
+- Set language (`/language`)
+- Set timezone (`/timezone`)
+- Set or create the bot's channel for logs and notifications (`/bot_channel`)
+- Change the bot's nickname, avatar, banner or bio on this server (`/profile set`), or reset it (`/profile reset`)
+- Show the bot's current version and branch info (`/version`)
 
 #### Developer
 
 - Syncing commands
-  - Sync all commands in all guilds (/sync global, !syncglobal)
-  - Sync all commands in active guild (/sync local, !synclocal)
-  - Clear global or local commands (!clearglobal, !clearlocal)
+  - Sync all commands in all guilds (`/sync global`, `!syncglobal`)
+  - Sync all commands in active guild (`/sync local`, `!synclocal`)
+  - Clear global or local commands (`!clearglobal`, `!clearlocal`)
 
 ### Autoevent
 
@@ -42,11 +42,11 @@ Takes links to soccer games on predefined sites, and make them into an event for
 
 Command: `/autoevent`
 
-- Add an event from a match url (nifs, vglive or tv2.no/livesport) (/autoevent add)
-- Remove a scheduled event, one or all (/autoevent remove)
-- List all planned events (/autoevent list)
-- Create a countdown/sync timer for a live event on TV/stream (/autoevent sync)
-- Announce an event in a specific channel (/autoevent announce)
+- Add an event from a match url (nifs, vglive or tv2.no/livesport) (`/autoevent add`)
+- Remove a scheduled event, one or all (`/autoevent remove`)
+- List all planned events (`/autoevent list`)
+- Create a countdown/sync timer for a live event on TV/stream (`/autoevent sync`)
+- Announce an event in a specific channel (`/autoevent announce`)
 
 ### Dilemmas
 
@@ -54,9 +54,9 @@ Create dilemmas for discussion on the server
 
 Command: `/dilemmas`
 
-- Post a random dilemma (/dilemmas post)
-- Add a dilemma (/dilemmas add)
-- Count the number of dilemmas (/dilemmas count)
+- Post a random dilemma (`/dilemmas post`)
+- Add a dilemma (`/dilemmas add`)
+- Count the number of dilemmas (`/dilemmas count`)
 
 ### Poll
 
@@ -64,7 +64,7 @@ Make a simple poll.
 
 Command: `/poll`
 
-- Make a poll, with channel, post time, lock time, text and alternatives (/poll)
+- Make a poll, with channel, post time, lock time, text and alternatives (`/poll`)
 
 ### Quote
 
@@ -76,12 +76,12 @@ Command: `/quote`
 Only available for those with "Manage server" rights
 
 - Add a quote directly from an existing message via the "Add quote" context menu
-- Edit a quote (/quote edit)
-- Delete a quote (/quote delete)
-- Count the number of quotes (/quote count)
-- List quotes from quote number or search for a keyword (/quote post, /quote list)
-- Start, stop or restart autoposting of quotes (/quote autopost start|stop|restart)
-- List, change, add or remove cog settings (/quote settings list|change|add|remove)
+- Edit a quote (`/quote edit`)
+- Delete a quote (`/quote delete`)
+- Count the number of quotes (`/quote count`)
+- List quotes from quote number or search for a keyword (`/quote post`, `/quote list`)
+- Start, stop or restart autoposting of quotes (`/quote autopost start|stop|restart`)
+- List, change, add or remove cog settings (`/quote settings list|change|add|remove`)
 
 #### Suggesting/approving quotes
 If activated in settings, guild users without "Manage server" rights can suggest a quote via the "Suggest quote" context menu.
@@ -103,28 +103,28 @@ Command: `/roles`
 
 #### Roles
 
-- Get info about a role (/roles info)
-- List roles or emojis (/roles list)
-- Add a role (/roles add)
-- Remove a role (/roles remove)
-- Edit a role (/roles edit)
+- Get info about a role (`/roles info`)
+- List roles or emojis (`/roles list`)
+- Add a role (`/roles add`)
+- Remove a role (`/roles remove`)
+- Edit a role (`/roles edit`)
 
 #### Reaction messages
 
 ##### Messages
 
-- Add a reaction message (/roles reaction_add message)
-- Remove a reaction message (/roles reaction_remove message)
-- List reaction messages, or info about one (/roles reaction list)
-- Edit a reaction message's text/header (/roles reaction edit)
-- Sort reaction messages alphabetically (/roles reaction sort)
-- Sync reaction messages with the database (/roles reaction sync)
+- Add a reaction message (`/roles reaction_add message`)
+- Remove a reaction message (`/roles reaction_remove message`)
+- List reaction messages, or info about one (`/roles reaction list`)
+- Edit a reaction message's text/header (`/roles reaction edit`)
+- Sort reaction messages alphabetically (`/roles reaction sort`)
+- Sync reaction messages with the database (`/roles reaction sync`)
 
 ##### Message roles
-- Check and fix the order of reaction messages in a channel (/roles reaction reorder)
-- Add roles to a reaction message (/roles reaction_add role)
-- Remove a role from a reaction message (/roles reaction_remove role)
-- Move a reaction role between two messages (/roles reaction_move role)
+- Check and fix the order of reaction messages in a channel (`/roles reaction reorder`)
+- Add roles to a reaction message (`/roles reaction_add role`)
+- Remove a role from a reaction message (`/roles reaction_remove role`)
+- Move a reaction role between two messages (`/roles reaction_move role`)
 
 #### Settings
 
@@ -134,9 +134,9 @@ Settings for roles and reaction messages on the server
 ##### Message role
 - Set a unique role for new users (/roles settings add [Unique role] [discord role]). This is great if you want a certain role to be added to new users to separate them when it comes to moderation or restriction in permissions
 - Choose roles not to be included when deciding if the unique role is a user's only role or not (/roles settings add [Not include in total] [discord role])
-- Remove a setting (/roles settings remove)
-- List settings (/roles settings list)
-- Edit a setting (/roles settings edit)
+- Remove a setting (`/roles settings remove`)
+- List settings (`/roles settings list`)
+- Edit a setting (`/roles settings edit`)
 
 #### Emojis
 
@@ -144,10 +144,10 @@ Manage custom emojis on the server. This is a separate top-level command, not a 
 
 Command: `/emojis`
 
-- Add an emoji (/emojis add)
-- Remove an emoji (/emojis remove)
-- Edit an emoji (/emojis edit)
-- Get info about an emoji (/emojis info)
+- Add an emoji (`/emojis add`)
+- Remove an emoji (`/emojis remove`)
+- Edit an emoji (`/emojis edit`)
+- Get info about an emoji (`/emojis info`)
 
 ### RSS
 
@@ -156,15 +156,15 @@ Post RSS-feeds to a channel, both normal RSS-feeds and podcasts from Spotify.
 Command: `/rss`
 
 - Start, stop or restart posting - choose feeds, podcasts or both (/rss posting start|stop|restart)
-- Add a RSS feed (/rss add)
-- Remove a RSS feed (/rss remove)
-- Edit a RSS feed's settings (/rss edit)
-- Reactivate feed(s) disabled by url errors (/rss reset_url_errors)
-- Add an allow-/deny-filter for a RSS feed (/rss filter add)
-- Remove an allow-/deny-filter from a RSS feed (/rss filter remove)
-- Change a cog setting (/rss settings change)
-- List all active RSS feeds: normal, added by or filter (/rss list)
-- Test that a url is a valid RSS/XML feed (/rss test_feed)
+- Add a RSS feed (`/rss add`)
+- Remove a RSS feed (`/rss remove`)
+- Edit a RSS feed's settings (`/rss edit`)
+- Reactivate feed(s) disabled by url errors (`/rss reset_url_errors`)
+- Add an allow-/deny-filter for a RSS feed (`/rss filter add`)
+- Remove an allow-/deny-filter from a RSS feed (`/rss filter remove`)
+- Change a cog setting (`/rss settings change`)
+- List all active RSS feeds: normal, added by or filter (`/rss list`)
+- Test that a url is a valid RSS/XML feed (`/rss test_feed`)
 
 #### Podcast
 
@@ -172,10 +172,10 @@ Manage Spotify podcasts, posted the same way as RSS feeds. This is a separate to
 
 Command: `/podcast`
 
-- Add a Spotify podcast (/podcast add)
-- Remove a podcast (/podcast remove)
-- Edit a podcast (/podcast edit)
-- List all podcasts (/podcast list)
+- Add a Spotify podcast (`/podcast add`)
+- Remove a podcast (`/podcast remove`)
+- Edit a podcast (`/podcast edit`)
+- List all podcasts (`/podcast list`)
 
 ### Scrape FCB
 
@@ -185,8 +185,8 @@ Autposting news to specific channels: `first-team`, `femení`, `atlètic`, `juve
 
 Command: `/barca`
 
-- Start posting Barca news for this server (/barca start)
-- Stop posting (/barca stop)
+- Start posting Barca news for this server (`/barca start`)
+- Stop posting (`/barca stop`)
 
 ### Stats
 
@@ -194,15 +194,15 @@ Get stats to post in a stats channel. Can post stats about the codebase, roles a
 
 Command: `/stats`
 
-- Start posting (/stats posting start)
-- Stop posting (/stats posting stop)
-- Restart posting (/stats posting restart)
-- List settings (/stats settings list)
-- Change a setting (/stats settings change)
-- Add a setting (/stats settings add)
-- Remove a setting (/stats settings remove)
-- Hide a role from stats (/stats hide_roles_add)
-- Un-hide a role from stats (/stats hide_roles_remove)
+- Start posting (`/stats posting start`)
+- Stop posting (`/stats posting stop`)
+- Restart posting (`/stats posting restart`)
+- List settings (`/stats settings list`)
+- Change a setting (`/stats settings change`)
+- Add a setting (`/stats settings add`)
+- Remove a setting (`/stats settings remove`)
+- Hide a role from stats (`/stats hide_roles_add`)
+- Un-hide a role from stats (`/stats hide_roles_remove`)
 
 ### Youtube
 
@@ -210,16 +210,16 @@ Post new videos from given Youtube channels or playlists
 
 Command: `/youtube`
 
-- Start posting (/youtube posting start)
-- Stop posting (/youtube posting stop)
-- Restart posting (/youtube posting restart)
-- Add a YouTube channel or playlist for posting (/youtube add)
-- Remove a YouTube feed (/youtube remove)
-- Edit a YouTube feed (/youtube edit)
-- Reactivate feed(s) disabled by url errors (/youtube reset_url_errors)
-- Add an allow-/deny-filter for a YouTube feed (/youtube filter add)
-- Remove an allow-/deny-filter from a YouTube feed (/youtube filter remove)
-- List all YouTube feeds: normal, added by or filter, channel or playlist (/youtube list)
+- Start posting (`/youtube posting start`)
+- Stop posting (`/youtube posting stop`)
+- Restart posting (`/youtube posting restart`)
+- Add a YouTube channel or playlist for posting (`/youtube add`)
+- Remove a YouTube feed (`/youtube remove`)
+- Edit a YouTube feed (`/youtube edit`)
+- Reactivate feed(s) disabled by url errors (`/youtube reset_url_errors`)
+- Add an allow-/deny-filter for a YouTube feed (`/youtube filter add`)
+- Remove an allow-/deny-filter from a YouTube feed (`/youtube filter remove`)
+- List all YouTube feeds: normal, added by or filter, channel or playlist (`/youtube list`)
 
 ## Multiple servers
 
