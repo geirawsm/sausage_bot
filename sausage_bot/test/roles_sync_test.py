@@ -15,10 +15,45 @@ import pytest
 from sausage_bot.util import envs, db_helper, discord_commands
 from sausage_bot.cogs import roles
 
-from sausage_bot.test.roles_uuid_conversion_test import _old_db
-
 GUILD_ID = 333333333333333333
 MSG_UUID = "0b7c7f4e-2f7a-4d3c-9d7e-3c1f0a6b2e11"
+
+
+def _old_db(guild_db_root):
+    """Build a roles.sqlite in the layout the bot used before uuid."""
+    db_dir = envs.guild_db_dir(GUILD_ID)
+    db_dir.mkdir(parents=True, exist_ok=True)
+    db_file = db_dir / "roles.sqlite"
+    con = sqlite3.connect(db_file)
+    con.execute(
+        "CREATE TABLE messages (msg_id TEXT, channel TEXT, name TEXT,"
+        " header TEXT, content TEXT, description TEXT, msg_order INTEGER,"
+        " PRIMARY KEY(msg_id))"
+    )
+    con.execute(
+        "CREATE TABLE roles (msg_id TEXT NOT NULL, role TEXT, emoji TEXT)"
+    )
+    con.execute("CREATE TABLE settings (setting TEXT NOT NULL, value TEXT)")
+    con.executemany(
+        "INSERT INTO messages VALUES (?,?,?,?,?,?,?)",
+        [
+            ("111", "999", "farger", "Farger", "Velg farge", "d1", 1),
+            ("222", "999", "lag", None, "Velg lag", "d2", 2),
+        ],
+    )
+    con.executemany(
+        "INSERT INTO roles VALUES (?,?,?)",
+        [
+            ("111", "1001", "\U0001F534"),
+            ("111", "1002", "1234567890"),
+            ("222", "2001", "⚽"),
+            ("333", "3001", "\U0001F47B"),  # orphan - no such message
+        ],
+    )
+    con.execute("INSERT INTO settings VALUES ('unique', '4001')")
+    con.commit()
+    con.close()
+    return db_file
 
 
 class FakeMsg:

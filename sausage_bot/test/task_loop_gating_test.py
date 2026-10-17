@@ -98,6 +98,13 @@ async def test_loop_skips_a_guild_not_in_bots_cache(guild_db_root, monkeypatch):
         guild_id=GUILD_STARTED,
     )
     monkeypatch.setattr(config.bot, "get_guild", lambda gid: None)
+    processed_guild_ids = []
+    monkeypatch.setattr(
+        db_helper,
+        "guild_locale_context",
+        lambda guild_id: processed_guild_ids.append(guild_id),
+    )
 
-    # Must not raise
     await youtube.Youtube.task_post_videos.coro()
+
+    assert processed_guild_ids == []
