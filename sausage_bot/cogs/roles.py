@@ -5,7 +5,7 @@
 import discord
 from discord.ext import commands
 from discord.utils import get
-from discord.app_commands import locale_str, describe
+from discord.app_commands import locale_str, describe, choices, Choice
 from tabulate import tabulate
 import re
 import shutil
@@ -927,15 +927,26 @@ class Autoroles(commands.Cog):
         type=I18N.t("roles.commands.list.desc.type"),
         sort=I18N.t("roles.commands.list.desc.sort"),
     )
+    @choices(
+        type=[
+            Choice(name=I18N.t("common.roles"), value="roles"),
+            Choice(name=I18N.t("common.emojis"), value="emojis"),
+        ],
+        sort=[
+            Choice(name=I18N.t("common.name"), value="name"),
+            Choice(name=I18N.t("common.id"), value="id"),
+        ],
+        public=[
+            Choice(name=I18N.t("common.literal_yes_no.lit_yes"), value="yes"),
+            Choice(name=I18N.t("common.literal_yes_no.lit_no"), value="no"),
+        ],
+    )
     async def roles_list(
         self,
         interaction: discord.Interaction,
-        type: typing.Literal[I18N.t("common.roles"), I18N.t("common.emojis")],
-        sort: typing.Literal[I18N.t("common.name"), I18N.t("common.id")],
-        public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
-        ] = None,
+        type: str,
+        sort: str,
+        public: str = None,
     ):
         async def roles_list_roles():
             _guild = interaction.guild
@@ -947,10 +958,10 @@ class Autoroles(commands.Cog):
                 "managed": [],
             }
             logger.debug(f"sort is `{sort}`")
-            if sort == I18N.t("common.name"):
-                _roles = tuple(sorted(_guild.roles, key=lambda role: role.name.lower()))
-            elif sort == I18N.t("common.id"):
+            if sort == "id":
                 _roles = tuple(sorted(_guild.roles, key=lambda role: role.id))
+            else:
+                _roles = tuple(sorted(_guild.roles, key=lambda role: role.name.lower()))
             for role in _roles:
                 tabulate_dict["emoji"].append(
                     role.display_icon if not "None" else ":question:"
@@ -977,12 +988,12 @@ class Autoroles(commands.Cog):
                 "animated": [],
                 "managed": [],
             }
-            if sort == I18N.t("common.name"):
+            if sort == "id":
+                _emojis = tuple(sorted(_guild.emojis, key=lambda emoji: emoji.id))
+            else:
                 _emojis = tuple(
                     sorted(_guild.emojis, key=lambda emoji: emoji.name.lower())
                 )
-            elif sort == I18N.t("common.id"):
-                _emojis = tuple(sorted(_guild.emojis, key=lambda emoji: emoji.id))
             for emoji in _emojis:
                 tabulate_dict["emoji"].append(f"<:{emoji.name}:{emoji.id}>")
                 tabulate_dict["name"].append(emoji.name)
@@ -1006,15 +1017,22 @@ class Autoroles(commands.Cog):
             # Returning pagination
             return tabulate_emoji(dict_in=tabulate_dict)
 
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == "yes":
             _ephemeral = False
         else:
             _ephemeral = True
         await interaction.response.defer(ephemeral=_ephemeral)
-        if type == I18N.t("common.roles"):
+        logger.debug(f"`type` is `{type}`")
+        if type == "roles":
             pages = await roles_list_roles()
-        elif type == I18N.t("common.emojis"):
+        elif type == "emojis":
             pages = await roles_list_emojis()
+        else:
+            logger.error(f"Got unexpected `type` value in `roles_list`: `{type}`")
+            await interaction.followup.send(
+                I18N.t("common.something_wrong", error=type), ephemeral=True
+            )
+            return
         for page in pages:
             logger.debug(f"{page}")
             await interaction.followup.send(f"{page}", ephemeral=_ephemeral)
