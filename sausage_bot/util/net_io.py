@@ -380,6 +380,11 @@ async def check_for_new_spotify_podcast_episodes(guild):
                     "last_success": state["last_success"] or "ukjent",
                 }
             )
+            # Don't let a show with an unusable episode count reach the
+            # caller: it would be treated as having new episodes to post
+            # and would overwrite `num_episodes` in the db with the bad
+            # value. Skip it for this tick instead.
+            checklist.pop(show_id)
     if failed_shows:
         _names = ", ".join(f"`{s['name']}`" for s in failed_shows)
         _msg = (
