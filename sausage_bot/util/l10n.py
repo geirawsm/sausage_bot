@@ -86,13 +86,9 @@ def reloadi18n():
 
 
 def available_languages():
-    langs = []
-    locale_files = os.listdir(envs.LOCALE_DIR)
-    locale_yml_check = list(
-        filter(lambda files: re.search(r".*\.(.*)\.yml$", files), locale_files)
-    )
-    for file in locale_yml_check:
-        lang = re.fullmatch(r".*\.([a-zA-Z]+)\.yml", file).group(1)
-        if lang not in langs:
-            langs.append(lang)
-    return langs
+    lang_list = []
+    for filename in os.listdir(envs.LOCALE_DIR):
+        match = re.search(r".*\.(.*)\.yml$", filename)
+        if match and match.group(1) not in lang_list:
+            lang_list.append(match.group(1))
+    return lang_list
