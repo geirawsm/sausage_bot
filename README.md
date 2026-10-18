@@ -276,6 +276,25 @@ Wait for activation confirmation before using.
 
 Use the [docker-compose file](https://github.com/geirawsm/sausage_bot/blob/main/docker-compose.yml).
 
+#### A point about configuration
+
+Settings are resolved in three layers, each able to override the one below it:
+
+| Layer | Where it lives | Overrides |
+|---|---|---|
+| 1. Docker Compose `environment:` | `docker-compose.yml` | the `.env` file |
+| 2. `.env` file | `<data-dir>/.env` (the mounted volume when using Docker) | the built-in defaults in the code |
+| 3. Database | the `admin_guild` table / each server's `settings` table | layers 1 and 2, but only for the settings below |
+
+Not every setting goes through all three layers:
+
+| Setting | From `.env`/Docker? | Overridden by the database? |
+|---|---|---|
+| `ADMIN_GUILD_ID`, `ADMIN_CHANNEL_ID` | Yes - used only as a one-time bootstrap value | **Yes.** Once stored, the database is the source of truth; `/guild set_admin_guild` is how you change it afterwards |
+| `BOT_TIMEZONE`, `BOT_LANGUAGE`, `BOT_CHANNEL` | Yes, but only used before any server context exists | **Yes, always, per server.** Every server starts from fixed defaults (`UTC` / `en` / `bot-log`) regardless of these env values, and `/timezone`, `/language`, `/bot_channel` are the only way to change them |
+| Everything else (`DISCORD_TOKEN`, `YOUTUBE_API_KEY`, `SPOTIFY_ID`/`SPOTIFY_SECRET`, `*_LOOP` intervals, `LOG_LEVEL`, …) | Yes | No - fixed for as long as the bot process runs |
+
+
 #### Running locally with python
 
 It is recommended to run the bot in a controlled environment, by using `pipenv` or similar services.
