@@ -18,7 +18,7 @@ import asyncio
 
 from sausage_bot.util import envs, datetime_handling, file_io, config
 from sausage_bot.util import discord_commands, db_helper
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -287,7 +287,7 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
                 async for message in stats_channel.history(limit=20, oldest_first=True)
             ]
             for _msg in stats_msgs:
-                last_update_text = I18N.t(
+                last_update_text = _t(
                     "stats.tasks.update_stats.stats_msg.code_last_updated"
                 )
                 if last_update_text in str(_msg.content):
@@ -380,21 +380,21 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
         # Trim roles_members hvis stats_info vil overskride 2000 tegn
         # Beregn hvor mye plass de andre delene av stats_info tar
         msg_limit_check = ""
-        members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
+        members_sub = _t("stats.tasks.update_stats.stats_msg.members_sub")
         msg_limit_check += f"### {members_sub}\n"
         if eval(stats_settings["show_members_total"]):
-            members_num = I18N.t("stats.tasks.update_stats.stats_msg.members_num")
+            members_num = _t("stats.tasks.update_stats.stats_msg.members_num")
             msg_limit_check += f"```{members_num}: {total_members}```\n"
         if eval(stats_settings["show_code_stats"]):
-            code_sub = I18N.t("stats.tasks.update_stats.stats_msg.code_sub")
-            code_files = I18N.t("stats.tasks.update_stats.stats_msg.code_files")
-            code_lines = I18N.t("stats.tasks.update_stats.stats_msg.code_lines")
+            code_sub = _t("stats.tasks.update_stats.stats_msg.code_sub")
+            code_files = _t("stats.tasks.update_stats.stats_msg.code_files")
+            code_lines = _t("stats.tasks.update_stats.stats_msg.code_lines")
             msg_limit_check += (
                 f"### {code_sub}\n```"
                 f"{code_files}: {files_in_codebase}\n"
                 f"{code_lines}: {lines_in_codebase}```\n"
             )
-        code_last_updated = I18N.t(
+        code_last_updated = _t(
             "stats.tasks.update_stats.stats_msg.code_last_updated"
         )
         msg_limit_check += f"```{code_last_updated} {dt_log}```\n"
@@ -408,26 +408,26 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
             logger.debug(f"Length roles_members after check: {len(roles_members)}")
             await discord_commands.log_to_bot_channel(
                 guild,
-                I18N.t("stats.tasks.update_stats.log.roles_truncated"),
+                _t("stats.tasks.update_stats.log.roles_truncated"),
             )
-        members_sub = I18N.t("stats.tasks.update_stats.stats_msg.members_sub")
+        members_sub = _t("stats.tasks.update_stats.stats_msg.members_sub")
         stats_info += f"### {members_sub}\n"
     if eval(stats_settings["show_members_total"]):
-        members_num = I18N.t("stats.tasks.update_stats.stats_msg.members_num")
+        members_num = _t("stats.tasks.update_stats.stats_msg.members_num")
         stats_info += f"```{members_num}: {total_members}```\n"
     if eval(stats_settings["show_role_stats"]):
         stats_info += f"```{roles_members}```\n"
     logger.debug("`show_code_stats` is {}".format(stats_settings["show_code_stats"]))
     if eval(stats_settings["show_code_stats"]):
-        code_sub = I18N.t("stats.tasks.update_stats.stats_msg.code_sub")
-        code_files = I18N.t("stats.tasks.update_stats.stats_msg.code_files")
-        code_lines = I18N.t("stats.tasks.update_stats.stats_msg.code_lines")
+        code_sub = _t("stats.tasks.update_stats.stats_msg.code_sub")
+        code_files = _t("stats.tasks.update_stats.stats_msg.code_files")
+        code_lines = _t("stats.tasks.update_stats.stats_msg.code_lines")
         stats_info += (
             f"### {code_sub}\n```"
             f"{code_files}: {files_in_codebase}\n"
             f"{code_lines}: {lines_in_codebase}```\n"
         )
-    code_last_updated = I18N.t("stats.tasks.update_stats.stats_msg.code_last_updated")
+    code_last_updated = _t("stats.tasks.update_stats.stats_msg.code_last_updated")
     stats_info += f"```{code_last_updated} {dt_log}```\n"
     logger.debug(f"Trying to post stats to `stats_channel`:\n{stats_info[0:100]}")
     await check_and_post_to_stats_msg_id(stats_settings, stats_info)
@@ -441,22 +441,22 @@ class Stats(commands.Cog):
         super().__init__()
 
     stats_group = discord.app_commands.Group(
-        name="stats", description=locale_str(I18N.t("stats.commands.groups.stats"))
+        name="stats", description=locale_str(_t("stats.commands.groups.stats"))
     )
     stats_posting_group = discord.app_commands.Group(
         name="posting",
-        description=locale_str(I18N.t("stats.commands.groups.posting")),
+        description=locale_str(_t("stats.commands.groups.posting")),
         parent=stats_group,
     )
     stats_settings_group = discord.app_commands.Group(
         name="settings",
-        description=locale_str(I18N.t("stats.commands.groups.settings")),
+        description=locale_str(_t("stats.commands.groups.settings")),
         parent=stats_group,
     )
 
     @discord_commands.is_owner_or_manage_guild()
     @stats_posting_group.command(
-        name="start", description=locale_str(I18N.t("stats.commands.start.command"))
+        name="start", description=locale_str(_t("stats.commands.start.command"))
     )
     async def stats_posting_start(self, interaction: discord.Interaction):
         """
@@ -467,7 +467,7 @@ class Stats(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         logger.info(
             f"Enabling stats posting for `{interaction.guild.name}`: "
-            f"{I18N.t('stats.commands.start.log_started')}"
+            f"{_t('stats.commands.start.log_started')}"
         )
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -475,13 +475,13 @@ class Stats(commands.Cog):
             updates=("status", "started"),
             guild_id=interaction.guild.id,
         )
-        await interaction.followup.send(I18N.t("stats.commands.start.confirm_started"))
+        await interaction.followup.send(_t("stats.commands.start.confirm_started"))
 
     @discord_commands.is_owner_or_manage_guild()
     @stats_posting_group.command(
-        name="stop", description=locale_str(I18N.t("stats.commands.stop.command"))
+        name="stop", description=locale_str(_t("stats.commands.stop.command"))
     )
-    @describe(remove_post=I18N.t("stats.commands.stop.desc.remove_post"))
+    @describe(remove_post=_t("stats.commands.stop.desc.remove_post"))
     async def stats_posting_stop(
         self, interaction: discord.Interaction, remove_post: typing.Literal["Yes", "No"]
     ):
@@ -489,7 +489,7 @@ class Stats(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         logger.info(
             f"Disabling stats posting for `{interaction.guild.name}`: "
-            f"{I18N.t('stats.commands.stop.log_stopped')}"
+            f"{_t('stats.commands.stop.log_stopped')}"
         )
         await db_helper.update_fields(
             template_info=envs.tasks_db_schema,
@@ -510,11 +510,11 @@ class Stats(commands.Cog):
             else:
                 stats_channel = "stats"
             await discord_commands.remove_stats_post(interaction.guild, stats_channel)
-        await interaction.followup.send(I18N.t("stats.commands.stop.confirm_stopped"))
+        await interaction.followup.send(_t("stats.commands.stop.confirm_stopped"))
 
     @discord_commands.is_owner()
     @stats_posting_group.command(
-        name="restart", description=locale_str(I18N.t("stats.commands.restart.command"))
+        name="restart", description=locale_str(_t("stats.commands.restart.command"))
     )
     async def stats_posting_restart(self, interaction: discord.Interaction):
         """
@@ -525,11 +525,11 @@ class Stats(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         logger.info("Stats posting loop restarted")
         Stats.task_update_stats.restart()
-        await interaction.followup.send(I18N.t("stats.commands.restart.log_restarted"))
+        await interaction.followup.send(_t("stats.commands.restart.log_restarted"))
 
     @discord_commands.is_owner_or_manage_guild()
     @stats_settings_group.command(
-        name="list", description=locale_str(I18N.t("stats.commands.list.command"))
+        name="list", description=locale_str(_t("stats.commands.list.command"))
     )
     async def list_settings(self, interaction: discord.Interaction):
         """
@@ -542,8 +542,8 @@ class Stats(commands.Cog):
             guild_id=interaction.guild.id,
         )
         headers_settings = {
-            "setting": I18N.t("stats.commands.list.headers.settings.setting"),
-            "value": I18N.t("stats.commands.list.headers.settings.value"),
+            "setting": _t("stats.commands.list.headers.settings.setting"),
+            "value": _t("stats.commands.list.headers.settings.value"),
         }
         for item in stats_settings:
             if item["setting"] == "channel":
@@ -557,7 +557,7 @@ class Stats(commands.Cog):
                     logger.debug("channel in stats settings is not an ID. Notifying.")
                     await discord_commands.log_to_bot_channel(
                         interaction.guild,
-                        I18N.t(
+                        _t(
                             "Channel '{}' is not a channel id. Add the channel again.",
                             channel_in=item["value"],
                         ),
@@ -565,7 +565,7 @@ class Stats(commands.Cog):
                     return
         return
         out = "## {}\n```{}```".format(
-            I18N.t("stats.commands.list.stats_msg_out.sub_settings"),
+            _t("stats.commands.list.stats_msg_out.sub_settings"),
             tabulate(stats_settings, headers=headers_settings),
         )
         hidden_roles_in_db = await db_helper.get_output(
@@ -574,8 +574,8 @@ class Stats(commands.Cog):
         logger.debug(f"`hidden_roles_in_db` is {hidden_roles_in_db}")
         if hidden_roles_in_db is not None and len(hidden_roles_in_db) > 0:
             headers_hidden_roles = [
-                I18N.t("stats.commands.list.headers.hidden_roles.hidden_name"),
-                I18N.t("stats.commands.list.headers.hidden_roles.hidden_id"),
+                _t("stats.commands.list.headers.hidden_roles.hidden_name"),
+                _t("stats.commands.list.headers.hidden_roles.hidden_id"),
             ]
             populated_roles = []
             for role in hidden_roles_in_db:
@@ -586,7 +586,7 @@ class Stats(commands.Cog):
                     )
                 )
             out += "\n## {}\n```{}```".format(
-                I18N.t("stats.commands.list.stats_msg_out.sub_hidden"),
+                _t("stats.commands.list.stats_msg_out.sub_hidden"),
                 tabulate(populated_roles, headers=headers_hidden_roles),
             )
         await interaction.followup.send(content=out, ephemeral=True)
@@ -594,11 +594,11 @@ class Stats(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
     @stats_settings_group.command(
-        name="change", description=locale_str(I18N.t("stats.commands.change.command"))
+        name="change", description=locale_str(_t("stats.commands.change.command"))
     )
     @describe(
-        name_of_setting=I18N.t("stats.commands.change.desc.name_of_setting"),
-        value_in=I18N.t("stats.commands.change.desc.value_in"),
+        name_of_setting=_t("stats.commands.change.desc.name_of_setting"),
+        value_in=_t("stats.commands.change.desc.value_in"),
     )
     async def change_setting(
         self, interaction: discord.Interaction, name_of_setting: str, value_in: str
@@ -642,7 +642,7 @@ class Stats(commands.Cog):
             if value_in.lower() not in ["true", "false"]:
                 logger.error(f"Invalid input for value_in: {value_in}")
                 await interaction.followup.send(
-                    content=I18N.t("stats.setting_input_reply"), ephemeral=True
+                    content=_t("stats.setting_input_reply"), ephemeral=True
                 )
                 return
             value_in = value_in.capitalize()
@@ -680,7 +680,7 @@ class Stats(commands.Cog):
                     f"Could not find channel `{value_in}` in `{interaction.guild.name}`"
                 )
                 await interaction.followup.send(
-                    content=I18N.t("common.error.channel_not_found", channel=value_in),
+                    content=_t("common.error.channel_not_found", channel=value_in),
                     ephemeral=True,
                 )
                 return
@@ -691,7 +691,7 @@ class Stats(commands.Cog):
             except ValueError:
                 logger.error(f"Invalid input for value_in: {value_in}")
                 await interaction.followup.send(
-                    content=I18N.t(
+                    content=_t(
                         "stats.commands.add.msg.type_incorrect",
                         value_in=value_in,
                         value_type=type(value_in).__name__,
@@ -708,7 +708,7 @@ class Stats(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            content=I18N.t("stats.commands.change.update_confirmed"),
+            content=_t("stats.commands.change.update_confirmed"),
             ephemeral=True,
         )
         return
@@ -716,11 +716,11 @@ class Stats(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
     @stats_settings_group.command(
-        name="add", description=locale_str(I18N.t("stats.commands.add.command"))
+        name="add", description=locale_str(_t("stats.commands.add.command"))
     )
     @describe(
-        setting_in=I18N.t("stats.commands.add.desc.name_of_setting"),
-        value_in=I18N.t("stats.commands.add.desc.value_in"),
+        setting_in=_t("stats.commands.add.desc.name_of_setting"),
+        value_in=_t("stats.commands.add.desc.value_in"),
     )
     async def add_setting(
         self, interaction: discord.Interaction, setting_in: str, value_in: str
@@ -749,13 +749,13 @@ class Stats(commands.Cog):
         )
         if setting_in in settings_db_json:
             await interaction.followup.send(
-                content=I18N.t("stats.commands.add.msg.setting_already_exists"),
+                content=_t("stats.commands.add.msg.setting_already_exists"),
                 ephemeral=True,
             )
             return
         if type(value_in_check) is not eval(settings_types[setting_in]):
             await interaction.followup.send(
-                content=I18N.t(
+                content=_t(
                     "stats.commands.add.msg.type_incorrect",
                     value_in=value_in,
                     value_type=type(value_in),
@@ -772,23 +772,23 @@ class Stats(commands.Cog):
                     guild_id=interaction.guild.id,
                 )
                 await interaction.followup.send(
-                    content=I18N.t("stats.commands.add.msg.add_confirmed"),
+                    content=_t("stats.commands.add.msg.add_confirmed"),
                     ephemeral=True,
                 )
                 return
         else:
             logger.error("Something went wrong")
             await interaction.followup.send(
-                content=I18N.t("stats.commands.add.msg.add_failed"), ephemeral=True
+                content=_t("stats.commands.add.msg.add_failed"), ephemeral=True
             )
             return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
     @stats_settings_group.command(
-        name="remove", description=locale_str(I18N.t("stats.commands.remove.command"))
+        name="remove", description=locale_str(_t("stats.commands.remove.command"))
     )
-    @describe(setting_in=I18N.t("stats.commands.remove.desc.name_of_setting"))
+    @describe(setting_in=_t("stats.commands.remove.desc.name_of_setting"))
     async def remove_setting(self, interaction: discord.Interaction, setting_in: str):
         """
         Remove a setting for this cog
@@ -801,13 +801,13 @@ class Stats(commands.Cog):
                 guild_id=interaction.guild.id,
             )
             await interaction.followup.send(
-                content=I18N.t("stats.commands.remove.msg.remove_confirmed"),
+                content=_t("stats.commands.remove.msg.remove_confirmed"),
                 ephemeral=True,
             )
         except Exception as error:
             logger.error(f"Error when removing setting: {error}")
             await interaction.followup.send(
-                content=I18N.t("stats.commands.remove.msg.remove_failed"),
+                content=_t("stats.commands.remove.msg.remove_failed"),
                 ephemeral=True,
             )
         return
@@ -815,9 +815,9 @@ class Stats(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @stats_group.command(
         name="hide_roles_add",
-        description=locale_str(I18N.t("stats.commands.hide_roles_add.command")),
+        description=locale_str(_t("stats.commands.hide_roles_add.command")),
     )
-    @describe(role_in=I18N.t("stats.commands.hide_roles_add.desc.role_in"))
+    @describe(role_in=_t("stats.commands.hide_roles_add.desc.role_in"))
     async def stats_add_hidden_roles(
         self, interaction: discord.Interaction, role_in: discord.Role
     ):
@@ -841,7 +841,7 @@ class Stats(commands.Cog):
                 hidden_roles_in_list.append(role["role_id"])
             if str(role_in.id) in hidden_roles_in_list:
                 await interaction.followup.send(
-                    I18N.t("stats.commands.hide_roles_add.msg.already_hidden")
+                    _t("stats.commands.hide_roles_add.msg.already_hidden")
                 )
                 return
             else:
@@ -851,12 +851,12 @@ class Stats(commands.Cog):
                     guild_id=interaction.guild.id,
                 )
                 await interaction.followup.send(
-                    content=I18N.t("stats.commands.hide_roles_add.msg.confirm_added"),
+                    content=_t("stats.commands.hide_roles_add.msg.confirm_added"),
                     ephemeral=True,
                 )
         else:
             await interaction.followup.send(
-                content=I18N.t("stats.commands.hide_roles_add.msg.no_hidden_roles"),
+                content=_t("stats.commands.hide_roles_add.msg.no_hidden_roles"),
                 ephemeral=True,
             )
         return
@@ -865,9 +865,9 @@ class Stats(commands.Cog):
     @discord.app_commands.autocomplete(hidden_roles=hidden_roles_autocomplete)
     @stats_group.command(
         name="hide_roles_remove",
-        description=locale_str(I18N.t("stats.commands.hide_roles_remove.command")),
+        description=locale_str(_t("stats.commands.hide_roles_remove.command")),
     )
-    @describe(hidden_roles=I18N.t("stats.commands.hide_roles_remove.desc.role_in"))
+    @describe(hidden_roles=_t("stats.commands.hide_roles_remove.desc.role_in"))
     async def stats_remove_hidden_roles(
         self, interaction: discord.Interaction, hidden_roles: str
     ):
@@ -886,7 +886,7 @@ class Stats(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            content=I18N.t("stats.commands.hide_roles_remove.msg.confirm_removed"),
+            content=_t("stats.commands.hide_roles_remove.msg.confirm_removed"),
             ephemeral=True,
         )
         return

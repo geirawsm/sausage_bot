@@ -13,8 +13,8 @@ import os
 from sausage_bot.util import config, envs, file_io, cogs, db_helper, net_io
 from sausage_bot.util import discord_commands
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util.i18n import I18N, available_languages
-from sausage_bot.util.i18n import MyTranslator
+from sausage_bot.util.l10n import _t, available_languages
+from sausage_bot.util.l10n import MyTranslator
 
 logger = config.logger
 
@@ -70,12 +70,12 @@ class SayModal(discord.ui.Modal):
         self.error_out = None
 
         # Create elements
-        label_in = I18N.t("main.commands.say.modal.comment")
+        label_in = _t("main.commands.say.modal.comment")
         comment_text = SayTextInput(
             style_in=discord.TextStyle.paragraph,
             label_in=label_in,
             required_in=True,
-            placeholder_in=I18N.t("main.commands.say.modal.comment"),
+            placeholder_in=_t("main.commands.say.modal.comment"),
         )
 
         self.add_item(comment_text)
@@ -85,25 +85,25 @@ class SayModal(discord.ui.Modal):
             interaction.guild, self.children[0].value
         )
         logger.debug(f"Got `comment_out`: {comment_out}")
-        msg_out = I18N.t("main.context_menu.edit_msg.edit_confirm")
+        msg_out = _t("main.context_menu.edit_msg.edit_confirm")
         if len(comment_out["username_errors"]) > 0:
-            msg_out += I18N.t(
+            msg_out += _t(
                 "main.context_menu.edit_msg.edit_confirm_with_errors",
                 errors=", ".join(comment_out["username_errors"]),
             )
         if len(comment_out["channel_errors"]) > 0:
             if len(msg_out) == 0:
-                msg_out += I18N.t(
+                msg_out += _t(
                     "main.context_menu.edit_msg.edit_confirm_with_errors",
                     errors=", ".join(comment_out["channel_errors"]),
                 )
             else:
-                msg_out += I18N.t(
+                msg_out += _t(
                     "main.context_menu.edit_msg.channel_errors",
                     errors=", ".join(comment_out["channel_errors"]),
                 )
         await interaction.response.send_message(
-            I18N.t("main.commands.say.modal.confirm", channel=self.channel.name),
+            _t("main.commands.say.modal.confirm", channel=self.channel.name),
             ephemeral=True,
         )
         self.comment_out = comment_out["text"]
@@ -112,7 +112,7 @@ class SayModal(discord.ui.Modal):
     async def on_error(self, interaction: discord.Interaction, error):
         logger.error(f"Error when editing message: {error}")
         await interaction.response.send_message(
-            I18N.t(
+            _t(
                 "main.commands.say.modal.error_sending",
                 channel=self.channel.name,
                 error=error,
@@ -132,7 +132,7 @@ class EditModal(discord.ui.Modal):
         # Create elements
         comment_text = SayTextInput(
             style_in=discord.TextStyle.paragraph,
-            label_in=I18N.t("quote.modals.quote_text"),
+            label_in=_t("quote.modals.quote_text"),
             default_in=self.comment_in,
             required_in=True,
             placeholder_in="Text",
@@ -145,20 +145,20 @@ class EditModal(discord.ui.Modal):
             interaction.guild, self.children[0].value
         )
         logger.debug(f"Got `comment_out`: {comment_out}")
-        msg_out = I18N.t("main.context_menu.edit_msg.edit_confirm")
+        msg_out = _t("main.context_menu.edit_msg.edit_confirm")
         if len(comment_out["username_errors"]) > 0:
-            msg_out += I18N.t(
+            msg_out += _t(
                 "main.context_menu.edit_msg.edit_confirm_with_errors",
                 errors=", ".join(comment_out["username_errors"]),
             )
         if len(comment_out["channel_errors"]) > 0:
             if len(msg_out) == 0:
-                msg_out += I18N.t(
+                msg_out += _t(
                     "main.context_menu.edit_msg.edit_confirm_with_errors",
                     errors=", ".join(comment_out["channel_errors"]),
                 )
             else:
-                msg_out += I18N.t(
+                msg_out += _t(
                     "main.context_menu.edit_msg.channel_errors",
                     errors=", ".join(comment_out["channel_errors"]),
                 )
@@ -172,7 +172,7 @@ class EditModal(discord.ui.Modal):
         logger.error(f"Error when editing message: {error}")
         self.error_out = error
         await interaction.response.send_message(
-            I18N.t("main.context_menu.edit_msg.edit_error", error=error),
+            _t("main.context_menu.edit_msg.edit_error", error=error),
             ephemeral=True,
         )
 
@@ -395,7 +395,7 @@ def admin_channel_choices(
         choices.insert(
             0,
             discord.app_commands.Choice(
-                name=I18N.t(
+                name=_t(
                     "main.commands.guild.admin_channel.ac_create_new",
                     channel=typed,
                 )[:100],
@@ -492,7 +492,7 @@ async def register_guild(guild: discord.Guild):
         inserts=[(str(guild.id), guild.name, status, now)],
     )
     # Every registered guild gets its own settings table straight away, so
-    # I18N.t()/get_dt() have sane defaults even before it's approved.
+    # _t()/get_dt() have sane defaults even before it's approved.
     await db_helper.prep_table(
         envs.settings_db_schema,
         inserts=envs.settings_db_schema["inserts"],
@@ -521,11 +521,11 @@ async def notify_admin_of_new_guild(
         return
     content = ""
     if rejoined:
-        content += I18N.t("main.notify_new_guild.rejoined") + "\n"
+        content += _t("main.notify_new_guild.rejoined") + "\n"
     else:
-        content += I18N.t("main.notify_new_guild.new") + "\n"
+        content += _t("main.notify_new_guild.new") + "\n"
     content += (
-        I18N.t(
+        _t(
             "main.notify_new_guild.details",
             guild_name=guild.name,
             guild_id=guild.id,
@@ -554,17 +554,13 @@ async def notify_admin_of_new_guild(
             logger.debug(f"Could not create invite in `{channel.name}`: {e}")
             continue
     if invite_url:
-        content += (
-            I18N.t("main.notify_new_guild.invite_link", invite_url=invite_url) + "\n"
-        )
+        content += _t("main.notify_new_guild.invite_link", invite_url=invite_url) + "\n"
     else:
-        content += I18N.t("main.notify_new_guild.no_invite") + "\n"
+        content += _t("main.notify_new_guild.no_invite") + "\n"
     if auto_approved:
-        content += "\n" + I18N.t("main.notify_new_guild.auto_approved")
+        content += "\n" + _t("main.notify_new_guild.auto_approved")
     else:
-        content += "\n" + I18N.t(
-            "main.notify_new_guild.how_to_approve", guild_id=guild.id
-        )
+        content += "\n" + _t("main.notify_new_guild.how_to_approve", guild_id=guild.id)
     await discord_commands.post_to_channel(config.ADMIN_CHANNEL_ID, content_in=content)
 
 
@@ -577,7 +573,7 @@ async def on_guild_join(guild: discord.Guild):
     await register_guild(guild)
     await discord_commands.log_to_bot_channel(
         guild=guild,
-        content_in=I18N.t("main.notify_at_new_guild.added_to_server"),
+        content_in=_t("main.notify_at_new_guild.added_to_server"),
     )
 
 
@@ -732,7 +728,7 @@ async def on_ready():
     """
     await config.bot.tree.set_translator(MyTranslator())
     logger.info(
-        I18N.t(
+        _t(
             "main.msg.bot_connected",
             bot=config.bot.user,
             server=", ".join(guild.name for guild in config.bot.guilds),
@@ -799,7 +795,7 @@ async def on_ready():
             # so no follow-up set_permissions() call is needed.
             await guild.create_text_channel(
                 name=str(bot_channel),
-                topic=I18N.t(
+                topic=_t(
                     "main.msg.create_log_channel_logging",
                     botname=config.bot.user.name,
                 ),
@@ -824,7 +820,7 @@ async def on_app_command_error(
     `CheckFailure`, so it gets its own more precise message.
     """
     if isinstance(error, discord_commands.OwnerOnlyCheckFailure):
-        msg = I18N.t("common.msg_owner_only")
+        msg = _t("common.msg_owner_only")
         try:
             if interaction.response.is_done():
                 await interaction.followup.send(msg, ephemeral=True)
@@ -834,7 +830,7 @@ async def on_app_command_error(
             logger.error(f"Could not send permission check error message: {_error}")
         return
     if isinstance(error, discord.app_commands.CheckFailure):
-        msg = I18N.t("common.msg_no_manage_guild_permission")
+        msg = _t("common.msg_no_manage_guild_permission")
         try:
             if interaction.response.is_done():
                 await interaction.followup.send(msg, ephemeral=True)
@@ -859,13 +855,11 @@ class Sync(commands.Cog):
 
     sync_group = discord.app_commands.Group(
         name="sync",
-        description=locale_str(I18N.t("main.commands.sync.group_desc")),
+        description=locale_str(_t("main.commands.sync.group_desc")),
     )
 
     @discord_commands.is_owner()
-    @sync_group.command(
-        name="global", description=locale_str(I18N.t("main.owner_only"))
-    )
+    @sync_group.command(name="global", description=locale_str(_t("main.owner_only")))
     async def sync_global(self, interaction: discord.Interaction):
         await config.bot.tree.sync()
         _cmd = ""
@@ -879,7 +873,7 @@ class Sync(commands.Cog):
             if _cmd != "":
                 _cmd += "\n"
         await interaction.response.send_message(
-            I18N.t("main.commands.sync.msg_confirm_list", commands=_cmd),
+            _t("main.commands.sync.msg_confirm_list", commands=_cmd),
             ephemeral=True,
         )
         return
@@ -887,19 +881,19 @@ class Sync(commands.Cog):
     @discord_commands.is_owner()
     @sync_group.command(
         name="dev",
-        description=locale_str(I18N.t("main.owner_only")),
+        description=locale_str(_t("main.owner_only")),
     )
     async def sync_local(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         await interaction.followup.send(
-            content="✅💭 {}".format(I18N.t("main.commands.syncdev.msg_starting"))
+            content="✅💭 {}".format(_t("main.commands.syncdev.msg_starting"))
         )
         config.bot.tree.copy_global_to(guild=interaction.guild)
         await config.bot.tree.sync(guild=interaction.guild)
         for command in config.bot.tree.get_commands():
             logger.debug(f"Checking {command.name}")
         await interaction.edit_original_response(
-            content="✅✅ {}".format(I18N.t("main.commands.syncdev.msg_confirm"))
+            content="✅✅ {}".format(_t("main.commands.syncdev.msg_confirm"))
         )
         return
 
@@ -924,7 +918,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
         # Only whoever ran the command may press the buttons
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                I18N.t("main.commands.guild.leave.not_yours"), ephemeral=True
+                _t("main.commands.guild.leave.not_yours"), ephemeral=True
             )
             return False
         return True
@@ -934,7 +928,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
             _btn.disabled = True
 
     @discord.ui.button(
-        label=I18N.t("main.commands.guild.leave.btn_leave"),
+        label=_t("main.commands.guild.leave.btn_leave"),
         style=discord.ButtonStyle.danger,
     )
     async def confirm(
@@ -946,7 +940,7 @@ class LeaveGuildConfirm_view(discord.ui.View):
         self.stop()
 
     @discord.ui.button(
-        label=I18N.t("common.cancel"),
+        label=_t("common.cancel"),
         style=discord.ButtonStyle.secondary,
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -980,7 +974,7 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
         # Only whoever ran the command may press the buttons
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                I18N.t("main.commands.guild.admin_channel.not_yours"),
+                _t("main.commands.guild.admin_channel.not_yours"),
                 ephemeral=True,
             )
             return False
@@ -991,7 +985,7 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
             _btn.disabled = True
 
     @discord.ui.button(
-        label=I18N.t("main.commands.guild.admin_channel.btn_create"),
+        label=_t("main.commands.guild.admin_channel.btn_create"),
         style=discord.ButtonStyle.green,
     )
     async def confirm(
@@ -1003,7 +997,7 @@ class CreateAdminChannelConfirm_view(discord.ui.View):
         self.stop()
 
     @discord.ui.button(
-        label=I18N.t("common.cancel"),
+        label=_t("common.cancel"),
         style=discord.ButtonStyle.secondary,
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -1041,7 +1035,7 @@ async def resolve_admin_channel(
     channel_arg = str(channel_arg or "").strip()
     if not channel_arg:
         await interaction.followup.send(
-            I18N.t("main.commands.guild.admin_channel.msg_no_channel"),
+            _t("main.commands.guild.admin_channel.msg_no_channel"),
             ephemeral=True,
         )
         return None, None
@@ -1057,7 +1051,7 @@ async def resolve_admin_channel(
         target_channel = target_guild.get_channel(int(channel_arg))
         if target_channel is None:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "main.commands.guild.admin_channel.msg_channel_not_found",
                     channel=channel_arg,
                     guild_name=target_guild.name,
@@ -1074,7 +1068,7 @@ async def resolve_admin_channel(
         target_channel, discord.TextChannel
     ):
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "main.commands.guild.admin_channel.msg_not_text_channel",
                 channel=target_channel.name,
             ),
@@ -1085,7 +1079,7 @@ async def resolve_admin_channel(
         return target_channel, None
     view = CreateAdminChannelConfirm_view(user_id=interaction.user.id)
     confirm_msg = await interaction.followup.send(
-        I18N.t(
+        _t(
             "main.commands.guild.admin_channel.confirm_create",
             channel=new_channel_name,
             guild_name=target_guild.name,
@@ -1098,7 +1092,7 @@ async def resolve_admin_channel(
     await view.wait()
     if view.value is None:
         await confirm_msg.edit(
-            content=I18N.t(
+            content=_t(
                 "main.commands.guild.admin_channel.msg_timeout",
                 channel=new_channel_name,
             ),
@@ -1107,7 +1101,7 @@ async def resolve_admin_channel(
         return None, confirm_msg
     if view.value is False:
         await confirm_msg.edit(
-            content=I18N.t(
+            content=_t(
                 "main.commands.guild.admin_channel.msg_cancelled",
                 channel=new_channel_name,
             ),
@@ -1119,7 +1113,7 @@ async def resolve_admin_channel(
             target_channel = await discord_commands.create_missing_channel(
                 target_guild,
                 channel_name=new_channel_name,
-                topic=I18N.t(
+                topic=_t(
                     "main.msg.create_log_channel_logging",
                     botname=config.bot.user.name,
                 ),
@@ -1130,7 +1124,7 @@ async def resolve_admin_channel(
             f"`{target_guild.name}` ({target_guild.id}): {e}"
         )
         await confirm_msg.edit(
-            content=I18N.t(
+            content=_t(
                 "main.commands.guild.admin_channel.msg_create_failed",
                 channel=new_channel_name,
                 error=e,
@@ -1147,7 +1141,7 @@ async def resolve_admin_channel(
             f"in `{target_guild.name}` ({target_guild.id})"
         )
         await confirm_msg.edit(
-            content=I18N.t(
+            content=_t(
                 "main.commands.guild.admin_channel.msg_create_failed",
                 channel=new_channel_name,
                 error="-",
@@ -1240,19 +1234,17 @@ class Guild(commands.Cog):
 
     guild_group = discord.app_commands.Group(
         name="guild",
-        description=locale_str(I18N.t("main.commands.guild.group_desc")),
+        description=locale_str(_t("main.commands.guild.group_desc")),
     )
 
     @discord_commands.is_owner()
-    @guild_group.command(
-        name="approve", description=locale_str(I18N.t("main.owner_only"))
-    )
+    @guild_group.command(name="approve", description=locale_str(_t("main.owner_only")))
     @discord.app_commands.autocomplete(guild_id=pending_guilds_autocomplete)
     async def approve_guild(self, interaction: discord.Interaction, guild_id: str):
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
-                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                _t("main.commands.tasks_global.msg_not_admin_guild"),
                 ephemeral=True,
             )
             return
@@ -1264,7 +1256,7 @@ class Guild(commands.Cog):
             # result.
             logger.error(f"No guild in the registry matches `{guild_id}`")
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "main.commands.guild.approve.msg_not_found",
                     guild_id=guild_id,
                 ),
@@ -1300,7 +1292,7 @@ class Guild(commands.Cog):
         # was restarted.
         await cogs.ensure_guild_tables_for_loaded_cogs(approved_guild)
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "main.commands.guild.approve.msg_confirm",
                 guild_name=guild_name,
                 guild_id=guild_id_row,
@@ -1309,23 +1301,21 @@ class Guild(commands.Cog):
         )
         await discord_commands.log_to_bot_channel(
             guild=approved_guild,
-            content_in=I18N.t("main.notify_at_new_guild.approved_at_server"),
+            content_in=_t("main.notify_at_new_guild.approved_at_server"),
         )
         await discord_commands.log_to_bot_channel(
             guild=approved_guild,
-            content_in=I18N.t("main.notify_at_new_guild.more_info_after_approval"),
+            content_in=_t("main.notify_at_new_guild.more_info_after_approval"),
         )
 
     @discord_commands.is_owner()
-    @guild_group.command(
-        name="leave", description=locale_str(I18N.t("main.owner_only"))
-    )
+    @guild_group.command(name="leave", description=locale_str(_t("main.owner_only")))
     @discord.app_commands.autocomplete(guild_id=all_guilds_autocomplete)
     async def leave_guild(self, interaction: discord.Interaction, guild_id: str):
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
-                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                _t("main.commands.tasks_global.msg_not_admin_guild"),
                 ephemeral=True,
             )
             return
@@ -1333,7 +1323,7 @@ class Guild(commands.Cog):
             # Leaving the admin guild would lock the owner out of every
             # owner-only command - including this one.
             await interaction.followup.send(
-                I18N.t("main.commands.guild.leave.msg_refuse_admin"),
+                _t("main.commands.guild.leave.msg_refuse_admin"),
                 ephemeral=True,
             )
             return
@@ -1346,7 +1336,7 @@ class Guild(commands.Cog):
             # `all_guilds_autocomplete` lists every row in the guild registry,
             # including guilds the bot is no longer a member of.
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "main.commands.guild.leave.msg_not_member",
                     guild_id=guild_id,
                 ),
@@ -1361,7 +1351,7 @@ class Guild(commands.Cog):
         guild_name = guilds_db[0]["guild_name"] if guilds_db else guild.name
         view = LeaveGuildConfirm_view(user_id=interaction.user.id)
         confirm_msg = await interaction.followup.send(
-            I18N.t(
+            _t(
                 "main.commands.guild.leave.confirm_prompt",
                 guild_name=guild_name,
                 guild_id=guild.id,
@@ -1373,7 +1363,7 @@ class Guild(commands.Cog):
         await view.wait()
         if view.value is None:
             await confirm_msg.edit(
-                content=I18N.t(
+                content=_t(
                     "main.commands.guild.leave.msg_timeout",
                     guild_name=guild_name,
                     guild_id=guild.id,
@@ -1383,7 +1373,7 @@ class Guild(commands.Cog):
             return
         if view.value is False:
             await confirm_msg.edit(
-                content=I18N.t(
+                content=_t(
                     "main.commands.guild.leave.msg_cancelled",
                     guild_name=guild_name,
                     guild_id=guild.id,
@@ -1396,7 +1386,7 @@ class Guild(commands.Cog):
         except discord.HTTPException as e:
             logger.error(f"Could not leave guild `{guild_name}` ({guild.id}): {e}")
             await confirm_msg.edit(
-                content=I18N.t(
+                content=_t(
                     "main.commands.guild.leave.msg_failed",
                     guild_name=guild_name,
                     guild_id=guild.id,
@@ -1409,7 +1399,7 @@ class Guild(commands.Cog):
             f"Left guild `{guild_name}` ({guild.id}) on request from `{interaction.user}`"
         )  # No db write here - `on_guild_remove` sets the status to `removed`.
         await confirm_msg.edit(
-            content=I18N.t(
+            content=_t(
                 "main.commands.guild.leave.msg_confirm",
                 guild_name=guild_name,
                 guild_id=guild.id,
@@ -1418,7 +1408,7 @@ class Guild(commands.Cog):
         )
 
     @discord_commands.is_owner()
-    @guild_group.command(name="list", description=locale_str(I18N.t("main.owner_only")))
+    @guild_group.command(name="list", description=locale_str(_t("main.owner_only")))
     async def list_guilds(
         self,
         interaction: discord.Interaction,
@@ -1426,7 +1416,7 @@ class Guild(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
-                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                _t("main.commands.tasks_global.msg_not_admin_guild"),
                 ephemeral=True,
             )
             return
@@ -1459,16 +1449,12 @@ class Guild(commands.Cog):
             tabulate(
                 guilds,
                 headers={
-                    "guild_name": I18N.t("main.commands.guild.list.headers.guild_name"),
-                    "guild_id": I18N.t("main.commands.guild.list.headers.guild_id"),
-                    "status": I18N.t("main.commands.guild.list.headers.status"),
-                    "joined_at": I18N.t("main.commands.guild.list.headers.joined_at"),
-                    "approved_at": I18N.t(
-                        "main.commands.guild.list.headers.approved_at"
-                    ),
-                    "approved_by": I18N.t(
-                        "main.commands.guild.list.headers.approved_by"
-                    ),
+                    "guild_name": _t("main.commands.guild.list.headers.guild_name"),
+                    "guild_id": _t("main.commands.guild.list.headers.guild_id"),
+                    "status": _t("main.commands.guild.list.headers.status"),
+                    "joined_at": _t("main.commands.guild.list.headers.joined_at"),
+                    "approved_at": _t("main.commands.guild.list.headers.approved_at"),
+                    "approved_by": _t("main.commands.guild.list.headers.approved_by"),
                 },
             )
         )
@@ -1476,7 +1462,7 @@ class Guild(commands.Cog):
 
     @discord_commands.is_owner()
     @guild_group.command(
-        name="set_admin_guild", description=locale_str(I18N.t("main.owner_only"))
+        name="set_admin_guild", description=locale_str(_t("main.owner_only"))
     )
     @discord.app_commands.autocomplete(
         guild=admin_guild_autocomplete,
@@ -1506,7 +1492,7 @@ class Guild(commands.Cog):
         target_guild = resolve_guild_arg(guild)
         if target_guild is None:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "main.commands.guild.set_admin_guild.msg_not_member",
                     guild=guild,
                 ),
@@ -1522,7 +1508,7 @@ class Guild(commands.Cog):
         if not await _persist_admin_guild(target_guild, target_channel):
             # `_persist_admin_guild` logged the reason and left the running
             # config alone, so nothing was changed anywhere.
-            failed_out = I18N.t("main.commands.guild.set_admin_guild.msg_db_failed")
+            failed_out = _t("main.commands.guild.set_admin_guild.msg_db_failed")
             if confirm_msg is not None:
                 await confirm_msg.edit(content=failed_out, view=None)
             else:
@@ -1534,7 +1520,7 @@ class Guild(commands.Cog):
             f"channel `#{target_channel.name}` ({target_channel.id}) "
             f"by `{interaction.user}`"
         )
-        text_out = I18N.t(
+        text_out = _t(
             "main.commands.guild.set_admin_guild.msg_confirm",
             guild_name=target_guild.name,
             guild_id=target_guild.id,
@@ -1547,7 +1533,7 @@ class Guild(commands.Cog):
 
     @discord_commands.is_owner()
     @guild_group.command(
-        name="set_admin_channel", description=locale_str(I18N.t("main.owner_only"))
+        name="set_admin_channel", description=locale_str(_t("main.owner_only"))
     )
     @discord.app_commands.autocomplete(channel=admin_channel_only_autocomplete)
     async def set_admin_channel(
@@ -1573,7 +1559,7 @@ class Guild(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
-                I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+                _t("main.commands.tasks_global.msg_not_admin_guild"),
                 ephemeral=True,
             )
             return
@@ -1582,7 +1568,7 @@ class Guild(commands.Cog):
             # `_in_admin_guild` compares ids, so this only happens when
             # the bot is no longer in its own admin guild
             await interaction.followup.send(
-                I18N.t("main.commands.guild.set_admin_channel.msg_no_admin_guild"),
+                _t("main.commands.guild.set_admin_channel.msg_no_admin_guild"),
                 ephemeral=True,
             )
             return
@@ -1595,7 +1581,7 @@ class Guild(commands.Cog):
         # Same single-row write as `/guild set_admin_guild` - the guild
         # is unchanged, so there is nothing to approve or prep here.
         if not await _persist_admin_guild(target_guild, target_channel):
-            failed_out = I18N.t("main.commands.guild.set_admin_channel.msg_db_failed")
+            failed_out = _t("main.commands.guild.set_admin_channel.msg_db_failed")
             if confirm_msg is not None:
                 await confirm_msg.edit(content=failed_out, view=None)
             else:
@@ -1606,7 +1592,7 @@ class Guild(commands.Cog):
             f"({target_channel.id}) in `{target_guild.name}` "
             f"({target_guild.id}) by `{interaction.user}`"
         )
-        text_out = I18N.t(
+        text_out = _t(
             "main.commands.guild.set_admin_channel.msg_confirm",
             guild_name=target_guild.name,
             channel=target_channel.name,
@@ -1624,13 +1610,13 @@ class Guild(commands.Cog):
 async def synclocal(ctx):
     # sync to the guild where the command was used
     _reply = await ctx.reply(
-        "💭💭 {}".format(I18N.t("main.commands.synclocal.msg_starting"))
+        "💭💭 {}".format(_t("main.commands.synclocal.msg_starting"))
     )
     # logger.debug('Clearing commands...')
     # config.bot.tree.clear_commands(guild=None)
     config.bot.tree.clear_commands(guild=ctx.guild)
     await _reply.edit(
-        content="✅💭 {}".format(I18N.t("main.commands.synclocal.msg_cont_copy"))
+        content="✅💭 {}".format(_t("main.commands.synclocal.msg_cont_copy"))
     )
     # logger.debug('Copying global commands...')
     config.bot.tree.copy_global_to(guild=ctx.guild)
@@ -1639,7 +1625,7 @@ async def synclocal(ctx):
     logger.debug("Syncing...")
     await config.bot.tree.sync(guild=ctx.guild)
     await _reply.edit(
-        content="✅✅ {}".format(I18N.t("main.commands.synclocal.msg_confirm"))
+        content="✅✅ {}".format(_t("main.commands.synclocal.msg_confirm"))
     )
     logger.debug("Done")
 
@@ -1648,7 +1634,7 @@ async def synclocal(ctx):
 @config.bot.command(name="syncglobal")
 async def syncglobal(ctx):
     _reply = await ctx.reply(
-        "💭💭 {}".format(I18N.t("main.commands.syncglobal.msg_starting"))
+        "💭💭 {}".format(_t("main.commands.syncglobal.msg_starting"))
     )
     # No `clear_commands()` here. It only empties the tree in memory, so
     # clearing before syncing pushed an empty set to Discord and deleted
@@ -1661,7 +1647,7 @@ async def syncglobal(ctx):
     synced = await config.bot.tree.sync(guild=None)
     logger.debug(f"Synced {len(synced)} global commands")
     await _reply.edit(
-        content="✅✅ {}".format(I18N.t("main.commands.syncglobal.msg_confirm"))
+        content="✅✅ {}".format(_t("main.commands.syncglobal.msg_confirm"))
     )
     logger.debug("Done")
 
@@ -1671,13 +1657,13 @@ async def syncglobal(ctx):
 async def clear_global(ctx):
     logger.debug("Deleting global commands...")
     _reply = await ctx.reply(
-        "💭 {}".format(I18N.t("main.commands.clearglobals.msg_starting"))
+        "💭 {}".format(_t("main.commands.clearglobals.msg_starting"))
     )
     config.bot.tree.clear_commands(guild=None)
     await config.bot.tree.sync(guild=None)
     logger.debug("Commands deleted")
     await _reply.edit(
-        content="✅ {}".format(I18N.t("main.commands.clearglobals.msg_confirm"))
+        content="✅ {}".format(_t("main.commands.clearglobals.msg_confirm"))
     )
 
 
@@ -1686,19 +1672,19 @@ async def clear_global(ctx):
 async def clear_local(ctx):
     logger.debug("Deleting local commands...")
     _reply = await ctx.reply(
-        "💭 {}".format(I18N.t("main.commands.clearlocals.msg_starting"))
+        "💭 {}".format(_t("main.commands.clearlocals.msg_starting"))
     )
     config.bot.tree.clear_commands(guild=ctx.guild)
     await config.bot.tree.sync(guild=ctx.guild)
     logger.debug("Commands deleted")
     await _reply.edit(
-        content="✅ {}".format(I18N.t("main.commands.clearlocals.msg_confirm"))
+        content="✅ {}".format(_t("main.commands.clearlocals.msg_confirm"))
     )
 
 
 @config.bot.tree.command(
     name="version",
-    description=locale_str(I18N.t("main.commands.version.command")),
+    description=locale_str(_t("main.commands.version.command")),
 )
 async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -1723,7 +1709,7 @@ async def get_version(interaction: discord.Interaction):
 
 # Commands
 @config.bot.tree.command(
-    name="ping", description=locale_str(I18N.t("main.commands.ping.command"))
+    name="ping", description=locale_str(_t("main.commands.ping.command"))
 )
 async def ping(interaction: discord.Interaction):
     "Checks the bot latency"
@@ -1735,21 +1721,21 @@ async def ping(interaction: discord.Interaction):
 @discord_commands.is_owner_or_has_permission("manage_messages")
 @config.bot.tree.command(
     name="delete",
-    description=locale_str(I18N.t("main.commands.delete.command")),
+    description=locale_str(_t("main.commands.delete.command")),
 )
 async def delete(interaction: discord.Interaction, amount: int):
     "Delete `amount` number of messages in the chat"
     if amount <= 0:
         await interaction.response.send_message(
-            I18N.t("main.commands.delete.less_than_0"),
+            _t("main.commands.delete.less_than_0"),
         )
     else:
         await interaction.response.defer(ephemeral=True)
         await interaction.channel.purge(
-            limit=amount, reason=I18N.t("main.commands.delete.log_confirm")
+            limit=amount, reason=_t("main.commands.delete.log_confirm")
         )
         await interaction.followup.send(
-            I18N.t("main.commands.delete.msg_confirm", amount=amount),
+            _t("main.commands.delete.msg_confirm", amount=amount),
             ephemeral=True,
         )
     return
@@ -1757,7 +1743,7 @@ async def delete(interaction: discord.Interaction, amount: int):
 
 @discord_commands.is_owner_or_has_permission("kick_members")
 @config.bot.tree.command(
-    name="kick", description=locale_str(I18N.t("main.commands.kick.command"))
+    name="kick", description=locale_str(_t("main.commands.kick.command"))
 )
 async def kick(
     interaction: discord.Interaction,
@@ -1779,19 +1765,19 @@ async def kick(
     try:
         await member.kick(reason=reason)
         await interaction.followup.send(
-            I18N.t("main.commands.kick.msg_confirm", member=member),
+            _t("main.commands.kick.msg_confirm", member=member),
             ephemeral=True,
         )
     except Exception as _error:
         await interaction.followup.send(
-            I18N.t("main.commands.kick.msg_failed", error=_error),
+            _t("main.commands.kick.msg_failed", error=_error),
             ephemeral=True,
         )
 
 
 @discord_commands.is_owner_or_has_permission("ban_members")
 @config.bot.tree.command(
-    name="ban", description=locale_str(I18N.t("main.commands.ban.command"))
+    name="ban", description=locale_str(_t("main.commands.ban.command"))
 )
 async def ban(
     interaction: discord.Interaction,
@@ -1813,7 +1799,7 @@ async def ban(
     try:
         await member.ban(reason=reason)
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "main.commands.ban.msg_confirm",
                 member=member,
             ),
@@ -1821,18 +1807,18 @@ async def ban(
         )
     except Exception as _error:
         await interaction.followup.send(
-            I18N.t("main.commands.ban.msg_failed", error=_error), ephemeral=True
+            _t("main.commands.ban.msg_failed", error=_error), ephemeral=True
         )
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.context_menu(name=I18N.t("main.commands.say.modal.name"))
+@config.bot.tree.context_menu(name=_t("main.commands.say.modal.name"))
 async def say_as_bot(
     interaction: discord.Interaction,
     message: discord.Message,
 ):
     modal_in = SayModal(
-        title_in=I18N.t("main.commands.say.modal.title"),
+        title_in=_t("main.commands.say.modal.title"),
         channel=message.channel,
     )
     await interaction.response.send_modal(modal_in)
@@ -1842,7 +1828,7 @@ async def say_as_bot(
 
 @discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
-    name="tasks", description=locale_str(I18N.t("main.commands.tasks.command"))
+    name="tasks", description=locale_str(_t("main.commands.tasks.command"))
 )
 async def get_tasks_list(interaction: discord.Interaction):
     """
@@ -1869,7 +1855,7 @@ async def get_tasks_list(interaction: discord.Interaction):
 @discord_commands.is_owner()
 @config.bot.tree.command(
     name="tasks-global",
-    description=locale_str(I18N.t("main.commands.tasks_global.command")),
+    description=locale_str(_t("main.commands.tasks_global.command")),
 )
 async def get_tasks_global_list(interaction: discord.Interaction):
     """
@@ -1879,7 +1865,7 @@ async def get_tasks_global_list(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     if not _in_admin_guild(interaction):
         await interaction.followup.send(
-            I18N.t("main.commands.tasks_global.msg_not_admin_guild"),
+            _t("main.commands.tasks_global.msg_not_admin_guild"),
             ephemeral=True,
         )
         return
@@ -1907,7 +1893,7 @@ async def get_tasks_global_list(interaction: discord.Interaction):
             )
     if len(rows) == 0:
         await interaction.followup.send(
-            I18N.t("main.commands.tasks_global.msg_empty"), ephemeral=True
+            _t("main.commands.tasks_global.msg_empty"), ephemeral=True
         )
         return
     table_text = tabulate(
@@ -1940,16 +1926,14 @@ async def get_tasks_global_list(interaction: discord.Interaction):
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.command(
-    name="language", description=locale_str(I18N.t("main.owner_only"))
-)
+@config.bot.tree.command(name="language", description=locale_str(_t("main.owner_only")))
 @discord.app_commands.autocomplete(language=locales_autocomplete)
 async def language(interaction: discord.Interaction, language: str):
     await interaction.response.defer(ephemeral=True)
     logger.debug(f"Setting language for `{interaction.guild.name}` to {language}")
     if language not in available_languages():
         await interaction.followup.send(
-            I18N.t("main.commands.language.msg_not_available", language=language),
+            _t("main.commands.language.msg_not_available", language=language),
             ephemeral=True,
         )
         return
@@ -1961,7 +1945,7 @@ async def language(interaction: discord.Interaction, language: str):
     )
     async with db_helper.guild_locale_context(interaction.guild.id):
         await interaction.followup.send(
-            I18N.t("main.commands.language.confirm_language_set", language=language),
+            _t("main.commands.language.confirm_language_set", language=language),
             ephemeral=True,
         )
     return
@@ -1983,11 +1967,11 @@ async def _bot_channel_created(
     "Store a channel made from `CreateBotChannelView` as the bot channel"
     await _persist_bot_channel(guild, new_channel.name)
     if source is None:
-        return I18N.t(
+        return _t(
             "main.commands.bot_channel.msg_confirm_fresh",
             channel=new_channel.mention,
         )
-    return I18N.t(
+    return _t(
         "main.commands.bot_channel.create_modal.msg_confirm",
         channel=new_channel.mention,
         source=source.name,
@@ -2005,16 +1989,14 @@ class CreateBotChannelView(discord_commands.CreateChannelView):
         super().__init__(
             channel_name,
             on_created=_bot_channel_created,
-            modal_title=I18N.t("main.commands.bot_channel.create_modal.title"),
-            modal_name_label=I18N.t(
-                "main.commands.bot_channel.create_modal.name_label"
-            ),
+            modal_title=_t("main.commands.bot_channel.create_modal.title"),
+            modal_name_label=_t("main.commands.bot_channel.create_modal.name_label"),
         )
 
 
 @discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.command(
-    name="bot_channel", description=locale_str(I18N.t("main.owner_only"))
+    name="bot_channel", description=locale_str(_t("main.owner_only"))
 )
 async def set_bot_channel(interaction: discord.Interaction, bot_channel: str):
     await interaction.response.defer(ephemeral=True)
@@ -2025,7 +2007,7 @@ async def set_bot_channel(interaction: discord.Interaction, bot_channel: str):
         # channel, create a fresh one, or cancel. Each button on the view
         # finishes the flow (creating the channel + storing the setting).
         await interaction.followup.send(
-            I18N.t("main.commands.bot_channel.msg_not_exist", channel=bot_channel),
+            _t("main.commands.bot_channel.msg_not_exist", channel=bot_channel),
             view=CreateBotChannelView(bot_channel),
             ephemeral=True,
         )
@@ -2033,16 +2015,14 @@ async def set_bot_channel(interaction: discord.Interaction, bot_channel: str):
     # Channel already exists - just store it as the guild's bot channel.
     await _persist_bot_channel(interaction.guild, bot_channel)
     await interaction.followup.send(
-        I18N.t("main.commands.bot_channel.msg_confirm", channel=bot_channel),
+        _t("main.commands.bot_channel.msg_confirm", channel=bot_channel),
         ephemeral=True,
     )
     return
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.command(
-    name="timezone", description=locale_str(I18N.t("main.owner_only"))
-)
+@config.bot.tree.command(name="timezone", description=locale_str(_t("main.owner_only")))
 @discord.app_commands.autocomplete(timezone=timezones_autocomplete)
 async def timezone(interaction: discord.Interaction, timezone: str):
     await interaction.response.defer(ephemeral=True)
@@ -2054,7 +2034,7 @@ async def timezone(interaction: discord.Interaction, timezone: str):
         guild_id=interaction.guild.id,
     )
     await interaction.followup.send(
-        I18N.t("main.commands.timezone.msg_confirm", timezone=timezone),
+        _t("main.commands.timezone.msg_confirm", timezone=timezone),
         ephemeral=True,
     )
     return
@@ -2076,12 +2056,12 @@ class Profile(commands.Cog):
 
     profile_group = discord.app_commands.Group(
         name="profile",
-        description=locale_str(I18N.t("main.commands.profile.group_desc")),
+        description=locale_str(_t("main.commands.profile.group_desc")),
     )
 
     @profile_group.command(
         name="set",
-        description=locale_str(I18N.t("main.commands.set_profile.command")),
+        description=locale_str(_t("main.commands.set_profile.command")),
     )
     async def set_profile(
         self,
@@ -2108,13 +2088,13 @@ class Profile(commands.Cog):
         """
         if not _has_manage_bot_profile_permission(interaction):
             await interaction.response.send_message(
-                I18N.t("main.commands.set_profile.msg_no_permission"),
+                _t("main.commands.set_profile.msg_no_permission"),
                 ephemeral=True,
             )
             return
         if nickname is None and avatar is None and banner is None and bio is None:
             await interaction.response.send_message(
-                I18N.t("common.too_few_arguments"), ephemeral=True
+                _t("common.too_few_arguments"), ephemeral=True
             )
             return
         await interaction.response.defer(ephemeral=True)
@@ -2130,18 +2110,18 @@ class Profile(commands.Cog):
         try:
             await interaction.guild.me.edit(**edits)
             await interaction.followup.send(
-                I18N.t("main.commands.set_profile.msg_confirm"), ephemeral=True
+                _t("main.commands.set_profile.msg_confirm"), ephemeral=True
             )
         except discord.HTTPException as _error:
             await interaction.followup.send(
-                I18N.t("main.commands.set_profile.msg_failed", error=_error),
+                _t("main.commands.set_profile.msg_failed", error=_error),
                 ephemeral=True,
             )
         return
 
     @profile_group.command(
         name="reset",
-        description=locale_str(I18N.t("main.commands.reset_profile.command")),
+        description=locale_str(_t("main.commands.reset_profile.command")),
     )
     async def reset_profile(
         self,
@@ -2153,7 +2133,7 @@ class Profile(commands.Cog):
         """
         if not _has_manage_bot_profile_permission(interaction):
             await interaction.response.send_message(
-                I18N.t("main.commands.reset_profile.msg_no_permission"),
+                _t("main.commands.reset_profile.msg_no_permission"),
                 ephemeral=True,
             )
             return
@@ -2163,21 +2143,19 @@ class Profile(commands.Cog):
                 nick=None, avatar=None, banner=None, bio=None
             )
             await interaction.followup.send(
-                I18N.t("main.commands.reset_profile.msg_confirm"),
+                _t("main.commands.reset_profile.msg_confirm"),
                 ephemeral=True,
             )
         except discord.HTTPException as _error:
             await interaction.followup.send(
-                I18N.t("main.commands.reset_profile.msg_failed", error=_error),
+                _t("main.commands.reset_profile.msg_failed", error=_error),
                 ephemeral=True,
             )
         return
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.context_menu(
-    name=locale_str(I18N.t("main.context_menu.edit_msg.name"))
-)
+@config.bot.tree.context_menu(name=locale_str(_t("main.context_menu.edit_msg.name")))
 async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Message):
     logger.debug(
         f"`message.author.id` {message.author.id} "
@@ -2186,11 +2164,11 @@ async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Me
     )
     if message.author.id != config.bot.user.id:
         await interaction.response.send_message(
-            I18N.t("main.context_menu.edit_msg.not_bot"), ephemeral=True
+            _t("main.context_menu.edit_msg.not_bot"), ephemeral=True
         )
         return
     modal_in = EditModal(
-        title_in=I18N.t("main.context_menu.edit_msg.name"),
+        title_in=_t("main.context_menu.edit_msg.name"),
         comment_in=message.content,
     )
     await interaction.response.send_modal(modal_in)
@@ -2200,12 +2178,10 @@ async def edit_bot_say_msg(interaction: discord.Interaction, message: discord.Me
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.context_menu(
-    name=locale_str(I18N.t("main.context_menu.reply_msg.name"))
-)
+@config.bot.tree.context_menu(name=locale_str(_t("main.context_menu.reply_msg.name")))
 async def reply_as_bot_msg(interaction: discord.Interaction, message: discord.Message):
     modal_in = SayModal(
-        title_in=I18N.t("main.context_menu.reply_msg.name"),
+        title_in=_t("main.context_menu.reply_msg.name"),
         channel=message.channel,
     )
     await interaction.response.send_modal(modal_in)

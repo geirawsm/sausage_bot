@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 guild_context is the contextvars-based mechanism the whole multi-guild
-architecture relies on: it lets synchronous code (I18N.t(), get_dt())
+architecture relies on: it lets synchronous code (_t(), get_dt())
 resolve "which guild's settings" without a guild_id being threaded
 through every call site. These tests check the property that matters
 most - that it never leaks between two guilds handled concurrently.

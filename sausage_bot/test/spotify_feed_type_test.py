@@ -19,7 +19,7 @@ from unittest import mock
 
 from sausage_bot.cogs import rss
 from sausage_bot.util import db_helper, envs, feeds_core
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 GUILD_ID = 777777777777777777
 SPOTIFY_URL = "https://open.spotify.com/show/71beMOqrla4FWGy88WNoGb?si=04d20fa655854aa4"
@@ -52,7 +52,7 @@ async def test_rss_add_refuses_spotify_link(monkeypatch):
 
     add_to_db.assert_not_called()
     sent = interaction.followup.send.call_args
-    assert sent.args[0] == I18N.t("rss.commands.add.msg_use_podcast_add")
+    assert sent.args[0] == _t("rss.commands.add.msg_use_podcast_add")
 
 
 async def test_rss_add_still_accepts_normal_feed(monkeypatch):

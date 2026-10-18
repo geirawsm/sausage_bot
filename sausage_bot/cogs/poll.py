@@ -13,7 +13,7 @@ import uuid
 
 from sausage_bot.util import db_helper, envs, config, discord_commands
 from sausage_bot.util import datetime_handling
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -28,14 +28,14 @@ class MakePoll(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.command(
-        name="poll", description=locale_str(I18N.t("poll.commands.poll.cmd"))
+        name="poll", description=locale_str(_t("poll.commands.poll.cmd"))
     )
     @describe(
-        channel=I18N.t("poll.commands.poll.desc.channel"),
-        post_time=I18N.t("poll.commands.poll.desc.post_time"),
-        lock_time=I18N.t("poll.commands.poll.desc.lock_time"),
-        poll_text=I18N.t("poll.commands.poll.desc.poll_text"),
-        alternatives=I18N.t("poll.commands.poll.desc.alternatives"),
+        channel=_t("poll.commands.poll.desc.channel"),
+        post_time=_t("poll.commands.poll.desc.post_time"),
+        lock_time=_t("poll.commands.poll.desc.lock_time"),
+        poll_text=_t("poll.commands.poll.desc.poll_text"),
+        alternatives=_t("poll.commands.poll.desc.alternatives"),
     )
     async def poll(
         self,
@@ -63,24 +63,24 @@ class MakePoll(commands.Cog):
             dt_post_secs = await datetime_handling.get_dt(dt=dt_post)
             if dt_post_secs < dt_now:
                 await interaction.followup.send(
-                    I18N.t("poll.commands.poll.msg.post_in_past")
+                    _t("poll.commands.poll.msg.post_in_past")
                 )
                 return
         else:
             await interaction.followup.send(
-                I18N.t("poll.commands.poll.msg.post_gives_error", post_time=post_time)
+                _t("poll.commands.poll.msg.post_gives_error", post_time=post_time)
             )
             return
         # Check lock_time
         if lock_time in [None, "no", "now"]:
             await interaction.followup.send(
-                I18N.t("poll.commands.poll.msg.no_time_given"), ephemeral=True
+                _t("poll.commands.poll.msg.no_time_given"), ephemeral=True
             )
             return
         lock_time_regex = r"^(\d+)(\s)?(h|m)$"
         if not re.match(lock_time_regex, lock_time):
             await interaction.followup.send(
-                I18N.t("poll.commands.poll.msg.lock_gives_error", lock_time=lock_time),
+                _t("poll.commands.poll.msg.lock_gives_error", lock_time=lock_time),
                 ephemeral=True,
             )
             return
@@ -160,14 +160,14 @@ class MakePoll(commands.Cog):
             if dt_post is None:
                 post_wait = 0
                 coming_post = await interaction.followup.send(
-                    I18N.t("poll.commands.poll.msg.posting_now")
+                    _t("poll.commands.poll.msg.posting_now")
                 )
             else:
                 dt_now = pendulum.now("local")
                 post_wait = dt_now.diff(dt_post).in_seconds()
                 dt_post_epoch = dt_post.format("x")[0:-3]
                 coming_post = await interaction.followup.send(
-                    I18N.t(
+                    _t(
                         "poll.commands.poll.msg.posting_fixed",
                         dt_post_epoch=dt_post_epoch,
                     ),
@@ -199,13 +199,13 @@ class MakePoll(commands.Cog):
             logger.debug(f"Converting `dt_lock` ({dt_lock}) to epoch: {dt_lock_epoch}")
             embed_json = discord.Embed.from_dict(
                 {
-                    "title": I18N.t("poll.commands.poll.msg.embed_title"),
+                    "title": _t("poll.commands.poll.msg.embed_title"),
                     "description": desc_out,
                 }
             )
         except TimeoutError:
             await interaction.followup.send(
-                I18N.t("poll.commands.poll.msg.timed_out"), ephemeral=True
+                _t("poll.commands.poll.msg.timed_out"), ephemeral=True
             )
             return
         # Post the poll message
@@ -219,11 +219,11 @@ class MakePoll(commands.Cog):
         post_text = pendulum.now("local").format("DD.MM.YY, HH:mm")
         await coming_post.delete()
         await interaction.followup.send(
-            I18N.t("poll.commands.poll.msg.post_confirm", post_text=post_text),
+            _t("poll.commands.poll.msg.post_confirm", post_text=post_text),
             ephemeral=True,
         )
         poll_msg = await channel.send(
-            I18N.t(
+            _t(
                 "poll.commands.poll.msg.lock_confirm_future",
                 dt_lock_epoch=dt_lock_epoch,
             ),
@@ -280,10 +280,10 @@ class MakePoll(commands.Cog):
             desc_out += "\n{}: {}".format(reaction["input"], reaction["count"])
         embed_json = discord.Embed.from_dict(
             {
-                "title": I18N.t("poll.commands.poll.msg.embed_title"),
+                "title": _t("poll.commands.poll.msg.embed_title"),
                 "description": desc_out,
                 "footer": {
-                    "text": I18N.t(
+                    "text": _t(
                         "poll.commands.poll.msg.lock_confirm", dt_lock_text=dt_lock_text
                     )
                 },

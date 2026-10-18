@@ -8,7 +8,7 @@ import datetime
 import asyncio
 
 from sausage_bot.util import config, guild_context
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -236,7 +236,7 @@ def change_dt(pendulum_object_in, change=None, count=None, unit=None):
                 `hours`, `minutes` and `seconds`
     """
     if change is None or unit is None or count is None:
-        logger.info(I18N.t("common.too_few_arguments"))
+        logger.info(_t("common.too_few_arguments"))
         return None
     accepted_units = [
         "years",

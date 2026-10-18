@@ -14,7 +14,7 @@ from time import monotonic
 from sausage_bot.util import config, envs, datetime_handling
 from sausage_bot.util import discord_commands, net_io, db_helper
 from sausage_bot.util.args import args
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -138,7 +138,7 @@ class DynamicRatingSelect(
         )
         await interaction.followup.send(
             ephemeral=True,
-            content=I18N.t("feeds_core.podcast_rating.msg_confirm", rating=self.rating),
+            content=_t("feeds_core.podcast_rating.msg_confirm", rating=self.rating),
         )
 
 
@@ -535,7 +535,7 @@ def get_member_name(guild: discord.Guild, member_in) -> str:
         member_out = None
     if member_out is None:
         logger.warning(f"Could not find member `{member_in}` in guild {guild.id}")
-        return I18N.t("common.unknown_member", id=member_in)
+        return _t("common.unknown_member", id=member_in)
     return member_out.name
 
 
@@ -640,15 +640,15 @@ async def get_feed_list(
             feed["channel"] = discord_commands.get_channel_name(_guild, feed["channel"])
             if "playlist_id" in feed:
                 if feed["playlist_id"] is None:
-                    feed["playlist_id"] = I18N.t("common.channel")
+                    feed["playlist_id"] = _t("common.channel")
                 else:
-                    feed["playlist_id"] = I18N.t("common.playlist")
+                    feed["playlist_id"] = _t("common.playlist")
         logger.debug(f"`feeds_out` is {feeds_out}")
         headers = {
-            "feed_name": I18N.t("feeds_core.list_headers.feed_name"),
-            "url": I18N.t("feeds_core.list_headers.url"),
-            "channel": I18N.t("feeds_core.list_headers.channel"),
-            "playlist_id": I18N.t("feeds_core.list_headers.link_type"),
+            "feed_name": _t("feeds_core.list_headers.feed_name"),
+            "url": _t("feeds_core.list_headers.url"),
+            "channel": _t("feeds_core.list_headers.channel"),
+            "playlist_id": _t("feeds_core.list_headers.link_type"),
         }
         maxcolwidths = [None, None, None, None]
     elif list_type == "added":
@@ -673,16 +673,16 @@ async def get_feed_list(
                 feed["added_by"] = get_member_name(_guild, feed["added_by"])
             if has_playlist_id:
                 if feed["playlist_id"] is None:
-                    feed["playlist_id"] = I18N.t("common.channel")
+                    feed["playlist_id"] = _t("common.channel")
                 else:
-                    feed["playlist_id"] = I18N.t("common.playlist")
+                    feed["playlist_id"] = _t("common.playlist")
         headers = {
-            "feed_name": I18N.t("feeds_core.list_headers.feed_name"),
-            "url": I18N.t("feeds_core.list_headers.url"),
-            "channel": I18N.t("feeds_core.list_headers.channel"),
-            "added": I18N.t("feeds_core.list_headers.added"),
-            "added_by": I18N.t("feeds_core.list_headers.added_by"),
-            "playlist_id": I18N.t("feeds_core.list_headers.link_type"),
+            "feed_name": _t("feeds_core.list_headers.feed_name"),
+            "url": _t("feeds_core.list_headers.url"),
+            "channel": _t("feeds_core.list_headers.channel"),
+            "added": _t("feeds_core.list_headers.added"),
+            "added_by": _t("feeds_core.list_headers.added_by"),
+            "playlist_id": _t("feeds_core.list_headers.link_type"),
         }
         maxcolwidths = [None, None, None, None, None, None]
     elif list_type == "filter":
@@ -816,7 +816,7 @@ async def log_link(template_info, uuid, feed_link, content_hash, guild, msg_id=N
         logger.error(f"No content hash for {feed_link}, logging link instead")
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t("feeds_core.log.no_content_hash", feed_link=feed_link),
+            _t("feeds_core.log.no_content_hash", feed_link=feed_link),
         )
     values = {
         "uuid": uuid,
@@ -870,7 +870,7 @@ async def report_dead_channel(feed_db, uuid, feed_name, channel, guild):
     dead_channel_alerts[alert_key] = now
     await discord_commands.log_to_bot_channel(
         guild,
-        I18N.t("feeds_core.log.dead_channel", feed_name=feed_name, channel=channel),
+        _t("feeds_core.log.dead_channel", feed_name=feed_name, channel=channel),
     )
 
 
@@ -924,7 +924,7 @@ async def reg_feed_error(feed_db, feed, guild, status_in):
     )
     await discord_commands.log_to_bot_channel(
         guild,
-        I18N.t(
+        _t(
             msg_key,
             feed_name=feed_name,
             return_value=str(status_in),
@@ -959,7 +959,7 @@ async def reg_feed_ok(feed_db, feed, guild):
         logger.info("Feed {} is working again".format(feed["feed_name"]))
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t("feeds_core.log.feed_recovered", feed_name=feed["feed_name"]),
+            _t("feeds_core.log.feed_recovered", feed_name=feed["feed_name"]),
         )
 
 

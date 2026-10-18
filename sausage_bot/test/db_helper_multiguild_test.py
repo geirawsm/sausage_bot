@@ -4,7 +4,7 @@
 Exercises the multi-guild DB-routing layer added to `envs`/`db_helper`:
 per-guild database file resolution, physical data isolation between two
 guilds, the guild-approval gate used by bot-wide event handlers, and the
-locale/timezone context manager that backs `I18N.t()`/`get_dt()`.
+locale/timezone context manager that backs `_t()`/`get_dt()`.
 
 All tests use the `guild_db_root` fixture (see conftest.py), which points
 `envs.DB_DIR` at a throwaway tmp_path directory - nothing here touches
