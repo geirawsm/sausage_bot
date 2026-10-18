@@ -77,7 +77,6 @@ try:
     ADMIN_CHANNEL_ID = ENV_ADMIN_CHANNEL_ID
     PREFIX = env("PREFIX", default="!")
     BOT_CHANNEL = env("BOT_CHANNEL", default="bot-log")
-    # TODO: Fjerne timezone og language etterhvert, alt skal via db
     TIMEZONE = env("BOT_TIMEZONE", default="UTC")
     LANGUAGE = env("BOT_LANGUAGE", default="en")
     ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")

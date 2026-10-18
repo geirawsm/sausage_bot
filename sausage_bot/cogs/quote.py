@@ -531,7 +531,6 @@ async def get_random_quote(guild_id, testmode=False):
 async def post_random_quote(
     guild: discord.Guild,
     _ephemeral,
-    # TODO: interaction må inkluderes i post_random_quote for å kunne sende feilmeldinger
     interaction,
     autopost={},
     channel: int = 0,
