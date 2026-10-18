@@ -74,7 +74,7 @@ def test_itunes_signals_cannot_promote_a_news_feed():
         features="xml",
     )
     podcast, ratio, signals = is_podcast_feed(soup)
-    assert signals != []
+    assert signals == ["itunes-ns", "itunes:category", "itunes:author"]
     assert ratio == 0.0
     assert podcast is False
 
@@ -103,9 +103,13 @@ def test_get_channel_info_reads_podcast_channel():
     feed_name, feed_description, feed_img = get_channel_info(
         soup_from(envs.test_xml_podcast)
     )
-    assert feed_name
-    assert feed_description
-    assert feed_img and feed_img.startswith("http")
+    assert feed_name == "Fotballpodcasten Dødball"
+    assert feed_description == "Vi snakker om LSK og lokalfotballen"
+    assert feed_img == (
+        "https://www.omnycontent.com/d/playlist/b879ead7-5fbb-4c64-bede-"
+        "b13801013ca4/046f2ab3-2680-4d18-a31b-b17100a14041/372fdebe-1311-"
+        "42d3-889d-b17100a1404f/image.jpg?t=1715766431&size=Large"
+    )
 
 
 def test_get_channel_info_falls_back_to_plain_rss_image():

@@ -82,7 +82,9 @@ async def test_set_bot_channel_existing_channel_persists(
     await set_bot_channel.callback(interaction, bot_channel="existing-log")
 
     assert await _read_bot_channel() == "existing-log"
-    interaction.followup.send.assert_awaited()  # a confirmation was sent
+    assert interaction.followup.send.await_args.args[0] == (
+        "✅✅ Set bot channel to #existing-log."
+    )
 
 
 async def test_set_bot_channel_missing_channel_offers_view(

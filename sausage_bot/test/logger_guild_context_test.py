@@ -180,11 +180,10 @@ def test_configure_logging_puts_the_filter_on_its_handler():
     root.handlers = []
     try:
         configure_logging()
-        assert root.handlers
-        for handler in root.handlers:
-            assert any(
-                isinstance(log_filter, GuildContextFilter)
-                for log_filter in handler.filters
-            )
+        # Default call (no `to_file`) adds exactly one handler: the
+        # console `StreamHandler`, carrying exactly one filter.
+        assert len(root.handlers) == 1
+        assert isinstance(root.handlers[0], logging.StreamHandler)
+        assert [type(f) for f in root.handlers[0].filters] == [GuildContextFilter]
     finally:
         root.handlers, root.level = old_handlers, old_level

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import json
+import os
 import pytest
 import pytest_asyncio
 from bs4 import BeautifulSoup
@@ -22,13 +24,13 @@ def test_write_file_input():
 def test_read_file_manual_mock_OK():
     mock_file = envs.test_xml_good
     file_in = file_io.read_file(mock_file)
-    assert type(file_in) is str
+    assert file_in == mock_file.read_text(encoding='utf-8')
 
 
 def test_read_json_manual_mock_OK():
     mock_file = envs.test_nifs_json_good
     file_in = file_io.read_file(mock_file)
-    assert type(file_in) is dict
+    assert file_in == json.loads(mock_file.read_text(encoding='utf-8'))
 
 
 def test_read_file_manual_mock_FAIL():
@@ -60,7 +62,7 @@ def test_read_xml_manual_mock_FAIL():
 def test_file_size():
     actual_file = envs.ROOT_DIR / '__main__.py'
     non_file = envs.ROOT_DIR / 'main.py'
-    assert type(file_io.file_size(actual_file)) is int
+    assert file_io.file_size(actual_file) == os.path.getsize(actual_file)
     assert file_io.file_size(non_file) is False
 
 

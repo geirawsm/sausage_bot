@@ -92,7 +92,7 @@ async def test_post_random_quote_posts_from_the_list(monkeypatch):
     )
 
     posted = interaction.followup.send.await_args.args[0]
-    assert "anna: hei" in posted and "bob : hallo" in posted
+    assert posted == "`# 2 - #general, 30.09.2026`\n\n`anna: hei`\n`bob : hallo`"
 
 
 async def test_post_selected_quote_posts_from_the_list(monkeypatch):
@@ -101,7 +101,7 @@ async def test_post_selected_quote_posts_from_the_list(monkeypatch):
     await quote.post_selected_quote(interaction, True, "2")
 
     posted = interaction.followup.send.await_args.args[0]
-    assert "anna: hei" in posted and "bob : hallo" in posted
+    assert posted == "`# 2 - #general, 30.09.2026`\n\n`anna: hei`\n`bob : hallo`"
 
 
 def test_trunc_shortens_strings_in_nested_values():
