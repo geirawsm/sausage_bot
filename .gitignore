@@ -12,6 +12,7 @@ sausage_bot/data*/
 sausage_bot/testing
 sausage_bot/cogs/testing_*
 sausage_bot/cogs/_*
+sausage_bot/dev-tools/remote_files/*
 
 out
 sausage_bot/tempfiles/*
@@ -19,10 +20,9 @@ sausage_bot/version.json
 .cache
 .flake8
 /sausage_bot/test/test_parse/*
-/sausage_bot/flake8-I18N-checker
+/sausage_bot/flake8-l10n-checker/build/
 /.claude
 /graphify-out
-/node_modules
 /sausage_bot/docs/mermaid_charts
 /sausage_bot/external_files
 /pyproject.toml
