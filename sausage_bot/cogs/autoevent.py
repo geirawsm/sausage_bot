@@ -45,7 +45,6 @@ async def event_names_autocomplete(
 
 
 class AutoEvent(commands.Cog):
-
     def __init__(self, bot):
         self.bot = bot
         super().__init__()
@@ -56,9 +55,7 @@ class AutoEvent(commands.Cog):
     )
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="add", description=locale_str(_t("autoevent.commands.add.cmd"))
-    )
+    @group.command(name="add", description=locale_str(_t("autoevent.commands.add.cmd")))
     @describe(
         url=_t("autoevent.commands.add.desc.url"),
         channel=_t("autoevent.commands.add.desc.channel"),
@@ -91,23 +88,20 @@ class AutoEvent(commands.Cog):
                 )
                 scr = scraped_info
                 # Start creating the event
-                _t = scr["teams"]
-                home = _t["home"]
-                away = _t["away"]
+                _teams = scr["teams"]
+                home = _teams["home"]
+                away = _teams["away"]
                 tournament = scr["tournament"]
                 tv = scr["tv"]
                 stadium = scr["stadium"]
                 _dt = scr["datetime"]
                 start_text = _dt["start_dt"].format(
-                    "D. MMMM, HH:mm",
-                    locale=guild_context.current_locale.get()
+                    "D. MMMM, HH:mm", locale=guild_context.current_locale.get()
                 )
                 rel_start = _dt["rel_start"]
                 start_event = _dt["start_event"]
                 end_dt = _dt["end_dt"]
-                desc_tournament = _t(
-                    "autoevent.commands.add.description.tournament"
-                )
+                desc_tournament = _t("autoevent.commands.add.description.tournament")
                 desc_tv = _t("autoevent.commands.add.description.tv")
                 desc_when = _t("autoevent.commands.add.description.when")
                 desc_where = _t("autoevent.commands.add.description.where")
@@ -315,9 +309,7 @@ class AutoEvent(commands.Cog):
             )
         except discord.Forbidden:
             await interaction.followup.send(
-                _t(
-                    "autoevent.commands.announce.msg_forbidden", channel=channel.name
-                ),
+                _t("autoevent.commands.announce.msg_forbidden", channel=channel.name),
                 ephemeral=True,
             )
         except Exception as _error:
