@@ -1749,7 +1749,7 @@ async def kick(
     interaction: discord.Interaction,
     member: discord.Member = None,
     *,
-    reason: str = None,
+    reason: str | None,
 ):
     """
     Kick a member from the server
@@ -1762,6 +1762,12 @@ async def kick(
         Reason for kicking user (default: None)
     """
     await interaction.response.defer(ephemeral=True)
+    is_owner = await discord_commands.is_member_bot_owner(member)
+    if is_owner:
+        await interaction.followup.send(
+            f"Brukeren {interaction.user.name} prøvde akkurat å banne {member.name}. Nice try.",
+        )
+        return
     try:
         await member.kick(reason=reason)
         await interaction.followup.send(
@@ -1783,7 +1789,7 @@ async def ban(
     interaction: discord.Interaction,
     member: discord.Member = None,
     *,
-    reason: str = None,
+    reason: str | None,
 ):
     """
     Ban a member from the server
@@ -1795,6 +1801,13 @@ async def ban(
     reason: str
         Reason for banning user (default: None)
     """
+    is_owner = await discord_commands.is_member_bot_owner(member)
+    if is_owner:
+        await interaction.followup.send(
+            f"Brukeren {interaction.user.name} prøvde akkurat å banne {member.name}. Nice try.",
+            ephemeral=False,
+        )
+        return
     await interaction.response.defer(ephemeral=True)
     try:
         await member.ban(reason=reason)

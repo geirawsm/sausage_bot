@@ -91,6 +91,17 @@ def is_owner_or_has_permission(permission: str):
     return discord.app_commands.check(predicate)
 
 
+async def is_member_bot_owner(member: discord.Member) -> bool:
+    """
+    Check whether `member` is the bot owner. Unlike `is_owner()`, which
+    is a check decorator for the invoking user, this takes any
+    `discord.Member` (e.g. the target of a kick/ban command) and returns
+    a plain bool. Uses `Bot.is_owner()`, so it also covers team-owned
+    applications.
+    """
+    return await config.bot.is_owner(member)
+
+
 def get_channel_name(guild: discord.Guild, channel_in) -> str:
     """
     Get the name of the channel `channel_in` in `guild`.
@@ -365,9 +376,7 @@ async def swap_link_in_msg(msg, replace_content, replace_with):
     if replace_content in embeds_json:
         embeds_json = embeds_json.replace(replace_content, replace_with)
         await msg.edit(
-            embeds=[
-                discord.Embed.from_dict(embed) for embed in json.loads(embeds_json)
-            ]
+            embeds=[discord.Embed.from_dict(embed) for embed in json.loads(embeds_json)]
         )
         return True
     return False
