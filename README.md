@@ -7,6 +7,7 @@ sausage-bot - affectionately known as "pølsa" among its Norwegian users - is a 
 ### Administration (main)
 
 #### Guild administration
+
 - Approve a pending server, admin-guild only (`/guild approve`)
 - List servers and their status, admin-guild only (`/guild list`)
 - Leave a server, admin-guild only (`/guild leave`)
@@ -14,8 +15,9 @@ sausage-bot - affectionately known as "pølsa" among its Norwegian users - is a 
 - Set the admin channel in the admin guild, admin-guild only (`/guild set_admin_channel`)
 
 #### General commands
+
 - Check latency (`/ping`)
-- Kick/ban users (/kick, /ban)
+- Kick/ban users (`/kick`, `/ban`)
 - Delete a number of messages in a channel (`/delete`)
 - Make the bot say something in a channel, via the "Say as bot" context menu (right-click any message in that channel)
 - Reply to a message as the bot, via the "Reply as bot" context menu (right-click the message to reply to)
@@ -73,6 +75,7 @@ Save and post quotes from the server.
 Command: `/quote`
 
 #### Managing quotes
+
 Only available for those with "Manage server" rights
 
 - Add a quote directly from an existing message via the "Add quote" context menu
@@ -84,6 +87,7 @@ Only available for those with "Manage server" rights
 - List, change, add or remove cog settings (`/quote settings list|change|add|remove`)
 
 #### Suggesting/approving quotes
+
 If activated in settings, guild users without "Manage server" rights can suggest a quote via the "Suggest quote" context menu.
 Suggested quotes will post in a defined channel, where users with the "Manage server" rights can approve, deny or edit quotes.
 with moderator approve/deny flow
@@ -121,6 +125,7 @@ Command: `/roles`
 - Sync reaction messages with the database (`/roles reaction sync`)
 
 ##### Message roles
+
 - Check and fix the order of reaction messages in a channel (`/roles reaction reorder`)
 - Add roles to a reaction message (`/roles reaction_add role`)
 - Remove a role from a reaction message (`/roles reaction_remove role`)
@@ -132,6 +137,7 @@ Settings for roles and reaction messages on the server
 
 
 ##### Message role
+
 - Set a unique role for new users (/roles settings add [Unique role] [discord role]). This is great if you want a certain role to be added to new users to separate them when it comes to moderation or restriction in permissions
 - Choose roles not to be included when deciding if the unique role is a user's only role or not (/roles settings add [Not include in total] [discord role])
 - Remove a setting (`/roles settings remove`)

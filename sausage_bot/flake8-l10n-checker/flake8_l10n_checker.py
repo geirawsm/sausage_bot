@@ -1,10 +1,10 @@
 import ast
-import glob
 from collections.abc import Iterator
 from typing import NamedTuple
 from pathlib import Path
 import yaml
 import os
+import re
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 LOCALE_DIR = ROOT_DIR / "locale"

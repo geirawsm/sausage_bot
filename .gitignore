@@ -13,6 +13,7 @@ sausage_bot/testing
 sausage_bot/cogs/testing_*
 sausage_bot/cogs/_*
 sausage_bot/dev-tools/remote_files/*
+sausage_bot/dev-tools/locale_markdown/*
 
 out
 sausage_bot/tempfiles/*
