@@ -26,7 +26,7 @@ from sausage_bot.util import datetime_handling
 from sausage_bot.util.args import args
 from sausage_bot.util import envs, db_helper, file_io, config, discord_commands
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 from sausage_bot.util.logger import truncate_for_log
 
 logger = config.logger
@@ -79,7 +79,7 @@ async def resolve_autopost_channel(guild: discord.Guild, channel_value):
         setting_name="channel",
         channel_value=channel_value,
         default_name="quotes",
-        topic=I18N.t("quote.commands.settings.add_channel_topic"),
+        topic=_t("quote.commands.settings.add_channel_topic"),
     )
 
 
@@ -122,7 +122,7 @@ async def resolve_setting_channel(
             channel_object = None
     if channel_object is None:
         await discord_commands.log_to_bot_channel(
-            guild, I18N.t("quote.commands.autopost.errors.channel_error")
+            guild, _t("quote.commands.autopost.errors.channel_error")
         )
         return None
     await db_helper.update_fields(
@@ -190,7 +190,7 @@ async def autopost_for_guild(guild: discord.Guild) -> None:
             )
             await discord_commands.log_to_bot_channel(
                 guild,
-                I18N.t("quote.commands.autopost.errors.no_quotes_stop_task"),
+                _t("quote.commands.autopost.errors.no_quotes_stop_task"),
             )
             return
         channel = await resolve_autopost_channel(guild, settings_db_json.get("channel"))
@@ -316,7 +316,7 @@ class ModalQuoteAdd(discord.ui.Modal):
             f"self.quote_prep ({len(self.quote_prep)}: {str(self.quote_prep)[0:500]}"
         )
         self.quote_dropdown = discord.ui.Select(
-            placeholder=I18N.t("quote.modals.add.dropdown_placeholder"),
+            placeholder=_t("quote.modals.add.dropdown_placeholder"),
             options=self.quote_prep,
             max_values=int(len(self.quote_prep) if self.quote_prep else 25),
             required=True,
@@ -328,16 +328,16 @@ class ModalQuoteAdd(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         if not self.quote_dropdown.values:
             await interaction.response.send_message(
-                I18N.t("quote.modals.add.msg_request_quote"), ephemeral=True
+                _t("quote.modals.add.msg_request_quote"), ephemeral=True
             )
         else:
             self.msgs_out = self.quote_dropdown.values
             if self.confirm_msg:
                 msg_out = self.confirm_msg
             elif self.row_ids == 0:
-                msg_out = I18N.t("quote.modals.add.msg_confirm")
+                msg_out = _t("quote.modals.add.msg_confirm")
             else:
-                msg_out = I18N.t(
+                msg_out = _t(
                     "quote.modals.add.msg_confirm_number",
                     quote_number=self.row_ids + 1,
                 )
@@ -348,7 +348,7 @@ class ModalQuoteAdd(discord.ui.Modal):
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
         await interaction.response.send_message(
-            I18N.t("quote.modals.error", error=error), ephemeral=True
+            _t("quote.modals.error", error=error), ephemeral=True
         )
 
 
@@ -365,7 +365,7 @@ def channel_setting_saver(setting_name: str):
             updates=[("value", new_channel.id)],
             guild_id=guild.id,
         )
-        return I18N.t(
+        return _t(
             "quote.commands.settings.channel_created",
             channel=new_channel.mention,
             setting=setting_name,
@@ -531,7 +531,6 @@ async def get_random_quote(guild_id, testmode=False):
 async def post_random_quote(
     guild: discord.Guild,
     _ephemeral,
-    # TODO: interaction må inkluderes i post_random_quote for å kunne sende feilmeldinger
     interaction,
     autopost={},
     channel: int = 0,
@@ -547,11 +546,11 @@ async def post_random_quote(
         if len(autopost) > 0:
             await discord_commands.post_to_channel(
                 channel_id=channel,
-                content_in=I18N.t("quote.common.quote_db_empty"),
+                content_in=_t("quote.common.quote_db_empty"),
             )
         else:
             await interaction.followup.send(
-                I18N.t("quote.common.quote_db_empty"), ephemeral=_ephemeral
+                _t("quote.common.quote_db_empty"), ephemeral=_ephemeral
             )
         # Both branches are done here - continuing would index into the
         # empty `random_quote_number` below
@@ -568,11 +567,11 @@ async def post_random_quote(
         if len(autopost) > 0:
             await discord_commands.post_to_channel(
                 channel_id=channel_id,
-                content_in=I18N.t("quote.commands.list.msg_nonexisting_quote"),
+                content_in=_t("quote.commands.list.msg_nonexisting_quote"),
             )
         else:
             await interaction.followup.send(
-                I18N.t("quote.commands.list.msg_nonexisting_quote"),
+                _t("quote.commands.list.msg_nonexisting_quote"),
                 ephemeral=_ephemeral,
             )
         return
@@ -580,11 +579,11 @@ async def post_random_quote(
         if len(autopost) > 0:
             await discord_commands.post_to_channel(
                 channel_id=channel_id,
-                content_in=I18N.t("quote.common.quote_db_empty"),
+                content_in=_t("quote.common.quote_db_empty"),
             )
         else:
             await interaction.followup.send(
-                I18N.t("quote.common.quote_db_empty"),
+                _t("quote.common.quote_db_empty"),
                 ephemeral=_ephemeral,
             )
         return
@@ -727,7 +726,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
     )
     if len(quote) == 0:
         await interaction.followup.send(
-            I18N.t("quote.commands.list.msg_nonexisting_quote"),
+            _t("quote.commands.list.msg_nonexisting_quote"),
             ephemeral=_ephemeral,
         )
         return
@@ -846,38 +845,38 @@ class Quotes(commands.Cog):
         super().__init__()
 
     group = discord.app_commands.Group(
-        name="quote", description=locale_str(I18N.t("quote.commands.quote.cmd"))
+        name="quote", description=locale_str(_t("quote.commands.quote.cmd"))
     )
 
     autopost_group = discord.app_commands.Group(
         name="autopost",
-        description=locale_str(I18N.t("quote.commands.autopost.cmd")),
+        description=locale_str(_t("quote.commands.autopost.cmd")),
         parent=group,
     )
 
     settings_group = discord.app_commands.Group(
         name="settings",
-        description=locale_str(I18N.t("quote.commands.settings.cmd")),
+        description=locale_str(_t("quote.commands.settings.cmd")),
         parent=group,
     )
 
     @group.command(
-        name="post", description=locale_str(I18N.t("quote.commands.post.cmd"))
+        name="post", description=locale_str(_t("quote.commands.post.cmd"))
     )
-    @describe(quote_in=I18N.t("quote.commands.post.desc.number"))
+    @describe(quote_in=_t("quote.commands.post.desc.number"))
     async def post(
         self,
         interaction: discord.Interaction,
         quote_in: str = None,
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
-        ] = I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = _t("common.literal_yes_no.lit_no"),
     ):
         """
         Post quotes
         """
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -901,9 +900,9 @@ class Quotes(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @group.command(
-        name="edit", description=locale_str(I18N.t("quote.commands.edit.cmd"))
+        name="edit", description=locale_str(_t("quote.commands.edit.cmd"))
     )
-    @describe(quote_in=I18N.t("quote.commands.edit.desc.quote_in"))
+    @describe(quote_in=_t("quote.commands.edit.desc.quote_in"))
     async def quote_edit(self, interaction: discord.Interaction, quote_in: str):
         "Edit an existing quote"
         logger.debug(f"quote_in: ({type(quote_in)}) {quote_in}")
@@ -932,7 +931,7 @@ class Quotes(commands.Cog):
                 "Quote `{}` has no channel/message ids to edit from".format(quote_in)
             )
             await interaction.response.send_message(
-                I18N.t("quote.commands.edit.msg_not_editable", quote_in=quote_in),
+                _t("quote.commands.edit.msg_not_editable", quote_in=quote_in),
                 ephemeral=True,
             )
             return
@@ -953,7 +952,7 @@ class Quotes(commands.Cog):
         async for _msg in msgs_after:
             msgs.append(_msg)
         editquote_view = ModalQuoteAdd(
-            title_in=I18N.t("quote.modals.edit.modal_title"),
+            title_in=_t("quote.modals.edit.modal_title"),
             msgs_in=msgs,
             defaults=msg_defaults,
         )
@@ -1030,9 +1029,9 @@ class Quotes(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @group.command(
-        name="delete", description=locale_str(I18N.t("quote.commands.delete.cmd"))
+        name="delete", description=locale_str(_t("quote.commands.delete.cmd"))
     )
-    @describe(quote_number=I18N.t("quote.commands.delete.desc.quote_number"))
+    @describe(quote_number=_t("quote.commands.delete.desc.quote_number"))
     async def quote_delete(self, interaction: discord.Interaction, quote_number: int):
         "Delete an existing quote"
         quote_number = int(quote_number)
@@ -1045,7 +1044,7 @@ class Quotes(commands.Cog):
         logger.debug(f"quote_from_db is: {truncate_for_log(quote_from_db)}")
         if quote_from_db == []:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "quote.commands.delete.msg_nonexisting_quote",
                     quote_number=quote_number,
                 ),
@@ -1055,8 +1054,8 @@ class Quotes(commands.Cog):
         quote = quote_from_db[0]
         logger.debug(f"quote is: {truncate_for_log(quote)}")
         confirm_buttons = EitherOrButtons(
-            yes_label=I18N.t("common.literal_yes_no.lit_yes"),
-            no_label=I18N.t("common.literal_yes_no.lit_no"),
+            yes_label=_t("common.literal_yes_no.lit_yes"),
+            no_label=_t("common.literal_yes_no.lit_no"),
         )
         paginated = []
         msg = ""
@@ -1098,11 +1097,11 @@ class Quotes(commands.Cog):
             for page in paginated:
                 await interaction.followup.send(str(page), ephemeral=True)
         confirm_buttons = EitherOrButtons(
-            yes_label=I18N.t("common.literal_yes_no.lit_yes"),
-            no_label=I18N.t("common.literal_yes_no.lit_no"),
+            yes_label=_t("common.literal_yes_no.lit_yes"),
+            no_label=_t("common.literal_yes_no.lit_no"),
         )
         await interaction.followup.send(
-            I18N.t("quote.commands.delete.confirm_delete"),
+            _t("quote.commands.delete.confirm_delete"),
             view=confirm_buttons,
             ephemeral=True,
         )
@@ -1112,7 +1111,7 @@ class Quotes(commands.Cog):
         if False in btn_values:
             # Confirm not deleting quote
             await interaction.followup.send(
-                I18N.t("quote.commands.delete.msg_confirm_not_delete"),
+                _t("quote.commands.delete.msg_confirm_not_delete"),
                 ephemeral=True,
             )
             return
@@ -1125,7 +1124,7 @@ class Quotes(commands.Cog):
             )
             # Confirm that the quote has been deleted
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "quote.commands.delete.msg_confirm_delete",
                     quote_num=quote["rowid"],
                 ),
@@ -1133,17 +1132,17 @@ class Quotes(commands.Cog):
             )
         elif False in btn_values:
             await interaction.followup.send(
-                I18N.t("quote.commands.delete.msg_confirm_not_delete"),
+                _t("quote.commands.delete.msg_confirm_not_delete"),
                 ephemeral=True,
             )
         else:
             await interaction.followup.send(
-                I18N.t("quote.commands.delete.msg_fail"), ephemeral=True
+                _t("quote.commands.delete.msg_fail"), ephemeral=True
             )
 
     @discord_commands.is_owner_or_manage_guild()
     @group.command(
-        name="count", description=locale_str(I18N.t("quote.commands.count.cmd"))
+        name="count", description=locale_str(_t("quote.commands.count.cmd"))
     )
     async def quote_count(self, interaction: discord.Interaction):
         "Count the number of quotes available"
@@ -1156,7 +1155,7 @@ class Quotes(commands.Cog):
             )
         )
         await interaction.followup.send(
-            I18N.t("quote.commands.count.msg_confirm", count=quote_count)
+            _t("quote.commands.count.msg_confirm", count=quote_count)
         )
         return
 
@@ -1188,11 +1187,11 @@ class Quotes(commands.Cog):
             else:
                 logger.debug("List all quotes")
                 confirm_buttons = EitherOrButtons(
-                    yes_label=I18N.t("common.literal_yes_no.lit_yes"),
-                    no_label=I18N.t("common.literal_yes_no.lit_no"),
+                    yes_label=_t("common.literal_yes_no.lit_yes"),
+                    no_label=_t("common.literal_yes_no.lit_no"),
                 )
                 await interaction.followup.send(
-                    I18N.t(
+                    _t(
                         "quote.commands.list.confirm_post_all",
                         count=len(quote_rowids),
                     ),
@@ -1214,19 +1213,19 @@ class Quotes(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @group.command(
-        name="list", description=locale_str(I18N.t("quote.commands.list.cmd"))
+        name="list", description=locale_str(_t("quote.commands.list.cmd"))
     )
     async def quote_list(
         self,
         interaction: discord.Interaction,
         keyword: str = "",
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
-        ] = I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = _t("common.literal_yes_no.lit_no"),
     ):
 
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -1236,19 +1235,19 @@ class Quotes(commands.Cog):
         )
         if quote_in is None:
             await interaction.followup.send(
-                I18N.t("quote.commands.list.msg_nonexisting_quote"),
+                _t("quote.commands.list.msg_nonexisting_quote"),
                 ephemeral=_ephemeral,
             )
             return
         elif quote_in is False:
             await interaction.followup.send(
-                I18N.t("quote.commands.list.msg_listing_cancelled"),
+                _t("quote.commands.list.msg_listing_cancelled"),
                 ephemeral=_ephemeral,
             )
             return
         elif len(quote_in) == 0:
             await interaction.followup.send(
-                I18N.t("quote.common.quote_db_empty"),
+                _t("quote.common.quote_db_empty"),
                 ephemeral=_ephemeral,
             )
             return
@@ -1312,7 +1311,7 @@ class Quotes(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @settings_group.command(
-        name="list", description=locale_str(I18N.t("common.settings.list_settings"))
+        name="list", description=locale_str(_t("common.settings.list_settings"))
     )
     async def list_settings(self, interaction: discord.Interaction):
         """
@@ -1356,12 +1355,12 @@ class Quotes(commands.Cog):
             )
             return
         headers_settings = {
-            "setting": I18N.t("common.settings.setting"),
-            "value": I18N.t("common.settings.value"),
+            "setting": _t("common.settings.setting"),
+            "value": _t("common.settings.value"),
         }
         settings_out = [[item, settings_in_db[item]] for item in settings_in_db]
         out = "## {}\n```{}```".format(
-            I18N.t("stats.commands.list.stats_msg_out.sub_settings"),
+            _t("stats.commands.list.stats_msg_out.sub_settings"),
             tabulate(settings_out, headers=headers_settings),
         )
         await interaction.followup.send(content=out, ephemeral=True)
@@ -1369,11 +1368,11 @@ class Quotes(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
     @settings_group.command(
-        name="change", description=locale_str(I18N.t("common.settings.change_settings"))
+        name="change", description=locale_str(_t("common.settings.change_settings"))
     )
     @describe(
-        name_of_setting=I18N.t("common.settings.name_of_setting"),
-        value_in=I18N.t("common.settings.value_in"),
+        name_of_setting=_t("common.settings.name_of_setting"),
+        value_in=_t("common.settings.value_in"),
     )
     async def change_setting(
         self, interaction: discord.Interaction, name_of_setting: str, value_in: str
@@ -1403,7 +1402,7 @@ class Quotes(commands.Cog):
         if setting_type == "bool":
             if str(value_in).strip().lower() not in ["true", "false"]:
                 logger.error(f"Invalid input for `value_in`: {value_in}")
-                await interaction.followup.send(I18N.t("stats.setting_input_reply"))
+                await interaction.followup.send(_t("stats.setting_input_reply"))
                 return
             value_in = str(value_in).strip().lower() == "true"
         elif name_of_setting in ["channel", "suggest_channel", "approved_channel"]:
@@ -1429,17 +1428,17 @@ class Quotes(commands.Cog):
                 # setting once the channel exists.
                 channel_name = channel_in.lstrip("#")
                 await interaction.followup.send(
-                    content=I18N.t(
+                    content=_t(
                         "quote.commands.settings.channel_not_exist",
                         channel=channel_name,
                     ),
                     view=discord_commands.CreateChannelView(
                         channel_name,
                         on_created=channel_setting_saver(name_of_setting),
-                        modal_title=I18N.t(
+                        modal_title=_t(
                             "quote.commands.settings.channel_modal_title"
                         ),
-                        modal_name_label=I18N.t(
+                        modal_name_label=_t(
                             "quote.commands.settings.channel_name_label"
                         ),
                     ),
@@ -1453,7 +1452,7 @@ class Quotes(commands.Cog):
                     )
                 )
                 await interaction.followup.send(
-                    content=I18N.t("common.error.channel_not_found", channel=value_in),
+                    content=_t("common.error.channel_not_found", channel=value_in),
                     ephemeral=True,
                 )
                 return
@@ -1464,7 +1463,7 @@ class Quotes(commands.Cog):
             except ValueError:
                 logger.error(f"Invalid input for `value_in`: {value_in}")
                 await interaction.followup.send(
-                    content=I18N.t(
+                    content=_t(
                         "quote.commands.settings.change_type_incorrect",
                         value_in=value_in,
                         value_type=type(value_in).__name__,
@@ -1485,7 +1484,7 @@ class Quotes(commands.Cog):
             except ValueError:
                 logger.error(f"Invalid input for `value_in`: {value_in}")
                 await interaction.followup.send(
-                    content=I18N.t(
+                    content=_t(
                         "quote.commands.settings.change_type_incorrect",
                         value_in=value_in,
                         value_type=type(value_in).__name__,
@@ -1501,7 +1500,7 @@ class Quotes(commands.Cog):
                 "`value_in` ({}) is not of type `{}`".format(value_in, setting_type)
             )
             await interaction.followup.send(
-                content=I18N.t(
+                content=_t(
                     "quote.commands.settings.change_type_incorrect",
                     value_in=value_in,
                     value_type=type(value_in).__name__,
@@ -1521,18 +1520,18 @@ class Quotes(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            content=I18N.t("quote.commands.settings.change_confirmed"), ephemeral=True
+            content=_t("quote.commands.settings.change_confirmed"), ephemeral=True
         )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=env_settings_autocomplete)
     @settings_group.command(
-        name="add", description=locale_str(I18N.t("common.settings.add_setting"))
+        name="add", description=locale_str(_t("common.settings.add_setting"))
     )
     @describe(
-        setting_in=I18N.t("common.settings.setting"),
-        value_in=I18N.t("common.settings.value"),
+        setting_in=_t("common.settings.setting"),
+        value_in=_t("common.settings.value"),
     )
     async def add_setting(
         self, interaction: discord.Interaction, setting_in: str, value_in: str
@@ -1564,11 +1563,11 @@ class Quotes(commands.Cog):
                 # `create_missing_channel` locks the channel down itself,
                 # there is no `overwrites` to pass in
                 if setting_in == "channel":
-                    _topic = I18N.t("quote.commands.settings.add_channel_topic")
+                    _topic = _t("quote.commands.settings.add_channel_topic")
                 elif setting_in == "suggest_channel":
-                    _topic = I18N.t("quote.context_menu.suggest_quote.channel_topic")
+                    _topic = _t("quote.context_menu.suggest_quote.channel_topic")
                 else:
-                    _topic = I18N.t(
+                    _topic = _t(
                         "quote.context_menu.suggest_quote.approved_channel_topic"
                     )
                 channel_object = await discord_commands.create_missing_channel(
@@ -1584,14 +1583,14 @@ class Quotes(commands.Cog):
         logger.debug(f"Setting type is {eval(settings_types[setting_in])}")
         if settings_db_json is not None and setting_in in settings_db_json:
             await interaction.followup.send(
-                content=I18N.t("quote.commands.settings.add_setting_exist"),
+                content=_t("quote.commands.settings.add_setting_exist"),
                 ephemeral=True,
             )
             return
         try:
             if value_in_check is not eval(settings_types[setting_in]):
                 await interaction.followup.send(
-                    content=I18N.t(
+                    content=_t(
                         "quote.commands.settings.add_type_incorrect",
                         value_in=value_in,
                         value_type=type(value_in),
@@ -1607,23 +1606,23 @@ class Quotes(commands.Cog):
                     guild_id=interaction.guild.id,
                 )
                 await interaction.followup.send(
-                    content=I18N.t("quote.commands.settings.add_confirmed"),
+                    content=_t("quote.commands.settings.add_confirmed"),
                     ephemeral=True,
                 )
                 return
         except Exception as error:
             logger.error(f"Something went wrong: {error}")
             await interaction.followup.send(
-                content=I18N.t("common.something_wrong", error=error), ephemeral=True
+                content=_t("common.something_wrong", error=error), ephemeral=True
             )
             return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting_in=settings_db_autocomplete)
     @settings_group.command(
-        name="remove", description=locale_str(I18N.t("common.settings.remove_setting"))
+        name="remove", description=locale_str(_t("common.settings.remove_setting"))
     )
-    @describe(setting_in=I18N.t("common.settings.setting"))
+    @describe(setting_in=_t("common.settings.setting"))
     async def remove_setting(self, interaction: discord.Interaction, setting_in: str):
         """
         Remove a setting for this cog
@@ -1636,13 +1635,13 @@ class Quotes(commands.Cog):
                 guild_id=interaction.guild.id,
             )
             await interaction.followup.send(
-                content=I18N.t("quote.commands.settings.remove_confirmed"),
+                content=_t("quote.commands.settings.remove_confirmed"),
                 ephemeral=True,
             )
         except Exception as error:
             logger.error(f"Error when removing setting: {error}")
             await interaction.followup.send(
-                content=I18N.t("quote.commands.settings.remove_failed", error=error),
+                content=_t("quote.commands.settings.remove_failed", error=error),
                 ephemeral=True,
             )
         return
@@ -1650,7 +1649,7 @@ class Quotes(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @autopost_group.command(
         name="start",
-        description=locale_str(I18N.t("quote.commands.autopost.start.cmd")),
+        description=locale_str(_t("quote.commands.autopost.start.cmd")),
     )
     async def autopost_quote_start(self, interaction: discord.Interaction):
         """
@@ -1669,7 +1668,7 @@ class Quotes(commands.Cog):
         )
         if task_status.get("status") == "started":
             await interaction.followup.send(
-                I18N.t("quote.commands.autopost.start.msg_already_running"),
+                _t("quote.commands.autopost.start.msg_already_running"),
             )
             return
         await db_helper.update_fields(
@@ -1680,7 +1679,7 @@ class Quotes(commands.Cog):
         )
         _autopost_time = await get_autopost_time(interaction.guild.id)
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "quote.commands.autopost.start.msg_confirm_ok",
                 time="{}:{}".format(_autopost_time.group(1), _autopost_time.group(2)),
             )
@@ -1688,7 +1687,7 @@ class Quotes(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @autopost_group.command(
-        name="stop", description=locale_str(I18N.t("quote.commands.autopost.stop.cmd"))
+        name="stop", description=locale_str(_t("quote.commands.autopost.stop.cmd"))
     )
     async def autopost_quote_stop(self, interaction: discord.Interaction):
         "Disable autopost for this guild."
@@ -1703,7 +1702,7 @@ class Quotes(commands.Cog):
         )
         if task_status.get("status") != "started":
             await interaction.followup.send(
-                I18N.t("quote.commands.autopost.stop.msg_already_stopped")
+                _t("quote.commands.autopost.stop.msg_already_stopped")
             )
             return
         await db_helper.update_fields(
@@ -1713,13 +1712,13 @@ class Quotes(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            I18N.t("quote.commands.autopost.stop.msg_confirm_ok")
+            _t("quote.commands.autopost.stop.msg_confirm_ok")
         )
 
     @discord_commands.is_owner()
     @autopost_group.command(
         name="restart",
-        description=locale_str(I18N.t("quote.commands.autopost.restart.cmd")),
+        description=locale_str(_t("quote.commands.autopost.restart.cmd")),
     )
     async def autopost_quote_restart(self, interaction: discord.Interaction):
         """
@@ -1731,7 +1730,7 @@ class Quotes(commands.Cog):
         logger.info("Autopost loop restarted")
         Quotes.task_autopost.restart()
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "quote.commands.autopost.restart.msg_confirm_ok",
                 time=Quotes.task_autopost.next_iteration.astimezone(),
             )
@@ -1776,7 +1775,7 @@ class Quotes(commands.Cog):
                     async with db_helper.guild_locale_context(guild.id):
                         await discord_commands.log_to_bot_channel(
                             guild,
-                            I18N.t(
+                            _t(
                                 "quote.commands.autopost.errors.guild_failed",
                                 error=error,
                             ),
@@ -1859,7 +1858,7 @@ def convert_b64_to_img_in_mem(b64string: str):
 
 @discord_commands.is_owner_or_manage_guild()
 @config.bot.tree.context_menu(
-    name=locale_str(I18N.t("quote.context_menu.add_quote.name"))
+    name=locale_str(_t("quote.context_menu.add_quote.name"))
 )
 async def quote_add(interaction: discord.Interaction, message: discord.Message):
     "Add a quote"
@@ -1873,7 +1872,7 @@ async def quote_add(interaction: discord.Interaction, message: discord.Message):
         or []
     )
     addquote_view = ModalQuoteAdd(
-        title_in=I18N.t("quote.modals.add.modal_title"),
+        title_in=_t("quote.modals.add.modal_title"),
         msgs_in=msgs,
         defaults=[message.id],
         row_ids=q_row_ids,
@@ -2019,7 +2018,7 @@ def format_suggestion(content_rows: list, channel_name: str, suggested_by: str) 
         for row in content_rows
     ]
     msg_out = "{}\n\n{}".format(
-        I18N.t(
+        _t(
             "quote.context_menu.suggest_quote.review_header",
             user=suggested_by,
             channel=channel_name,
@@ -2045,13 +2044,13 @@ class DynamicSuggestButton(
         self.action = action
         self.suggest_uuid = suggest_uuid
         if action == "approve":
-            label = I18N.t("quote.context_menu.suggest_quote.btn_approve")
+            label = _t("quote.context_menu.suggest_quote.btn_approve")
             style = discord.ButtonStyle.green
         elif action == "deny":
-            label = I18N.t("quote.context_menu.suggest_quote.btn_deny")
+            label = _t("quote.context_menu.suggest_quote.btn_deny")
             style = discord.ButtonStyle.red
         else:
-            label = I18N.t("quote.context_menu.suggest_quote.btn_edit")
+            label = _t("quote.context_menu.suggest_quote.btn_edit")
             style = discord.ButtonStyle.secondary
         super().__init__(
             discord.ui.Button(
@@ -2074,7 +2073,7 @@ class DynamicSuggestButton(
     async def callback(self, interaction: discord.Interaction) -> None:
         if not await can_review_suggestions(interaction):
             await interaction.response.send_message(
-                I18N.t("quote.context_menu.suggest_quote.no_permission"),
+                _t("quote.context_menu.suggest_quote.no_permission"),
                 ephemeral=True,
             )
             return
@@ -2085,7 +2084,7 @@ class DynamicSuggestButton(
             interaction.guild.id, self.suggest_uuid, self.action
         )
         if status == "approved":
-            status_line = I18N.t(
+            status_line = _t(
                 "quote.context_menu.suggest_quote.approved_by",
                 user=interaction.user.mention,
                 quote_number=quote_number,
@@ -2096,13 +2095,13 @@ class DynamicSuggestButton(
                 quote_rowid=quote_number,
             )
         elif status == "denied":
-            status_line = I18N.t(
+            status_line = _t(
                 "quote.context_menu.suggest_quote.denied_by",
                 user=interaction.user.mention,
             )
         else:
             await interaction.response.send_message(
-                I18N.t("quote.context_menu.suggest_quote.already_handled"),
+                _t("quote.context_menu.suggest_quote.already_handled"),
                 ephemeral=True,
             )
             return
@@ -2178,7 +2177,7 @@ async def post_approved_quote(
         setting_name="approved_channel",
         channel_value=settings.get("approved_channel"),
         default_name="quote-approved",
-        topic=I18N.t("quote.context_menu.suggest_quote.approved_channel_topic"),
+        topic=_t("quote.context_menu.suggest_quote.approved_channel_topic"),
     )
     if approved_channel_id is None:
         logger.error(f"No usable quote approve channel for `{guild.name}`")
@@ -2207,7 +2206,7 @@ async def start_quote_edit(interaction: discord.Interaction, suggest_uuid: str) 
     )
     if not rows or rows[0]["status"] != "pending":
         await interaction.response.send_message(
-            I18N.t("quote.context_menu.suggest_quote.already_handled"),
+            _t("quote.context_menu.suggest_quote.already_handled"),
             ephemeral=True,
         )
         return
@@ -2228,17 +2227,17 @@ async def start_quote_edit(interaction: discord.Interaction, suggest_uuid: str) 
         )
     if pivot_msg is None:
         await interaction.response.send_message(
-            I18N.t("quote.context_menu.suggest_quote.edit_unavailable"),
+            _t("quote.context_menu.suggest_quote.edit_unavailable"),
             ephemeral=True,
         )
         return
     msgs = await collect_context_msgs(original_channel, pivot_msg)
     existing_ids = [row[1] for row in content_rows]
     edit_view = ModalQuoteAdd(
-        title_in=I18N.t("quote.context_menu.suggest_quote.edit_modal_title"),
+        title_in=_t("quote.context_menu.suggest_quote.edit_modal_title"),
         msgs_in=msgs,
         defaults=existing_ids,
-        confirm_msg=I18N.t("quote.context_menu.suggest_quote.edit_msg_sent"),
+        confirm_msg=_t("quote.context_menu.suggest_quote.edit_msg_sent"),
     )
     await interaction.response.send_modal(edit_view)
     await edit_view.wait()
@@ -2307,7 +2306,7 @@ async def post_suggestion(
         setting_name="suggest_channel",
         channel_value=suggest_channel_value,
         default_name="quote-suggest",
-        topic=I18N.t("quote.context_menu.suggest_quote.channel_topic"),
+        topic=_t("quote.context_menu.suggest_quote.channel_topic"),
     )
     if review_channel_id is None:
         logger.error(f"No usable quote suggest channel for `{guild.name}`")
@@ -2338,22 +2337,22 @@ async def post_suggestion(
 
 
 @config.bot.tree.context_menu(
-    name=locale_str(I18N.t("quote.context_menu.suggest_quote.name"))
+    name=locale_str(_t("quote.context_menu.suggest_quote.name"))
 )
 async def quote_suggest(interaction: discord.Interaction, message: discord.Message):
     "Suggest a quote for a moderator to approve"
     settings = await get_quote_settings(interaction.guild.id)
     if not is_suggest_enabled(settings):
         await interaction.response.send_message(
-            I18N.t("quote.context_menu.suggest_quote.disabled"), ephemeral=True
+            _t("quote.context_menu.suggest_quote.disabled"), ephemeral=True
         )
         return
     msgs = await collect_context_msgs(interaction.channel, message)
     suggest_view = ModalQuoteAdd(
-        title_in=I18N.t("quote.context_menu.suggest_quote.modal_title"),
+        title_in=_t("quote.context_menu.suggest_quote.modal_title"),
         msgs_in=msgs,
         defaults=[message.id],
-        confirm_msg=I18N.t("quote.context_menu.suggest_quote.msg_sent"),
+        confirm_msg=_t("quote.context_menu.suggest_quote.msg_sent"),
     )
     await interaction.response.send_modal(suggest_view)
     await suggest_view.wait()

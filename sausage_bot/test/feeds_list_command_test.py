@@ -4,10 +4,10 @@
 Tests the argument handling in the `/youtube list`, `/rss list` and
 `/podcast list` commands.
 
-Their `typing.Literal` choices are built from `I18N.t()` once, at import
+Their `typing.Literal` choices are built from `_t()` once, at import
 time, and discord hands the picked *value* back untranslated - only the
 name shown in the client is localized. Comparing that value against a
-fresh `I18N.t()` call therefore matches nothing as soon as a guild runs
+fresh `_t()` call therefore matches nothing as soon as a guild runs
 in another locale, which used to leave `Added`/`Filter` silently listing
 the normal list. Each command is invoked via its `.callback` (see
 main_profile_commands_test.py), with `feeds_core.get_feed_list` patched

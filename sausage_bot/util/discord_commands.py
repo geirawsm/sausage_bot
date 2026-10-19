@@ -10,7 +10,7 @@ import re
 
 from sausage_bot.util import config, envs, file_io
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -91,6 +91,17 @@ def is_owner_or_has_permission(permission: str):
     return discord.app_commands.check(predicate)
 
 
+async def is_member_bot_owner(member: discord.Member) -> bool:
+    """
+    Check whether `member` is the bot owner. Unlike `is_owner()`, which
+    is a check decorator for the invoking user, this takes any
+    `discord.Member` (e.g. the target of a kick/ban command) and returns
+    a plain bool. Uses `Bot.is_owner()`, so it also covers team-owned
+    applications.
+    """
+    return await config.bot.is_owner(member)
+
+
 def get_channel_name(guild: discord.Guild, channel_in) -> str:
     """
     Get the name of the channel `channel_in` in `guild`.
@@ -105,7 +116,7 @@ def get_channel_name(guild: discord.Guild, channel_in) -> str:
         channel_out = None
     if channel_out is None:
         logger.warning(f"Could not find channel `{channel_in}` in guild {guild.id}")
-        return I18N.t("common.unknown_channel", id=channel_in)
+        return _t("common.unknown_channel", id=channel_in)
     return channel_out.name
 
 
@@ -276,10 +287,10 @@ async def get_sorted_scheduled_events(guild: discord.Guild):
     out = tabulate(
         sched_dict,
         headers=[
-            I18N.t("discord_commands.get_sorted_scheduled_events.headers.match"),
-            I18N.t("discord_commands.get_sorted_scheduled_events.headers.date"),
-            I18N.t("discord_commands.get_sorted_scheduled_events.headers.interest"),
-            I18N.t("discord_commands.get_sorted_scheduled_events.headers.id"),
+            _t("discord_commands.get_sorted_scheduled_events.headers.match"),
+            _t("discord_commands.get_sorted_scheduled_events.headers.date"),
+            _t("discord_commands.get_sorted_scheduled_events.headers.interest"),
+            _t("discord_commands.get_sorted_scheduled_events.headers.id"),
         ],
         numalign="center",
     )
@@ -365,9 +376,7 @@ async def swap_link_in_msg(msg, replace_content, replace_with):
     if replace_content in embeds_json:
         embeds_json = embeds_json.replace(replace_content, replace_with)
         await msg.edit(
-            embeds=[
-                discord.Embed.from_dict(embed) for embed in json.loads(embeds_json)
-            ]
+            embeds=[discord.Embed.from_dict(embed) for embed in json.loads(embeds_json)]
         )
         return True
     return False
@@ -626,11 +635,11 @@ class DuplicateChannelModal(discord.ui.Modal):
             min_values=1,
             max_values=1,
             required=True,
-            placeholder=I18N.t("common.create_channel.select_placeholder"),
+            placeholder=_t("common.create_channel.select_placeholder"),
         )
         self.add_item(
             discord.ui.Label(
-                text=I18N.t("common.create_channel.copy_from_label"),
+                text=_t("common.create_channel.copy_from_label"),
                 component=self.channel_select,
             )
         )
@@ -650,7 +659,7 @@ class DuplicateChannelModal(discord.ui.Modal):
         new_name = str(self.name_input.value).strip()
         if source is None:
             await interaction.followup.send(
-                I18N.t("common.create_channel.source_not_found"),
+                _t("common.create_channel.source_not_found"),
                 ephemeral=True,
             )
             return
@@ -659,7 +668,7 @@ class DuplicateChannelModal(discord.ui.Modal):
             category=source.category,
             position=source.position + 1,
             overwrites=source.overwrites,
-            reason=I18N.t("common.create_channel.reason_copy", source=source.name),
+            reason=_t("common.create_channel.reason_copy", source=source.name),
         )
         msg_out = await self.on_created(interaction.guild, new_channel, source)
         await interaction.followup.send(msg_out, ephemeral=True)
@@ -691,7 +700,7 @@ class CreateChannelView(discord.ui.View):
         self.modal_name_label = modal_name_label
 
     @discord.ui.button(
-        label=I18N.t("common.create_channel.btn_duplicate"),
+        label=_t("common.create_channel.btn_duplicate"),
         style=discord.ButtonStyle.secondary,
     )
     async def duplicate(
@@ -709,7 +718,7 @@ class CreateChannelView(discord.ui.View):
         self.stop()
 
     @discord.ui.button(
-        label=I18N.t("common.create_channel.btn_fresh"),
+        label=_t("common.create_channel.btn_fresh"),
         style=discord.ButtonStyle.secondary,
     )
     async def fresh(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -723,19 +732,19 @@ class CreateChannelView(discord.ui.View):
         new_channel = await interaction.guild.create_text_channel(
             name=self.channel_name,
             overwrites=overwrites,
-            reason=I18N.t("common.create_channel.reason_fresh"),
+            reason=_t("common.create_channel.reason_fresh"),
         )
         msg_out = await self.on_created(interaction.guild, new_channel, None)
         await interaction.followup.send(msg_out, ephemeral=True)
         self.stop()
 
     @discord.ui.button(
-        label=I18N.t("common.cancel"),
+        label=_t("common.cancel"),
         style=discord.ButtonStyle.danger,
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(
-            content=I18N.t("common.create_channel.cancelled"), view=None
+            content=_t("common.create_channel.cancelled"), view=None
         )
         self.stop()
 

@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-"i18n: Internationalization functions"
-
-import os
-import re
-import discord
-from discord import app_commands
-import i18n as _i18n
+"bot_i18n: Internationalization functions"
 
 from . import envs, file_io, config, guild_context
+from discord import app_commands
+import discord
+import i18n
+import os
+import re
 
 logger = config.logger
 
-_i18n.load_path.append(envs.LOCALE_DIR)
-_i18n.set("fallback", "en")
+i18n.load_path.append(envs.LOCALE_DIR)
+i18n.set("fallback", "en")
 # Static default locale, used only when no guild context is active (e.g.
 # during startup logging, before any guild's settings have been loaded).
 # Per-guild locale is resolved via `guild_context.current_locale`, set by
 # `db_helper.guild_locale_context()` - see that function's docstring.
-_i18n.set("locale", "en")
+i18n.set("locale", "en")
 
 
-class _I18NProxy:
+class i18nProxy:
     """
     Thin wrapper around the `i18n` package that makes `.t()` guild-aware
     without requiring every call site in the codebase to pass a `locale`
@@ -31,17 +30,17 @@ class _I18NProxy:
 
     def t(self, *args, **kwargs):
         kwargs.setdefault("locale", guild_context.current_locale.get())
-        return _i18n.t(*args, **kwargs)
+        return i18n.t(*args, **kwargs)
 
     def __getattr__(self, name):
-        return getattr(_i18n, name)
+        return getattr(i18n, name)
 
 
-I18N = _I18NProxy()
+_t = i18nProxy().t
 
-# Clean i18n log file before starting
-_logfilename = envs.LOG_DIR / "i18n.log"
-file_io.ensure_file(_logfilename)
+# Clean l10n log file before starting
+_logfilename = envs.LOG_DIR / "l10n.log"
+file_io.ensure_file(str(_logfilename))
 with open(_logfilename, "w", encoding="utf-8") as write_log:
     write_log.write("")
     write_log.close()
@@ -54,7 +53,7 @@ class MyTranslator(app_commands.Translator):
         locale: discord.Locale,
         context: app_commands.TranslationContext,
     ) -> str | None:
-        return I18N.t(str(string))
+        return _t(str(string))
 
 
 def handler_placeholder(key, locale, text, name):
@@ -78,18 +77,22 @@ def handler_plural(key, locale, **kwargs):
     return "undefined"
 
 
-_i18n.set("on_missing_placeholder", handler_placeholder)
-_i18n.set("on_missing_plural", handler_plural)
+i18n.set("on_missing_placeholder", handler_placeholder)
+i18n.set("on_missing_plural", handler_plural)
 
 
-def reload_i18n():
-    I18N.reload_everything()
+def reloadi18n():
+    i18nProxy.reload_everything()
 
 
 def available_languages():
-    lang_list = []
-    for filename in os.listdir(envs.LOCALE_DIR):
-        lang_check = re.search(r".*\.(.*)\.yml$", filename).group(1)
-        if lang_check and lang_check not in lang_list:
-            lang_list.append(lang_check)
-    return lang_list
+    langs = []
+    locale_files = os.listdir(envs.LOCALE_DIR)
+    locale_yml_check = list(
+        filter(lambda files: re.search(r".*\.(.*)\.yml$", files), locale_files)
+    )
+    for file in locale_yml_check:
+        lang = re.fullmatch(r".*\.([a-zA-Z]+)\.yml", file).group(1)
+        if lang not in langs:
+            langs.append(lang)
+    return langs

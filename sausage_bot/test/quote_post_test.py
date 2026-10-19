@@ -8,7 +8,7 @@ out every post failed with `404 Unknown Webhook (error code: 10015)`.
 from unittest.mock import AsyncMock, MagicMock
 
 from sausage_bot.cogs import quote
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 
 def _interaction(calls):
@@ -45,7 +45,7 @@ async def test_post_defers_publicly_before_posting_a_selected_quote(monkeypatch)
         MagicMock(),
         _interaction(calls),
         quote_in="3",
-        public=I18N.t("common.literal_yes_no.lit_yes"),
+        public=_t("common.literal_yes_no.lit_yes"),
     )
 
     assert [name for name, _ in calls] == ["defer", "post"]

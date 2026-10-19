@@ -20,22 +20,22 @@ from googleapiclient.errors import HttpError
 from sausage_bot.util import config, envs, feeds_core, net_io
 from sausage_bot.util import db_helper, discord_commands, guild_context
 from sausage_bot.util.datetime_handling import get_dt
-from sausage_bot.util.i18n import I18N, available_languages
+from sausage_bot.util.l10n import _t, available_languages
 
 logger = config.logger
 
 # The `typing.Literal` choices for `/youtube list` are evaluated once, at
 # import time, and discord hands the picked *value* back untranslated -
 # only the name shown in the client is localized. Compare against the same
-# constants the Literal was built from, and not a fresh `I18N.t()` call in
+# constants the Literal was built from, and not a fresh `_t()` call in
 # whatever locale the guild happens to use, or nothing ever matches.
-LIST_TYPE_NORMAL = I18N.t("youtube.commands.list.literal_list_type.normal")
-LIST_TYPE_ADDED = I18N.t("youtube.commands.list.literal_list_type.added")
-LIST_TYPE_FILTER = I18N.t("youtube.commands.list.literal_list_type.filter")
-LINK_TYPE_CHANNEL = I18N.t("youtube.commands.list.literal_link_type.channel")
-LINK_TYPE_PLAYLIST = I18N.t("youtube.commands.list.literal_link_type.playlist")
-ALLOW_DENY_ALLOW = I18N.t("common.literal_allow_deny.allow")
-ALLOW_DENY_DENY = I18N.t("common.literal_allow_deny.deny")
+LIST_TYPE_NORMAL = _t("youtube.commands.list.literal_list_type.normal")
+LIST_TYPE_ADDED = _t("youtube.commands.list.literal_list_type.added")
+LIST_TYPE_FILTER = _t("youtube.commands.list.literal_list_type.filter")
+LINK_TYPE_CHANNEL = _t("youtube.commands.list.literal_link_type.channel")
+LINK_TYPE_PLAYLIST = _t("youtube.commands.list.literal_link_type.playlist")
+ALLOW_DENY_ALLOW = _t("common.literal_allow_deny.allow")
+ALLOW_DENY_DENY = _t("common.literal_allow_deny.deny")
 
 _youtube_api = None
 
@@ -67,7 +67,7 @@ def canonical_allow_deny(value) -> str | None:
         return _value
     for language in available_languages():
         for canonical in ("allow", "deny"):
-            translated = I18N.t(
+            translated = _t(
                 f"common.literal_allow_deny.{canonical}", locale=language
             )
             if _value == str(translated).strip().lower():
@@ -84,7 +84,7 @@ def localized_allow_deny(value) -> str:
     canonical = canonical_allow_deny(value)
     if canonical is None:
         return str(value)
-    return I18N.t(f"common.literal_allow_deny.{canonical}")
+    return _t(f"common.literal_allow_deny.{canonical}")
 
 
 class YoutubeApiError(Exception):
@@ -103,7 +103,7 @@ class YoutubeApiError(Exception):
         super().__init__(log_msg)
 
     def localized(self) -> str:
-        return I18N.t(self.locale_key, **self.locale_params)
+        return _t(self.locale_key, **self.locale_params)
 
 
 def youtube_api():
@@ -207,7 +207,7 @@ async def _flush_quota() -> None:
     if should_warn and config.ADMIN_CHANNEL_ID:
         await discord_commands.post_to_channel(
             config.ADMIN_CHANNEL_ID,
-            content_in=I18N.t(
+            content_in=_t(
                 "youtube.warnings.quota_90pct",
                 date=today,
                 used=new_used,
@@ -476,24 +476,24 @@ class Youtube(commands.Cog):
         super().__init__()
 
     youtube_group = discord.app_commands.Group(
-        name="youtube", description=locale_str(I18N.t("youtube.groups.youtube"))
+        name="youtube", description=locale_str(_t("youtube.groups.youtube"))
     )
 
     youtube_filter_group = discord.app_commands.Group(
         name="filter",
-        description=locale_str(I18N.t("youtube.groups.filter")),
+        description=locale_str(_t("youtube.groups.filter")),
         parent=youtube_group,
     )
 
     youtube_posting_group = discord.app_commands.Group(
         name="posting",
-        description=locale_str(I18N.t("youtube.groups.posting")),
+        description=locale_str(_t("youtube.groups.posting")),
         parent=youtube_group,
     )
 
     @discord_commands.is_owner_or_manage_guild()
     @youtube_posting_group.command(
-        name="start", description=locale_str(I18N.t("youtube.commands.start.cmd"))
+        name="start", description=locale_str(_t("youtube.commands.start.cmd"))
     )
     async def youtube_posting_start(self, interaction: discord.Interaction):
         """
@@ -509,11 +509,11 @@ class Youtube(commands.Cog):
             updates=("status", "started"),
             guild_id=interaction.guild.id,
         )
-        await interaction.followup.send(I18N.t("youtube.commands.start.msg_confirm"))
+        await interaction.followup.send(_t("youtube.commands.start.msg_confirm"))
 
     @discord_commands.is_owner_or_manage_guild()
     @youtube_posting_group.command(
-        name="stop", description=locale_str(I18N.t("youtube.commands.stop.cmd"))
+        name="stop", description=locale_str(_t("youtube.commands.stop.cmd"))
     )
     async def youtube_posting_stop(self, interaction: discord.Interaction):
         "Disable video posting for this guild."
@@ -528,11 +528,11 @@ class Youtube(commands.Cog):
             updates=("status", "stopped"),
             guild_id=interaction.guild.id,
         )
-        await interaction.followup.send(I18N.t("youtube.commands.stop.msg_confirm"))
+        await interaction.followup.send(_t("youtube.commands.stop.msg_confirm"))
 
     @discord_commands.is_owner()
     @youtube_posting_group.command(
-        name="restart", description=locale_str(I18N.t("youtube.commands.restart.cmd"))
+        name="restart", description=locale_str(_t("youtube.commands.restart.cmd"))
     )
     async def youtube_posting_restart(self, interaction: discord.Interaction):
         """
@@ -543,11 +543,11 @@ class Youtube(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         logger.info("Video posting loop restarted")
         Youtube.task_post_videos.restart()
-        await interaction.followup.send(I18N.t("youtube.commands.restart.msg_confirm"))
+        await interaction.followup.send(_t("youtube.commands.restart.msg_confirm"))
 
     @discord_commands.is_owner()
     @youtube_group.command(
-        name="quota", description=locale_str(I18N.t("youtube.commands.quota.cmd"))
+        name="quota", description=locale_str(_t("youtube.commands.quota.cmd"))
     )
     async def youtube_quota(self, interaction: discord.Interaction):
         """
@@ -557,7 +557,7 @@ class Youtube(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         if not _in_admin_guild(interaction):
             await interaction.followup.send(
-                I18N.t("youtube.commands.quota.msg_not_admin_guild"), ephemeral=True
+                _t("youtube.commands.quota.msg_not_admin_guild"), ephemeral=True
             )
             return
         today_utc_string = pendulum.now("America/Los_Angeles").to_date_string()
@@ -577,7 +577,7 @@ class Youtube(commands.Cog):
         reset_local = reset_at_pacific.in_timezone(guild_context.current_timezone.get())
         reset_time = reset_local.format("HH.mm")
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "youtube.commands.quota.msg_report",
                 date=today_utc_string,
                 used=used,
@@ -590,12 +590,12 @@ class Youtube(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_group.command(
-        name="add", description=locale_str(I18N.t("youtube.commands.add.cmd"))
+        name="add", description=locale_str(_t("youtube.commands.add.cmd"))
     )
     @describe(
-        feed_name=I18N.t("youtube.commands.add.desc.feed_name"),
-        youtube_link=I18N.t("youtube.commands.add.desc.youtube_link"),
-        channel=I18N.t("youtube.commands.add.desc.channel"),
+        feed_name=_t("youtube.commands.add.desc.feed_name"),
+        youtube_link=_t("youtube.commands.add.desc.youtube_link"),
+        channel=_t("youtube.commands.add.desc.channel"),
     )
     async def youtube_add(
         self,
@@ -627,7 +627,7 @@ class Youtube(commands.Cog):
                     )
                     await discord_commands.log_to_bot_channel(
                         interaction.guild,
-                        content_in=I18N.t(
+                        content_in=_t(
                             "youtube.commands.add.add_error",
                             youtube_link=youtube_link,
                         ),
@@ -643,7 +643,7 @@ class Youtube(commands.Cog):
             return
         if youtube_info is None:
             await interaction.followup.send(
-                I18N.t("youtube.commands.add.msg_empty_link", link=youtube_link),
+                _t("youtube.commands.add.msg_empty_link", link=youtube_link),
             )
             return
         await feeds_core.add_to_feed_db(
@@ -658,7 +658,7 @@ class Youtube(commands.Cog):
         )
         await discord_commands.log_to_bot_channel(
             interaction.guild,
-            I18N.t(
+            _t(
                 "youtube.commands.add.log_feed_confirm",
                 user=AUTHOR,
                 feed_name=feed_name,
@@ -667,7 +667,7 @@ class Youtube(commands.Cog):
             ),
         )
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "youtube.commands.add.msg_added",
                 feed_name=feed_name,
                 channel_name=channel.name,
@@ -678,9 +678,9 @@ class Youtube(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_group.command(
-        name="remove", description=locale_str(I18N.t("youtube.commands.remove.cmd"))
+        name="remove", description=locale_str(_t("youtube.commands.remove.cmd"))
     )
-    @describe(feed_name=I18N.t("youtube.commands.remove.desc.feed_name"))
+    @describe(feed_name=_t("youtube.commands.remove.desc.feed_name"))
     async def youtube_remove(self, interaction: discord.Interaction, feed_name: str):
         """
         Remove a Youtube feed
@@ -697,7 +697,7 @@ class Youtube(commands.Cog):
         if feed_info is None:
             logger.debug(f"The feed `{feed_name}` does not exist")
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "youtube.commands.remove.msg_remove_non_existing_feed",
                     feed_name=feed_name,
                 )
@@ -709,14 +709,14 @@ class Youtube(commands.Cog):
         if removal:
             await discord_commands.log_to_bot_channel(
                 interaction.guild,
-                I18N.t(
+                _t(
                     "youtube.commands.remove.log_feed_removed",
                     feed_name=feed_name,
                     user_name=AUTHOR,
                 ),
             )
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "youtube.commands.remove.msg_feed_removed",
                     feed_name=feed_name,
                     channel_name=get(
@@ -727,7 +727,7 @@ class Youtube(commands.Cog):
         elif removal is False:
             # Couldn't remove the feed
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "youtube.commands.remove.msg_feed_remove_failed",
                     feed_name=feed_name,
                 )
@@ -735,7 +735,7 @@ class Youtube(commands.Cog):
             # Also log and send error to either a bot-channel or admin
             await discord_commands.log_to_bot_channel(
                 interaction.guild,
-                I18N.t(
+                _t(
                     "youtube.commands.remove.log_feed_remove_failed",
                     user_name=AUTHOR,
                     feed_name=feed_name,
@@ -747,13 +747,13 @@ class Youtube(commands.Cog):
     @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_group.command(
         name="edit",
-        description=locale_str(I18N.t("youtube.commands.edit.cmd")),
+        description=locale_str(_t("youtube.commands.edit.cmd")),
     )
     @describe(
-        feed_name=I18N.t("youtube.commands.edit.desc.feed_name"),
-        new_feed_name=I18N.t("youtube.commands.edit.desc.new_feed_name"),
-        new_channel=I18N.t("youtube.commands.edit.desc.channel"),
-        new_url=I18N.t("youtube.commands.edit.desc.url"),
+        feed_name=_t("youtube.commands.edit.desc.feed_name"),
+        new_feed_name=_t("youtube.commands.edit.desc.new_feed_name"),
+        new_channel=_t("youtube.commands.edit.desc.channel"),
+        new_url=_t("youtube.commands.edit.desc.url"),
     )
     async def youtube_edit(
         self,
@@ -771,21 +771,21 @@ class Youtube(commands.Cog):
             guild_id=interaction.guild.id,
         )
         logger.debug(f"`feed_info` is {feed_info}")
-        changes_out = I18N.t(
+        changes_out = _t(
             "youtube.commands.edit.changes_out.msg", feed_name=feed_name
         )
         updates_in = []
         if new_feed_name != "":
             updates_in.append(("feed_name", new_feed_name))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("youtube.commands.edit.changes_out.feed_name"),
+                _t("youtube.commands.edit.changes_out.feed_name"),
                 feed_info[0]["feed_name"],
                 new_feed_name,
             )
         if new_channel:
             updates_in.append(("channel", new_channel))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("youtube.commands.edit.changes_out.channel"),
+                _t("youtube.commands.edit.changes_out.channel"),
                 str(
                     discord_commands.get_channel_name(
                         interaction.guild, feed_info[0]["channel"]
@@ -797,19 +797,19 @@ class Youtube(commands.Cog):
             if net_io.url_hostname_matches(url_in=new_url, domain="youtube.com"):
                 updates_in.append(("url", new_url))
                 changes_out += "\n- {}: `{}` -> `{}`".format(
-                    I18N.t("youtube.commands.edit.changes_out.url"),
+                    _t("youtube.commands.edit.changes_out.url"),
                     feed_info[0]["url"],
                     new_url,
                 )
             else:
                 await interaction.followup.send(
-                    I18N.t("youtube.commands.edit.msg_not_youtube_link", url=new_url),
+                    _t("youtube.commands.edit.msg_not_youtube_link", url=new_url),
                     ephemeral=True,
                 )
                 return
         if len(updates_in) == 0:
             await interaction.followup.send(
-                I18N.t("youtube.commands.edit.msg_no_changes", feed_name=feed_name),
+                _t("youtube.commands.edit.msg_no_changes", feed_name=feed_name),
                 ephemeral=True,
             )
             return
@@ -824,12 +824,12 @@ class Youtube(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_name_url_autocomplete)
     @youtube_filter_group.command(
-        name="add", description=locale_str(I18N.t("youtube.commands.filter_add.cmd"))
+        name="add", description=locale_str(_t("youtube.commands.filter_add.cmd"))
     )
     @describe(
-        feed_name=I18N.t("youtube.commands.filter_add.desc.feed_name"),
-        allow_deny=I18N.t("youtube.commands.filter_add.desc.allow_deny"),
-        filters_in=I18N.t("youtube.commands.filter_add.desc.filters_in"),
+        feed_name=_t("youtube.commands.filter_add.desc.feed_name"),
+        allow_deny=_t("youtube.commands.filter_add.desc.allow_deny"),
+        filters_in=_t("youtube.commands.filter_add.desc.filters_in"),
     )
     async def youtube_filter_add(
         self,
@@ -860,7 +860,7 @@ class Youtube(commands.Cog):
         if allow_deny_in is None:
             logger.error(f"Got an unknown `allow_deny` value: {allow_deny}")
             await interaction.followup.send(
-                I18N.t("youtube.commands.filter_add.msg_filter_failed"), ephemeral=True
+                _t("youtube.commands.filter_add.msg_filter_failed"), ephemeral=True
             )
             return
         # One filter per command, stored whole - unlike rss, which splits
@@ -874,7 +874,7 @@ class Youtube(commands.Cog):
         )
         if adding_filter:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "youtube.commands.filter_add.msg_filter_added",
                     allow_deny=allow_deny,
                     filter_in=filters_in,
@@ -883,7 +883,7 @@ class Youtube(commands.Cog):
             )
         else:
             await interaction.followup.send(
-                I18N.t("youtube.commands.filter_add.msg_filter_failed"), ephemeral=True
+                _t("youtube.commands.filter_add.msg_filter_failed"), ephemeral=True
             )
         return
 
@@ -892,11 +892,11 @@ class Youtube(commands.Cog):
     @discord.app_commands.autocomplete(filter_in=youtube_filter_autocomplete)
     @youtube_filter_group.command(
         name="remove",
-        description=locale_str(I18N.t("youtube.commands.filter_remove.cmd")),
+        description=locale_str(_t("youtube.commands.filter_remove.cmd")),
     )
     @describe(
-        feed_name=I18N.t("youtube.commands.filter_remove.desc.feed_name"),
-        filter_in=I18N.t("youtube.commands.filter_remove.desc.filter_in"),
+        feed_name=_t("youtube.commands.filter_remove.desc.feed_name"),
+        filter_in=_t("youtube.commands.filter_remove.desc.filter_in"),
     )
     async def youtube_filter_remove(
         self, interaction: discord.Interaction, feed_name: str, filter_in: str
@@ -919,7 +919,7 @@ class Youtube(commands.Cog):
         )
         if removing_filter:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "youtube.commands.filter_remove.msg_confirm", filter_in=filter_in
                 ),
                 ephemeral=True,
@@ -927,17 +927,17 @@ class Youtube(commands.Cog):
             logger.info(f"Youtube filter '{filter_in}' removed from feed '{feed_name}'")
         else:
             await interaction.followup.send(
-                I18N.t("youtube.commands.filter_remove.msg_error", filter_in=filter_in),
+                _t("youtube.commands.filter_remove.msg_error", filter_in=filter_in),
                 ephemeral=True,
             )
         return
 
     @youtube_group.command(
-        name="list", description=locale_str(I18N.t("youtube.commands.list.cmd"))
+        name="list", description=locale_str(_t("youtube.commands.list.cmd"))
     )
     @describe(
-        list_type=I18N.t("youtube.commands.list.desc.list_type"),
-        link_type=I18N.t("youtube.commands.list.desc.link_type"),
+        list_type=_t("youtube.commands.list.desc.list_type"),
+        link_type=_t("youtube.commands.list.desc.link_type"),
     )
     async def youtube_list(
         self,
@@ -995,16 +995,16 @@ class Youtube(commands.Cog):
                 # with it, for a second per page
                 await asyncio.sleep(1)
         else:
-            await interaction.followup.send(I18N.t("youtube.commands.list.msg_error"))
+            await interaction.followup.send(_t("youtube.commands.list.msg_error"))
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=broken_feed_autocomplete)
     @youtube_group.command(
         name="reset_url_errors",
-        description=locale_str(I18N.t("youtube.commands.reset_url_errors.cmd")),
+        description=locale_str(_t("youtube.commands.reset_url_errors.cmd")),
     )
-    @describe(feed_name=I18N.t("youtube.commands.reset_url_errors.desc.feed_name"))
+    @describe(feed_name=_t("youtube.commands.reset_url_errors.desc.feed_name"))
     async def youtube_reset_url_errors(
         self, interaction: discord.Interaction, feed_name: str = None
     ):
@@ -1017,18 +1017,18 @@ class Youtube(commands.Cog):
         )
         if not reset:
             await interaction.followup.send(
-                I18N.t("youtube.commands.reset_url_errors.msg_nothing_to_reset")
+                _t("youtube.commands.reset_url_errors.msg_nothing_to_reset")
             )
             return
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "youtube.commands.reset_url_errors.msg_confirm",
                 feeds="\n- ".join(reset),
             )
         )
         await discord_commands.log_to_bot_channel(
             interaction.guild,
-            I18N.t(
+            _t(
                 "youtube.commands.reset_url_errors.log_reset",
                 feeds="\n- ".join(reset),
                 user_name=interaction.user.name,
@@ -1047,7 +1047,7 @@ class Youtube(commands.Cog):
             if config.ADMIN_CHANNEL_ID:
                 await discord_commands.post_to_channel(
                     config.ADMIN_CHANNEL_ID,
-                    content_in=I18N.t("youtube.tasks.post_videos.log_no_api_key"),
+                    content_in=_t("youtube.tasks.post_videos.log_no_api_key"),
                 )
             return
         approved_guilds = await db_helper.get_output(
@@ -1317,11 +1317,11 @@ async def migrate_legacy_youtube_tables(guild):
     if sum(copied.values()) == 0:
         logger.info(f"Nothing left to migrate for `{guild.name}`")
         return
-    _msg = I18N.t(
+    _msg = _t(
         "youtube.db.log_migrated",
         db_file=envs.youtube_db_schema["db_file"],
         copied=", ".join(
-            "{} {}".format(count, I18N.t(f"youtube.db.migrated_items.{name}"))
+            "{} {}".format(count, _t(f"youtube.db.migrated_items.{name}"))
             for name, count in copied.items()
         ),
         legacy_feeds_db=LEGACY_FEEDS_DB_FILE,
@@ -1441,12 +1441,12 @@ async def backfill_missing_playlist_ids(guild):
     if filled:
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t("youtube.db.log_playlist_ids_filled", feeds="\n- ".join(filled)),
+            _t("youtube.db.log_playlist_ids_filled", feeds="\n- ".join(filled)),
         )
     if failed:
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t("youtube.db.log_playlist_ids_missing", feeds="\n- ".join(failed)),
+            _t("youtube.db.log_playlist_ids_missing", feeds="\n- ".join(failed)),
         )
 
 
@@ -1487,7 +1487,7 @@ async def ensure_guild_youtube_tables(guild):
                 missing_tbl_cols_text += "\n\n"
         await discord_commands.log_to_bot_channel(
             guild,
-            I18N.t("youtube.db.log_missing_columns", columns=missing_tbl_cols_text),
+            _t("youtube.db.log_missing_columns", columns=missing_tbl_cols_text),
         )
     # Put back the uuid on filter rows that got a whole db row written
     # into the column instead

@@ -7,6 +7,7 @@ sausage-bot - affectionately known as "pølsa" among its Norwegian users - is a 
 ### Administration (main)
 
 #### Guild administration
+
 - Approve a pending server, admin-guild only (`/guild approve`)
 - List servers and their status, admin-guild only (`/guild list`)
 - Leave a server, admin-guild only (`/guild leave`)
@@ -14,8 +15,9 @@ sausage-bot - affectionately known as "pølsa" among its Norwegian users - is a 
 - Set the admin channel in the admin guild, admin-guild only (`/guild set_admin_channel`)
 
 #### General commands
+
 - Check latency (`/ping`)
-- Kick/ban users (/kick, /ban)
+- Kick/ban users (`/kick`, `/ban`)
 - Delete a number of messages in a channel (`/delete`)
 - Make the bot say something in a channel, via the "Say as bot" context menu (right-click any message in that channel)
 - Reply to a message as the bot, via the "Reply as bot" context menu (right-click the message to reply to)
@@ -73,6 +75,7 @@ Save and post quotes from the server.
 Command: `/quote`
 
 #### Managing quotes
+
 Only available for those with "Manage server" rights
 
 - Add a quote directly from an existing message via the "Add quote" context menu
@@ -84,6 +87,7 @@ Only available for those with "Manage server" rights
 - List, change, add or remove cog settings (`/quote settings list|change|add|remove`)
 
 #### Suggesting/approving quotes
+
 If activated in settings, guild users without "Manage server" rights can suggest a quote via the "Suggest quote" context menu.
 Suggested quotes will post in a defined channel, where users with the "Manage server" rights can approve, deny or edit quotes.
 with moderator approve/deny flow
@@ -121,6 +125,7 @@ Command: `/roles`
 - Sync reaction messages with the database (`/roles reaction sync`)
 
 ##### Message roles
+
 - Check and fix the order of reaction messages in a channel (`/roles reaction reorder`)
 - Add roles to a reaction message (`/roles reaction_add role`)
 - Remove a role from a reaction message (`/roles reaction_remove role`)
@@ -132,6 +137,7 @@ Settings for roles and reaction messages on the server
 
 
 ##### Message role
+
 - Set a unique role for new users (/roles settings add [Unique role] [discord role]). This is great if you want a certain role to be added to new users to separate them when it comes to moderation or restriction in permissions
 - Choose roles not to be included when deciding if the unique role is a user's only role or not (/roles settings add [Not include in total] [discord role])
 - Remove a setting (`/roles settings remove`)
@@ -340,23 +346,23 @@ sausage_bot uses `i18nice` for making text and commands translateable. See the `
 - Filename format is `[filename].[shortcode for language].yml`
 - Make a pull request with complete set of files for language
 
-### Hey, does that local flake8 plugin named `flake8-I18N-checker` have anything to do with translating?
+### Hey, does that local flake8 plugin named `flake8-l10n-checker` have anything to do with translating?
 
 I'm glad you asked.
 
-You can use the local flake8 plugin `flake8-I18N-checker` to check your newly created yml-files. Add this to a file in root folder named `.flake8`:
+You can use the local flake8 plugin `flake8-l10n-checker` to check your newly created yml-files. Add this to a file in root folder named `.flake8`:
 
 ```
 [flake8]
 exclude =
-    ./sausage_bot/flake8-I18N-checker,
+    ./sausage_bot/flake8-l10n-checker,
     ./sausage_bot/util/i18n.py
 
 [flake8:local-plugins]
 extension =
-    LC1 = flake8_I18N_checker:I18N_Checker
+    LC1 = flake8_l10n_checker:l10n_Checker
 paths =
-    ./sausage_bot/flake8-I18N-checker/
+    ./sausage_bot/flake8-l10n-checker/
 ```
 
 Then run the following command in the root folder in a terminal:

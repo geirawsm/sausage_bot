@@ -77,7 +77,6 @@ try:
     ADMIN_CHANNEL_ID = ENV_ADMIN_CHANNEL_ID
     PREFIX = env("PREFIX", default="!")
     BOT_CHANNEL = env("BOT_CHANNEL", default="bot-log")
-    # TODO: Fjerne timezone og language etterhvert, alt skal via db
     TIMEZONE = env("BOT_TIMEZONE", default="UTC")
     LANGUAGE = env("BOT_LANGUAGE", default="en")
     ROLE_CHANNEL = env("ROLE_CHANNEL", default="roles")
@@ -159,7 +158,7 @@ for folder in check_and_create_folders:
 class GuildContextTree(discord.app_commands.CommandTree):
     """
     Command tree that loads the guild's language/timezone settings before
-    any interaction is invoked, so `I18N.t()` and `get_dt()`/`make_dt()`
+    any interaction is invoked, so `_t()` and `get_dt()`/`make_dt()`
     resolve per guild inside slash commands - not just in the background
     tasks, which set the context themselves.
 

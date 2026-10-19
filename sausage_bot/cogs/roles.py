@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from sausage_bot.util import config, envs, discord_commands
 from sausage_bot.util import db_helper, net_io
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -65,7 +65,7 @@ class PermissionsView(discord.ui.View):
         def prep_dropdown(perm_name, permissions_in: dict = None):
             list_out = []
             for perm in envs.SELECT_PERMISSIONS[perm_name]:
-                _desc = I18N.t(str(f"discord_permissions.{perm_name}.{perm}"))
+                _desc = _t(str(f"discord_permissions.{perm_name}.{perm}"))
                 if len(str(_desc)) >= 100:
                     _desc = f"{str(_desc):.90}..."
                 if isinstance(permissions_in, (dict, list)) and perm in permissions_in:
@@ -89,15 +89,15 @@ class PermissionsView(discord.ui.View):
         voice_perms = prep_dropdown("voice", self.permissions_in)
 
         general_dropdown = DropdownPermissions(
-            I18N.t("roles.views.perms.drop_general"),
+            _t("roles.views.perms.drop_general"),
             self.permissions_out,
             general_perms,
         )
         text_dropdown = DropdownPermissions(
-            I18N.t("roles.views.perms.drop_text"), self.permissions_out, text_perms
+            _t("roles.views.perms.drop_text"), self.permissions_out, text_perms
         )
         voice_dropdown = DropdownPermissions(
-            I18N.t("roles.views.perms.drop_voice"), self.permissions_out, voice_perms
+            _t("roles.views.perms.drop_voice"), self.permissions_out, voice_perms
         )
 
         self.add_item(general_dropdown)
@@ -146,7 +146,7 @@ class ModalReactionRoleRemove(discord.ui.Modal):
             f"self.roles_prep ({len(self.roles_prep)}: {str(self.roles_prep)[0:500]}"
         )
         self.roles_dropdown = discord.ui.Select(
-            placeholder=I18N.t(
+            placeholder=_t(
                 "roles.modals.reaction_remove_role.dropdown_placeholder"
             ),
             options=self.roles_prep,
@@ -155,7 +155,7 @@ class ModalReactionRoleRemove(discord.ui.Modal):
         )
         self.add_item(
             discord.ui.TextDisplay(
-                content=I18N.t("roles.modals.reaction_remove_role.text_info")
+                content=_t("roles.modals.reaction_remove_role.text_info")
             )
         )
         self.add_item(
@@ -165,7 +165,7 @@ class ModalReactionRoleRemove(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         if not self.roles_dropdown.values:
             await interaction.response.send_message(
-                I18N.t("roles.modals.reaction_remove_role.no_roles_for_deletion"),
+                _t("roles.modals.reaction_remove_role.no_roles_for_deletion"),
                 ephemeral=True,
             )
         else:
@@ -175,7 +175,7 @@ class ModalReactionRoleRemove(discord.ui.Modal):
                 for role_id in self.roles_out
             ]
             await interaction.response.send_message(
-                I18N.t(
+                _t(
                     "roles.modals.reaction_remove_role.roles_confirmed_deleted",
                     role_names="{}".format(", ".join(role_names)),
                 ),
@@ -186,7 +186,7 @@ class ModalReactionRoleRemove(discord.ui.Modal):
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
         await interaction.response.send_message(
-            I18N.t("roles.modals.reaction_remove_role.error", error=error),
+            _t("roles.modals.reaction_remove_role.error", error=error),
             ephemeral=True,
         )
 
@@ -416,11 +416,11 @@ async def sync_reaction_message_from_settings(
 
 def tabulate_emoji(dict_in):
     content = {
-        "emoji": {"length": 7, "header": I18N.t("roles.emoji_headers.emoji")},
-        "name": {"length": 0, "header": I18N.t("roles.emoji_headers.name")},
-        "id": {"length": 20, "header": I18N.t("roles.emoji_headers.id")},
-        "animated": {"length": 11, "header": I18N.t("roles.emoji_headers.animated")},
-        "managed": {"length": 17, "header": I18N.t("roles.emoji_headers.managed")},
+        "emoji": {"length": 7, "header": _t("roles.emoji_headers.emoji")},
+        "name": {"length": 0, "header": _t("roles.emoji_headers.name")},
+        "id": {"length": 20, "header": _t("roles.emoji_headers.id")},
+        "animated": {"length": 11, "header": _t("roles.emoji_headers.animated")},
+        "managed": {"length": 17, "header": _t("roles.emoji_headers.managed")},
     }
     for dict_item in dict_in:
         for item in dict_in[dict_item]:
@@ -465,11 +465,11 @@ def tabulate_emoji(dict_in):
 
 def tabulate_roles(dict_in):
     content = {
-        "emoji": {"length": 7, "header": I18N.t("roles.roles_headers.emoji")},
-        "name": {"length": 0, "header": I18N.t("roles.roles_headers.name")},
-        "id": {"length": 20, "header": I18N.t("roles.roles_headers.id")},
-        "members": {"length": 8, "header": I18N.t("roles.roles_headers.members")},
-        "managed": {"length": 17, "header": I18N.t("roles.roles_headers.managed")},
+        "emoji": {"length": 7, "header": _t("roles.roles_headers.emoji")},
+        "name": {"length": 0, "header": _t("roles.roles_headers.name")},
+        "id": {"length": 20, "header": _t("roles.roles_headers.id")},
+        "members": {"length": 8, "header": _t("roles.roles_headers.members")},
+        "managed": {"length": 17, "header": _t("roles.roles_headers.managed")},
     }
     for dict_item in dict_in:
         for item in dict_in[dict_item]:
@@ -518,20 +518,20 @@ def tabulate_emojis_and_roles(dict_in):
             "length": 1,
         },
         "emoji_name": {
-            "length": len(str(I18N.t("roles.tabulate_emojis_and_roles.emoji_name"))),
-            "header": I18N.t("roles.tabulate_emojis_and_roles.emoji_name"),
+            "length": len(str(_t("roles.tabulate_emojis_and_roles.emoji_name"))),
+            "header": _t("roles.tabulate_emojis_and_roles.emoji_name"),
         },
         "emoji_id": {
             "length": 19,
-            "header": str(I18N.t("roles.tabulate_emojis_and_roles.emoji_id")),
+            "header": str(_t("roles.tabulate_emojis_and_roles.emoji_id")),
         },
         "role_name": {
-            "length": len(str(I18N.t("roles.tabulate_emojis_and_roles.role_name"))) + 1,
-            "header": str(I18N.t("roles.tabulate_emojis_and_roles.role_name")),
+            "length": len(str(_t("roles.tabulate_emojis_and_roles.role_name"))) + 1,
+            "header": str(_t("roles.tabulate_emojis_and_roles.role_name")),
         },
         "role_id": {
             "length": 19,
-            "header": str(I18N.t("roles.tabulate_emojis_and_roles.role_id")),
+            "header": str(_t("roles.tabulate_emojis_and_roles.role_id")),
         },
     }
     for dict_item in dict_in:
@@ -726,7 +726,7 @@ class ReactionEditModal(discord.ui.Modal):
         # Create elements
         reaction_header = ReactionTextInput(
             style_in=discord.TextStyle.paragraph,
-            label_in=I18N.t("roles.modals.reaction_edit.reaction_header"),
+            label_in=_t("roles.modals.reaction_edit.reaction_header"),
             default_in=self.reaction_header_in if self.reaction_header_in else "",
             required_in=True,
             placeholder_in="Text",
@@ -734,7 +734,7 @@ class ReactionEditModal(discord.ui.Modal):
 
         reaction_text = ReactionTextInput(
             style_in=discord.TextStyle.paragraph,
-            label_in=I18N.t("roles.modals.reaction_edit.reaction_text"),
+            label_in=_t("roles.modals.reaction_edit.reaction_text"),
             default_in=self.reaction_text_in if self.reaction_text_in else "",
             required_in=True,
             placeholder_in="Text",
@@ -766,7 +766,7 @@ class ReactionEditModal(discord.ui.Modal):
                         ", ".join(content_block["channel_errors"])
                     )
                 else:
-                    msg_out += I18N.t(
+                    msg_out += _t(
                         "common.channel_errors",
                         errors=", ".join(content_block["channel_errors"]),
                     )
@@ -777,13 +777,13 @@ class ReactionEditModal(discord.ui.Modal):
         self.reaction_text_out = text_out["text"]
 
         await interaction.response.send_message(
-            I18N.t("roles.modals.reaction_edit.confirm"), ephemeral=True
+            _t("roles.modals.reaction_edit.confirm"), ephemeral=True
         )
 
     async def on_error(self, interaction: discord.Interaction, error):
         logger.debug(f"Error when editing reaction message: {error}")
         await interaction.response.send_message(
-            I18N.t("roles.modals.reaction_edit.error", error=error), ephemeral=True
+            _t("roles.modals.reaction_edit.error", error=error), ephemeral=True
         )
 
 
@@ -795,70 +795,70 @@ class Autoroles(commands.Cog):
         super().__init__()
 
     roles_group = discord.app_commands.Group(
-        name="roles", description=locale_str(I18N.t("roles.group.roles"))
+        name="roles", description=locale_str(_t("roles.group.roles"))
     )
 
     roles_reaction_group = discord.app_commands.Group(
         name="reaction",
-        description=locale_str(I18N.t("roles.group.reaction")),
+        description=locale_str(_t("roles.group.reaction")),
         parent=roles_group,
     )
 
     roles_reaction_add_group = discord.app_commands.Group(
         name="reaction_add",
-        description=locale_str(I18N.t("roles.group.add_reaction")),
+        description=locale_str(_t("roles.group.add_reaction")),
         parent=roles_group,
     )
 
     roles_reaction_remove_group = discord.app_commands.Group(
         name="reaction_remove",
-        description=locale_str(I18N.t("roles.group.remove_reaction")),
+        description=locale_str(_t("roles.group.remove_reaction")),
         parent=roles_group,
     )
 
     roles_reaction_move_group = discord.app_commands.Group(
         name="reaction_move",
-        description=locale_str(I18N.t("roles.group.move_reaction_role")),
+        description=locale_str(_t("roles.group.move_reaction_role")),
         parent=roles_group,
     )
 
     roles_reaction_edit_group = discord.app_commands.Group(
         name="reaction_edit",
-        description=locale_str(I18N.t("roles.group.edit_reaction")),
+        description=locale_str(_t("roles.group.edit_reaction")),
         parent=roles_group,
     )
 
     roles_settings_group = discord.app_commands.Group(
         name="settings",
-        description=locale_str(I18N.t("roles.group.settings")),
+        description=locale_str(_t("roles.group.settings")),
         parent=roles_group,
     )
 
     emojis_group = discord.app_commands.Group(
-        name="emojis", description=locale_str(I18N.t("roles.group.emojis"))
+        name="emojis", description=locale_str(_t("roles.group.emojis"))
     )
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
-        name="info", description=locale_str(I18N.t("roles.commands.role_info.cmd"))
+        name="info", description=locale_str(_t("roles.commands.role_info.cmd"))
     )
     @describe(
-        public=I18N.t("roles.commands.role_info.desc.public"),
-        role_in=I18N.t("roles.commands.role_info.desc.role_in"),
+        public=_t("roles.commands.role_info.desc.public"),
+        role_in=_t("roles.commands.role_info.desc.role_in"),
     )
     async def role_info(
         self,
         interaction: discord.Interaction,
         role_in: discord.Role,
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
         ] = None,
     ):
         """
         Get info about a specific role
         """
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -867,19 +867,19 @@ class Autoroles(commands.Cog):
         embed.set_thumbnail(url=role_in.icon)
         embed.add_field(name="Role name", value=role_in.name, inline=True)
         embed.add_field(name="ID", value=role_in.id, inline=True)
-        embed.add_field(name=I18N.t("common.color"), value=role_in.color, inline=True)
+        embed.add_field(name=_t("common.color"), value=role_in.color, inline=True)
         if role_in.is_bot_managed():
             embed.add_field(
-                name=I18N.t("roles.embed.auto_managed.name"),
-                value=I18N.t(
+                name=_t("roles.embed.auto_managed.name"),
+                value=_t(
                     "roles.embed.auto_managed.value_confirm", name=role_in.name
                 ),
                 inline=True,
             )
         elif role_in.is_integration():
             embed.add_field(
-                name=I18N.t("roles.embed.auto_managed.name"),
-                value=I18N.t(
+                name=_t("roles.embed.auto_managed.name"),
+                value=_t(
                     "roles.embed.auto_managed.value_confirm",
                     name=role_in.tags.integration_id,
                 ),
@@ -887,19 +887,19 @@ class Autoroles(commands.Cog):
             )
         else:
             embed.add_field(
-                name=I18N.t("roles.embed.auto_managed.name"),
-                value=I18N.t("common.literal_yes_no.lit_no"),
+                name=_t("roles.embed.auto_managed.name"),
+                value=_t("common.literal_yes_no.lit_no"),
                 inline=True,
             )
         embed.add_field(
-            name=I18N.t("roles.embed.hoist.name"),
-            value=I18N.t("common.literal_yes_no.lit_yes")
+            name=_t("roles.embed.hoist.name"),
+            value=_t("common.literal_yes_no.lit_yes")
             if role_in.hoist
-            else I18N.t("common.literal_yes_no.lit_no"),
+            else _t("common.literal_yes_no.lit_no"),
             inline=True,
         )
         embed.add_field(
-            name=I18N.t("roles.embed.members"), value=len(role_in.members), inline=True
+            name=_t("roles.embed.members"), value=len(role_in.members), inline=True
         )
         permissions = ", ".join(
             [
@@ -909,36 +909,36 @@ class Autoroles(commands.Cog):
             ]
         )
         embed.add_field(
-            name=I18N.t("roles.embed.permissions"),
-            value=permissions if permissions else I18N.t("common.none"),
+            name=_t("roles.embed.permissions"),
+            value=permissions if permissions else _t("common.none"),
             inline=False,
         )
         embed.add_field(
-            name=I18N.t("roles.embed.position"), value=role_in.position, inline=False
+            name=_t("roles.embed.position"), value=role_in.position, inline=False
         )
         await interaction.followup.send(embed=embed, ephemeral=_ephemeral)
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
-        name="list", description=locale_str(I18N.t("roles.commands.list.cmd"))
+        name="list", description=locale_str(_t("roles.commands.list.cmd"))
     )
     @describe(
-        public=I18N.t("roles.commands.list.desc.public"),
-        type=I18N.t("roles.commands.list.desc.type"),
-        sort=I18N.t("roles.commands.list.desc.sort"),
+        public=_t("roles.commands.list.desc.public"),
+        type=_t("roles.commands.list.desc.type"),
+        sort=_t("roles.commands.list.desc.sort"),
     )
     @choices(
         type=[
-            Choice(name=I18N.t("common.roles"), value="roles"),
-            Choice(name=I18N.t("common.emojis"), value="emojis"),
+            Choice(name=_t("common.roles"), value="roles"),
+            Choice(name=_t("common.emojis"), value="emojis"),
         ],
         sort=[
-            Choice(name=I18N.t("common.name"), value="name"),
-            Choice(name=I18N.t("common.id"), value="id"),
+            Choice(name=_t("common.name"), value="name"),
+            Choice(name=_t("common.id"), value="id"),
         ],
         public=[
-            Choice(name=I18N.t("common.literal_yes_no.lit_yes"), value="yes"),
-            Choice(name=I18N.t("common.literal_yes_no.lit_no"), value="no"),
+            Choice(name=_t("common.literal_yes_no.lit_yes"), value="yes"),
+            Choice(name=_t("common.literal_yes_no.lit_no"), value="no"),
         ],
     )
     async def roles_list(
@@ -971,11 +971,11 @@ class Autoroles(commands.Cog):
                 tabulate_dict["members"].append(len(role.members))
                 if role.managed:
                     tabulate_dict["managed"].append(
-                        I18N.t("common.literal_yes_no.lit_yes")
+                        _t("common.literal_yes_no.lit_yes")
                     )
                 elif not role.managed:
                     tabulate_dict["managed"].append(
-                        I18N.t("common.literal_yes_no.lit_no")
+                        _t("common.literal_yes_no.lit_no")
                     )
             return tabulate_roles(tabulate_dict)
 
@@ -1000,19 +1000,19 @@ class Autoroles(commands.Cog):
                 tabulate_dict["id"].append(emoji.id)
                 if emoji.animated:
                     tabulate_dict["animated"].append(
-                        I18N.t("common.literal_yes_no.lit_yes")
+                        _t("common.literal_yes_no.lit_yes")
                     )
                 else:
                     tabulate_dict["animated"].append(
-                        I18N.t("common.literal_yes_no.lit_no")
+                        _t("common.literal_yes_no.lit_no")
                     )
                 if emoji.managed:
                     tabulate_dict["managed"].append(
-                        I18N.t("common.literal_yes_no.lit_yes")
+                        _t("common.literal_yes_no.lit_yes")
                     )
                 else:
                     tabulate_dict["managed"].append(
-                        I18N.t("common.literal_yes_no.lit_no")
+                        _t("common.literal_yes_no.lit_no")
                     )
             # Returning pagination
             return tabulate_emoji(dict_in=tabulate_dict)
@@ -1030,7 +1030,7 @@ class Autoroles(commands.Cog):
         else:
             logger.error(f"Got unexpected `type` value in `roles_list`: `{type}`")
             await interaction.followup.send(
-                I18N.t("common.something_wrong", error=type), ephemeral=True
+                _t("common.something_wrong", error=type), ephemeral=True
             )
             return
         for page in pages:
@@ -1040,15 +1040,15 @@ class Autoroles(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
-        name="add", description=locale_str(I18N.t("roles.commands.add_role.cmd"))
+        name="add", description=locale_str(_t("roles.commands.add_role.cmd"))
     )
     @describe(
-        role_name=I18N.t("roles.commands.add_role.desc.role_name"),
-        hoist=I18N.t("roles.commands.add_role.desc.hoist"),
-        mentionable=I18N.t("roles.commands.add_role.desc.mentionable"),
-        color=I18N.t("roles.commands.add_role.desc.color"),
-        display_icon=I18N.t("roles.commands.add_role.desc.display_icon"),
-        public=I18N.t("roles.commands.role_info.desc.public"),
+        role_name=_t("roles.commands.add_role.desc.role_name"),
+        hoist=_t("roles.commands.add_role.desc.hoist"),
+        mentionable=_t("roles.commands.add_role.desc.mentionable"),
+        color=_t("roles.commands.add_role.desc.color"),
+        display_icon=_t("roles.commands.add_role.desc.display_icon"),
+        public=_t("roles.commands.role_info.desc.public"),
     )
     async def add_role(
         self,
@@ -1059,11 +1059,11 @@ class Autoroles(commands.Cog):
         color: str = None,
         display_icon: discord.Attachment = None,
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
         ] = None,
     ):
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -1076,7 +1076,7 @@ class Autoroles(commands.Cog):
             display_icon = await display_icon.read()
         perm_view = PermissionsView()
         await interaction.followup.send(
-            I18N.t("roles.commands.add_role.set_perms"), view=perm_view
+            _t("roles.commands.add_role.set_perms"), view=perm_view
         )
         await perm_view.wait()
         # Get new permissions and add to role
@@ -1096,17 +1096,17 @@ class Autoroles(commands.Cog):
                 display_icon=display_icon,
             )
             await interaction.followup.send(
-                I18N.t("roles.commands.add_role.msg_confirm"), ephemeral=_ephemeral
+                _t("roles.commands.add_role.msg_confirm"), ephemeral=_ephemeral
             )
         except discord.errors.Forbidden as e:
             await interaction.followup.send(
-                I18N.t("roles.commands.add_role.msg_error", _error=e.text),
+                _t("roles.commands.add_role.msg_error", _error=e.text),
                 ephemeral=_ephemeral,
             )
             return
         except ValueError as e:
             await interaction.followup.send(
-                I18N.t("roles.commands.add_role.msg_error", _error=e),
+                _t("roles.commands.add_role.msg_error", _error=e),
                 ephemeral=_ephemeral,
             )
             return
@@ -1114,9 +1114,9 @@ class Autoroles(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
-        name="remove", description=locale_str(I18N.t("roles.commands.remove_role.cmd"))
+        name="remove", description=locale_str(_t("roles.commands.remove_role.cmd"))
     )
-    @describe(role_name=I18N.t("roles.commands.remove_role.desc.role_name"))
+    @describe(role_name=_t("roles.commands.remove_role.desc.role_name"))
     async def remove_role(
         self, interaction: discord.Interaction, role_name: discord.Role
     ):
@@ -1125,20 +1125,20 @@ class Autoroles(commands.Cog):
         rolename = role_name.name
         await _guild.get_role(int(role_name.id)).delete()
         await interaction.followup.send(
-            I18N.t("roles.commands.remove_role.msg_confirm", rolename=rolename)
+            _t("roles.commands.remove_role.msg_confirm", rolename=rolename)
         )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_group.command(
-        name="edit", description=locale_str(I18N.t("roles.commands.edit_role.cmd"))
+        name="edit", description=locale_str(_t("roles.commands.edit_role.cmd"))
     )
     @describe(
-        role_name=I18N.t("roles.commands.edit_role.desc.role_name"),
-        new_name=I18N.t("roles.commands.edit_role.desc.new_name"),
-        color=I18N.t("roles.commands.edit_role.desc.color"),
-        hoist=I18N.t("roles.commands.edit_role.desc.hoist"),
-        permissions=I18N.t("roles.commands.edit_role.desc.permissions"),
+        role_name=_t("roles.commands.edit_role.desc.role_name"),
+        new_name=_t("roles.commands.edit_role.desc.new_name"),
+        color=_t("roles.commands.edit_role.desc.color"),
+        hoist=_t("roles.commands.edit_role.desc.hoist"),
+        permissions=_t("roles.commands.edit_role.desc.permissions"),
     )
     async def edit_role(
         self,
@@ -1153,17 +1153,17 @@ class Autoroles(commands.Cog):
         changes = []
         if new_name:
             logger.debug("Changed name")
-            i18n_name = I18N.t("roles.changelist.name")
+            i18n_name = _t("roles.changelist.name")
             changes.append(f"\n- {i18n_name}: `{role_name}` -> `{new_name}`")
             await role_name.edit(name=new_name)
         if color:
             logger.debug("Changed color")
-            i18n_color = I18N.t("roles.changelist.color")
+            i18n_color = _t("roles.changelist.color")
             changes.append(f"\n- {i18n_color}: `{role_name.color}` -> `{color}`")
             await role_name.edit(color=discord.Color.from_str(color))
         if hoist:
             logger.debug("Changed hoist setting")
-            i18n_hoist = I18N.t("roles.changelist.hoist")
+            i18n_hoist = _t("roles.changelist.hoist")
             changes.append(f"\n- {i18n_hoist}: `{role_name.hoist}` -> `{hoist}`")
             await role_name.edit(hoist=hoist)
         if permissions:
@@ -1175,7 +1175,7 @@ class Autoroles(commands.Cog):
             logger.debug(f"`perms_in`: {perms_in}")
             perm_view = PermissionsView(permissions_in=perms_in)
             await interaction.followup.send(
-                I18N.t("roles.commands.edit_role.change_perms"), view=perm_view
+                _t("roles.commands.edit_role.change_perms"), view=perm_view
             )
             await perm_view.wait()
             perms_out = perm_view.permissions_out
@@ -1188,28 +1188,28 @@ class Autoroles(commands.Cog):
             logger.debug("Changed permissions")
             perms_in_text = ", ".join(perm for perm in perms_in)
             perms_out_text = ", ".join(perm for perm in perms_out)
-            i18n_perms = I18N.t("roles.commands.edit_role.change_perms")
+            i18n_perms = _t("roles.commands.edit_role.change_perms")
             changes.append(f"\n- {i18n_perms}: `{perms_in_text}` -> `{perms_out_text}`")
         if len(changes) > 0:
             changes_out = "{}:".format(
-                I18N.t("roles.commands.edit_role.changes_out", role_name=role_name.name)
+                _t("roles.commands.edit_role.changes_out", role_name=role_name.name)
             )
             for change in changes:
                 changes_out += change
             await interaction.followup.send(changes_out)
         else:
             await interaction.followup.send(
-                I18N.t("roles.commands.edit_role.no_changes", role=role_name.name)
+                _t("roles.commands.edit_role.no_changes", role=role_name.name)
             )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @emojis_group.command(
-        name="add", description=locale_str(I18N.t("roles.commands.add_emoji.cmd"))
+        name="add", description=locale_str(_t("roles.commands.add_emoji.cmd"))
     )
     @describe(
-        emoji_name=I18N.t("roles.commands.add_emoji.desc.emoji_name"),
-        image=I18N.t("roles.commands.add_emoji.desc.image"),
+        emoji_name=_t("roles.commands.add_emoji.desc.emoji_name"),
+        image=_t("roles.commands.add_emoji.desc.image"),
     )
     async def add_emoji(
         self,
@@ -1224,32 +1224,32 @@ class Autoroles(commands.Cog):
         try:
             await guild.create_custom_emoji(name=emoji_name, image=image)
             await interaction.followup.send(
-                I18N.t("roles.commands.add_emoji.confirm_msg", emoji_name=emoji_name)
+                _t("roles.commands.add_emoji.confirm_msg", emoji_name=emoji_name)
             )
         except discord.errors.Forbidden as e:
             logger.error(f"Could not add emoji - forbidden: {e}")
             await interaction.followup.send(
-                I18N.t("roles.commands.add_emoji.msg_error", error=e.text)
+                _t("roles.commands.add_emoji.msg_error", error=e.text)
             )
             return
         except ValueError as e:
             logger.error(f"Could not add emoji - ValueError: {e}")
             await interaction.followup.send(
-                I18N.t("roles.commands.add_emoji.msg_error", error=e.text)
+                _t("roles.commands.add_emoji.msg_error", error=e.text)
             )
             return
         except discord.errors.HTTPException as e:
             logger.error(f"Error when reading image: {e}")
             await interaction.followup.send(
-                I18N.t("roles.commands.add_emoji.msg_error", error=e.text)
+                _t("roles.commands.add_emoji.msg_error", error=e.text)
             )
             return
 
     @discord_commands.is_owner_or_manage_guild()
     @emojis_group.command(
-        name="remove", description=locale_str(I18N.t("roles.commands.remove_emoji.cmd"))
+        name="remove", description=locale_str(_t("roles.commands.remove_emoji.cmd"))
     )
-    @describe(emoji=I18N.t("roles.commands.remove_emoji.desc.emoji_name"))
+    @describe(emoji=_t("roles.commands.remove_emoji.desc.emoji_name"))
     async def remove_emoji(self, interaction: discord.Interaction, emoji: discord.Role):
         await interaction.response.defer(ephemeral=True)
         try:
@@ -1257,32 +1257,32 @@ class Autoroles(commands.Cog):
             emoji_name = emoji.name
             await _guild.get_role(int(emoji.id)).delete()
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_emoji.confirm_msg", emoji_name=emoji_name)
+                _t("roles.commands.remove_emoji.confirm_msg", emoji_name=emoji_name)
             )
             return
         except discord.errors.Forbidden as e:
             logger.error(f"Could not remove emoji - forbidden: {e}")
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_emoji.error_msg", error=e.text)
+                _t("roles.commands.remove_emoji.error_msg", error=e.text)
             )
             return
         except ValueError as e:
             logger.error(f"Could not add emoji - ValueError: {e}")
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_emoji.error_msg", error=e.text)
+                _t("roles.commands.remove_emoji.error_msg", error=e.text)
             )
             return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(emoji=emojis_autocomplete)
     @emojis_group.command(
-        name="edit", description=locale_str(I18N.t("roles.commands.edit_emoji.cmd"))
+        name="edit", description=locale_str(_t("roles.commands.edit_emoji.cmd"))
     )
     @describe(
-        emoji=I18N.t("roles.commands.edit_emoji.desc.emoji_name"),
-        new_name=I18N.t("roles.commands.edit_emoji.desc.new_name"),
-        roles=I18N.t("roles.commands.edit_emoji.desc.roles"),
-        reason=I18N.t("roles.commands.edit_emoji.desc.reason"),
+        emoji=_t("roles.commands.edit_emoji.desc.emoji_name"),
+        new_name=_t("roles.commands.edit_emoji.desc.new_name"),
+        roles=_t("roles.commands.edit_emoji.desc.roles"),
+        reason=_t("roles.commands.edit_emoji.desc.reason"),
     )
     async def edit_emoji(
         self,
@@ -1297,19 +1297,19 @@ class Autoroles(commands.Cog):
         _guild = interaction.guild
         emoji_obj = _guild.get_emoji(int(emoji))
         if new_name:
-            i18n_name = I18N.t("roles.changelist.name")
+            i18n_name = _t("roles.changelist.name")
             changes.append(f"\n- {i18n_name}: `{emoji_obj.name}` -> `{new_name}`")
             await emoji_obj.edit(name=new_name, reason=reason if not None else "")
             logger.debug("Changed name")
         if roles:
-            i18n_roles = I18N.t("roles.changelist.roles")
+            i18n_roles = _t("roles.changelist.roles")
             changes.append(f"\n- {i18n_roles}: `{emoji_obj.roles}` -> `{roles}`")
             await emoji_obj.edit(roles=roles, reason=reason if not None else "")
             logger.debug("Changed allowed roles")
 
         if len(changes) > 0:
             changes_out = "{}:".format(
-                I18N.t(
+                _t(
                     "roles.commands.edit_emoji.changes_out", emoji_name=emoji_obj.name
                 )
             )
@@ -1318,30 +1318,30 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(changes_out)
         else:
             await interaction.followup.send(
-                I18N.t("roles.commands.edit_emoji.no_changes", emoji=emoji_obj.name)
+                _t("roles.commands.edit_emoji.no_changes", emoji=emoji_obj.name)
             )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(emoji=emojis_autocomplete)
     @emojis_group.command(
-        name="info", description=locale_str(I18N.t("roles.commands.emoji_info.cmd"))
+        name="info", description=locale_str(_t("roles.commands.emoji_info.cmd"))
     )
     @describe(
-        public=I18N.t("roles.commands.emoji_info.desc.public"),
-        emoji=I18N.t("roles.commands.emoji_info.desc.emoji"),
+        public=_t("roles.commands.emoji_info.desc.public"),
+        emoji=_t("roles.commands.emoji_info.desc.emoji"),
     )
     async def emoji_info(
         self,
         interaction: discord.Interaction,
         emoji: str,
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
         ] = None,
     ):
         "Get info about a specific emoji"
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -1351,31 +1351,31 @@ class Autoroles(commands.Cog):
         emoji_color = await net_io.extract_color_from_image_url(emoji_obj.url)
         embed = discord.Embed(color=discord.Color.from_str(f"#{emoji_color}"))
         embed.set_thumbnail(url=emoji_obj.url)
-        embed.add_field(name=I18N.t("common.name"), value=emoji_obj.name, inline=True)
+        embed.add_field(name=_t("common.name"), value=emoji_obj.name, inline=True)
         embed.add_field(
-            name=I18N.t("common.color"), value=f"#{emoji_color}", inline=True
+            name=_t("common.color"), value=f"#{emoji_color}", inline=True
         )
         if emoji_obj.managed:
             embed.add_field(
-                name=I18N.t("roles.embed.auto_managed.name"),
-                value=I18N.t(
+                name=_t("roles.embed.auto_managed.name"),
+                value=_t(
                     "roles.embed.auto_managed.value_confirm", name=emoji_obj.name
                 ),
                 inline=True,
             )
         else:
             embed.add_field(
-                name=I18N.t("roles.embed.auto_managed.name"),
-                value=I18N.t("common.literal_yes_no.lit_no"),
+                name=_t("roles.embed.auto_managed.name"),
+                value=_t("common.literal_yes_no.lit_no"),
                 inline=True,
             )
         embed.add_field(
-            name=I18N.t("roles.embed.roles_attached"),
+            name=_t("roles.embed.roles_attached"),
             value=emoji_obj.roles if len(emoji_obj.roles) > 0 else "Ingen",
         )
         embed.add_field(name="ID", value=emoji_obj.id, inline=True)
         embed.add_field(
-            name=I18N.t("roles.embed.created"),
+            name=_t("roles.embed.created"),
             value=emoji_obj.created_at.strftime("%d.%m.%Y %H.%M.%S"),
             inline=True,
         )
@@ -1383,10 +1383,10 @@ class Autoroles(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @describe(reaction_msg=I18N.t("roles.commands.react_list.desc.reaction_msg"))
+    @describe(reaction_msg=_t("roles.commands.react_list.desc.reaction_msg"))
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @roles_reaction_group.command(
-        name="list", description=locale_str(I18N.t("roles.commands.react_list.cmd"))
+        name="list", description=locale_str(_t("roles.commands.react_list.cmd"))
     )
     async def list_reactions(
         self, interaction: discord.Interaction, reaction_msg: str = None
@@ -1413,7 +1413,7 @@ class Autoroles(commands.Cog):
             logger.debug(f"db_reactions:\n{pformat(db_reactions)}")
             if db_reactions is None or len(db_reactions) <= 0:
                 await interaction.followup.send(
-                    I18N.t(
+                    _t(
                         "roles.commands.react_list.msg_error",
                         reaction_msg=msg_uuid,
                     )
@@ -1434,7 +1434,7 @@ class Autoroles(commands.Cog):
                     role_name = role.name
                     role_id = role.id
                 else:
-                    role_name = I18N.t("roles.commands.react_list.role_error")
+                    role_name = _t("roles.commands.react_list.role_error")
                     role_id = reaction["role"]
                 if re.match(r"\d{19,22}", reaction["emoji"]):
                     emoji = get(
@@ -1444,7 +1444,7 @@ class Autoroles(commands.Cog):
                     emoji_name = emoji.name
                     emoji_id = emoji.id
                 else:
-                    emoji_name = I18N.t("roles.commands.react_list.emoji_error")
+                    emoji_name = _t("roles.commands.react_list.emoji_error")
                     emoji_id = reaction["emoji"]
                 tabulate_dict["emoji_id"].append(emoji_id)
                 tabulate_dict["emoji_name"].append(emoji_name)
@@ -1454,15 +1454,15 @@ class Autoroles(commands.Cog):
             _header = db_reactions[0]["header"]
             await interaction.followup.send(
                 "{}: `{}`\n{}: `{}`\n{}: `{}`\n{}: `{}`\n{}: `{}`\n\n{}".format(
-                    I18N.t("common.name"),
+                    _t("common.name"),
                     db_reactions[0]["name"],
-                    I18N.t("common.channel"),
+                    _t("common.channel"),
                     db_reactions[0]["channel"],
-                    I18N.t("common.message_id"),
+                    _t("common.message_id"),
                     db_reactions[0]["msg_id"],
-                    I18N.t("common.header"),
+                    _t("common.header"),
                     _header if _header is not None else " ",
-                    I18N.t("common.text"),
+                    _t("common.text"),
                     db_reactions[0]["content"],
                     "\n".join(tabulated_reactions),
                 )
@@ -1503,12 +1503,12 @@ class Autoroles(commands.Cog):
                     tabulate(
                         tabulate_dict,
                         headers=[
-                            I18N.t("common.name"),
-                            I18N.t("common.channel"),
-                            I18N.t("common.order"),
-                            I18N.t("common.id"),
-                            I18N.t("common.text"),
-                            I18N.t("common.num_reactions"),
+                            _t("common.name"),
+                            _t("common.channel"),
+                            _t("common.order"),
+                            _t("common.id"),
+                            _t("common.text"),
+                            _t("common.num_reactions"),
                         ],
                     )
                 )
@@ -1517,16 +1517,16 @@ class Autoroles(commands.Cog):
 
     @roles_reaction_add_group.command(
         name="message",
-        description=locale_str(I18N.t("roles.commands.add_reaction_msg.cmd")),
+        description=locale_str(_t("roles.commands.add_reaction_msg.cmd")),
     )
     @describe(
-        msg_name=I18N.t("common.msg_name"),
-        message_text=I18N.t("common.msg_text"),
-        order=I18N.t("common.order"),
-        channel=I18N.t("common.channel"),
-        roles=I18N.t("common.roles"),
-        emojis=I18N.t("common.emojis"),
-        header=I18N.t("common.header"),
+        msg_name=_t("common.msg_name"),
+        message_text=_t("common.msg_text"),
+        order=_t("common.order"),
+        channel=_t("common.channel"),
+        roles=_t("common.roles"),
+        emojis=_t("common.emojis"),
+        header=_t("common.header"),
     )
     async def add_reaction_message(
         self,
@@ -1551,7 +1551,7 @@ class Autoroles(commands.Cog):
         )
         if order in [msg_order["msg_order"] for msg_order in msg_db_orders]:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "roles.commands.add_reaction_msg.msg_order_exist",
                     channel=channel.id,
                     num=len(msg_db_orders) + 1,
@@ -1566,7 +1566,7 @@ class Autoroles(commands.Cog):
         )
         if len(msg_db) == 1:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "roles.commands.add_reaction_msg.msg_reaction_already_exist",
                     msg_name=msg_name,
                 )
@@ -1581,7 +1581,7 @@ class Autoroles(commands.Cog):
         )
         if merged_roles_emojis is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.add_reaction_msg.msg_roles_emojis_error")
+                _t("roles.commands.add_reaction_msg.msg_roles_emojis_error")
             )
             return
         for combo in merged_roles_emojis:
@@ -1652,19 +1652,19 @@ class Autoroles(commands.Cog):
             ],
         )
         await interaction.followup.send(
-            I18N.t("roles.commands.add_reaction_msg.msg_confirm"), ephemeral=True
+            _t("roles.commands.add_reaction_msg.msg_confirm"), ephemeral=True
         )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_add_group.command(
         name="role",
-        description=locale_str(I18N.t("roles.commands.add_reaction_role.cmd")),
+        description=locale_str(_t("roles.commands.add_reaction_role.cmd")),
     )
     @describe(
-        msg_info=I18N.t("roles.commands.add_reaction_role.desc.msg_info"),
-        roles=I18N.t("common.roles"),
-        emojis=I18N.t("common.emojis"),
+        msg_info=_t("roles.commands.add_reaction_role.desc.msg_info"),
+        roles=_t("common.roles"),
+        emojis=_t("common.emojis"),
     )
     @discord.app_commands.autocomplete(msg_info=reaction_msgs_autocomplete)
     async def add_reaction_role(
@@ -1682,7 +1682,7 @@ class Autoroles(commands.Cog):
         msg_db = await get_msg_info(msg_info, interaction.guild.id)
         if msg_db is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_msg.msg_error"), ephemeral=True
+                _t("roles.commands.remove_msg.msg_error"), ephemeral=True
             )
             return
         msg_uuid = msg_db["uuid"]
@@ -1716,10 +1716,10 @@ class Autoroles(commands.Cog):
                 msg_uuid=msg_uuid, sort=sort, guild=interaction.guild
             )
             await interaction.followup.send(
-                I18N.t("roles.commands.add_reaction_role.msg_confirm"), ephemeral=True
+                _t("roles.commands.add_reaction_role.msg_confirm"), ephemeral=True
             )
         if len(duplicates) > 0:
-            dupl_msg = I18N.t(
+            dupl_msg = _t(
                 "roles.commands.add_reaction_role.msg_duplicate", msg_name=msg_name
             )
             dupl_msg += ":"
@@ -1738,9 +1738,9 @@ class Autoroles(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
-    @describe(reaction_msg=I18N.t("roles.commands.sync.desc.reaction_msg"))
+    @describe(reaction_msg=_t("roles.commands.sync.desc.reaction_msg"))
     @roles_reaction_group.command(
-        name="sync", description=locale_str(I18N.t("roles.commands.sync.cmd"))
+        name="sync", description=locale_str(_t("roles.commands.sync.cmd"))
     )
     async def sync_reaction_items(
         self, interaction: discord.Interaction, reaction_msg: str, sort: bool = False
@@ -1756,13 +1756,13 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(sync_errors, ephemeral=True)
         else:
             await interaction.followup.send(
-                I18N.t("roles.commands.sync.confirm_sync"), ephemeral=True
+                _t("roles.commands.sync.confirm_sync"), ephemeral=True
             )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
-    @describe(reaction_msg=I18N.t("roles.commands.sort.desc.reaction_msg"))
+    @describe(reaction_msg=_t("roles.commands.sort.desc.reaction_msg"))
     @roles_reaction_group.command(name="sort")
     async def sort_reaction_items(
         self, interaction: discord.Interaction, reaction_msg: str
@@ -1775,7 +1775,7 @@ class Autoroles(commands.Cog):
         msg_info = await get_msg_info(reaction_msg, interaction.guild.id)
         if msg_info is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.sort.msg_error", reaction_msg=reaction_msg)
+                _t("roles.commands.sort.msg_error", reaction_msg=reaction_msg)
             )
             return
         _msg = await discord_commands.get_message_obj(
@@ -1785,7 +1785,7 @@ class Autoroles(commands.Cog):
         )
         if _msg is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.sort.msg_error", reaction_msg=msg_info["name"])
+                _t("roles.commands.sort.msg_error", reaction_msg=msg_info["name"])
             )
             return
         sync_errors = await sync_reaction_message_from_settings(
@@ -1795,7 +1795,7 @@ class Autoroles(commands.Cog):
             await interaction.followup.send(sync_errors, ephemeral=True)
         else:
             await interaction.followup.send(
-                I18N.t("roles.commands.sort.msg_confirm"), ephemeral=True
+                _t("roles.commands.sort.msg_confirm"), ephemeral=True
             )
         return
 
@@ -1820,7 +1820,7 @@ class Autoroles(commands.Cog):
         msg_info = await get_msg_info(reaction_msg, interaction.guild.id)
         if msg_info is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_msg.msg_error")
+                _t("roles.commands.remove_msg.msg_error")
             )
             return
         _msg = await discord_commands.get_message_obj(
@@ -1830,7 +1830,7 @@ class Autoroles(commands.Cog):
         )
         if _msg is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_msg.msg_error")
+                _t("roles.commands.remove_msg.msg_error")
             )
             return
         # Remove the reaction roles hanging off this message, then the
@@ -1847,16 +1847,16 @@ class Autoroles(commands.Cog):
         )
         # Remove message from guild
         await _msg.delete()
-        await interaction.followup.send(I18N.t("roles.commands.remove_msg.msg_confirm"))
+        await interaction.followup.send(_t("roles.commands.remove_msg.msg_confirm"))
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_group.command(
         name="edit",
-        description=locale_str(I18N.t("roles.commands.edit_reaction_msg.cmd")),
+        description=locale_str(_t("roles.commands.edit_reaction_msg.cmd")),
     )
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
-    @describe(reaction_msg=I18N.t("roles.commands.sync.desc.reaction_msg"))
+    @describe(reaction_msg=_t("roles.commands.sync.desc.reaction_msg"))
     async def edit_reaction_message(
         self, interaction: discord.Interaction, reaction_msg: str
     ):
@@ -1881,7 +1881,7 @@ class Autoroles(commands.Cog):
         logger.debug(f"`db_reactions` is {db_reactions}")
         if not db_reactions:
             await interaction.response.send_message(
-                I18N.t("roles.commands.edit_reaction_msg.msg_error"), ephemeral=True
+                _t("roles.commands.edit_reaction_msg.msg_error"), ephemeral=True
             )
             return
         msg_id = db_reactions["msg_id"]
@@ -1893,11 +1893,11 @@ class Autoroles(commands.Cog):
         )
         if _msg is None:
             await interaction.response.send_message(
-                I18N.t("roles.commands.edit_reaction_msg.msg_error"), ephemeral=True
+                _t("roles.commands.edit_reaction_msg.msg_error"), ephemeral=True
             )
             return
         modal_in = ReactionEditModal(
-            title_in=I18N.t("roles.modals.reaction_edit.modal_title"),
+            title_in=_t("roles.modals.reaction_edit.modal_title"),
             reaction_header_in=msg_header,
             reaction_text_in=msg_content,
         )
@@ -1924,10 +1924,10 @@ class Autoroles(commands.Cog):
         await _msg.edit(content=content)
         return
 
-    @describe(reaction_msg=I18N.t("roles.commands.remove_msg_role.desc.reaction_msg"))
+    @describe(reaction_msg=_t("roles.commands.remove_msg_role.desc.reaction_msg"))
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @roles_reaction_remove_group.command(
-        name="role", description=locale_str(I18N.t("roles.commands.react_list.cmd"))
+        name="role", description=locale_str(_t("roles.commands.react_list.cmd"))
     )
     async def remove_reaction_role(
         self, interaction: discord.Interaction, reaction_msg: str, sort: bool = False
@@ -1950,7 +1950,7 @@ class Autoroles(commands.Cog):
             guild_id=interaction.guild.id,
         )
         modal_in = ModalReactionRoleRemove(
-            title_in=I18N.t("roles.modals.reaction_remove_role.title_in"),
+            title_in=_t("roles.modals.reaction_remove_role.title_in"),
             msg_name=msg_in,
             roles_in=roles_in,
             guild_object=interaction.guild,
@@ -1982,13 +1982,13 @@ class Autoroles(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_move_group.command(
         name="role",
-        description=locale_str(I18N.t("roles.commands.move_reaction_role.cmd")),
+        description=locale_str(_t("roles.commands.move_reaction_role.cmd")),
     )
     @describe(
-        reaction_role_from=I18N.t(
+        reaction_role_from=_t(
             "roles.commands.move_reaction_role.desc.reaction_role_from"
         ),
-        reaction_message_to=I18N.t(
+        reaction_message_to=_t(
             "roles.commands.move_reaction_role.desc.reaction_message_to"
         ),
     )
@@ -2016,7 +2016,7 @@ class Autoroles(commands.Cog):
         new_msg_info = await get_msg_info(new_msg_uuid, interaction.guild.id)
         if old_msg_info is None or new_msg_info is None:
             await interaction.followup.send(
-                I18N.t("roles.commands.remove_msg.msg_error"), ephemeral=True
+                _t("roles.commands.remove_msg.msg_error"), ephemeral=True
             )
             return
         old_msg_name = old_msg_info["name"]
@@ -2029,7 +2029,7 @@ class Autoroles(commands.Cog):
         )
         if len(num_reaction_roles) == 1:
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "roles.commands.move_reaction_role.desc.cannot_move_last_reaction"
                 ),
                 ephemeral=True,
@@ -2058,7 +2058,7 @@ class Autoroles(commands.Cog):
             new_msg_uuid, sort=sort, guild=interaction.guild
         )
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "roles.commands.move_reaction_role.msg_confirm",
                 emoji=emoji_obj,
                 role=role_obj,
@@ -2071,9 +2071,9 @@ class Autoroles(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_reaction_group.command(
-        name="reorder", description=locale_str(I18N.t("roles.commands.reorder.cmd"))
+        name="reorder", description=locale_str(_t("roles.commands.reorder.cmd"))
     )
-    @describe(channel=I18N.t("roles.commands.reorder.desc.channel"))
+    @describe(channel=_t("roles.commands.reorder.desc.channel"))
     async def reorder_reaction_messages(
         self,
         interaction: discord.Interaction,
@@ -2158,27 +2158,27 @@ class Autoroles(commands.Cog):
                     guild=interaction.guild,
                 )
             await interaction.followup.send(
-                I18N.t("roles.commands.reorder.msg_confirm")
+                _t("roles.commands.reorder.msg_confirm")
             )
         else:
             await interaction.followup.send(
-                I18N.t("roles.commands.reorder.msg_already_sorted")
+                _t("roles.commands.reorder.msg_already_sorted")
             )
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
-        name="add", description=locale_str(I18N.t("roles.commands.add_settings.cmd"))
+        name="add", description=locale_str(_t("roles.commands.add_settings.cmd"))
     )
     @describe(
-        setting=I18N.t("roles.commands.add_settings.desc.setting"),
-        role=I18N.t("roles.commands.add_settings.desc.role"),
+        setting=_t("roles.commands.add_settings.desc.setting"),
+        role=_t("roles.commands.add_settings.desc.role"),
     )
     async def add_settings(
         self,
         interaction: discord.Interaction,
         setting: typing.Literal[
-            I18N.t("roles.commands.add_settings.literal.setting.unique"),
-            I18N.t("roles.commands.add_settings.literal.setting.not_include_in_total"),
+            _t("roles.commands.add_settings.literal.setting.unique"),
+            _t("roles.commands.add_settings.literal.setting.not_include_in_total"),
         ],
         role: discord.Role,
     ):
@@ -2186,7 +2186,7 @@ class Autoroles(commands.Cog):
         Add a setting for roles on the server
         """
         await interaction.response.defer(ephemeral=True)
-        if setting == I18N.t("roles.commands.add_settings.literal.setting.unique"):
+        if setting == _t("roles.commands.add_settings.literal.setting.unique"):
             _setting = "unique"
             unique = await db_helper.get_output(
                 template_info=envs.roles_db_settings_schema,
@@ -2197,10 +2197,10 @@ class Autoroles(commands.Cog):
             )
             if unique["value"]:
                 await interaction.followup.send(
-                    I18N.t("roles.commands.add_settings.role_already_set")
+                    _t("roles.commands.add_settings.role_already_set")
                 )
                 return
-        elif setting == I18N.t(
+        elif setting == _t(
             "roles.commands.add_settings.literal.setting.not_include_in_total"
         ):
             _setting = "not_include_in_total"
@@ -2210,7 +2210,7 @@ class Autoroles(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            I18N.t("roles.commands.add_settings.msg_confirm")
+            _t("roles.commands.add_settings.msg_confirm")
         )
         return
 
@@ -2218,9 +2218,9 @@ class Autoroles(commands.Cog):
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
         name="remove",
-        description=locale_str(I18N.t("roles.commands.remove_settings.cmd")),
+        description=locale_str(_t("roles.commands.remove_settings.cmd")),
     )
-    @describe(setting=I18N.t("roles.commands.remove_settings.desc.setting"))
+    @describe(setting=_t("roles.commands.remove_settings.desc.setting"))
     async def remove_settings(self, interaction: discord.Interaction, setting: str):
         """
         Remove a setting for roles on the server
@@ -2233,13 +2233,13 @@ class Autoroles(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            I18N.t("roles.commands.remove_settings.msg_confirm"),
+            _t("roles.commands.remove_settings.msg_confirm"),
         )
         return
 
     @discord_commands.is_owner_or_manage_guild()
     @roles_settings_group.command(
-        name="list", description=locale_str(I18N.t("roles.commands.list_settings.cmd"))
+        name="list", description=locale_str(_t("roles.commands.list_settings.cmd"))
     )
     async def list_settings(self, interaction: discord.Interaction):
         """
@@ -2259,9 +2259,9 @@ class Autoroles(commands.Cog):
         _settings = tabulate(
             temp_settings_db,
             headers={
-                "setting": I18N.t("roles.commands.list_settings.headers.setting"),
-                "role": I18N.t("roles.commands.list_settings.headers.role"),
-                "value": I18N.t("roles.commands.list_settings.headers.value"),
+                "setting": _t("roles.commands.list_settings.headers.setting"),
+                "role": _t("roles.commands.list_settings.headers.role"),
+                "value": _t("roles.commands.list_settings.headers.value"),
             },
         )
         await interaction.followup.send(f"```{_settings}```")
@@ -2270,11 +2270,11 @@ class Autoroles(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(setting=settings_autocomplete)
     @roles_settings_group.command(
-        name="edit", description=locale_str(I18N.t("roles.commands.edit_settings.cmd"))
+        name="edit", description=locale_str(_t("roles.commands.edit_settings.cmd"))
     )
     @describe(
-        setting=I18N.t("roles.commands.edit_settings.desc.setting"),
-        role=I18N.t("roles.commands.edit_settings.desc.role"),
+        setting=_t("roles.commands.edit_settings.desc.setting"),
+        role=_t("roles.commands.edit_settings.desc.role"),
     )
     async def edit_settings(
         self, interaction: discord.Interaction, setting: str, role: discord.Role
@@ -2290,7 +2290,7 @@ class Autoroles(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "roles.commands.edit_settings.confirm_msg",
                 setting=setting,
                 role=role.id,
@@ -2524,7 +2524,7 @@ async def on_raw_reaction_add(payload):
                 if str(incoming_emoji) == str(reaction["emoji"]):
                     await _guild.get_member(payload.user_id).add_roles(
                         get(_guild.roles, id=int(reaction["role"])),
-                        reason=I18N.t("roles.on_raw_reaction_add.channel_log_confirm"),
+                        reason=_t("roles.on_raw_reaction_add.channel_log_confirm"),
                     )
                     break
             else:
@@ -2590,7 +2590,7 @@ async def on_raw_reaction_remove(payload):
                             )
                             await _guild.get_member(payload.user_id).remove_roles(
                                 _role,
-                                reason=I18N.t(
+                                reason=_t(
                                     "roles.on_raw_reaction_remove.channel_log_confirm"
                                 ),
                             )

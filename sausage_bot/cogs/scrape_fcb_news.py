@@ -11,7 +11,7 @@ from discord.ext import commands, tasks
 import discord
 from sausage_bot.util import config, envs, feeds_core, db_helper
 from sausage_bot.util import discord_commands
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
@@ -185,7 +185,7 @@ class scrape_and_post(commands.Cog):
                     logger.error(error_msg)
                     await discord_commands.log_to_bot_channel(
                         guild,
-                        I18N.t("common.error.channel_not_found", channel=channel_name),
+                        _t("common.error.channel_not_found", channel=channel_name),
                     )
                     continue
                 CHANNEL = guild.get_channel(guild_channels[channel_name]).id

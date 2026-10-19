@@ -16,18 +16,18 @@ from pprint import pformat
 
 from sausage_bot.util import config, envs, feeds_core, net_io
 from sausage_bot.util import db_helper, discord_commands
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 
 logger = config.logger
 
 # The `typing.Literal` choices for the list commands are evaluated once, at
 # import time, and discord hands the picked *value* back untranslated -
 # only the name shown in the client is localized. Compare against the same
-# constants the Literal was built from, and not a fresh `I18N.t()` call in
+# constants the Literal was built from, and not a fresh `_t()` call in
 # whatever locale the guild happens to use, or nothing ever matches.
-LIST_TYPE_NORMAL = I18N.t("rss.commands.list.literal_type.normal")
-LIST_TYPE_ADDED = I18N.t("rss.commands.list.literal_type.added")
-LIST_TYPE_FILTER = I18N.t("rss.commands.list.literal_type.filter")
+LIST_TYPE_NORMAL = _t("rss.commands.list.literal_type.normal")
+LIST_TYPE_ADDED = _t("rss.commands.list.literal_type.added")
+LIST_TYPE_FILTER = _t("rss.commands.list.literal_type.filter")
 
 
 async def rss_feed_name_autocomplete(
@@ -254,13 +254,13 @@ async def control_posting(feed_type, action, guild_id=None):
         failed_list_text = ", ".join(failed_list)
     _msg = ""
     if len(feed_types) > 0:
-        _msg += I18N.t(f"rss.commands.{action}.msg_confirm_ok", feed_type=feed_types)
+        _msg += _t(f"rss.commands.{action}.msg_confirm_ok", feed_type=feed_types)
     if len(failed_list) > 0:
-        _msg += I18N.t(
+        _msg += _t(
             f"rss.commands.{action}.msg_confirm_fail_suffix", feed_type=failed_list_text
         )
     if len(feed_types) == 0 and len(failed_list) > 0:
-        _msg = I18N.t(f"rss.commands.{action}.msg_confirm_fail", feed_type=failed_list)
+        _msg = _t(f"rss.commands.{action}.msg_confirm_fail", feed_type=failed_list)
     return _msg
 
 
@@ -276,30 +276,30 @@ class RSSfeed(commands.Cog):
     config.bot.add_dynamic_items(feeds_core.DynamicRatingSelect)
 
     rss_group = discord.app_commands.Group(
-        name="rss", description=locale_str(I18N.t("rss.groups.rss"))
+        name="rss", description=locale_str(_t("rss.groups.rss"))
     )
     podcast_group = discord.app_commands.Group(
-        name="podcast", description=locale_str(I18N.t("rss.groups.podcast"))
+        name="podcast", description=locale_str(_t("rss.groups.podcast"))
     )
     rss_filter_group = discord.app_commands.Group(
         name="filter",
-        description=locale_str(I18N.t("rss.groups.filter")),
+        description=locale_str(_t("rss.groups.filter")),
         parent=rss_group,
     )
     rss_posting_group = discord.app_commands.Group(
         name="posting",
-        description=locale_str(I18N.t("rss.groups.posting")),
+        description=locale_str(_t("rss.groups.posting")),
         parent=rss_group,
     )
     rss_settings_group = discord.app_commands.Group(
         name="settings",
-        description=locale_str(I18N.t("rss.groups.settings")),
+        description=locale_str(_t("rss.groups.settings")),
         parent=rss_group,
     )
 
     @discord_commands.is_owner_or_manage_guild()
     @rss_posting_group.command(
-        name="start", description=locale_str(I18N.t("rss.commands.start.cmd"))
+        name="start", description=locale_str(_t("rss.commands.start.cmd"))
     )
     async def feeds_posting_start(
         self,
@@ -312,7 +312,7 @@ class RSSfeed(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @rss_posting_group.command(
-        name="stop", description=locale_str(I18N.t("rss.commands.stop.cmd"))
+        name="stop", description=locale_str(_t("rss.commands.stop.cmd"))
     )
     async def feeds_posting_stop(
         self,
@@ -325,7 +325,7 @@ class RSSfeed(commands.Cog):
 
     @discord_commands.is_owner()
     @rss_posting_group.command(
-        name="restart", description=locale_str(I18N.t("rss.commands.restart.cmd"))
+        name="restart", description=locale_str(_t("rss.commands.restart.cmd"))
     )
     async def feeds_posting_restart(
         self,
@@ -339,12 +339,12 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_group.command(
-        name="add", description=locale_str(I18N.t("rss.commands.add.cmd"))
+        name="add", description=locale_str(_t("rss.commands.add.cmd"))
     )
     @describe(
-        feed_name=I18N.t("rss.commands.add.desc.feed_name"),
-        feed_link=I18N.t("rss.commands.add.desc.feed_link"),
-        channel=I18N.t("rss.commands.add.desc.channel"),
+        feed_name=_t("rss.commands.add.desc.feed_name"),
+        feed_link=_t("rss.commands.add.desc.feed_link"),
+        channel=_t("rss.commands.add.desc.channel"),
     )
     async def rss_add(
         self,
@@ -363,7 +363,7 @@ class RSSfeed(commands.Cog):
             "/show/" in feed_link
         ):
             await interaction.followup.send(
-                I18N.t("rss.commands.add.msg_use_podcast_add"), ephemeral=True
+                _t("rss.commands.add.msg_use_podcast_add"), ephemeral=True
             )
             return
 
@@ -373,7 +373,7 @@ class RSSfeed(commands.Cog):
         )
         if not valid_feed:
             await interaction.followup.send(
-                I18N.t("rss.commands.add.msg_feed_failed"), ephemeral=True
+                _t("rss.commands.add.msg_feed_failed"), ephemeral=True
             )
             return
         logger.debug("Adding feed to db")
@@ -387,7 +387,7 @@ class RSSfeed(commands.Cog):
         )
         await discord_commands.log_to_bot_channel(
             interaction.guild,
-            I18N.t(
+            _t(
                 "rss.commands.add.log_feed_confirm",
                 user_name=AUTHOR,
                 feed_name=feed_name,
@@ -395,7 +395,7 @@ class RSSfeed(commands.Cog):
             ),
         )
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "rss.commands.add.msg_feed_confirm",
                 feed_name=feed_name,
                 channel_name=channel.name,
@@ -407,9 +407,9 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_group.command(
-        name="remove", description=locale_str(I18N.t("rss.commands.remove.cmd"))
+        name="remove", description=locale_str(_t("rss.commands.remove.cmd"))
     )
-    @describe(feed_name=I18N.t("rss.commands.remove.desc.feed_name"))
+    @describe(feed_name=_t("rss.commands.remove.desc.feed_name"))
     async def rss_remove(self, interaction: discord.Interaction, feed_name: str):
         """Remove a RSS feed"""
         await interaction.response.defer()
@@ -420,26 +420,26 @@ class RSSfeed(commands.Cog):
         if removal:
             await discord_commands.log_to_bot_channel(
                 interaction.guild,
-                I18N.t(
+                _t(
                     "rss.commands.remove.log_feed_removed",
                     feed_name=feed_name,
                     user_name=AUTHOR,
                 ),
             )
             await interaction.followup.send(
-                I18N.t("rss.commands.remove.msg_feed_removed", feed_name=feed_name)
+                _t("rss.commands.remove.msg_feed_removed", feed_name=feed_name)
             )
         elif removal is False:
             # Couldn't remove the feed
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "rss.commands.remove.msg_feed_remove_failed", feed_name=feed_name
                 )
             )
             # Also log and send error to bot-channel
             await discord_commands.log_to_bot_channel(
                 interaction.guild,
-                I18N.t(
+                _t(
                     "rss.commands.remove.log_feed_remove_failed",
                     user_name=AUTHOR,
                     feed_name=feed_name,
@@ -450,13 +450,13 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_group.command(
-        name="edit", description=locale_str(I18N.t("rss.commands.edit.cmd"))
+        name="edit", description=locale_str(_t("rss.commands.edit.cmd"))
     )
     @describe(
-        feed_name=I18N.t("rss.commands.edit.desc.feed_name"),
-        new_feed_name=I18N.t("rss.commands.edit.desc.new_feed_name"),
-        channel=I18N.t("rss.commands.edit.desc.channel"),
-        url=I18N.t("rss.commands.edit.desc.url"),
+        feed_name=_t("rss.commands.edit.desc.feed_name"),
+        new_feed_name=_t("rss.commands.edit.desc.new_feed_name"),
+        channel=_t("rss.commands.edit.desc.channel"),
+        url=_t("rss.commands.edit.desc.url"),
     )
     async def rss_edit(
         self,
@@ -474,26 +474,26 @@ class RSSfeed(commands.Cog):
             guild_id=interaction.guild.id,
         )
         logger.debug(f"`feed_info` is {feed_info}")
-        changes_out = I18N.t("rss.commands.edit.changes_out.msg", feed_name=feed_name)
+        changes_out = _t("rss.commands.edit.changes_out.msg", feed_name=feed_name)
         updates_in = []
         if new_feed_name:
             updates_in.append(("feed_name", new_feed_name))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("rss.commands.edit.changes_out.feed_name"),
+                _t("rss.commands.edit.changes_out.feed_name"),
                 feed_info[0]["feed_name"],
                 new_feed_name,
             )
         if channel:
             updates_in.append(("channel", channel))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("rss.commands.edit.changes_out.channel"),
+                _t("rss.commands.edit.changes_out.channel"),
                 feed_info[0]["channel"],
                 channel,
             )
         if url:
             updates_in.append(("url", url))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("rss.commands.edit.changes_out.url"), feed_info[0]["url"], url
+                _t("rss.commands.edit.changes_out.url"), feed_info[0]["url"], url
             )
         await db_helper.update_fields(
             template_info=envs.rss_db_schema,
@@ -508,9 +508,9 @@ class RSSfeed(commands.Cog):
     @discord.app_commands.autocomplete(feed_name=broken_feed_autocomplete)
     @rss_group.command(
         name="reset_url_errors",
-        description=locale_str(I18N.t("rss.commands.reset_url_errors.cmd")),
+        description=locale_str(_t("rss.commands.reset_url_errors.cmd")),
     )
-    @describe(feed_name=I18N.t("rss.commands.reset_url_errors.desc.feed_name"))
+    @describe(feed_name=_t("rss.commands.reset_url_errors.desc.feed_name"))
     async def rss_reset_url_errors(
         self, interaction: discord.Interaction, feed_name: str = None
     ):
@@ -523,18 +523,18 @@ class RSSfeed(commands.Cog):
         )
         if not reset:
             await interaction.followup.send(
-                I18N.t("rss.commands.reset_url_errors.msg_nothing_to_reset")
+                _t("rss.commands.reset_url_errors.msg_nothing_to_reset")
             )
             return
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "rss.commands.reset_url_errors.msg_confirm",
                 feeds="\n- ".join(reset),
             )
         )
         await discord_commands.log_to_bot_channel(
             interaction.guild,
-            I18N.t(
+            _t(
                 "rss.commands.reset_url_errors.log_reset",
                 feeds="\n- ".join(reset),
                 user_name=interaction.user.name,
@@ -545,20 +545,20 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @rss_filter_group.command(
-        name="add", description=locale_str(I18N.t("rss.commands.filter_add.cmd"))
+        name="add", description=locale_str(_t("rss.commands.filter_add.cmd"))
     )
     @describe(
-        feed_name=I18N.t("rss.commands.filter_add.desc.feed_name"),
-        allow_deny=I18N.t("rss.commands.filter_add.desc.allow_deny"),
-        filters_in=I18N.t("rss.commands.filter_add.desc.filters"),
+        feed_name=_t("rss.commands.filter_add.desc.feed_name"),
+        allow_deny=_t("rss.commands.filter_add.desc.allow_deny"),
+        filters_in=_t("rss.commands.filter_add.desc.filters"),
     )
     async def rss_filter_add(
         self,
         interaction: discord.Interaction,
         feed_name: str,
         allow_deny: typing.Literal[
-            I18N.t("common.literal_allow_deny.allow"),
-            I18N.t("common.literal_allow_deny.deny"),
+            _t("common.literal_allow_deny.allow"),
+            _t("common.literal_allow_deny.deny"),
         ],
         filters_in: str,
     ):
@@ -584,7 +584,7 @@ class RSSfeed(commands.Cog):
             guild_id=interaction.guild.id,
         )
         if adding_filter:
-            msg_out = I18N.t(
+            msg_out = _t(
                 "rss.commands.filter_add.msg_confirm", allow_deny=allow_deny
             )
             for filter in _filters_in:
@@ -592,7 +592,7 @@ class RSSfeed(commands.Cog):
             await interaction.followup.send(msg_out, ephemeral=True)
         else:
             await interaction.followup.send(
-                I18N.t("rss.commands.filter_add.msg_error"), ephemeral=True
+                _t("rss.commands.filter_add.msg_error"), ephemeral=True
             )
         return
 
@@ -600,11 +600,11 @@ class RSSfeed(commands.Cog):
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
     @discord.app_commands.autocomplete(filter_in=rss_filter_autocomplete)
     @rss_filter_group.command(
-        name="remove", description=locale_str(I18N.t("rss.commands.filter_remove.cmd"))
+        name="remove", description=locale_str(_t("rss.commands.filter_remove.cmd"))
     )
     @describe(
-        feed_name=I18N.t("rss.commands.filter_remove.desc.feed_name"),
-        filter_in=I18N.t("rss.commands.filter_remove.desc.filter"),
+        feed_name=_t("rss.commands.filter_remove.desc.feed_name"),
+        filter_in=_t("rss.commands.filter_remove.desc.filter"),
     )
     async def rss_filter_remove(
         self, interaction: discord.Interaction, feed_name: str, filter_in: str
@@ -627,12 +627,12 @@ class RSSfeed(commands.Cog):
         )
         if removing_filter:
             await interaction.followup.send(
-                I18N.t("rss.commands.filter_remove.msg_confirm", filter=filter_in),
+                _t("rss.commands.filter_remove.msg_confirm", filter=filter_in),
                 ephemeral=True,
             )
         else:
             await interaction.followup.send(
-                I18N.t("rss.commands.filter_remove.msg_error", filter=filter_in),
+                _t("rss.commands.filter_remove.msg_error", filter=filter_in),
                 ephemeral=True,
             )
         return
@@ -640,11 +640,11 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=rss_settings_autocomplete)
     @rss_settings_group.command(
-        name="change", description=locale_str(I18N.t("rss.commands.setting.cmd"))
+        name="change", description=locale_str(_t("rss.commands.setting.cmd"))
     )
     @describe(
-        name_of_setting=I18N.t("rss.commands.setting.desc.name_of_setting"),
-        value_in=I18N.t("rss.commands.setting.desc.value_in"),
+        name_of_setting=_t("rss.commands.setting.desc.name_of_setting"),
+        value_in=_t("rss.commands.setting.desc.value_in"),
     )
     async def rss_settings_change(
         self, interaction: discord.Interaction, name_of_setting: str, value_in: str
@@ -666,7 +666,7 @@ class RSSfeed(commands.Cog):
                     except NameError as _error:
                         logger.error(f"Invalid input for `value_in`: {_error}")
                         await interaction.followup.send(
-                            I18N.t(
+                            _t(
                                 "rss.commands.setting.value_in_input_invalid",
                                 error=_error,
                             )
@@ -692,7 +692,7 @@ class RSSfeed(commands.Cog):
                         guild_id=interaction.guild.id,
                     )
                 await interaction.followup.send(
-                    I18N.t("rss.commands.setting.msg_confirm"), ephemeral=True
+                    _t("rss.commands.setting.msg_confirm"), ephemeral=True
                 )
                 RSSfeed.task_post_feeds.restart()
                 break
@@ -700,9 +700,9 @@ class RSSfeed(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @rss_group.command(
-        name="list", description=locale_str(I18N.t("rss.commands.list.cmd"))
+        name="list", description=locale_str(_t("rss.commands.list.cmd"))
     )
-    @describe(list_type=I18N.t("rss.commands.list.desc.list_type"))
+    @describe(list_type=_t("rss.commands.list.desc.list_type"))
     async def rss_list(
         self,
         interaction: discord.Interaction,
@@ -712,15 +712,15 @@ class RSSfeed(commands.Cog):
             LIST_TYPE_FILTER,
         ],
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
         ] = None,
 
     ):
         """
         List all active rss feeds
         """
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -755,24 +755,24 @@ class RSSfeed(commands.Cog):
                 sleep(1)
         else:
             await interaction.followup.send(
-                I18N.t("rss.commands.list.msg_error"), ephemeral=True
+                _t("rss.commands.list.msg_error"), ephemeral=True
             )
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=feed_uuid_autocomplete)
     @rss_group.command(
-        name="test_feed", description=locale_str(I18N.t("rss.commands.test.cmd"))
+        name="test_feed", description=locale_str(_t("rss.commands.test.cmd"))
     )
     @describe(
-        feed_name=I18N.t("rss.commands.test.desc.feed_name"),
+        feed_name=_t("rss.commands.test.desc.feed_name"),
     )
     async def rss_test_feed(
         self,
         interaction: discord.Interaction,
         feed_name: str,
         public: typing.Literal[
-            I18N.t("common.literal_yes_no.lit_yes"),
-            I18N.t("common.literal_yes_no.lit_no"),
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
         ] = None,
     ):
         """
@@ -783,7 +783,7 @@ class RSSfeed(commands.Cog):
         def enclose_status_out(status_out):
             return "```{}```".format(status_out)
 
-        if public == I18N.t("common.literal_yes_no.lit_yes"):
+        if public == _t("common.literal_yes_no.lit_yes"):
             _ephemeral = False
         else:
             _ephemeral = True
@@ -870,12 +870,12 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
-        name="add", description=locale_str(I18N.t("rss.commands.add.cmd"))
+        name="add", description=locale_str(_t("rss.commands.add.cmd"))
     )
     @describe(
-        podcast_name=I18N.t("rss.commands.add.desc.feed_name"),
-        feed_link=I18N.t("rss.commands.add.desc.feed_link"),
-        channel=I18N.t("rss.commands.add.desc.channel"),
+        podcast_name=_t("rss.commands.add.desc.feed_name"),
+        feed_link=_t("rss.commands.add.desc.feed_link"),
+        channel=_t("rss.commands.add.desc.channel"),
     )
     async def podcast_add(
         self,
@@ -893,7 +893,7 @@ class RSSfeed(commands.Cog):
         )
         if not valid_feed:
             await interaction.followup.send(
-                I18N.t("rss.commands.add.msg_feed_failed"), ephemeral=True
+                _t("rss.commands.add.msg_feed_failed"), ephemeral=True
             )
             return
         logger.debug("Adding feed to db")
@@ -916,7 +916,7 @@ class RSSfeed(commands.Cog):
         )
         await discord_commands.log_to_bot_channel(
             interaction.guild,
-            I18N.t(
+            _t(
                 "rss.commands.add.log_feed_confirm",
                 user_name=AUTHOR,
                 feed_name=podcast_name,
@@ -924,7 +924,7 @@ class RSSfeed(commands.Cog):
             ),
         )
         await interaction.followup.send(
-            I18N.t(
+            _t(
                 "rss.commands.add.msg_feed_confirm",
                 feed_name=podcast_name,
                 channel_name=channel.name,
@@ -936,9 +936,9 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
-        name="remove", description=locale_str(I18N.t("rss.commands.remove.cmd"))
+        name="remove", description=locale_str(_t("rss.commands.remove.cmd"))
     )
-    @describe(podcast_name=I18N.t("rss.commands.remove.desc.feed_name"))
+    @describe(podcast_name=_t("rss.commands.remove.desc.feed_name"))
     async def podcast_remove(self, interaction: discord.Interaction, podcast_name: str):
         """Remove a podcast"""
         await interaction.response.defer()
@@ -951,26 +951,26 @@ class RSSfeed(commands.Cog):
         if removal:
             await discord_commands.log_to_bot_channel(
                 interaction.guild,
-                I18N.t(
+                _t(
                     "rss.commands.remove.log_feed_removed",
                     feed_name=podcast_name,
                     user_name=AUTHOR,
                 ),
             )
             await interaction.followup.send(
-                I18N.t("rss.commands.remove.msg_feed_removed", feed_name=podcast_name)
+                _t("rss.commands.remove.msg_feed_removed", feed_name=podcast_name)
             )
         elif removal is False:
             # Couldn't remove the feed
             await interaction.followup.send(
-                I18N.t(
+                _t(
                     "rss.commands.remove.msg_feed_remove_failed", feed_name=podcast_name
                 )
             )
             # Also log and send error to bot-channel
             await discord_commands.log_to_bot_channel(
                 interaction.guild,
-                I18N.t(
+                _t(
                     "rss.commands.remove.log_feed_remove_failed",
                     user_name=AUTHOR,
                     feed_name=podcast_name,
@@ -981,13 +981,13 @@ class RSSfeed(commands.Cog):
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(podcast_name=podcast_name_autocomplete)
     @podcast_group.command(
-        name="edit", description=locale_str(I18N.t("rss.commands.edit.cmd"))
+        name="edit", description=locale_str(_t("rss.commands.edit.cmd"))
     )
     @describe(
-        podcast_name=I18N.t("rss.commands.edit.desc.feed_name"),
-        new_podcast_name=I18N.t("rss.commands.edit.desc.new_feed_name"),
-        channel=I18N.t("rss.commands.edit.desc.channel"),
-        url=I18N.t("rss.commands.edit.desc.url"),
+        podcast_name=_t("rss.commands.edit.desc.feed_name"),
+        new_podcast_name=_t("rss.commands.edit.desc.new_feed_name"),
+        channel=_t("rss.commands.edit.desc.channel"),
+        url=_t("rss.commands.edit.desc.url"),
     )
     async def pocast_edit(
         self,
@@ -1005,28 +1005,28 @@ class RSSfeed(commands.Cog):
             guild_id=interaction.guild.id,
         )
         logger.debug(f"`feed_info` is {feed_info}")
-        changes_out = I18N.t(
+        changes_out = _t(
             "rss.commands.edit.changes_out.msg", feed_name=podcast_name
         )
         updates_in = []
         if new_podcast_name:
             updates_in.append(("feed_name", new_podcast_name))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("rss.commands.edit.changes_out.feed_name"),
+                _t("rss.commands.edit.changes_out.feed_name"),
                 feed_info[0]["feed_name"],
                 new_podcast_name,
             )
         if channel:
             updates_in.append(("channel", channel))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("rss.commands.edit.changes_out.channel"),
+                _t("rss.commands.edit.changes_out.channel"),
                 feed_info[0]["channel"],
                 channel,
             )
         if url:
             updates_in.append(("url", url))
             changes_out += "\n- {}: `{}` -> `{}`".format(
-                I18N.t("rss.commands.edit.changes_out.url"), feed_info[0]["url"], url
+                _t("rss.commands.edit.changes_out.url"), feed_info[0]["url"], url
             )
         await db_helper.update_fields(
             template_info=envs.rss_db_schema,
@@ -1039,9 +1039,9 @@ class RSSfeed(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @podcast_group.command(
-        name="list", description=locale_str(I18N.t("rss.commands.list.cmd"))
+        name="list", description=locale_str(_t("rss.commands.list.cmd"))
     )
-    @describe(list_type=I18N.t("rss.commands.list.desc.list_type"))
+    @describe(list_type=_t("rss.commands.list.desc.list_type"))
     async def podcast_list(
         self,
         interaction: discord.Interaction,
@@ -1085,7 +1085,7 @@ class RSSfeed(commands.Cog):
                 sleep(1)
         else:
             await interaction.followup.send(
-                I18N.t("rss.commands.list.msg_error"), ephemeral=True
+                _t("rss.commands.list.msg_error"), ephemeral=True
             )
         return
 
@@ -1281,7 +1281,7 @@ class RSSfeed(commands.Cog):
                             logger.info(f"Feed {FEED_NAME} returned NoneType")
                             await discord_commands.log_to_bot_channel(
                                 guild,
-                                I18N.t(
+                                _t(
                                     "rss.tasks.feed_posts_is_none", feed_name=FEED_NAME
                                 ),
                             )
@@ -1330,7 +1330,7 @@ class RSSfeed(commands.Cog):
                             logger.info(f"Feed {FEED_NAME} returned NoneType")
                             await discord_commands.log_to_bot_channel(
                                 guild,
-                                I18N.t(
+                                _t(
                                     "rss.tasks.feed_posts_is_none", feed_name=FEED_NAME
                                 ),
                             )

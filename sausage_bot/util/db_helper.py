@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from pprint import pformat
 
 from sausage_bot.util import envs, config, file_io, discord_commands, guild_context
-from sausage_bot.util.i18n import I18N
+from sausage_bot.util.l10n import _t
 from sausage_bot.util.args import args
 from .datetime_handling import get_dt
 
@@ -49,14 +49,14 @@ async def guild_locale_context(guild_id):
     """
     Load `guild_id`'s language/timezone settings and set them as the
     active guild context (see `util.guild_context`) for the duration of
-    the with-block. `I18N.t()` and `get_dt()`/`make_dt()` will resolve to
+    the with-block. `_t()` and `get_dt()`/`make_dt()` will resolve to
     this guild's settings for any code run inside the block, including
     further awaited calls, since contextvars propagate down the asyncio
     Task they were set in.
 
     Usage:
         async with db_helper.guild_locale_context(guild.id):
-            await interaction.response.send_message(I18N.t("..."))
+            await interaction.response.send_message(_t("..."))
     """
     id_token, locale_token, tz_token = await set_guild_context(guild_id)
     try:
@@ -740,7 +740,7 @@ async def db_channel_names_to_ids(template_info, id_col, channel_col: str, guild
                 await discord_commands.log_to_bot_channel(
                     guild,
                     "`db_channel_name_to_id`: "
-                    + I18N.t(
+                    + _t(
                         "common.error.channel_not_found_in_table",
                         channel=row_item["channel"],
                         table=template_info["name"],
@@ -792,7 +792,7 @@ async def db_single_channel_name_to_id(
             await discord_commands.log_to_bot_channel(
                 guild,
                 "`db_single_channel_name_to_id`: "
-                + I18N.t(
+                + _t(
                     "common.error.channel_not_found_in_table",
                     channel=channel_in,
                     table=template_info["name"],
