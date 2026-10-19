@@ -340,23 +340,23 @@ sausage_bot uses `i18nice` for making text and commands translateable. See the `
 - Filename format is `[filename].[shortcode for language].yml`
 - Make a pull request with complete set of files for language
 
-### Hey, does that local flake8 plugin named `flake8-I18N-checker` have anything to do with translating?
+### Hey, does that local flake8 plugin named `flake8-l10n-checker` have anything to do with translating?
 
 I'm glad you asked.
 
-You can use the local flake8 plugin `flake8-I18N-checker` to check your newly created yml-files. Add this to a file in root folder named `.flake8`:
+You can use the local flake8 plugin `flake8-l10n-checker` to check your newly created yml-files. Add this to a file in root folder named `.flake8`:
 
 ```
 [flake8]
 exclude =
-    ./sausage_bot/flake8-I18N-checker,
+    ./sausage_bot/flake8-l10n-checker,
     ./sausage_bot/util/i18n.py
 
 [flake8:local-plugins]
 extension =
-    LC1 = flake8_I18N_checker:I18N_Checker
+    LC1 = flake8_l10n_checker:l10n_Checker
 paths =
-    ./sausage_bot/flake8-I18N-checker/
+    ./sausage_bot/flake8-l10n-checker/
 ```
 
 Then run the following command in the root folder in a terminal:
