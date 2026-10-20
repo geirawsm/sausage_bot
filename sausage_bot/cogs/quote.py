@@ -860,9 +860,7 @@ class Quotes(commands.Cog):
         parent=group,
     )
 
-    @group.command(
-        name="post", description=locale_str(_t("quote.commands.post.cmd"))
-    )
+    @group.command(name="post", description=locale_str(_t("quote.commands.post.cmd")))
     @describe(quote_in=_t("quote.commands.post.desc.number"))
     async def post(
         self,
@@ -899,9 +897,7 @@ class Quotes(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="edit", description=locale_str(_t("quote.commands.edit.cmd"))
-    )
+    @group.command(name="edit", description=locale_str(_t("quote.commands.edit.cmd")))
     @describe(quote_in=_t("quote.commands.edit.desc.quote_in"))
     async def quote_edit(self, interaction: discord.Interaction, quote_in: str):
         "Edit an existing quote"
@@ -1141,9 +1137,7 @@ class Quotes(commands.Cog):
             )
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="count", description=locale_str(_t("quote.commands.count.cmd"))
-    )
+    @group.command(name="count", description=locale_str(_t("quote.commands.count.cmd")))
     async def quote_count(self, interaction: discord.Interaction):
         "Count the number of quotes available"
         await interaction.response.defer()
@@ -1212,9 +1206,7 @@ class Quotes(commands.Cog):
                     return False
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="list", description=locale_str(_t("quote.commands.list.cmd"))
-    )
+    @group.command(name="list", description=locale_str(_t("quote.commands.list.cmd")))
     async def quote_list(
         self,
         interaction: discord.Interaction,
@@ -1435,9 +1427,7 @@ class Quotes(commands.Cog):
                     view=discord_commands.CreateChannelView(
                         channel_name,
                         on_created=channel_setting_saver(name_of_setting),
-                        modal_title=_t(
-                            "quote.commands.settings.channel_modal_title"
-                        ),
+                        modal_title=_t("quote.commands.settings.channel_modal_title"),
                         modal_name_label=_t(
                             "quote.commands.settings.channel_name_label"
                         ),
@@ -1857,9 +1847,7 @@ def convert_b64_to_img_in_mem(b64string: str):
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.context_menu(
-    name=locale_str(_t("quote.context_menu.add_quote.name"))
-)
+@config.bot.tree.context_menu(name=locale_str(_t("quote.context_menu.add_quote.name")))
 async def quote_add(interaction: discord.Interaction, message: discord.Message):
     "Add a quote"
     msgs = await collect_context_msgs(interaction.channel, message)
