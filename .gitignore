@@ -23,6 +23,7 @@ sausage_bot/version.json
 .flake8
 /sausage_bot/test/test_parse/*
 /sausage_bot/flake8-l10n-checker/build/
+/sausage_bot/flake8-l10n-checker/flake8_l10n_checker.egg-info
 /.claude
 /graphify-out
 /sausage_bot/docs/mermaid_charts
