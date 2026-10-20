@@ -88,6 +88,7 @@ try:
     SPOTIFY_ID = env("SPOTIFY_ID", default="")
     SPOTIFY_SECRET = env("SPOTIFY_SECRET", default="")
     SCRAPEOPS_API_KEY = env("SCRAPEOPS_API_KEY", default="")
+    GITHUB_TOKEN = env("GITHUB_TOKEN", default="")
     STATS_LOOP = env.int("STATS_LOOP", default=5)
     YT_LOOP = env.int("YT_LOOP", default=5)
     RSS_LOOP = env.int("RSS_LOOP", default=5)

@@ -32,6 +32,15 @@ def guild_db_root(tmp_path, monkeypatch):
     monkeypatch.setitem(
         envs.youtube_quota_db_schema, "db_file", str(tmp_path / "guilds.sqlite")
     )
+    monkeypatch.setitem(
+        envs.dev_settings_db_schema, "db_file", str(tmp_path / "dev.sqlite")
+    )
+    monkeypatch.setitem(
+        envs.dev_drafts_db_schema, "db_file", str(tmp_path / "dev.sqlite")
+    )
+    monkeypatch.setitem(
+        envs.dev_draft_messages_db_schema, "db_file", str(tmp_path / "dev.sqlite")
+    )
     return tmp_path
 
 

@@ -269,6 +269,13 @@ You need to register with Spotify API first:
 - Follow the instructions on this page on _Getting started_: <https://developer.spotify.com/documentation/web-api>
 - Add "Client ID" and "Client secret" in .env file or as environment argument in docker
 
+### Want GitHub issues from a todo channel?
+
+The `dev` cog only works in the admin guild. Messages from the bot owner in the todo channel become GitHub issues, after the owner has answered Yes/Edit/Cancel on a draft:
+
+- Create a GitHub token with the "Issues: write" and "Contents: write" permissions on the repo (images in a message are committed to `data/dev/github_imgs/` on the repo's `issue-images` branch, which is created from the default branch the first time, since Discord's attachment links expire. A copy is also kept in `data/dev/github_imgs/` in the bot's data dir) and add it as `GITHUB_TOKEN` in the .env file or as environment argument in docker
+- In the admin guild, run `/dev channel` to set the todo channel and `/dev repo` to set the repo (`owner/name`). `/dev settings` shows what is set
+
 ### Running the bot
 
 You can chose to invite the bot as is, or host it yourself.
