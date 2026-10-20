@@ -5,6 +5,7 @@ __pycache__/
 *.code-workspace
 todo.diff
 .DS_Store
+.venv
 
 CLAUDE.md
 
