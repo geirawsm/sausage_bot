@@ -87,6 +87,8 @@ en:
       channel_modal_title: Create channel from an existing channel
       channel_name_label: Name of the new channel
       channel_created: "✅ Created %{channel} and saved it as `%{setting}`."
+      list_channel_invalid: "Channel \"%{channel}\" in the quote settings is not a Discord id"
+      list_role_invalid: "The role \"%{role}\" in the quote settings is not a Discord id"
   modals:
     quote_num: Quote number
     quote_text: Quote text

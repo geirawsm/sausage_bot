@@ -1306,11 +1306,23 @@ class Quotes(commands.Cog):
     @settings_group.command(
         name="list", description=locale_str(_t("common.settings.list_settings"))
     )
-    async def list_settings(self, interaction: discord.Interaction):
+    @describe(public=_t("common.desc_public"))
+    async def list_settings(
+        self,
+        interaction: discord.Interaction,
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
+    ):
         """
         List the available settings for this cog
         """
-        await interaction.response.defer(ephemeral=True)
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         settings_in_db = await db_helper.get_output(
             template_info=envs.quote_db_settings_schema,
             select=("setting", "value"),
@@ -1324,13 +1336,15 @@ class Quotes(commands.Cog):
             settings_in_db["channel"] = f"{channel_obj.name} ({channel_obj.id})"
         else:
             logger.error("Channel in quote settings is not a Discord id")
+            _msg_invalid = _t(
+                "quote.commands.settings.list_channel_invalid",
+                channel=settings_in_db["channel"],
+            )
             await discord_commands.log_to_bot_channel(
                 guild=interaction.guild,
-                # TODO: i18n
-                content_in='Channel "{}" in quote settings is not a Discord id'.format(
-                    settings_in_db["channel"]
-                ),
+                content_in=_msg_invalid,
             )
+            await interaction.followup.send(_msg_invalid, ephemeral=True)
             return
         role_obj = discord_commands.get_user_channel_role_id(
             interaction.guild, settings_in_db["autopost_tag_role"]
@@ -1338,14 +1352,16 @@ class Quotes(commands.Cog):
         if role_obj is not None:
             settings_in_db["autopost_tag_role"] = f"{role_obj.name} ({role_obj.id})"
         else:
-            logger.error("autopost_tag_tole in quote settings is not a Discord id")
+            logger.error("autopost_tag_role in quote settings is not a Discord id")
+            _msg_invalid = _t(
+                "quote.commands.settings.list_role_invalid",
+                role=settings_in_db["autopost_tag_role"],
+            )
             await discord_commands.log_to_bot_channel(
                 guild=interaction.guild,
-                # TODO: i18n
-                content_in='autopost_tag_role "{}" in quote settings is not a Discord id'.format(
-                    settings_in_db["autopost_tag_role"]
-                ),
+                content_in=_msg_invalid,
             )
+            await interaction.followup.send(_msg_invalid, ephemeral=True)
             return
         headers_settings = {
             "setting": _t("common.settings.setting"),
@@ -1356,7 +1372,7 @@ class Quotes(commands.Cog):
             _t("stats.commands.list.stats_msg_out.sub_settings"),
             tabulate(settings_out, headers=headers_settings),
         )
-        await interaction.followup.send(content=out, ephemeral=True)
+        await interaction.followup.send(content=out, ephemeral=_ephemeral)
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)
