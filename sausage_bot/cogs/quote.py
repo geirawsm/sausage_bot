@@ -722,6 +722,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
     quote = await db_helper.get_imgs_with_quote(
         envs.quote_db_schema,
         where=[("quote.rowid", int(quote_in))],
+        order_by=[("quote_content.content_order", "ASC")],
         guild_id=interaction.guild.id,
     )
     if len(quote) == 0:
@@ -974,7 +975,7 @@ class Quotes(commands.Cog):
         quote_to_db = []
         imgs_to_db = []
         quote_insert_order = 0
-        for quote in sorted(quote_msgs_out):
+        for quote in sorted(quote_msgs_out, key=int):
             _q_object = await discord_commands.get_message_obj(
                 guild=interaction.guild,
                 msg_id=quote,
@@ -1928,11 +1929,13 @@ async def get_selected_msgs(
 def build_quote_rows(quote_uuid: str, msgs: list[discord.Message]) -> tuple:
     """
     Turn the selected messages into rows for `quote_content` and
-    `quote_img`, in the order they were selected
+    `quote_img`, in chronological order. Discord returns dropdown values
+    in the order they were clicked, so the order is set here from the
+    message ids (snowflakes, which grow with creation time)
     """
     content_rows = []
     img_rows = []
-    for content_order, _q in enumerate(msgs):
+    for content_order, _q in enumerate(sorted(msgs, key=lambda m: m.id)):
         content_rows.append(
             (
                 quote_uuid,
