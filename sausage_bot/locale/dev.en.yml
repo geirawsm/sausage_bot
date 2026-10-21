@@ -1,0 +1,37 @@
+en:
+  group:
+    cmd: Developer tools (admin guild only)
+  commands:
+    channel:
+      cmd: Set the todo channel that turns your messages into GitHub issues
+      desc:
+        channel: The todo channel
+      msg_confirm: 'The todo channel is now %{channel}'
+    repo:
+      cmd: Set the GitHub repo that issues are created in
+      desc:
+        repo: 'The repo as owner/name, e.g. geirawsm/sausage_bot'
+      msg_confirm: 'Issues will now be created in `%{repo}`'
+      msg_invalid: 'That is not a valid repo. Use the format owner/name'
+    settings:
+      cmd: Show the dev settings
+      msg_settings: "Todo channel: %{channel}\nRepo: %{repo}\nGitHub token: %{token}"
+      not_set: not set
+      token_set: set
+      token_missing: missing (add GITHUB_TOKEN to .env)
+  msg_not_admin_guild: This command can only be used in the admin guild
+  msg_not_configured: 'Set the todo channel and repo with `/dev channel` and `/dev repo`, and add GITHUB_TOKEN to .env, before I can create issues'
+  msg_untitled: Untitled
+  attachments_heading: Attachments
+  buttons:
+    yes: Yes
+    edit: Edit
+    cancel: Cancel
+  msg_draft: "%{owner} Create this issue in `%{repo}`?\n**Title:** %{title}\n**Body:**\n%{body}"
+  msg_draft_missing: Could not find this draft any more
+  msg_issue_created: 'Issue #%{number}: %{url}'
+  msg_issue_failed: 'Could not create the issue: %{error}'
+  modal:
+    title: Edit the issue
+    field_title: Title
+    field_body: Body

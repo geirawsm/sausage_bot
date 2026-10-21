@@ -37,6 +37,7 @@ LOG_DIR = DATA_DIR / "logs"
 STATIC_DIR = DATA_DIR / "static"
 TEMP_DIR = ROOT_DIR / "tempfiles"
 GUILDS_DB_FILE = str(DB_DIR / "guilds.sqlite")
+DEV_DB_FILE = str(DB_DIR / "dev.sqlite")
 
 
 def guild_db_dir(guild_id) -> Path:
@@ -150,6 +151,11 @@ SPOTIFY_SECRET=
 # Scrapeops is being used for changing user agent agent when fetching links
 # It's not mandatory, but it might help: https://scrapeops.io
 SCRAPEOPS_API_KEY=
+
+# Dev settings
+# A GitHub token with the "Issues: write" permission on the repo set with
+# `/dev repo`. Used by the dev cog to create issues from the todo channel.
+GITHUB_TOKEN=
 """
 
 # Guilds registry (global - not scoped to a guild, this IS the list of guilds)
@@ -199,6 +205,47 @@ youtube_quota_db_schema = {
     ],
     "primary": "date",
     "autoincrement": False,
+}
+
+# Dev cog (global - it only runs in the admin guild)
+# Holds the `channel` (todo channel id) and `repo` (owner/name) settings
+dev_settings_db_schema = {
+    "db_file": DEV_DB_FILE,
+    "scope": "global",
+    "name": "settings",
+    "items": [["setting", "TEXT NOT NULL UNIQUE"], ["value", "TEXT"]],
+    "primary": "setting",
+    "autoincrement": False,
+}
+
+# Issue drafts waiting for the bot owner to answer Yes/Edit/Cancel.
+# `message_id` is the owner's original message in the todo channel
+dev_drafts_db_schema = {
+    "db_file": DEV_DB_FILE,
+    "scope": "global",
+    "name": "drafts",
+    "items": [
+        ["message_id", "TEXT NOT NULL UNIQUE"],
+        ["channel_id", "TEXT NOT NULL"],
+        ["confirm_message_id", "TEXT NOT NULL"],
+        ["author_id", "TEXT NOT NULL"],
+        ["title", "TEXT NOT NULL"],
+        ["body", "TEXT NOT NULL"],
+    ],
+    "primary": "message_id",
+    "autoincrement": False,
+}
+
+# Every message of the owner that a draft was made from. Messages sent
+# close together become one draft, which is saved under the first one
+dev_draft_messages_db_schema = {
+    "db_file": DEV_DB_FILE,
+    "scope": "global",
+    "name": "draft_messages",
+    "items": [
+        ["draft_id", "TEXT NOT NULL"],
+        ["message_id", "TEXT NOT NULL"],
+    ],
 }
 
 # Stats

@@ -1,0 +1,37 @@
+nb:
+  group:
+    cmd: Utviklerverktøy (kun admin-guild)
+  commands:
+    channel:
+      cmd: Sett todo-kanalen som gjør meldingene dine om til GitHub-issues
+      desc:
+        channel: Todo-kanalen
+      msg_confirm: 'Todo-kanalen er nå %{channel}'
+    repo:
+      cmd: Sett GitHub-repoet issues lages i
+      desc:
+        repo: 'Repoet som eier/navn, f.eks. geirawsm/sausage_bot'
+      msg_confirm: 'Issues lages nå i `%{repo}`'
+      msg_invalid: 'Det er ikke et gyldig repo. Bruk formatet eier/navn'
+    settings:
+      cmd: Vis dev-innstillingene
+      msg_settings: "Todo-kanal: %{channel}\nRepo: %{repo}\nGitHub-token: %{token}"
+      not_set: ikke satt
+      token_set: satt
+      token_missing: mangler (legg til GITHUB_TOKEN i .env)
+  msg_not_admin_guild: Denne kommandoen kan bare brukes i admin-guilden
+  msg_not_configured: 'Sett todo-kanal og repo med `/dev channel` og `/dev repo`, og legg til GITHUB_TOKEN i .env, før jeg kan lage issues'
+  msg_untitled: Uten tittel
+  attachments_heading: Vedlegg
+  buttons:
+    yes: Ja
+    edit: Endre
+    cancel: Avbryt
+  msg_draft: "%{owner} Lage dette issuet i `%{repo}`?\n**Tittel:** %{title}\n**Beskrivelse:**\n%{body}"
+  msg_draft_missing: Fant ikke dette utkastet lenger
+  msg_issue_created: 'Issue #%{number}: %{url}'
+  msg_issue_failed: 'Kunne ikke lage issuet: %{error}'
+  modal:
+    title: Endre issuet
+    field_title: Tittel
+    field_body: Beskrivelse

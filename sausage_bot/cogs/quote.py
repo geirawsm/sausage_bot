@@ -722,6 +722,7 @@ async def post_selected_quote(interaction, _ephemeral, quote_in):
     quote = await db_helper.get_imgs_with_quote(
         envs.quote_db_schema,
         where=[("quote.rowid", int(quote_in))],
+        order_by=[("quote_content.content_order", "ASC")],
         guild_id=interaction.guild.id,
     )
     if len(quote) == 0:
@@ -860,9 +861,7 @@ class Quotes(commands.Cog):
         parent=group,
     )
 
-    @group.command(
-        name="post", description=locale_str(_t("quote.commands.post.cmd"))
-    )
+    @group.command(name="post", description=locale_str(_t("quote.commands.post.cmd")))
     @describe(quote_in=_t("quote.commands.post.desc.number"))
     async def post(
         self,
@@ -899,9 +898,7 @@ class Quotes(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="edit", description=locale_str(_t("quote.commands.edit.cmd"))
-    )
+    @group.command(name="edit", description=locale_str(_t("quote.commands.edit.cmd")))
     @describe(quote_in=_t("quote.commands.edit.desc.quote_in"))
     async def quote_edit(self, interaction: discord.Interaction, quote_in: str):
         "Edit an existing quote"
@@ -978,7 +975,7 @@ class Quotes(commands.Cog):
         quote_to_db = []
         imgs_to_db = []
         quote_insert_order = 0
-        for quote in sorted(quote_msgs_out):
+        for quote in sorted(quote_msgs_out, key=int):
             _q_object = await discord_commands.get_message_obj(
                 guild=interaction.guild,
                 msg_id=quote,
@@ -1141,9 +1138,7 @@ class Quotes(commands.Cog):
             )
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="count", description=locale_str(_t("quote.commands.count.cmd"))
-    )
+    @group.command(name="count", description=locale_str(_t("quote.commands.count.cmd")))
     async def quote_count(self, interaction: discord.Interaction):
         "Count the number of quotes available"
         await interaction.response.defer()
@@ -1212,9 +1207,7 @@ class Quotes(commands.Cog):
                     return False
 
     @discord_commands.is_owner_or_manage_guild()
-    @group.command(
-        name="list", description=locale_str(_t("quote.commands.list.cmd"))
-    )
+    @group.command(name="list", description=locale_str(_t("quote.commands.list.cmd")))
     async def quote_list(
         self,
         interaction: discord.Interaction,
@@ -1435,9 +1428,7 @@ class Quotes(commands.Cog):
                     view=discord_commands.CreateChannelView(
                         channel_name,
                         on_created=channel_setting_saver(name_of_setting),
-                        modal_title=_t(
-                            "quote.commands.settings.channel_modal_title"
-                        ),
+                        modal_title=_t("quote.commands.settings.channel_modal_title"),
                         modal_name_label=_t(
                             "quote.commands.settings.channel_name_label"
                         ),
@@ -1857,9 +1848,7 @@ def convert_b64_to_img_in_mem(b64string: str):
 
 
 @discord_commands.is_owner_or_manage_guild()
-@config.bot.tree.context_menu(
-    name=locale_str(_t("quote.context_menu.add_quote.name"))
-)
+@config.bot.tree.context_menu(name=locale_str(_t("quote.context_menu.add_quote.name")))
 async def quote_add(interaction: discord.Interaction, message: discord.Message):
     "Add a quote"
     msgs = await collect_context_msgs(interaction.channel, message)
@@ -1940,11 +1929,13 @@ async def get_selected_msgs(
 def build_quote_rows(quote_uuid: str, msgs: list[discord.Message]) -> tuple:
     """
     Turn the selected messages into rows for `quote_content` and
-    `quote_img`, in the order they were selected
+    `quote_img`, in chronological order. Discord returns dropdown values
+    in the order they were clicked, so the order is set here from the
+    message ids (snowflakes, which grow with creation time)
     """
     content_rows = []
     img_rows = []
-    for content_order, _q in enumerate(msgs):
+    for content_order, _q in enumerate(sorted(msgs, key=lambda m: m.id)):
         content_rows.append(
             (
                 quote_uuid,
