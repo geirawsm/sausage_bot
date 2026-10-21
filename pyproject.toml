@@ -19,13 +19,14 @@ dependencies = [
     "requests>=2.32.0",
     "spotipy",
     "tabulate",
-    "pillow",
+    "pillow<=13.0.0",
     "audioop-lts",
     "typing-extensions",
     "environs",
     "google-api-python-client",
     "cryptography",
     "aiohttp>=3.14.4",
+    "certifi>=2026.10.19"
 ]
 
 [dependency-groups]
