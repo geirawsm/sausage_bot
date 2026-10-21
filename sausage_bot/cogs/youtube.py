@@ -938,6 +938,7 @@ class Youtube(commands.Cog):
     @describe(
         list_type=_t("youtube.commands.list.desc.list_type"),
         link_type=_t("youtube.commands.list.desc.link_type"),
+        public=_t("common.desc_public"),
     )
     async def youtube_list(
         self,
@@ -951,11 +952,19 @@ class Youtube(commands.Cog):
             LINK_TYPE_CHANNEL,
             LINK_TYPE_PLAYLIST,
         ] = None,
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
     ):
         """
         List all active Youtube feeds
         """
-        await interaction.response.defer()
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         # `get_feed_list` takes untranslated types, so don't pass the
         # literals along as they are
         if link_type == LINK_TYPE_CHANNEL:
@@ -990,12 +999,14 @@ class Youtube(commands.Cog):
             for page in formatted_list:
                 page_counter += 1
                 logger.debug(f"Sending page ({page_counter} / {len(formatted_list)})")
-                await interaction.followup.send(f"```{page}```")
+                await interaction.followup.send(f"```{page}```", ephemeral=_ephemeral)
                 # `time.sleep` here held the event loop, and the bot
                 # with it, for a second per page
                 await asyncio.sleep(1)
         else:
-            await interaction.followup.send(_t("youtube.commands.list.msg_error"))
+            await interaction.followup.send(
+                _t("youtube.commands.list.msg_error"), ephemeral=True
+            )
         return
 
     @discord_commands.is_owner_or_manage_guild()

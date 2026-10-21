@@ -531,11 +531,23 @@ class Stats(commands.Cog):
     @stats_settings_group.command(
         name="list", description=locale_str(_t("stats.commands.list.command"))
     )
-    async def list_settings(self, interaction: discord.Interaction):
+    @describe(public=_t("common.desc_public"))
+    async def list_settings(
+        self,
+        interaction: discord.Interaction,
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
+    ):
         """
         List the available settings for this cog
         """
-        await interaction.response.defer(ephemeral=True)
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         stats_settings = await db_helper.get_output(
             template_info=envs.stats_db_settings_schema,
             select=("setting", "value"),
@@ -589,7 +601,7 @@ class Stats(commands.Cog):
                 _t("stats.commands.list.stats_msg_out.sub_hidden"),
                 tabulate(populated_roles, headers=headers_hidden_roles),
             )
-        await interaction.followup.send(content=out, ephemeral=True)
+        await interaction.followup.send(content=out, ephemeral=_ephemeral)
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(name_of_setting=settings_db_autocomplete)

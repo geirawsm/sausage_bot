@@ -338,9 +338,7 @@ class RSSfeed(commands.Cog):
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
-    @rss_group.command(
-        name="add", description=locale_str(_t("rss.commands.add.cmd"))
-    )
+    @rss_group.command(name="add", description=locale_str(_t("rss.commands.add.cmd")))
     @describe(
         feed_name=_t("rss.commands.add.desc.feed_name"),
         feed_link=_t("rss.commands.add.desc.feed_link"),
@@ -427,14 +425,14 @@ class RSSfeed(commands.Cog):
                 ),
             )
             await interaction.followup.send(
-                _t("rss.commands.remove.msg_feed_removed", feed_name=feed_name)
+                _t("rss.commands.remove.msg_feed_removed", feed_name=feed_name),
+                ephemeral=True,
             )
         elif removal is False:
             # Couldn't remove the feed
             await interaction.followup.send(
-                _t(
-                    "rss.commands.remove.msg_feed_remove_failed", feed_name=feed_name
-                )
+                _t("rss.commands.remove.msg_feed_remove_failed", feed_name=feed_name),
+                ephemeral=True,
             )
             # Also log and send error to bot-channel
             await discord_commands.log_to_bot_channel(
@@ -445,13 +443,10 @@ class RSSfeed(commands.Cog):
                     feed_name=feed_name,
                 ),
             )
-        return
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(feed_name=rss_feed_name_autocomplete)
-    @rss_group.command(
-        name="edit", description=locale_str(_t("rss.commands.edit.cmd"))
-    )
+    @rss_group.command(name="edit", description=locale_str(_t("rss.commands.edit.cmd")))
     @describe(
         feed_name=_t("rss.commands.edit.desc.feed_name"),
         new_feed_name=_t("rss.commands.edit.desc.new_feed_name"),
@@ -584,9 +579,7 @@ class RSSfeed(commands.Cog):
             guild_id=interaction.guild.id,
         )
         if adding_filter:
-            msg_out = _t(
-                "rss.commands.filter_add.msg_confirm", allow_deny=allow_deny
-            )
+            msg_out = _t("rss.commands.filter_add.msg_confirm", allow_deny=allow_deny)
             for filter in _filters_in:
                 msg_out += f"\n- {filter}"
             await interaction.followup.send(msg_out, ephemeral=True)
@@ -699,10 +692,11 @@ class RSSfeed(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @rss_group.command(
-        name="list", description=locale_str(_t("rss.commands.list.cmd"))
+    @rss_group.command(name="list", description=locale_str(_t("rss.commands.list.cmd")))
+    @describe(
+        list_type=_t("rss.commands.list.desc.list_type"),
+        public=_t("common.desc_public"),
     )
-    @describe(list_type=_t("rss.commands.list.desc.list_type"))
     async def rss_list(
         self,
         interaction: discord.Interaction,
@@ -715,7 +709,6 @@ class RSSfeed(commands.Cog):
             _t("common.literal_yes_no.lit_yes"),
             _t("common.literal_yes_no.lit_no"),
         ] = None,
-
     ):
         """
         List all active rss feeds
@@ -963,9 +956,7 @@ class RSSfeed(commands.Cog):
         elif removal is False:
             # Couldn't remove the feed
             await interaction.followup.send(
-                _t(
-                    "rss.commands.remove.msg_feed_remove_failed", feed_name=podcast_name
-                )
+                _t("rss.commands.remove.msg_feed_remove_failed", feed_name=podcast_name)
             )
             # Also log and send error to bot-channel
             await discord_commands.log_to_bot_channel(
@@ -1005,9 +996,7 @@ class RSSfeed(commands.Cog):
             guild_id=interaction.guild.id,
         )
         logger.debug(f"`feed_info` is {feed_info}")
-        changes_out = _t(
-            "rss.commands.edit.changes_out.msg", feed_name=podcast_name
-        )
+        changes_out = _t("rss.commands.edit.changes_out.msg", feed_name=podcast_name)
         updates_in = []
         if new_podcast_name:
             updates_in.append(("feed_name", new_podcast_name))
@@ -1041,7 +1030,10 @@ class RSSfeed(commands.Cog):
     @podcast_group.command(
         name="list", description=locale_str(_t("rss.commands.list.cmd"))
     )
-    @describe(list_type=_t("rss.commands.list.desc.list_type"))
+    @describe(
+        list_type=_t("rss.commands.list.desc.list_type"),
+        public=_t("common.desc_public"),
+    )
     async def podcast_list(
         self,
         interaction: discord.Interaction,
@@ -1050,11 +1042,19 @@ class RSSfeed(commands.Cog):
             LIST_TYPE_ADDED,
             LIST_TYPE_FILTER,
         ],
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
     ):
         """
         List all active podcast feeds
         """
-        await interaction.response.defer()
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         if list_type == LIST_TYPE_ADDED:
             formatted_list = await feeds_core.get_feed_list(
                 guild=interaction.guild,
@@ -1081,7 +1081,7 @@ class RSSfeed(commands.Cog):
             for page in formatted_list:
                 page_counter += 1
                 logger.debug(f"Sending page ({page_counter} / {len(formatted_list)})")
-                await interaction.followup.send(f"```{page}```")
+                await interaction.followup.send(f"```{page}```", ephemeral=_ephemeral)
                 sleep(1)
         else:
             await interaction.followup.send(
@@ -1281,9 +1281,7 @@ class RSSfeed(commands.Cog):
                             logger.info(f"Feed {FEED_NAME} returned NoneType")
                             await discord_commands.log_to_bot_channel(
                                 guild,
-                                _t(
-                                    "rss.tasks.feed_posts_is_none", feed_name=FEED_NAME
-                                ),
+                                _t("rss.tasks.feed_posts_is_none", feed_name=FEED_NAME),
                             )
                         else:
                             await feeds_core.process_links_for_posting_or_editing(
@@ -1330,9 +1328,7 @@ class RSSfeed(commands.Cog):
                             logger.info(f"Feed {FEED_NAME} returned NoneType")
                             await discord_commands.log_to_bot_channel(
                                 guild,
-                                _t(
-                                    "rss.tasks.feed_posts_is_none", feed_name=FEED_NAME
-                                ),
+                                _t("rss.tasks.feed_posts_is_none", feed_name=FEED_NAME),
                             )
                         else:
                             await feeds_core.process_links_for_posting_or_editing(

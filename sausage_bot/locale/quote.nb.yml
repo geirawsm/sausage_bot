@@ -87,6 +87,8 @@ nb:
       channel_modal_title: Lag kanal fra en eksisterende kanal
       channel_name_label: Navn på den nye kanalen
       channel_created: "✅ Laget %{channel} og lagret den som `%{setting}`."
+      list_channel_invalid: "Kanalen \"%{channel}\" i sitatinnstillingene er ikke en Discord-id"
+      list_role_invalid: "Rollen \"%{role}\" i sitatinnstillingene er ikke en Discord-id"
   modals:
     quote_num: Sitat nummer
     quote_text: Sitat tekst

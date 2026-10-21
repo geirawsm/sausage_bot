@@ -219,17 +219,29 @@ class AutoEvent(commands.Cog):
     @group.command(
         name="list", description=locale_str(_t("autoevent.commands.list.cmd"))
     )
-    async def list_events(self, interaction: discord.Interaction):
+    @describe(public=_t("common.desc_public"))
+    async def list_events(
+        self,
+        interaction: discord.Interaction,
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
+    ):
         """
         Lists all the planned events: `!autoevent list`
         """
-        await interaction.response.defer(ephemeral=True)
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         events = await discord_commands.get_sorted_scheduled_events(interaction.guild)
         if events is None:
             msg_out = _t("autoevent.commands.list.msg_no_events")
         else:
             msg_out = events
-        await interaction.followup.send(msg_out)
+        await interaction.followup.send(msg_out, ephemeral=_ephemeral)
 
     @discord_commands.is_owner_or_manage_guild()
     @group.command(

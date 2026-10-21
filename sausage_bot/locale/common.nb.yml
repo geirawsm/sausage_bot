@@ -8,6 +8,7 @@ nb:
   literal_allow_deny:
     allow: Tillat
     deny: Nekt
+  desc_public: Gjør svaret offentlig
   cancel: Avbryt
   create_channel:
     select_placeholder: Velg kanalen tillatelsene skal kopieres fra

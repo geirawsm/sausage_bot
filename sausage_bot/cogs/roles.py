@@ -1383,15 +1383,28 @@ class Autoroles(commands.Cog):
         return
 
     @discord_commands.is_owner_or_manage_guild()
-    @describe(reaction_msg=_t("roles.commands.react_list.desc.reaction_msg"))
+    @describe(
+        reaction_msg=_t("roles.commands.react_list.desc.reaction_msg"),
+        public=_t("common.desc_public"),
+    )
     @discord.app_commands.autocomplete(reaction_msg=reaction_msgs_autocomplete)
     @roles_reaction_group.command(
         name="list", description=locale_str(_t("roles.commands.react_list.cmd"))
     )
     async def list_reactions(
-        self, interaction: discord.Interaction, reaction_msg: str = None
+        self,
+        interaction: discord.Interaction,
+        reaction_msg: str = None,
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
     ):
-        await interaction.response.defer(ephemeral=True)
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
         if reaction_msg:
             msg_uuid = reaction_msg
             db_reactions = await db_helper.get_combined_output(
@@ -1416,7 +1429,8 @@ class Autoroles(commands.Cog):
                     _t(
                         "roles.commands.react_list.msg_error",
                         reaction_msg=msg_uuid,
-                    )
+                    ),
+                    ephemeral=_ephemeral,
                 )
                 return
             tabulate_dict = {
@@ -1465,7 +1479,8 @@ class Autoroles(commands.Cog):
                     _t("common.text"),
                     db_reactions[0]["content"],
                     "\n".join(tabulated_reactions),
-                )
+                ),
+                ephemeral=_ephemeral,
             )
         elif not reaction_msg:
             tabulate_dict = {
@@ -1487,7 +1502,10 @@ class Autoroles(commands.Cog):
             )
             logger.debug(f"`sorted_reacts` is {sorted_reacts}")
             if sorted_reacts is None:
-                await interaction.followup.send("Ingen meldinger i databasen")
+                await interaction.followup.send(
+                    _t("roles.commands.react_list.msg_no_msgs"),
+                    ephemeral=_ephemeral,
+                )
                 return
             for _sort in sorted_reacts:
                 tabulate_dict["name"].append(_sort["name"])
@@ -1511,7 +1529,8 @@ class Autoroles(commands.Cog):
                             _t("common.num_reactions"),
                         ],
                     )
-                )
+                ),
+                ephemeral=_ephemeral,
             )
         return
 
@@ -2241,11 +2260,23 @@ class Autoroles(commands.Cog):
     @roles_settings_group.command(
         name="list", description=locale_str(_t("roles.commands.list_settings.cmd"))
     )
-    async def list_settings(self, interaction: discord.Interaction):
+    @describe(public=_t("common.desc_public"))
+    async def list_settings(
+        self,
+        interaction: discord.Interaction,
+        public: typing.Literal[
+            _t("common.literal_yes_no.lit_yes"),
+            _t("common.literal_yes_no.lit_no"),
+        ] = None,
+    ):
         """
         List settings for roles on the server
         """
-        await interaction.response.defer(ephemeral=True)
+        if public == _t("common.literal_yes_no.lit_yes"):
+            _ephemeral = False
+        else:
+            _ephemeral = True
+        await interaction.response.defer(ephemeral=_ephemeral)
 
         settings_db = await db_helper.get_output(
             template_info=envs.roles_db_settings_schema, guild_id=interaction.guild.id
@@ -2264,7 +2295,7 @@ class Autoroles(commands.Cog):
                 "value": _t("roles.commands.list_settings.headers.value"),
             },
         )
-        await interaction.followup.send(f"```{_settings}```")
+        await interaction.followup.send(f"```{_settings}```", ephemeral=_ephemeral)
         return
 
     @discord_commands.is_owner_or_manage_guild()

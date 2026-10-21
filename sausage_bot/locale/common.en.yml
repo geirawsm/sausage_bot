@@ -8,6 +8,7 @@ en:
   literal_allow_deny:
     allow: Allow
     deny: Deny
+  desc_public: Make the reply public
   cancel: Cancel
   create_channel:
     select_placeholder: Select the channel to copy permissions from
