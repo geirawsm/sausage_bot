@@ -528,8 +528,24 @@ class Dev(commands.Cog):
         self._pending = {}
         super().__init__()
 
+    async def _warn_missing_token(self):
+        "Tell the bot channel of the admin guild once that GITHUB_TOKEN is not set"
+        await self.bot.wait_until_ready()
+        if not config.ADMIN_GUILD_ID:
+            return
+        guild = self.bot.get_guild(int(config.ADMIN_GUILD_ID))
+        if guild is None:
+            return
+        async with db_helper.guild_locale_context(guild.id):
+            await discord_commands.log_to_bot_channel(
+                guild, _t("dev.msg_no_token")
+            )
+
     async def cog_load(self):
         "Give the buttons of drafts that are still waiting their callbacks back"
+        if not config.GITHUB_TOKEN:
+            logger.warning("GITHUB_TOKEN is not set, dev cannot create issues")
+            self._token_warning = asyncio.create_task(self._warn_missing_token())
         drafts = await db_helper.get_output(envs.dev_drafts_db_schema)
         if not drafts:
             return
@@ -628,6 +644,10 @@ class Dev(commands.Cog):
         if str(message.channel.id) != str(settings.get("channel")):
             return
         if not await self.bot.is_owner(message.author):
+            return
+        if not config.GITHUB_TOKEN:
+            async with db_helper.guild_locale_context(message.guild.id):
+                await message.reply(_t("dev.msg_no_token"))
             return
         pending = self._pending.setdefault(
             message.channel.id, {"messages": [], "task": None}

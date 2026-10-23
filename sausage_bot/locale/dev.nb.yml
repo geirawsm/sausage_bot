@@ -21,6 +21,7 @@ nb:
       token_missing: mangler (legg til GITHUB_TOKEN i .env)
   msg_not_admin_guild: Denne kommandoen kan bare brukes i admin-guilden
   msg_not_configured: 'Sett todo-kanal og repo med `/dev channel` og `/dev repo`, og legg til GITHUB_TOKEN i .env, før jeg kan lage issues'
+  msg_no_token: 'GITHUB_TOKEN er ikke satt i .env, så jeg kan ikke lage issues fra todo-kanalen'
   msg_untitled: Uten tittel
   attachments_heading: Vedlegg
   buttons:
