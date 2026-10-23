@@ -119,6 +119,11 @@ try:
             "SCRAPEOPS API: If you want to avoid being blocked for scraping, "
             "you need to set SCRAPEOPS_API_KEY in the .env file"
         )
+    if any(envvar in [None, ""] for envvar in [GITHUB_TOKEN]):
+        startup_warnings.append(
+            "GITHUB API: If you want to be able to create Github issues from "
+            "Discord you need to set GITHUB_TOKEN in the .env file"
+        )
 except EnvError as e:
     logger_setup.configure_logging()
     logging.error(f"You need to set environment variables for the bot to work: {e}")

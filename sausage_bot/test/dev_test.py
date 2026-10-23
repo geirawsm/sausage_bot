@@ -228,8 +228,7 @@ async def test_message_without_a_token_asks_for_setup_instead_of_a_draft(
 
     assert await dev.get_draft(555) is None
     message.reply.assert_awaited_once_with(
-        "Set the todo channel and repo with `/dev channel` and `/dev repo`, "
-        "and add GITHUB_TOKEN to .env, before I can create issues"
+        "GITHUB_TOKEN is not set in .env, so I can't create issues from the todo channel"
     )
 
 
