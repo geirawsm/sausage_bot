@@ -1240,6 +1240,15 @@ class RSSfeed(commands.Cog):
                 spotify_check = await net_io.check_for_new_spotify_podcast_episodes(
                     guild
                 )
+                # `False`/`None` means the Spotify lookup failed (already
+                # logged). Skip Spotify this round instead of letting a
+                # `len()` on it kill the whole loop for every guild.
+                if not isinstance(spotify_check, dict):
+                    logger.warning(
+                        f"Spotify episode check failed for `{guild.name}`, "
+                        "skipping Spotify podcasts this round"
+                    )
+                    spotify_check = {}
                 logger.debug("spotify_check is {}".format(spotify_check))
                 # Get feeds of other podcasts
                 pod_check = await net_io.check_other_podcast_episodes(guild)
@@ -1340,6 +1349,16 @@ class RSSfeed(commands.Cog):
                                 guild=guild,
                             )
         logger.info("Done with posting")
+
+    @task_post_podcasts.error
+    async def task_post_podcasts_error(exception):
+        # discord.py stops a loop for good on an unhandled exception, which
+        # silently halts all podcast posting until the bot is restarted.
+        logger.error(
+            "`post_podcasts` crashed, restarting it: {!r}".format(exception),
+            exc_info=exception,
+        )
+        RSSfeed.task_post_podcasts.restart()
 
     @task_post_podcasts.before_loop
     async def before_post_new_podcasts():
