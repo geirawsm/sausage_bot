@@ -310,15 +310,14 @@ Not every setting goes through all three layers:
 
 #### Running locally with python
 
-It is recommended to run the bot in a controlled environment, by using `pipenv` or similar services.
+It is recommended to run the bot in a controlled environment. The project uses [uv](https://docs.astral.sh/uv/) to manage the python environment and dependencies (Python 3.14 is required, and `uv` will fetch it for you if it's missing).
 
 - Using the terminal, navigate to the folder where you want to install the bot
 - Run `git clone https://github.com/geirawsm/sausage_bot.git`
 - `cd` into sausage_bot
-- Install `pipenv` if you haven't already
-- Run `pipenv shell` to create the python environment and start the shell
-- Run `pipenv install` to install dependencies
-- Run the bot once to get the `.env` file: `python -m sausage_bot`
+- [Install `uv`](https://docs.astral.sh/uv/getting-started/installation/) if you haven't already
+- Run `uv sync` to create the python environment (`.venv`) and install dependencies. Add `--no-dev` if you don't need the development tools
+- Run the bot once to get the `.env` file: `uv run python -m sausage_bot`
 - Open `sausage_bot/sausage_bot/data/.env` and add as a minimum these values under the `basic` key:
   - `DISCORD_TOKEN` Get the token from the [Discord Developer portal](https://discord.com/developers/applications) under "Bot", "Build-A-Bot", "TOKEN"
   - `ADMIN_GUILD_ID` The ID of your own/main Discord server - see [Multiple servers](#multiple-servers)
@@ -331,9 +330,9 @@ It is recommended to run the bot in a controlled environment, by using `pipenv` 
   - Make sure that the information looks correct, select the server you want it to join, and click "Continue" and confirm the permissions by clicking "Authorize". Your bot should now join the channel in a disconnected state.
   - If this isn't your `ADMIN_GUILD_ID` server, it now needs approval - see [Multiple servers](#multiple-servers)
 - Start the bot
-  - Go back to the terminal and run `python -m sausage_bot` again. The bot will now be online.
+  - Go back to the terminal and run `uv run python -m sausage_bot` again. The bot will now be online.
 
-If you run `python -m sausage_bot -h` you can also see all the arguments you can add.
+If you run `uv run python -m sausage_bot -h` you can also see all the arguments you can add.
 
 #### Build docker image
 
@@ -374,7 +373,7 @@ paths =
 
 Then run the following command in the root folder in a terminal:
 
-`flake8 --select LC`
+`uv run flake8 --select LC`
 
 ---
 

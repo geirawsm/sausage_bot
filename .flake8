@@ -5,6 +5,7 @@ exclude =
     ./sausage_bot/test
     ./sausage_bot/testing
     ./sausage_bot/util/i18n.py
-    ./venv/**
+    ./venv/**,
+    .venv
 
 
