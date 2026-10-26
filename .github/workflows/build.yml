@@ -20,34 +20,28 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Python 3.14
-        id: setup-python
-        uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.14"
-
-      - uses: actions/cache@v5
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip pipenv
-          pipenv install --dev
+        run: uv sync --frozen
 
       - name: Check locale files
-        run: pipenv run python -m sausage_bot.util.check_locale_files
+        run: uv run python -m sausage_bot.util.check_locale_files
 
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
-          pipenv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          pipenv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          uv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Test with pytest
-        run: pipenv run python -m pytest
+        run: uv run python -m pytest
 
   build_push:
     needs: test
@@ -76,14 +70,15 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USER }}/sausage_bot:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
             ${{ secrets.DOCKER_USER }}/sausage_bot:dev-${{ steps.vars.outputs.short_sha }}
-
           labels: |
             Branch=dev-${{ steps.vars.outputs.short_sha }}
+            Last push time=${{ github.event.head_commit.timestamp }}
             Last commit msg=${{ github.event.head_commit.message }}
             Last commit=${{ github.sha }}
             Last run number=${{ github.run_number }}
           build-args: |
             BRANCH=dev-${{ steps.vars.outputs.short_sha }}
+            LAST_PUSH_TIME=${{ github.event.head_commit.timestamp }}
             LAST_COMMIT_MSG=${{ github.event.head_commit.message }}
             LAST_COMMIT=${{ github.sha }}
             LAST_RUN_NUMBER=${{ github.run_number }}
