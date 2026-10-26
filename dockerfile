@@ -27,6 +27,7 @@ COPY sausage_bot/__main__.py /app/sausage_bot/
 VOLUME [ "/data" ]
 
 ARG BRANCH="testbranch"
+ARG LAST_PUSH_TIME="testpush time"
 ARG LAST_COMMIT_MSG="testcommit message"
 ARG LAST_COMMIT="testcommit"
 ARG LAST_RUN_NUMBER="testrun"

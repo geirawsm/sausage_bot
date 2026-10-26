@@ -70,14 +70,15 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USER }}/sausage_bot:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
             ${{ secrets.DOCKER_USER }}/sausage_bot:dev-${{ steps.vars.outputs.short_sha }}
-
           labels: |
             Branch=dev-${{ steps.vars.outputs.short_sha }}
+            Last push time=${{ github.event.head_commit.timestamp }}
             Last commit msg=${{ github.event.head_commit.message }}
             Last commit=${{ github.sha }}
             Last run number=${{ github.run_number }}
           build-args: |
             BRANCH=dev-${{ steps.vars.outputs.short_sha }}
+            LAST_PUSH_TIME=${{ github.event.head_commit.timestamp }}
             LAST_COMMIT_MSG=${{ github.event.head_commit.message }}
             LAST_COMMIT=${{ github.sha }}
             LAST_RUN_NUMBER=${{ github.run_number }}
