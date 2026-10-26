@@ -1329,7 +1329,7 @@ class Guild(commands.Cog):
             return
         try:
             guild = config.bot.get_guild(int(guild_id))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # Someone typed free text instead of picking from the autocomplete
             guild = None
         if guild is None:
@@ -1690,21 +1690,26 @@ async def get_version(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     version_in = file_io.read_json(envs.version_file)
     logger.debug(f"Got `version_in`: {version_in}")
-    await interaction.followup.send(
-        "Branch: {}\n"
-        "Prefix: {}\n"
-        "Last commit message: {}\n"
-        "Last commit: {}\n"
-        "Last run number: {}\n".format(
-            version_in["BRANCH"],
-            config.PREFIX,
-            version_in["LAST_COMMIT_MSG"],
-            version_in["LAST_COMMIT"],
-            version_in["LAST_RUN_NUMBER"],
-        ),
-        ephemeral=True,
-    )
-    return
+    if version_in in [{}, None]:
+        await interaction.followup.send("Error when reading version.json")
+        return
+    else:
+        await interaction.followup.send(
+            "Branch: {}\n"
+            "Prefix: {}\n"
+            "Last push time: {}\n"
+            "Last commit message: {}\n"
+            "Last commit: {}\n"
+            "Last run number: {}\n".format(
+                version_in["BRANCH"],
+                config.PREFIX,
+                version_in["LAST_PUSH_TIME"],
+                version_in["LAST_COMMIT_MSG"],
+                version_in["LAST_COMMIT"],
+                version_in["LAST_RUN_NUMBER"],
+            ),
+            ephemeral=True,
+        )
 
 
 # Commands
