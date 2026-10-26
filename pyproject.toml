@@ -19,7 +19,7 @@ dependencies = [
     "requests>=2.32.0",
     "spotipy",
     "tabulate",
-    "pillow<=13.0.0",
+    "pillow>=13.0.0",
     "audioop-lts",
     "typing-extensions",
     "environs",
