@@ -38,7 +38,7 @@ ENV BRANCH=${BRANCH} \
   LAST_COMMIT=${LAST_COMMIT} \
   LAST_RUN_NUMBER=${LAST_RUN_NUMBER}
 
-RUN python -c "import json, os; json.dump({k: os.environ[k] for k in ('BRANCH','LAST_PUSH_TIME',LAST_COMMIT_MSG','LAST_COMMIT','LAST_RUN_NUMBER')}, open('/app/sausage_bot/version.json','w'))"
+RUN python -c "import json, os; json.dump({k: os.environ[k] for k in ('BRANCH','LAST_PUSH_TIME','LAST_COMMIT_MSG','LAST_COMMIT','LAST_RUN_NUMBER')}, open('/app/sausage_bot/version.json','w'))"
 
 # Run bot
 ENTRYPOINT [ "python", "-m", "sausage_bot", "--data-dir", "/data" ]
