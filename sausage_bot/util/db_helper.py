@@ -1312,6 +1312,7 @@ async def get_output(
     single: bool = False,
     single_col_results: bool = False,
     as_settings_json: bool = False,
+    limit: int = 0,
     guild_id=None,
 ) -> dict:
     """
@@ -1350,6 +1351,8 @@ async def get_output(
     as_settings_json: bool
         Return output as json instead of dict
         Only works for tables with two columns
+    limit: int
+        Set a limit for results returned
     """
 
     db_file = envs.resolve_db_file(template_info, guild_id)
@@ -1423,11 +1426,30 @@ async def get_output(
     if order_by or rowid_sort:
         _cmd += " ORDER BY "
         if order_by:
-            _cmd += ", ".join(f"{order[0]} {order[1]}" for order in order_by)
+            for order in order_by:
+                if len(order) == 2:
+                    _cmd += f"{order[0]} {order[1]}"
+                elif len(order) == 3 and order[2] in [
+                    "date",
+                    "time",
+                    "datetime",
+                    "julianday",
+                    "unixepoch",
+                    "strftime",
+                    "timediff",
+                ]:
+                    _cmd += f"{order[2]}({order[0]}) {order[1]}"
+                else:
+                    logger.error(
+                        "Wrong number of arguments for 'order_by' in 'get_output'"
+                    )
+                    return None
         elif rowid_sort:
             _cmd += ", rowid"
         else:
             logger.error("Error with setting sort order!")
+    if limit > 0:
+        _cmd += f" LIMIT {limit}"
     logger.debug(f"Using this query: {_cmd}")
     try:
         async with aiosqlite.connect(db_file) as db:
@@ -1502,7 +1524,9 @@ async def get_random_left_exclude_output(
             out = await out.fetchall()
             return out
     except aiosqlite.OperationalError as e:
-        logger.error(f"Error getting random left-exclude output from `{table_name1}`: {e}")
+        logger.error(
+            f"Error getting random left-exclude output from `{table_name1}`: {e}"
+        )
         return None
 
 
