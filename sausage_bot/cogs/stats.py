@@ -6,6 +6,7 @@ to a channel
 """
 
 import os
+import datetime
 from discord.ext import commands, tasks
 from discord.app_commands import locale_str, describe
 import discord
@@ -144,45 +145,26 @@ async def get_db_hide_roles(guild):
 
 
 async def log_guild_stats(guild, files_in_codebase, lines_in_codebase, total_members):
-    stats_log_inserts = []
-    date_exist = await db_helper.get_output(
+    "Log today's stats for `guild`, unless today is already logged"
+    last_logged = await db_helper.get_output(
         template_info=envs.stats_db_log_schema,
         order_by=[("datetime", "DESC")],
         select=("datetime"),
         single=True,
+        limit=1,
         guild_id=guild.id,
     )
-    if not date_exist:
-        # get_output(single=True) returns {} (not None) when no row matches
-        date_exist = None
-    else:
-        logger.debug(f"`date_exist`: {date_exist}")
-        date_exist = date_exist["datetime"]
-    log_stats = False
-    if date_exist:
-        date_now = await datetime_handling.get_dt(format="date")
-        date_exist = await datetime_handling.get_dt(format="date", dt=date_exist)
-        if date_now > date_exist:
-            log_stats = True
-        else:
-            logger.debug("Today has already been logged, skipping...")
-    elif date_exist is None:
-        log_stats = True
-    if log_stats:
-        stats_log_inserts.append(
-            (
-                str(await datetime_handling.get_dt("ISO8601")),
-                files_in_codebase,
-                lines_in_codebase,
-                total_members,
-            )
-        )
-        # Write changes to database
-        await db_helper.insert_many_all(
-            template_info=envs.stats_db_log_schema,
-            inserts=stats_log_inserts,
-            guild_id=guild.id,
-        )
+    now_iso = str(await datetime_handling.get_dt("ISO8601"))
+    # Both are `YYYY-MM-DD HH:MM:SS.SSS`, so the first ten chars are the
+    # date and can be compared as plain strings
+    if last_logged and last_logged["datetime"][:10] == now_iso[:10]:
+        logger.debug("Today has already been logged, skipping...")
+        return
+    await db_helper.insert_many_all(
+        template_info=envs.stats_db_log_schema,
+        inserts=[(now_iso, files_in_codebase, lines_in_codebase, total_members)],
+        guild_id=guild.id,
+    )
 
 
 async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
@@ -361,9 +343,6 @@ async def update_guild_stats(guild, files_in_codebase, lines_in_codebase):
     total_members = 0
     if eval(stats_settings["show_members_total"]):
         total_members = guild.member_count
-    # Update log database if not already this day
-    logger.debug("Logging stats")
-    await log_guild_stats(guild, files_in_codebase, lines_in_codebase, total_members)
     # Update the stats-msg
     dt_log = await datetime_handling.get_dt("datetimefull")
     stats_info = ""
@@ -946,6 +925,39 @@ class Stats(commands.Cog):
         logger.debug("`update_stats` waiting for bot to be ready...")
         await config.bot.wait_until_ready()
 
+    async def log_stats_all_guilds():
+        "Log today's stats for every approved guild, independent of posting"
+        approved_guilds = await db_helper.get_output(
+            envs.guilds_db_schema, where=("status", "approved")
+        )
+        _codebase = get_stats_codebase()
+        for guild_row in approved_guilds:
+            guild = config.bot.get_guild(int(guild_row["guild_id"]))
+            if guild is None:
+                continue
+            async with db_helper.guild_locale_context(guild.id):
+                try:
+                    await log_guild_stats(
+                        guild,
+                        _codebase["total_files"],
+                        _codebase["total_lines"],
+                        guild.member_count,
+                    )
+                except Exception as error:
+                    logger.error(f"Error logging stats for `{guild.name}`: {error}")
+
+    @tasks.loop(time=datetime.time(hour=0, minute=5, tzinfo=datetime.timezone.utc))
+    async def task_log_stats():
+        "Daily loop that saves stats to each guild's `stats_log.sqlite`"
+        await Stats.log_stats_all_guilds()
+
+    @task_log_stats.before_loop
+    async def before_log_stats():
+        await config.bot.wait_until_ready()
+        # Catch up if the bot was down at the scheduled time. Safe to
+        # repeat, `log_guild_stats` skips guilds already logged today.
+        await Stats.log_stats_all_guilds()
+
 
 async def ensure_guild_stats_tables(guild):
     """
@@ -1003,7 +1015,9 @@ async def setup(bot):
     # Shared, always-running loop - each tick checks every guild's own
     # tasks_db_schema row to decide whether to process that guild.
     Stats.task_update_stats.start()
+    Stats.task_log_stats.start()
 
 
 async def teardown(bot):
     Stats.task_update_stats.cancel()
+    Stats.task_log_stats.cancel()
