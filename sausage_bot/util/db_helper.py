@@ -172,7 +172,7 @@ async def prep_table(table_in, inserts: list = [], guild_id=None):
         logger.debug("`not_write_database` activated")
     elif not args.not_write_database:
         try:
-            async with aiosqlite.connect(db_file) as db:
+            async with aiosqlite.connect(db_file, timeout=5) as db:
                 await db.execute(_cmd)
                 logger.debug(f"Changed {db.total_changes} rows")
         except aiosqlite.OperationalError as e:
@@ -213,14 +213,14 @@ async def add_missing_db_setup(template_info, dict_in: dict = None, guild_id=Non
             if col_in[0] not in _existing_cols:
                 logger.debug(f"Adding {col_in[0]}")
                 dict_in[table_name].append(col_in)
-        async with aiosqlite.connect(db_file) as db:
+        async with aiosqlite.connect(db_file, timeout=5) as db:
             for col in dict_in[table_name]:
                 _cmd = f"ALTER TABLE {table_name} ADD COLUMN {col[0]};"
                 logger.debug(f"Using this query: {_cmd}")
                 await db.execute(_cmd)
         # Remove cols if they are not wanted anymore
         del_cols = [x for x in _existing_cols if x not in [x[0] for x in wanted_cols]]
-        async with aiosqlite.connect(db_file) as db:
+        async with aiosqlite.connect(db_file, timeout=5) as db:
             for col in del_cols:
                 _cmd = f"ALTER TABLE {table_name} DROP COLUMN {col};"
                 logger.debug(f"Using this query: {_cmd}")
@@ -316,7 +316,7 @@ async def add_cols(template_info, cols_add: list = None, guild_id=None):
     # without a default, so the constraint is left to the rebuild
     _cmd = "ALTER TABLE {} ADD COLUMN {} {};"
     try:
-        async with aiosqlite.connect(db_file) as db:
+        async with aiosqlite.connect(db_file, timeout=5) as db:
             for col_in in cols_add:
                 _type = col_types.get(col_in, "TEXT").replace("NOT NULL", "").strip()
                 __cmd = _cmd.format(table_name, col_in, _type)
@@ -362,7 +362,7 @@ async def rebuild_table_from_schema(template_info, guild_id=None):
     _cmd += ")"
     shared_cols = ", ".join(col for col in wanted_cols if col in existing_cols)
     try:
-        async with aiosqlite.connect(db_file) as db:
+        async with aiosqlite.connect(db_file, timeout=5) as db:
             await db.execute(f"DROP TABLE IF EXISTS {tmp_name}")
             logger.debug(f"Using this query: {_cmd}")
             await db.execute(_cmd)
@@ -391,7 +391,7 @@ async def remove_cols(template_info, cols_remove: list = None, guild_id=None):
     else:
         _cmd = "ALTER TABLE {} DROP COLUMN {};"
         try:
-            async with aiosqlite.connect(db_file) as db:
+            async with aiosqlite.connect(db_file, timeout=5) as db:
                 for col_in in cols_remove:
                     __cmd = _cmd.format(table_name, col_in)
                     logger.debug(f"Using this query: {__cmd}")
@@ -598,7 +598,7 @@ async def db_fix_dict_uuid_in_filters(template_info, guild_id=None):
     db_file = envs.resolve_db_file(template_info, guild_id)
     table_name = template_info["name"]
     try:
-        async with aiosqlite.connect(db_file) as db:
+        async with aiosqlite.connect(db_file, timeout=5) as db:
             rows = await db.execute(f"SELECT rowid, uuid FROM {table_name}")
             repairs = []
             for rowid, uuid_in in await rows.fetchall():
@@ -1100,7 +1100,7 @@ async def insert_many_all(template_info, inserts: tuple = None, guild_id=None):
         logger.debug("`not_write_database` activated")
     elif not args.not_write_database:
         try:
-            async with aiosqlite.connect(db_file) as db:
+            async with aiosqlite.connect(db_file, timeout=5) as db:
                 if input_singles:
                     await db.execute(_cmd, inserts)
                 elif input_multiples:
@@ -1110,7 +1110,7 @@ async def insert_many_all(template_info, inserts: tuple = None, guild_id=None):
             logger.debug("Done and commited!")
             return True
         except aiosqlite.OperationalError as e:
-            logger.error(e)
+            logger.error(f"Error when writing to database: {e}")
             return False
 
 
@@ -1426,9 +1426,10 @@ async def get_output(
     if order_by or rowid_sort:
         _cmd += " ORDER BY "
         if order_by:
+            order_terms = []
             for order in order_by:
                 if len(order) == 2:
-                    _cmd += f"{order[0]} {order[1]}"
+                    order_terms.append(f"{order[0]} {order[1]}")
                 elif len(order) == 3 and order[2] in [
                     "date",
                     "time",
@@ -1438,12 +1439,13 @@ async def get_output(
                     "strftime",
                     "timediff",
                 ]:
-                    _cmd += f"{order[2]}({order[0]}) {order[1]}"
+                    order_terms.append(f"{order[2]}({order[0]}) {order[1]}")
                 else:
                     logger.error(
                         "Wrong number of arguments for 'order_by' in 'get_output'"
                     )
                     return None
+            _cmd += ", ".join(order_terms)
         elif rowid_sort:
             _cmd += ", rowid"
         else:
@@ -1476,7 +1478,7 @@ async def get_output(
             logger.debug(f"Returning {len(out)} items from from db")
             return out
     except aiosqlite.OperationalError as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error '{e}' when running this command: {_cmd}")
         return {}
 
 
