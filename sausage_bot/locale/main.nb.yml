@@ -157,7 +157,7 @@ nb:
       Vanity-url-kode: %{vanity_url_code}
     invite_link: "Invitasjonslenke: %{invite_url}"
     no_invite: Kunne ikke lage en invitasjonslenke for denne guilden.
-    how_to_approve: "Bruk `/approve-guild guild_id:%{guild_id}` i denne kanalen for å aktivere den."
+    how_to_approve: "Bruk `/guild approve guild_id:%{guild_id}` i denne kanalen for å aktivere den."
     auto_approved: Dette er admin-guilden, så den ble godkjent automatisk.
   notify_at_new_guild:
     added_to_server: "Yay, da har jeg blitt lagt til i denne serverern! Nå venter vi bare på at bot eieren godkjenner invitasjonen så kommandoene blir tilgjengelig og vil fungere. Jeg kommer med ny melding her når det skjer."

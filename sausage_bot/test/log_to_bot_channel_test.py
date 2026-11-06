@@ -86,18 +86,30 @@ async def test_log_to_bot_channel_without_a_guild_is_a_no_op():
     assert await discord_commands.log_to_bot_channel(None, "hi") is None
 
 
-async def test_log_to_bot_channel_skips_a_channel_the_guild_lacks(
+async def test_log_to_bot_channel_creates_a_channel_the_guild_lacks(
     guild_db_root, monkeypatch
 ):
     # The default `bot-log` setting is no guarantee that such a channel
-    # actually exists in the guild.
+    # actually exists in the guild, so it is created and then used.
     await _prep_settings("no-such-channel")
     guild, channel = _make_guild()
     monkeypatch.setattr(
         discord_commands, "get_text_channel_list", lambda g: {"other": "1"}
     )
+    created = MagicMock()
+    created.id = 4242
+    create_missing_channel = AsyncMock(return_value=created)
+    monkeypatch.setattr(
+        discord_commands, "create_missing_channel", create_missing_channel
+    )
 
-    assert await discord_commands.log_to_bot_channel(guild, "hi") is None
+    result = await discord_commands.log_to_bot_channel(guild, "hi")
 
-    guild.get_channel.assert_not_called()
-    channel.send.assert_not_awaited()
+    create_missing_channel.assert_awaited_once_with(
+        guild=guild,
+        channel_name="no-such-channel",
+        topic="This is the bot output channel",
+    )
+    guild.get_channel.assert_called_once_with(4242)
+    channel.send.assert_awaited_once_with(content="hi")
+    assert result == "sent-msg"

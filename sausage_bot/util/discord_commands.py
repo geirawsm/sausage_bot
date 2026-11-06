@@ -112,7 +112,7 @@ def get_channel_name(guild: discord.Guild, channel_in) -> str:
     """
     try:
         channel_out = guild.get_channel_or_thread(int(channel_in))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         channel_out = None
     if channel_out is None:
         logger.warning(f"Could not find channel `{channel_in}` in guild {guild.id}")
@@ -462,9 +462,14 @@ async def log_to_bot_channel(guild: discord.Guild, content_in=None):
         # The setting names a channel that does not exist in this guild -
         # nothing to send to, but the caller should not crash either.
         logger.error(
-            f"Guild `{guild.id}` has no channel named `{log_channel}`, skipping message"
+            f"Guild `{guild.id}` has no channel named `{log_channel}`, creating"
         )
-        return None
+        channel_obj = await create_missing_channel(
+            guild=guild,
+            channel_name=log_channel,
+            topic="This is the bot output channel",
+        )
+        channel_id = channel_obj.id
     channel_out = guild.get_channel(int(channel_id))
     if channel_out is None:
         logger.error(f"Could not get channel `{log_channel}`, skipping message")
