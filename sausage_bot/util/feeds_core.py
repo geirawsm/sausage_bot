@@ -531,7 +531,7 @@ def get_member_name(guild: discord.Guild, member_in) -> str:
     """
     try:
         member_out = guild.get_member(int(member_in))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         member_out = None
     if member_out is None:
         logger.warning(f"Could not find member `{member_in}` in guild {guild.id}")
@@ -844,7 +844,7 @@ def channel_is_gone(guild: discord.Guild, channel_in) -> bool:
     """
     try:
         return guild.get_channel_or_thread(int(channel_in)) is None
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         logger.error(f"Channel `{channel_in}` is not a valid channel id")
         return True
 
