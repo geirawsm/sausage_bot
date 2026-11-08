@@ -178,6 +178,8 @@ def configure_logging(
 ):
     logger = logging.getLogger()
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+    # Request URLs logged at DEBUG contain the API key
+    logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
     console_level = _level(console_level, logging.INFO)
     file_level = _level(file_level, logging.INFO)
 

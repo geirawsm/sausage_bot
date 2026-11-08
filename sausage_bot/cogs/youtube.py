@@ -13,6 +13,7 @@ import typing
 
 # from yt_dlp import YoutubeDL
 import re
+from urllib.parse import unquote
 import pendulum
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -67,9 +68,7 @@ def canonical_allow_deny(value) -> str | None:
         return _value
     for language in available_languages():
         for canonical in ("allow", "deny"):
-            translated = _t(
-                f"common.literal_allow_deny.{canonical}", locale=language
-            )
+            translated = _t(f"common.literal_allow_deny.{canonical}", locale=language)
             if _value == str(translated).strip().lower():
                 return canonical
     return None
@@ -229,7 +228,7 @@ class YouTubeAPI:
             response = request.execute()
             _track_quota(1)  # channels.list = 1 unit
 
-            if response["items"]:
+            if response.get("items"):
                 return response["items"][0]["id"]
             return None
 
@@ -238,7 +237,7 @@ class YouTubeAPI:
             response = request.execute()
             _track_quota(1)  # channels.list = 1 unit
 
-            if response["items"]:
+            if response.get("items"):
                 return response["items"][0]["id"]
             return None
 
@@ -251,7 +250,7 @@ class YouTubeAPI:
             response = request.execute()
             _track_quota(100)  # search.list = 100 units
 
-            if response["items"]:
+            if response.get("items"):
                 return response["items"][0]["snippet"]["channelId"]
             return None
 
@@ -263,7 +262,7 @@ class YouTubeAPI:
             response = request.execute()
             _track_quota(1)  # channels.list = 1 unit
 
-            if not response["items"]:
+            if not response.get("items"):
                 raise YoutubeApiError(
                     f"Found no channel with the id {channel_id}",
                     "youtube.errors.channel_not_found",
@@ -272,17 +271,18 @@ class YouTubeAPI:
 
             return response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
+        url = unquote(url)
         channel_id = ""
         if match := re.search(r"youtube\.com/channel/([\w-]+)", url):
             channel_id = match.group(1)
-        if match := re.search(r"youtube\.com/@([\w.-]+)", url):
+        if match := re.search(r"youtube\.com/@([^/?#\s]+)", url):
             channel_id = get_channel_id_from_handle(match.group(1))
         if match := re.search(r"youtube\.com/user/([\w-]+)", url):
             channel_id = get_channel_id_from_username(match.group(1))
         if match := re.search(r"youtube\.com/c/([\w-]+)", url):
             channel_id = get_channel_id_from_search(match.group(1))
-        playlist_id = get_uploads_playlist_id(channel_id)
         if channel_id:
+            playlist_id = get_uploads_playlist_id(channel_id)
             return {"channel_id": channel_id, "playlist_id": playlist_id}
         else:
             return None
@@ -410,14 +410,16 @@ async def feed_name_url_autocomplete(
     return [
         discord.app_commands.Choice(
             name="{} ({})".format(
-                feed_in["feed_name"], re.fullmatch(r"^https:\/\/www\.youtube\.com\/(.*)", str(feed_in["url"])).group(1)
-            ), value=feed_in["feed_name"]
+                feed_in["feed_name"],
+                re.fullmatch(
+                    r"^https:\/\/www\.youtube\.com\/(.*)", str(feed_in["url"])
+                ).group(1),
+            ),
+            value=feed_in["feed_name"],
         )
         for feed_in in feeds
-        if current.lower() in "{}-{}".format(
-            feed_in["feed_name"].lower(),
-            feed_in["url"].lower()
-        )
+        if current.lower()
+        in "{}-{}".format(feed_in["feed_name"].lower(), feed_in["url"].lower())
     ][:25]
 
 
@@ -638,7 +640,7 @@ class Youtube(commands.Cog):
             # exception would leave the interaction unanswered, and all
             # the user gets is Discord's own "application did not
             # respond"
-            logger.error(str(error))
+            logger.error(f"YoutubeApiError: {str(error)}")
             await interaction.followup.send(error.localized())
             return
         if youtube_info is None:
@@ -771,9 +773,7 @@ class Youtube(commands.Cog):
             guild_id=interaction.guild.id,
         )
         logger.debug(f"`feed_info` is {feed_info}")
-        changes_out = _t(
-            "youtube.commands.edit.changes_out.msg", feed_name=feed_name
-        )
+        changes_out = _t("youtube.commands.edit.changes_out.msg", feed_name=feed_name)
         updates_in = []
         if new_feed_name != "":
             updates_in.append(("feed_name", new_feed_name))
@@ -919,9 +919,7 @@ class Youtube(commands.Cog):
         )
         if removing_filter:
             await interaction.followup.send(
-                _t(
-                    "youtube.commands.filter_remove.msg_confirm", filter_in=filter_in
-                ),
+                _t("youtube.commands.filter_remove.msg_confirm", filter_in=filter_in),
                 ephemeral=True,
             )
             logger.info(f"Youtube filter '{filter_in}' removed from feed '{feed_name}'")
