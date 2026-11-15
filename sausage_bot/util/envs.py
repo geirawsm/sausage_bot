@@ -572,6 +572,35 @@ stats_db_log_schema = {
     ],
 }
 
+rules_db_rulesets_schema = {
+    "db_file": "rules.sqlite",
+    "name": "rulesets",
+    "items": [
+        ["ruleset_uuid", "TEXT NOT NULL UNIQUE"],
+        ["name", "TEXT NOT NULL UNIQUE"],
+        ["header", "TEXT"],
+        ["text_pre_rules", "TEXT"],
+        ["text_post_rules", "TEXT"],
+        ["channel_id", "INT"],
+        ["msg_id", "INT"],
+        ["last_synced_datetime", "TEXT"],
+    ],
+    "type_checking": {
+        "channel_id": "int",
+    },
+}
+
+rules_db_rules_schema = {
+    "db_file": "rules.sqlite",
+    "name": "rules",
+    "items": [
+        ["ruleset_uuid", "TEXT NOT NULL"],
+        ["rule_uuid", "TEXT"],
+        ["rule_number", "INT"],
+        ["rule_text", "TEXT"],
+    ],
+}
+
 # RSS
 rss_db_schema = {
     "db_file": "rss_feeds.sqlite",
