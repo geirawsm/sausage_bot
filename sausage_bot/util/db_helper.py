@@ -1962,3 +1962,37 @@ async def calculate_average_rating_from_db(
         return None
     ratings = [int(rating["rating"]) for rating in all_ratings]
     return sum(ratings) / len(ratings)
+
+
+async def renumber_rows_in_table(template_info, guild_id=None):
+    """
+    Highly specific function to be used in rules.py for renumbering existing
+    rules in the order of row_number.
+    """
+    db_file = envs.resolve_db_file(template_info, guild_id)
+    table_name = template_info["name"]
+
+    _cmd = f"""
+        UPDATE {table_name} AS r
+        SET rule_number = n.new_number
+        FROM (
+            SELECT rule_uuid,
+                ROW_NUMBER() OVER (
+                    PARTITION BY ruleset_uuid ORDER BY rule_number
+                ) AS new_number
+            FROM {table_name}
+        ) AS n
+        WHERE r.rule_uuid = n.rule_uuid
+        AND r.rule_number <> n.new_number;
+    """
+    if args.not_write_database:
+        logger.debug("`not_write_database` activated")
+    elif not args.not_write_database:
+        try:
+            async with aiosqlite.connect(db_file) as db:
+                await db.execute(_cmd)
+                await db.commit()
+            logger.debug("Done and commited!")
+            return True
+        except aiosqlite.OperationalError as e:
+            logger.error(f"Error: {e}")

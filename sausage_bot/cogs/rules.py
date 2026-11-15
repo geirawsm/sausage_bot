@@ -6,6 +6,7 @@ rules: Set and administer rules for a discord server
 
 import discord
 from discord.ext import commands
+from discord.app_commands import locale_str, describe
 import uuid
 
 from sausage_bot.util import envs, config
@@ -132,24 +133,21 @@ class ModalRuleRemove(discord.ui.Modal):
             f"self.rules_prep ({len(self.rules_prep)}: {str(self.rules_prep)[0:500]}"
         )
         self.rules_dropdown = discord.ui.Select(
-            # placeholder=_t("quote.modals.add.dropdown_placeholder"),
-            # TODO: i18n
-            placeholder="Placeholder for rules",
+            placeholder=_t("rules.modals.remove.placeholder"),
             options=self.rules_prep,
             max_values=int(len(self.rules_prep) if self.rules_prep else 25),
             required=True,
         )
         self.add_item(
-            # TODO: i18n
-            discord.ui.Label(text="Remove rules", component=self.rules_dropdown)
+            discord.ui.Label(
+                text=_t("rules.modals.remove.label"), component=self.rules_dropdown
+            )
         )
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         if not self.rules_dropdown.values:
             await interaction.response.send_message(
-                # _t("quote.modals.add.msg_request_quote"),
-                # TODO: i18n
-                "no values received",
+                _t("rules.modals.remove.msg_no_values"),
                 ephemeral=True,
             )
         else:
@@ -160,9 +158,11 @@ class ModalRuleRemove(discord.ui.Modal):
                     msg_rules_deleted.append(
                         "`{}. {}`".format(rule["rule_number"], rule["rule_text"])
                     )
-            # TODO: i18n
             await interaction.response.send_message(
-                content="Rules removed:\n{}".format("\n".join(msg_rules_deleted)),
+                content="{}\n{}".format(
+                    _t("rules.modals.remove.msg_removed"),
+                    "\n".join(msg_rules_deleted),
+                ),
                 ephemeral=True,
             )
 
@@ -170,14 +170,14 @@ class ModalRuleRemove(discord.ui.Modal):
         self, interaction: discord.Interaction, error: Exception
     ) -> None:
         await interaction.response.send_message(
-            # _t("quote.modals.error", error=error),
-            # TODO: i18n
-            "Det skjedde en feil ved fjerning av regler",
+            _t("rules.modals.remove.error"),
             ephemeral=True,
         )
 
 
-async def sync_rule_msg(interaction, rule_set, reorder=False):
+async def sync_rule_msg(
+    interaction: discord.interaction, rule_set: list, renumber: bool = False
+):
     logger.debug("Running rule syncing...")
     ruleset_info = await db_helper.get_output(
         template_info=envs.rules_db_rulesets_schema,
@@ -192,20 +192,25 @@ async def sync_rule_msg(interaction, rule_set, reorder=False):
         order_by=[("rule_number", "ASC")],
         guild_id=interaction.guild.id,
     )
-    # TODO: Få til renummerering av reglene som allerede ligger inne
     logger.debug("Loaded databases:")
     logger.debug(f"ruleset_info: {ruleset_info}")
     logger.debug(f"complete_rules: {complete_rules}")
+    if renumber:
+        for i, rule in enumerate(complete_rules, start=1):
+            rule["rule_number"] = i
+        await db_helper.renumber_rows_in_table(
+            template_info=envs.rules_db_rules_schema, guild_id=interaction.guild.id
+        )
     # create new rule message
     msg_out = ""
     if ruleset_info["header"] not in ["", None]:
         msg_out += "## {}".format(ruleset_info["header"])
-    logger.debug("After header")
+    logger.debug("Added header: {}".format(ruleset_info["header"]))
     if ruleset_info["text_pre_rules"] not in ["", None]:
         if msg_out != "":
             msg_out += "\n"
         msg_out += "{}\n".format(ruleset_info["text_pre_rules"])
-    logger.debug("After text_pre_rules")
+    logger.debug("Added text_pre_rules: {}".format(ruleset_info["text_pre_rules"]))
     if msg_out != "":
         msg_out += "\n"
     for rule in complete_rules:
@@ -216,7 +221,7 @@ async def sync_rule_msg(interaction, rule_set, reorder=False):
         if msg_out != "":
             msg_out += "\n\n"
         msg_out += "{}\n".format(ruleset_info["text_post_rules"])
-    logger.debug("After text_post_rules")
+    logger.debug("Added text_post_rules: {}".format(ruleset_info["text_post_rules"]))
     logger.debug(f"New rule message created:\n{msg_out}")
     # Assert existence of db message
     msg_id = ruleset_info["msg_id"]
@@ -262,39 +267,33 @@ class Rules(commands.Cog):
 
     rules_group = discord.app_commands.Group(
         name="rules",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.groups.stats")),
-        description="rules",
+        description=locale_str(_t("rules.commands.groups.rules")),
     )
 
     rules_set_group = discord.app_commands.Group(
         name="set",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.groups.posting")),
-        description="set",
+        description=locale_str(_t("rules.commands.groups.set")),
         parent=rules_group,
     )
 
     rules_rule_group = discord.app_commands.Group(
         name="rule",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.groups.posting")),
-        description="rule",
+        description=locale_str(_t("rules.commands.groups.rule")),
         parent=rules_group,
     )
 
     @discord_commands.is_owner_or_manage_guild()
     @rules_set_group.command(
         name="add",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="add",
+        description=locale_str(_t("rules.commands.set.add.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set_name=_t("rules.commands.desc.rule_set_name"),
+        header=_t("rules.commands.desc.header"),
+        text_pre_rules=_t("rules.commands.desc.text_pre_rules"),
+        text_post_rules=_t("rules.commands.desc.text_post_rules"),
+        channel=_t("rules.commands.desc.channel"),
+    )
     async def add_rule_set(
         self,
         interaction: discord.Interaction,
@@ -316,9 +315,9 @@ class Rules(commands.Cog):
         )
         if rule_set_name in existing_rulesets:
             await interaction.followup.send(
-                # TODO: i18n
-                # content=_t("stats.commands.add.msg.add_confirmed"),
-                content=f"Ruleset '{rule_set_name}' already exist",
+                content=_t(
+                    "rules.commands.set.add.msg_already_exists", name=rule_set_name
+                ),
                 ephemeral=True,
             )
             return
@@ -342,13 +341,17 @@ class Rules(commands.Cog):
             )
             await discord_commands.log_to_bot_channel(
                 guild=interaction.guild,
-                # TODO: i18n
-                content_in=f"Brukeren {interaction.user.name} la til regelsettet {rule_set_name}"
+                content_in=_t(
+                    "rules.commands.set.add.log_added",
+                    user=interaction.user.name,
+                    name=rule_set_name,
+                ),
+            )
+            await sync_rule_msg(
+                interaction=interaction, rule_set=[_uuid, rule_set_name]
             )
             await interaction.followup.send(
-                # TODO: i18n
-                # content=_t("stats.commands.add.msg.add_confirmed"),
-                content=f"Ruleset '{rule_set_name}' added",
+                content=_t("rules.commands.set.add.msg_confirm", name=rule_set_name),
                 ephemeral=True,
             )
 
@@ -356,15 +359,11 @@ class Rules(commands.Cog):
     @discord.app_commands.autocomplete(rule_set=ruleset_db_autocomplete)
     @rules_set_group.command(
         name="remove",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="remove",
+        description=locale_str(_t("rules.commands.set.remove.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set=_t("rules.commands.desc.rule_set"),
+    )
     async def remove_rule_set(
         self,
         interaction: discord.Interaction,
@@ -382,12 +381,14 @@ class Rules(commands.Cog):
             guild_id=interaction.guild.id,
             single=True,
         )
-        ruleset_msg = await discord_commands.get_message_obj(
-            guild=interaction.guild,
-            channel_id=msg_info["channel_id"],
-            msg_id=msg_info["msg_id"],
-        )
-        await ruleset_msg.delete()
+        logger.debug(f"Got msg_info: {msg_info}")
+        if msg_info["channel_id"] != "" or msg_info["msg_id"] != "":
+            ruleset_msg = await discord_commands.get_message_obj(
+                guild=interaction.guild,
+                channel_id=msg_info["channel_id"],
+                msg_id=msg_info["msg_id"],
+            )
+            await ruleset_msg.delete()
         await db_helper.del_row_by_OR_filter(
             template_info=envs.rules_db_rulesets_schema,
             where=[("ruleset_uuid", rule_set[0])],
@@ -400,13 +401,14 @@ class Rules(commands.Cog):
         )
         await discord_commands.log_to_bot_channel(
             guild=interaction.guild,
-            # TODO: i18n
-            content_in=f"Brukeren {interaction.user.name} fjernet regelsettet {rule_set[1]}"
+            content_in=_t(
+                "rules.commands.set.remove.log_removed",
+                user=interaction.user.name,
+                name=rule_set[1],
+            ),
         )
         await interaction.followup.send(
-            # TODO: i18n
-            # content=_t("stats.commands.add.msg.add_confirmed"),
-            content=f"Ruleset '{rule_set[1]}' removed",
+            content=_t("rules.commands.set.remove.msg_confirm", name=rule_set[1]),
             ephemeral=True,
         )
 
@@ -414,15 +416,17 @@ class Rules(commands.Cog):
     @discord.app_commands.autocomplete(rule_set=ruleset_db_autocomplete)
     @rules_set_group.command(
         name="edit",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="edit",
+        description=locale_str(_t("rules.commands.set.edit.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set=_t("rules.commands.desc.rule_set"),
+        new_rule_set_name=_t("rules.commands.desc.new_rule_set_name"),
+        header=_t("rules.commands.desc.header"),
+        text_pre_rules=_t("rules.commands.desc.text_pre_rules"),
+        text_post_rules=_t("rules.commands.desc.text_post_rules"),
+        channel=_t("rules.commands.desc.channel"),
+        message_id=_t("rules.commands.desc.message_id"),
+    )
     async def edit_rule_set(
         self,
         interaction: discord.Interaction,
@@ -450,42 +454,63 @@ class Rules(commands.Cog):
         if new_rule_set_name:
             pending_changes.append(("name", str(new_rule_set_name)))
             changes_out.append(
-                "\n- Rule set name: `{}` -> `{}`".format(
-                    ruleset_info["name"], new_rule_set_name
+                "\n- "
+                + _t(
+                    "rules.commands.set.edit.change_name",
+                    old=ruleset_info["name"],
+                    new=new_rule_set_name,
                 )
             )
         if header:
             pending_changes.append(("header", str(header)))
             changes_out.append(
-                "\n- Header: `{}` -> `{}`".format(ruleset_info["header"], header)
+                "\n- "
+                + _t(
+                    "rules.commands.set.edit.change_header",
+                    old=ruleset_info["header"],
+                    new=header,
+                )
             )
         if text_pre_rules:
             pending_changes.append(("text_pre_rules", str(text_pre_rules)))
             changes_out.append(
-                "\n- Text inserted before rules: `{}` -> `{}`".format(
-                    ruleset_info["text_pre_rules"], text_pre_rules
+                "\n- "
+                + _t(
+                    "rules.commands.set.edit.change_text_pre_rules",
+                    old=ruleset_info["text_pre_rules"],
+                    new=text_pre_rules,
                 )
             )
         if text_post_rules:
             pending_changes.append(("text_post_rules", str(text_post_rules)))
             changes_out.append(
-                "\n- Text inserted after rules: `{}` -> `{}`".format(
-                    ruleset_info["text_post_rules"], text_post_rules
+                "\n- "
+                + _t(
+                    "rules.commands.set.edit.change_text_post_rules",
+                    old=ruleset_info["text_post_rules"],
+                    new=text_post_rules,
                 )
             )
         if channel:
             pending_changes.append(("channel_id", int(channel.id)))
             changes_out.append(
-                "\n- Rules channel: `{}` -> `{}`".format(
-                    interaction.guild.get_channel_or_thread(ruleset_info["channel_id"]),
-                    str(channel.name),
+                "\n- "
+                + _t(
+                    "rules.commands.set.edit.change_channel",
+                    old=interaction.guild.get_channel_or_thread(
+                        ruleset_info["channel_id"]
+                    ),
+                    new=str(channel.name),
                 )
             )
         if message_id:
             pending_changes.append(("msg_id", int(message_id)))
             changes_out.append(
-                "\n- Message id: `{}` -> `{}`".format(
-                    ruleset_info["message_id"], message_id
+                "\n- "
+                + _t(
+                    "rules.commands.set.edit.change_message_id",
+                    old=ruleset_info["msg_id"],
+                    new=message_id,
                 )
             )
         if len(pending_changes) > 0:
@@ -498,21 +523,21 @@ class Rules(commands.Cog):
                 guild_id=interaction.guild.id,
             )
         await sync_rule_msg(interaction, rule_set)
-        msg_out = "Ruleset edited:"
+        msg_out = _t("rules.commands.set.edit.msg_header")
         for change in changes_out:
             msg_out += change
-        # TODO: i18n
-        log_msg = f"Brukeren {interaction.user.name} endret regelsettet {rule_set[1]}:"
+        log_msg = _t(
+            "rules.commands.set.edit.log_edited",
+            user=interaction.user.name,
+            name=rule_set[1],
+        )
         for change in changes_out:
             log_msg += change
         await discord_commands.log_to_bot_channel(
             guild=interaction.guild,
-            # TODO: i18n
-            content_in=log_msg
+            content_in=log_msg,
         )
         await interaction.followup.send(
-            # TODO: i18n
-            # content=_t("stats.commands.add.msg.add_confirmed"),
             content=msg_out,
             ephemeral=True,
         )
@@ -521,24 +546,21 @@ class Rules(commands.Cog):
     @discord.app_commands.autocomplete(rule_set=ruleset_db_autocomplete)
     @rules_set_group.command(
         name="sync",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="sync",
+        description=locale_str(_t("rules.commands.set.sync.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set=_t("rules.commands.desc.rule_set"),
+        renumber=_t("rules.commands.desc.renumber"),
+    )
     async def sync_rule_set(
-        self, interaction: discord.Interaction, rule_set: str, reorder: bool = False
+        self, interaction: discord.Interaction, rule_set: str, renumber: bool = False
     ):
         """
         Sync a ruleset
         """
         await interaction.response.defer(ephemeral=True)
         rule_set = rule_set.split(AUTOCOMPLETE_SEP)
-        await sync_rule_msg(interaction, rule_set, reorder)
+        await sync_rule_msg(interaction, rule_set, renumber)
         # Update sync time
         await db_helper.update_fields(
             template_info=envs.rules_db_rulesets_schema,
@@ -552,9 +574,7 @@ class Rules(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await interaction.followup.send(
-            # TODO: i18n
-            # content=_t("stats.commands.add.msg.add_confirmed"),
-            content="Ruleset '{}' synced".format(rule_set[1]),
+            content=_t("rules.commands.set.sync.msg_confirm", name=rule_set[1]),
             ephemeral=True,
         )
 
@@ -562,15 +582,14 @@ class Rules(commands.Cog):
     @discord.app_commands.autocomplete(rule_set=ruleset_db_autocomplete)
     @rules_rule_group.command(
         name="add",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="add",
+        description=locale_str(_t("rules.commands.rule.add.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set=_t("rules.commands.desc.rule_set"),
+        rule_number=_t("rules.commands.desc.rule_number"),
+        rule_text=_t("rules.commands.desc.rule_text"),
+        auto_update=_t("rules.commands.desc.auto_update"),
+    )
     async def add_ruleset_rule(
         self,
         interaction: discord.Interaction,
@@ -595,13 +614,20 @@ class Rules(commands.Cog):
             await sync_rule_msg(interaction, rule_set)
         await discord_commands.log_to_bot_channel(
             guild=interaction.guild,
-            # TODO: i18n
-            content_in=f"Brukeren {interaction.user.name} la til regel: {rule_number}. {rule_text}"
+            content_in=_t(
+                "rules.commands.rule.add.log_added",
+                user=interaction.user.name,
+                number=rule_number,
+                text=rule_text,
+            ),
         )
         await interaction.followup.send(
-            # TODO: i18n
-            # content=_t("stats.commands.add.msg.add_confirmed"),
-            content=f"Rule added to '{rule_set[1]}': {rule_number}. {rule_text}",
+            content=_t(
+                "rules.commands.rule.add.msg_confirm",
+                name=rule_set[1],
+                number=rule_number,
+                text=rule_text,
+            ),
             ephemeral=True,
         )
 
@@ -609,15 +635,13 @@ class Rules(commands.Cog):
     @discord.app_commands.autocomplete(rule_set=ruleset_db_autocomplete)
     @rules_rule_group.command(
         name="add_multiple",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="add_multiple",
+        description=locale_str(_t("rules.commands.rule.add_multiple.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set=_t("rules.commands.desc.rule_set"),
+        multiple_rules=_t("rules.commands.desc.multiple_rules"),
+        auto_update=_t("rules.commands.desc.auto_update"),
+    )
     async def add_multiple_ruleset_rules(
         self,
         interaction: discord.Interaction,
@@ -639,18 +663,22 @@ class Rules(commands.Cog):
             order_by=[("rule_number", "ASC")],
             guild_id=interaction.guild.id,
         )
-        last_rule_number = complete_rules[-1]["rule_number"]
+        if len(complete_rules) == 0:
+            last_rule_number = 0
+        else:
+            last_rule_number = complete_rules[-1]["rule_number"]
         rules_in = multiple_rules.split("\n")
-        # TODO: i18n
-        rules_msg = "Rules added:"
-        log_msg = "Brukeren {} la til følgende regler i '{}':".format(
-            interaction.user.name, rule_set[1]
+        rules_msg = _t("rules.commands.rule.add_multiple.msg_header")
+        log_msg = _t(
+            "rules.commands.rule.add_multiple.log_added",
+            user=interaction.user.name,
+            name=rule_set[1],
         )
         process_rules = []
         for rule_in in rules_in:
             last_rule_number += 1
-            rules_msg += "\n- {}. {}".format(last_rule_number, rule_in)
-            log_msg += "\n- {}. {}".format(last_rule_number, rule_in)
+            rules_msg += "\n- `{}. {}`".format(last_rule_number, rule_in)
+            log_msg += "\n- `{}. {}`".format(last_rule_number, rule_in)
             process_rules.append(
                 (
                     rule_set[0],
@@ -671,7 +699,6 @@ class Rules(commands.Cog):
             guild=interaction.guild, content_in=log_msg
         )
         await interaction.followup.send(
-            # TODO: i18n
             content=rules_msg,
             ephemeral=True,
         )
@@ -680,19 +707,14 @@ class Rules(commands.Cog):
     @discord.app_commands.autocomplete(rule_set=ruleset_db_autocomplete)
     @rules_rule_group.command(
         name="remove",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="remove",
+        description=locale_str(_t("rules.commands.rule.remove.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_set=_t("rules.commands.desc.rule_set"),
+        renumber=_t("rules.commands.desc.renumber"),
+    )
     async def remove_ruleset_rule(
-        self,
-        interaction: discord.Interaction,
-        rule_set: str,
+        self, interaction: discord.Interaction, rule_set: str, renumber: bool = False
     ):
         """
         Remove rules from a ruleset
@@ -705,9 +727,7 @@ class Rules(commands.Cog):
             guild_id=interaction.guild.id,
         )
         remove_rules_view = ModalRuleRemove(
-            # title_in=_t("quote.modals.edit.modal_title"),
-            # TODO: i18n
-            title_in="Remove rules",
+            title_in=_t("rules.modals.remove.title"),
             rules_in=existing_rules,
         )
         await interaction.response.send_modal(remove_rules_view)
@@ -717,21 +737,22 @@ class Rules(commands.Cog):
             where=[("rule_uuid", _uuid) for _uuid in remove_rules_view.rules_out],
             guild_id=interaction.guild.id,
         )
-        await sync_rule_msg(interaction, rule_set)
+        await sync_rule_msg(
+            interaction=interaction, rule_set=rule_set, renumber=renumber
+        )
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(rule_in=rule_db_autocomplete)
     @rules_rule_group.command(
         name="edit",
-        # TODO: i18n
-        # description=locale_str(_t("stats.commands.add.command")),
-        description="edit",
+        description=locale_str(_t("rules.commands.rule.edit.command")),
     )
-    # TODO: i18n
-    # @describe(
-    #     setting_in=_t("stats.commands.add.desc.name_of_setting"),
-    #     value_in=_t("stats.commands.add.desc.value_in"),
-    # )
+    @describe(
+        rule_in=_t("rules.commands.desc.rule_in"),
+        new_rule_number=_t("rules.commands.desc.new_rule_number"),
+        new_rule_text=_t("rules.commands.desc.new_rule_text"),
+        auto_update=_t("rules.commands.desc.auto_update"),
+    )
     async def edit_rule(
         self,
         interaction: discord.Interaction,
@@ -754,23 +775,25 @@ class Rules(commands.Cog):
         pending_changes = []
         changes_out = []
         if new_rule_number is not None:
-            print("new_rule_number")
             pending_changes.append(("rule_number", str(new_rule_number)))
             changes_out.append(
-                "\n- Rule number: `{}` -> `{}`".format(
-                    rules_in_db[0]["rule_number"], new_rule_number
+                "\n- "
+                + _t(
+                    "rules.commands.rule.edit.change_number",
+                    old=rules_in_db[0]["rule_number"],
+                    new=new_rule_number,
                 )
             )
         if new_rule_text is not None:
             pending_changes.append(("rule_text", str(new_rule_text)))
             changes_out.append(
-                "\n- Rule text: `{}` -> `{}`".format(
-                    rules_in_db[0]["rule_text"], new_rule_text
+                "\n- "
+                + _t(
+                    "rules.commands.rule.edit.change_text",
+                    old=rules_in_db[0]["rule_text"],
+                    new=new_rule_text,
                 )
             )
-        print(f"rule_in: {rule_in}")
-        print(f"pending_changes: {pending_changes}")
-        print(f"changes_out: {changes_out}")
         if len(pending_changes) > 0:
             await db_helper.update_fields(
                 template_info=envs.rules_db_rules_schema,
@@ -781,12 +804,10 @@ class Rules(commands.Cog):
                 guild_id=interaction.guild.id,
             )
         await sync_rule_msg(interaction, rule_in)
-        msg_out = "Rule edited:"
+        msg_out = _t("rules.commands.rule.edit.msg_header")
         for change in changes_out:
             msg_out += change
         await interaction.followup.send(
-            # TODO: i18n
-            # content=_t("stats.commands.add.msg.add_confirmed"),
             content=msg_out,
             ephemeral=True,
         )
