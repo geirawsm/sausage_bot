@@ -1627,6 +1627,8 @@ async def synclocal(ctx):
     await _reply.edit(
         content="✅✅ {}".format(_t("main.commands.synclocal.msg_confirm"))
     )
+    await _reply.delete()
+    await ctx.message.delete()
     logger.debug("Done")
 
 
@@ -1649,6 +1651,8 @@ async def syncglobal(ctx):
     await _reply.edit(
         content="✅✅ {}".format(_t("main.commands.syncglobal.msg_confirm"))
     )
+    await _reply.delete()
+    await ctx.message.delete()
     logger.debug("Done")
 
 
@@ -1665,6 +1669,9 @@ async def clear_global(ctx):
     await _reply.edit(
         content="✅ {}".format(_t("main.commands.clearglobals.msg_confirm"))
     )
+    await _reply.delete()
+    await ctx.message.delete()
+    logger.debug("Done")
 
 
 @commands.is_owner()
@@ -1680,6 +1687,9 @@ async def clear_local(ctx):
     await _reply.edit(
         content="✅ {}".format(_t("main.commands.clearlocals.msg_confirm"))
     )
+    await _reply.delete()
+    await ctx.message.delete()
+    logger.debug("Done")
 
 
 @config.bot.tree.command(

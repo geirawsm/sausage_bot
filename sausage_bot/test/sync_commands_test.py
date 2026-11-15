@@ -32,9 +32,10 @@ GUILD_ID = 868902121834176513
 
 
 def _make_ctx():
-    reply = SimpleNamespace(edit=mock.AsyncMock())
+    reply = SimpleNamespace(edit=mock.AsyncMock(), delete=mock.AsyncMock())
     return SimpleNamespace(
         guild=SimpleNamespace(id=GUILD_ID),
+        message=SimpleNamespace(delete=mock.AsyncMock()),
         reply=mock.AsyncMock(return_value=reply),
     )
 
@@ -65,6 +66,8 @@ async def test_syncglobal_does_not_clear_the_tree_before_syncing():
         await syncglobal.callback(ctx)
     tree.clear_commands.assert_not_called()
     tree.sync.assert_awaited_once_with(guild=None)
+    ctx.reply.return_value.delete.assert_awaited_once()
+    ctx.message.delete.assert_awaited_once()
 
 
 async def test_synclocal_refills_the_guild_scope_it_clears():
@@ -82,3 +85,5 @@ async def test_synclocal_refills_the_guild_scope_it_clears():
         )
     tree.copy_global_to.assert_called_once_with(guild=ctx.guild)
     tree.sync.assert_awaited_once_with(guild=ctx.guild)
+    ctx.reply.return_value.delete.assert_awaited_once()
+    ctx.message.delete.assert_awaited_once()
