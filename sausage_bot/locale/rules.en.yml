@@ -1,0 +1,70 @@
+en:
+  commands:
+    groups:
+      rules: Administer rules on the server
+      set: Administer rulesets
+      rule: Administer the rules in a ruleset
+    desc:
+      rule_set: The ruleset to use
+      rule_set_name: Name of the ruleset
+      new_rule_set_name: New name for the ruleset
+      header: Header shown on top of the rules
+      text_pre_rules: Text shown before the rules
+      text_post_rules: Text shown after the rules
+      channel: Channel the ruleset is posted in
+      message_id: ID of an existing message to use for the ruleset
+      rule_number: Number of the rule
+      rule_text: Text of the rule
+      multiple_rules: The rules to add, one rule per line
+      rule_in: The rule to use
+      new_rule_number: New number for the rule
+      new_rule_text: New text for the rule
+      renumber: Renumber the rules before syncing
+      auto_update: Update the rules message right away
+    set:
+      add:
+        command: Add a ruleset
+        msg_already_exists: "Ruleset `%{name}` already exists"
+        msg_confirm: "Ruleset `%{name}` added and posted"
+        log_added: "%{user} added the ruleset `%{name}`"
+      remove:
+        command: Remove a ruleset
+        msg_confirm: "Ruleset `%{name}` removed"
+        log_removed: "%{user} removed the ruleset `%{name}`"
+      edit:
+        command: Edit a ruleset
+        msg_header: "Ruleset edited:"
+        log_edited: "%{user} edited the ruleset `%{name}`:"
+        change_name: "Rule set name: `%{old}` -> `%{new}`"
+        change_header: "Header: `%{old}` -> `%{new}`"
+        change_text_pre_rules: "Text inserted before rules: `%{old}` -> `%{new}`"
+        change_text_post_rules: "Text inserted after rules: `%{old}` -> `%{new}`"
+        change_channel: "Rules channel: `%{old}` -> `%{new}`"
+        change_message_id: "Message id: `%{old}` -> `%{new}`"
+      sync:
+        command: Update the rules message from the database
+        msg_confirm: "Ruleset `%{name}` synced"
+    rule:
+      add:
+        command: Add a rule to a ruleset
+        msg_confirm: "Rule added to `%{name}`: %{number}. %{text}"
+        log_added: "%{user} added a rule: `%{number}. %{text}`"
+      add_multiple:
+        command: Add several rules to a ruleset at once
+        msg_header: "Rules added:"
+        log_added: "%{user} added the following rules in `%{name}`:"
+      remove:
+        command: Remove rules from a ruleset
+      edit:
+        command: Edit a rule
+        msg_header: "Rule edited:"
+        change_number: "Rule number: `%{old}` -> `%{new}`"
+        change_text: "Rule text: `%{old}` -> `%{new}`"
+  modals:
+    remove:
+      title: Remove rules
+      label: Remove rules
+      placeholder: Select the rules to remove...
+      msg_no_values: No rules selected
+      msg_removed: "Rules removed:"
+      error: An error occurred while removing rules

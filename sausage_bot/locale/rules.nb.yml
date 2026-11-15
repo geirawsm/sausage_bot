@@ -1,0 +1,70 @@
+nb:
+  commands:
+    groups:
+      rules: Administrer regler på serveren
+      set: Administrer regelsett
+      rule: Administrer reglene i et regelsett
+    desc:
+      rule_set: Regelsettet som skal brukes
+      rule_set_name: Navn på regelsettet
+      new_rule_set_name: Nytt navn på regelsettet
+      header: Overskrift som vises over reglene
+      text_pre_rules: Tekst som vises før reglene
+      text_post_rules: Tekst som vises etter reglene
+      channel: Kanalen regelsettet postes i
+      message_id: ID til en eksisterende melding som skal brukes til regelsettet
+      rule_number: Nummeret på regelen
+      rule_text: Teksten i regelen
+      multiple_rules: Reglene som skal legges til, én regel per linje
+      rule_in: Regelen som skal brukes
+      new_rule_number: Nytt nummer på regelen
+      new_rule_text: Ny tekst i regelen
+      renumber: Renummerer reglene før synkronisering
+      auto_update: Oppdater regelmeldingen med en gang
+    set:
+      add:
+        command: Legg til et regelsett
+        msg_already_exists: "Regelsettet `%{name}` finnes allerede"
+        msg_confirm: "Regelsettet `%{name}` er lagt til og postet"
+        log_added: "%{user} la til regelsettet `%{name}`"
+      remove:
+        command: Fjern et regelsett
+        msg_confirm: "Regelsettet `%{name}` er fjernet"
+        log_removed: "%{user} fjernet regelsettet `%{name}`"
+      edit:
+        command: Endre et regelsett
+        msg_header: "Regelsettet er endret:"
+        log_edited: "%{user} endret regelsettet `%{name}`:"
+        change_name: "Navn på regelsett: `%{old}` -> `%{new}`"
+        change_header: "Overskrift: `%{old}` -> `%{new}`"
+        change_text_pre_rules: "Tekst før reglene: `%{old}` -> `%{new}`"
+        change_text_post_rules: "Tekst etter reglene: `%{old}` -> `%{new}`"
+        change_channel: "Regelkanal: `%{old}` -> `%{new}`"
+        change_message_id: "Meldings-id: `%{old}` -> `%{new}`"
+      sync:
+        command: Oppdater regelmeldingen fra databasen
+        msg_confirm: "Regelsettet `%{name}` er synkronisert"
+    rule:
+      add:
+        command: Legg til en regel i et regelsett
+        msg_confirm: "Regel lagt til i `%{name}`: %{number}. %{text}"
+        log_added: "%{user} la til regel: `%{number}. %{text}`"
+      add_multiple:
+        command: Legg til flere regler i et regelsett samtidig
+        msg_header: "Regler lagt til:"
+        log_added: "%{user} la til følgende regler i `%{name}`:"
+      remove:
+        command: Fjern regler fra et regelsett
+      edit:
+        command: Endre en regel
+        msg_header: "Regelen er endret:"
+        change_number: "Regelnummer: `%{old}` -> `%{new}`"
+        change_text: "Regeltekst: `%{old}` -> `%{new}`"
+  modals:
+    remove:
+      title: Fjern regler
+      label: Fjern regler
+      placeholder: Velg reglene som skal fjernes...
+      msg_no_values: Ingen regler valgt
+      msg_removed: "Regler fjernet:"
+      error: Det skjedde en feil ved fjerning av regler
