@@ -341,8 +341,9 @@ class Rules(commands.Cog):
                 guild_id=interaction.guild.id,
             )
             await discord_commands.log_to_bot_channel(
+                guild=interaction.guild,
                 # TODO: i18n
-                f"Brukeren {interaction.user.name} la til regelsettet {rule_set_name}"
+                content_in=f"Brukeren {interaction.user.name} la til regelsettet {rule_set_name}"
             )
             await interaction.followup.send(
                 # TODO: i18n
@@ -398,8 +399,9 @@ class Rules(commands.Cog):
             guild_id=interaction.guild.id,
         )
         await discord_commands.log_to_bot_channel(
+            guild=interaction.guild,
             # TODO: i18n
-            f"Brukeren {interaction.user.name} fjernet regelsettet {rule_set[1]}"
+            content_in=f"Brukeren {interaction.user.name} fjernet regelsettet {rule_set[1]}"
         )
         await interaction.followup.send(
             # TODO: i18n
@@ -504,8 +506,9 @@ class Rules(commands.Cog):
         for change in changes_out:
             log_msg += change
         await discord_commands.log_to_bot_channel(
+            guild=interaction.guild,
             # TODO: i18n
-            log_msg
+            content_in=log_msg
         )
         await interaction.followup.send(
             # TODO: i18n
@@ -591,8 +594,9 @@ class Rules(commands.Cog):
             logger.debug("auto_update activated")
             await sync_rule_msg(interaction, rule_set)
         await discord_commands.log_to_bot_channel(
+            guild=interaction.guild,
             # TODO: i18n
-            f"Brukeren {interaction.user.name} la til regel: {rule_number}. {rule_text}"
+            content_in=f"Brukeren {interaction.user.name} la til regel: {rule_number}. {rule_text}"
         )
         await interaction.followup.send(
             # TODO: i18n
