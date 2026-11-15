@@ -177,7 +177,9 @@ class ModalRuleRemove(discord.ui.Modal):
         )
 
 
-async def sync_rule_msg(interaction, rule_set, reorder=False):
+async def sync_rule_msg(
+    interaction: discord.interaction, rule_set: list, renumber: bool = False
+):
     logger.debug("Running rule syncing...")
     ruleset_info = await db_helper.get_output(
         template_info=envs.rules_db_rulesets_schema,
@@ -192,10 +194,15 @@ async def sync_rule_msg(interaction, rule_set, reorder=False):
         order_by=[("rule_number", "ASC")],
         guild_id=interaction.guild.id,
     )
-    # TODO: Få til renummerering av reglene som allerede ligger inne
     logger.debug("Loaded databases:")
     logger.debug(f"ruleset_info: {ruleset_info}")
     logger.debug(f"complete_rules: {complete_rules}")
+    if renumber:
+        for i, rule in enumerate(complete_rules, start=1):
+            rule["rule_number"] = i
+        await db_helper.renumber_rows_in_table(
+            template_info=envs.rules_db_rules_schema, guild_id=interaction.guild.id
+        )
     # create new rule message
     msg_out = ""
     if ruleset_info["header"] not in ["", None]:
@@ -343,12 +350,15 @@ class Rules(commands.Cog):
             await discord_commands.log_to_bot_channel(
                 guild=interaction.guild,
                 # TODO: i18n
-                content_in=f"Brukeren {interaction.user.name} la til regelsettet {rule_set_name}"
+                content_in=f"Brukeren {interaction.user.name} la til regelsettet `{rule_set_name}`",
+            )
+            await sync_rule_msg(
+                interaction=interaction, rule_set=[_uuid, rule_set_name]
             )
             await interaction.followup.send(
                 # TODO: i18n
                 # content=_t("stats.commands.add.msg.add_confirmed"),
-                content=f"Ruleset '{rule_set_name}' added",
+                content=f"Ruleset '{rule_set_name}' added and posted",
                 ephemeral=True,
             )
 
@@ -382,12 +392,14 @@ class Rules(commands.Cog):
             guild_id=interaction.guild.id,
             single=True,
         )
-        ruleset_msg = await discord_commands.get_message_obj(
-            guild=interaction.guild,
-            channel_id=msg_info["channel_id"],
-            msg_id=msg_info["msg_id"],
-        )
-        await ruleset_msg.delete()
+        logger.debug(f"Got msg_info: {msg_info}")
+        if msg_info["channel_id"] != "" or msg_info["msg_id"] != "":
+            ruleset_msg = await discord_commands.get_message_obj(
+                guild=interaction.guild,
+                channel_id=msg_info["channel_id"],
+                msg_id=msg_info["msg_id"],
+            )
+            await ruleset_msg.delete()
         await db_helper.del_row_by_OR_filter(
             template_info=envs.rules_db_rulesets_schema,
             where=[("ruleset_uuid", rule_set[0])],
@@ -401,7 +413,7 @@ class Rules(commands.Cog):
         await discord_commands.log_to_bot_channel(
             guild=interaction.guild,
             # TODO: i18n
-            content_in=f"Brukeren {interaction.user.name} fjernet regelsettet {rule_set[1]}"
+            content_in=f"Brukeren {interaction.user.name} fjernet regelsettet `{rule_set[1]}`",
         )
         await interaction.followup.send(
             # TODO: i18n
@@ -502,13 +514,15 @@ class Rules(commands.Cog):
         for change in changes_out:
             msg_out += change
         # TODO: i18n
-        log_msg = f"Brukeren {interaction.user.name} endret regelsettet {rule_set[1]}:"
+        log_msg = (
+            f"Brukeren {interaction.user.name} endret regelsettet `{rule_set[1]}`:"
+        )
         for change in changes_out:
             log_msg += change
         await discord_commands.log_to_bot_channel(
             guild=interaction.guild,
             # TODO: i18n
-            content_in=log_msg
+            content_in=log_msg,
         )
         await interaction.followup.send(
             # TODO: i18n
@@ -531,14 +545,14 @@ class Rules(commands.Cog):
     #     value_in=_t("stats.commands.add.desc.value_in"),
     # )
     async def sync_rule_set(
-        self, interaction: discord.Interaction, rule_set: str, reorder: bool = False
+        self, interaction: discord.Interaction, rule_set: str, renumber: bool = False
     ):
         """
         Sync a ruleset
         """
         await interaction.response.defer(ephemeral=True)
         rule_set = rule_set.split(AUTOCOMPLETE_SEP)
-        await sync_rule_msg(interaction, rule_set, reorder)
+        await sync_rule_msg(interaction, rule_set, renumber)
         # Update sync time
         await db_helper.update_fields(
             template_info=envs.rules_db_rulesets_schema,
@@ -596,7 +610,7 @@ class Rules(commands.Cog):
         await discord_commands.log_to_bot_channel(
             guild=interaction.guild,
             # TODO: i18n
-            content_in=f"Brukeren {interaction.user.name} la til regel: {rule_number}. {rule_text}"
+            content_in=f"Brukeren {interaction.user.name} la til regel: `{rule_number}. {rule_text}`",
         )
         await interaction.followup.send(
             # TODO: i18n
@@ -639,18 +653,21 @@ class Rules(commands.Cog):
             order_by=[("rule_number", "ASC")],
             guild_id=interaction.guild.id,
         )
-        last_rule_number = complete_rules[-1]["rule_number"]
+        if len(complete_rules) == 0:
+            last_rule_number = 0
+        else:
+            last_rule_number = complete_rules[-1]["rule_number"]
         rules_in = multiple_rules.split("\n")
         # TODO: i18n
         rules_msg = "Rules added:"
-        log_msg = "Brukeren {} la til følgende regler i '{}':".format(
+        log_msg = "Brukeren {} la til følgende regler i `{}`:".format(
             interaction.user.name, rule_set[1]
         )
         process_rules = []
         for rule_in in rules_in:
             last_rule_number += 1
-            rules_msg += "\n- {}. {}".format(last_rule_number, rule_in)
-            log_msg += "\n- {}. {}".format(last_rule_number, rule_in)
+            rules_msg += "\n- `{}. {}`".format(last_rule_number, rule_in)
+            log_msg += "\n- `{}. {}`".format(last_rule_number, rule_in)
             process_rules.append(
                 (
                     rule_set[0],
@@ -690,9 +707,7 @@ class Rules(commands.Cog):
     #     value_in=_t("stats.commands.add.desc.value_in"),
     # )
     async def remove_ruleset_rule(
-        self,
-        interaction: discord.Interaction,
-        rule_set: str,
+        self, interaction: discord.Interaction, rule_set: str, renumber: bool = False
     ):
         """
         Remove rules from a ruleset
@@ -717,7 +732,9 @@ class Rules(commands.Cog):
             where=[("rule_uuid", _uuid) for _uuid in remove_rules_view.rules_out],
             guild_id=interaction.guild.id,
         )
-        await sync_rule_msg(interaction, rule_set)
+        await sync_rule_msg(
+            interaction=interaction, rule_set=rule_set, renumber=renumber
+        )
 
     @discord_commands.is_owner_or_manage_guild()
     @discord.app_commands.autocomplete(rule_in=rule_db_autocomplete)
