@@ -155,6 +155,26 @@ Command: `/emojis`
 - Edit an emoji (`/emojis edit`)
 - Get info about an emoji (`/emojis info`)
 
+### Manage rules
+
+Manage rules in a dedicated channel. Rules exist in a ruleset. A ruleset has a name, header, text before rules listing and text after rules listing. A ruleset is connected to a channel.
+
+Command: `/rules`
+
+#### Rulesets
+
+- Add a ruleset (`/rules set add`)
+- Remove a ruleset (`/rules set remove`)
+- Edit a ruleset (`/rules set edit`)
+- Sync a ruleset (`/rules set sync`)
+
+#### Rules
+
+- Add a single rule to a ruleset (`/rules rule add`)
+- Add multiple rules to a ruleset (`/rules rule add_multiple`)
+- Remove rules (`/rules rule remove`)
+- Edit rule (`/rules rule edit`)
+
 ### RSS
 
 Post RSS-feeds to a channel, both normal RSS-feeds and podcasts from Spotify.
