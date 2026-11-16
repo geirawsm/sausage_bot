@@ -344,12 +344,18 @@ class ModalQuoteAdd(discord.ui.Modal):
             await interaction.response.send_message(msg_out, ephemeral=True)
         return
 
-    async def on_error(
-        self, interaction: discord.Interaction, error: Exception
-    ) -> None:
-        await interaction.response.send_message(
-            _t("quote.modals.error", error=error), ephemeral=True
-        )
+    async def on_error(self, interaction, error):
+        if isinstance(error, discord.NotFound):
+            logger.warning("Interaction expired before response")
+            return
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                _t("quote.modals.error", error=error), ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                _t("quote.modals.error", error=error), ephemeral=True
+            )
 
 
 def channel_setting_saver(setting_name: str):
@@ -1958,7 +1964,7 @@ def build_quote_rows(quote_uuid: str, msgs: list[discord.Message]) -> tuple:
                 _q.id,
                 _q.author.id,
                 _q.author.name,
-                _q.content,
+                _q.clean_content,
                 content_order,
             )
         )
