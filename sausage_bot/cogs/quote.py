@@ -276,7 +276,7 @@ class ModalQuoteAdd(discord.ui.Modal):
         if len(msgs_in) == 0:
             return None
         for _msg in msgs_in:
-            oneliner = f"{_msg.author.name}: {_msg.content[:90]}..."
+            oneliner = f"{_msg.author.name}: {_msg.clean_content[:90]}..."
             logger.debug(f"Checking quote: {oneliner}")
             if isinstance(defaults, list) and _msg.id in defaults:
                 _default_in = True
@@ -344,12 +344,18 @@ class ModalQuoteAdd(discord.ui.Modal):
             await interaction.response.send_message(msg_out, ephemeral=True)
         return
 
-    async def on_error(
-        self, interaction: discord.Interaction, error: Exception
-    ) -> None:
-        await interaction.response.send_message(
-            _t("quote.modals.error", error=error), ephemeral=True
-        )
+    async def on_error(self, interaction, error):
+        if isinstance(error, discord.NotFound):
+            logger.warning("Interaction expired before response")
+            return
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                _t("quote.modals.error", error=error), ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                _t("quote.modals.error", error=error), ephemeral=True
+            )
 
 
 def channel_setting_saver(setting_name: str):
@@ -982,7 +988,7 @@ class Quotes(commands.Cog):
                 channel_id=quote_from_db["channel_id"],
             )
             prep_quote_to_db.append(_q_object)
-            content = _q_object.content
+            content = _q_object.clean_content
             quote_to_db.append(
                 (
                     quote_from_db["uuid"],
@@ -1958,7 +1964,7 @@ def build_quote_rows(quote_uuid: str, msgs: list[discord.Message]) -> tuple:
                 _q.id,
                 _q.author.id,
                 _q.author.name,
-                _q.content,
+                _q.clean_content,
                 content_order,
             )
         )

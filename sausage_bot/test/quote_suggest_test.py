@@ -12,6 +12,7 @@ channel with approve/deny buttons, and only copied into `quote`,
 All tests use the `guild_db_root` fixture (see conftest.py), so nothing
 here touches real bot data.
 """
+
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -46,7 +47,7 @@ def _msg(msg_id, author_id, author_name, content):
     return SimpleNamespace(
         id=msg_id,
         author=SimpleNamespace(id=author_id, name=author_name),
-        content=content,
+        clean_content=content,
         attachments=[],
     )
 
