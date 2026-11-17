@@ -276,7 +276,7 @@ class ModalQuoteAdd(discord.ui.Modal):
         if len(msgs_in) == 0:
             return None
         for _msg in msgs_in:
-            oneliner = f"{_msg.author.name}: {_msg.content[:90]}..."
+            oneliner = f"{_msg.author.name}: {_msg.clean_content[:90]}..."
             logger.debug(f"Checking quote: {oneliner}")
             if isinstance(defaults, list) and _msg.id in defaults:
                 _default_in = True
@@ -988,7 +988,7 @@ class Quotes(commands.Cog):
                 channel_id=quote_from_db["channel_id"],
             )
             prep_quote_to_db.append(_q_object)
-            content = _q_object.content
+            content = _q_object.clean_content
             quote_to_db.append(
                 (
                     quote_from_db["uuid"],
