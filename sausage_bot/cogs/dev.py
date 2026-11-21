@@ -42,7 +42,6 @@ def local_image_dir() -> Path:
     return envs.DATA_DIR / "dev" / "github_imgs"
 
 
-
 DISCORD_IMAGE_REGEX = re.compile(
     r"!\[([^\]]*)\]\((https://(?:cdn|media)\.discordapp\.(?:com|net)/[^)\s]+)\)"
 )
@@ -467,7 +466,9 @@ class DraftView(discord.ui.View):
                 await delete_message_quietly(interaction.message)
                 return
             repo = (await get_settings()).get("repo")
-            body, error = await move_images_to_repo(repo, self.message_id, draft["body"])
+            body, error = await move_images_to_repo(
+                repo, self.message_id, draft["body"]
+            )
             if body is None:
                 await interaction.followup.send(_t("dev.msg_issue_failed", error=error))
                 return
@@ -484,7 +485,9 @@ class DraftView(discord.ui.View):
                 except discord.HTTPException:
                     continue
             quoted = "\n\n".join(
-                text for text in (message_text_and_files(m)[0] for m in originals) if text
+                text
+                for text in (message_text_and_files(m)[0] for m in originals)
+                if text
             )
             await channel.send(
                 quote_text(quoted or draft["body"])
@@ -537,9 +540,7 @@ class Dev(commands.Cog):
         if guild is None:
             return
         async with db_helper.guild_locale_context(guild.id):
-            await discord_commands.log_to_bot_channel(
-                guild, _t("dev.msg_no_token")
-            )
+            await discord_commands.log_to_bot_channel(guild, _t("dev.msg_no_token"))
 
     async def cog_load(self):
         "Give the buttons of drafts that are still waiting their callbacks back"
