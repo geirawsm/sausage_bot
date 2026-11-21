@@ -514,13 +514,33 @@ def check_user_channel_role(guild: discord.Guild, text_in):
         _user_in = username_in.strip().replace("@", "").replace('"', "")
         logger.debug(f"Stripped and fixed _user_in: {_user_in}")
         user_obj = get(guild.members, name=_user_in)
+        if user_obj is None:
+            # Fall back to nick / display name / global name (case-insensitive)
+            _lower = _user_in.lower()
+            for member in guild.members:
+                _names = {
+                    member.name,
+                    member.nick,
+                    member.global_name,
+                    member.display_name,
+                }
+                if _lower in {n.lower() for n in _names if n}:
+                    user_obj = member
+                    break
         logger.debug(f"Got user_obj: {user_obj}")
         return user_obj
 
     def check_similar_discord_usernames(
         username_in, similar_floor=None, similar_roof=None
     ):
-        _members = [member.name for member in guild.members]
+        _members = list(
+            {
+                n
+                for member in guild.members
+                for n in (member.name, member.nick, member.global_name)
+                if n
+            }
+        )
         logger.debug(f"Comparing {username_in} with {_members}")
         similars = file_io.check_similarity(
             username_in, _members, ratio_floor=similar_floor, ratio_roof=similar_roof
@@ -588,31 +608,31 @@ def check_user_channel_role(guild: discord.Guild, text_in):
             )
     logger.debug(f"`text_in` after channel check: {text_in}")
     logger.debug(f"username_errors: {username_errors}")
-    if len(username_errors) > 0:
-        for _user in enumerate(username_errors):
-            logger.debug(f"Checking {_user[1].group(0)} ({_user})")
-            logger.debug("Check as a user")
-            user_check = _user[1].group(0).strip().replace("@", "").replace('"', "")
-            similar_users = check_similar_discord_usernames(
-                username_in=user_check, similar_floor=0.7, similar_roof=0.95
-            )
-            logger.debug(f"similar_users: {similar_users}")
-            if similar_users is not False:
-                user_obj = check_discord_username(similar_users)
-                logger.debug(f"Want to replace `{str(similar_users)}`")
-                text_in = text_in.replace(
-                    str(_user[1].group(0)).strip(), "<@{}>".format(user_obj.id)
-                )
-                username_errors.pop(_user[0])
-            else:
-                logger.debug("Check as a role")
-                role_check = _user[1].group(0).strip().replace("@", "").replace('"', "")
-                role_obj = check_discord_roles(role_check)
-                logger.debug(f"Want to replace `{str(role_obj)}`")
-                text_in = text_in.replace(
-                    str(_user[1].group(0)).strip(), "<@&{}>".format(role_obj.id)
-                )
-                username_errors.pop(_user[0])
+    for _user in username_errors:
+        logger.debug(f"Checking {_user.group(0)}")
+        name_check = _user.group(0).strip().replace("@", "").replace('"', "")
+        replacement = None
+        # Check as a user (similar name)
+        similar_users = check_similar_discord_usernames(
+            username_in=name_check, similar_floor=0.7, similar_roof=0.95
+        )
+        logger.debug(f"similar_users: {similar_users}")
+        if similar_users is not False:
+            user_obj = check_discord_username(similar_users)
+            if user_obj is not None:
+                replacement = "<@{}>".format(user_obj.id)
+        # Check as a role
+        if replacement is None:
+            role_obj = check_discord_roles(name_check)
+            if role_obj is not None:
+                replacement = "<@&{}>".format(role_obj.id)
+        if replacement is None:
+            # Not a user, nick or role: leave it in the text as plain text
+            logger.debug(f"Could not resolve `{name_check}`, keeping as plain text")
+        else:
+            text_in = text_in.replace(str(_user.group(0)).strip(), replacement)
+    # Unresolved names are kept as plain text, so they are not reported as errors
+    username_errors = []
     return {
         "text": text_in,
         "username_errors": username_errors,
