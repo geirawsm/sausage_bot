@@ -146,9 +146,7 @@ class ModalReactionRoleRemove(discord.ui.Modal):
             f"self.roles_prep ({len(self.roles_prep)}: {str(self.roles_prep)[0:500]}"
         )
         self.roles_dropdown = discord.ui.Select(
-            placeholder=_t(
-                "roles.modals.reaction_remove_role.dropdown_placeholder"
-            ),
+            placeholder=_t("roles.modals.reaction_remove_role.dropdown_placeholder"),
             options=self.roles_prep,
             max_values=int(len(self.roles_prep) if self.roles_prep else 25),
             required=True,
@@ -871,9 +869,7 @@ class Autoroles(commands.Cog):
         if role_in.is_bot_managed():
             embed.add_field(
                 name=_t("roles.embed.auto_managed.name"),
-                value=_t(
-                    "roles.embed.auto_managed.value_confirm", name=role_in.name
-                ),
+                value=_t("roles.embed.auto_managed.value_confirm", name=role_in.name),
                 inline=True,
             )
         elif role_in.is_integration():
@@ -970,13 +966,9 @@ class Autoroles(commands.Cog):
                 tabulate_dict["id"].append(role.id)
                 tabulate_dict["members"].append(len(role.members))
                 if role.managed:
-                    tabulate_dict["managed"].append(
-                        _t("common.literal_yes_no.lit_yes")
-                    )
+                    tabulate_dict["managed"].append(_t("common.literal_yes_no.lit_yes"))
                 elif not role.managed:
-                    tabulate_dict["managed"].append(
-                        _t("common.literal_yes_no.lit_no")
-                    )
+                    tabulate_dict["managed"].append(_t("common.literal_yes_no.lit_no"))
             return tabulate_roles(tabulate_dict)
 
         async def roles_list_emojis():
@@ -1003,17 +995,11 @@ class Autoroles(commands.Cog):
                         _t("common.literal_yes_no.lit_yes")
                     )
                 else:
-                    tabulate_dict["animated"].append(
-                        _t("common.literal_yes_no.lit_no")
-                    )
+                    tabulate_dict["animated"].append(_t("common.literal_yes_no.lit_no"))
                 if emoji.managed:
-                    tabulate_dict["managed"].append(
-                        _t("common.literal_yes_no.lit_yes")
-                    )
+                    tabulate_dict["managed"].append(_t("common.literal_yes_no.lit_yes"))
                 else:
-                    tabulate_dict["managed"].append(
-                        _t("common.literal_yes_no.lit_no")
-                    )
+                    tabulate_dict["managed"].append(_t("common.literal_yes_no.lit_no"))
             # Returning pagination
             return tabulate_emoji(dict_in=tabulate_dict)
 
@@ -1309,9 +1295,7 @@ class Autoroles(commands.Cog):
 
         if len(changes) > 0:
             changes_out = "{}:".format(
-                _t(
-                    "roles.commands.edit_emoji.changes_out", emoji_name=emoji_obj.name
-                )
+                _t("roles.commands.edit_emoji.changes_out", emoji_name=emoji_obj.name)
             )
             for change in changes:
                 changes_out += change
@@ -1352,15 +1336,11 @@ class Autoroles(commands.Cog):
         embed = discord.Embed(color=discord.Color.from_str(f"#{emoji_color}"))
         embed.set_thumbnail(url=emoji_obj.url)
         embed.add_field(name=_t("common.name"), value=emoji_obj.name, inline=True)
-        embed.add_field(
-            name=_t("common.color"), value=f"#{emoji_color}", inline=True
-        )
+        embed.add_field(name=_t("common.color"), value=f"#{emoji_color}", inline=True)
         if emoji_obj.managed:
             embed.add_field(
                 name=_t("roles.embed.auto_managed.name"),
-                value=_t(
-                    "roles.embed.auto_managed.value_confirm", name=emoji_obj.name
-                ),
+                value=_t("roles.embed.auto_managed.value_confirm", name=emoji_obj.name),
                 inline=True,
             )
         else:
@@ -1838,9 +1818,7 @@ class Autoroles(commands.Cog):
         # Get message object
         msg_info = await get_msg_info(reaction_msg, interaction.guild.id)
         if msg_info is None:
-            await interaction.followup.send(
-                _t("roles.commands.remove_msg.msg_error")
-            )
+            await interaction.followup.send(_t("roles.commands.remove_msg.msg_error"))
             return
         _msg = await discord_commands.get_message_obj(
             guild=interaction.guild,
@@ -1848,9 +1826,7 @@ class Autoroles(commands.Cog):
             channel_id=msg_info["channel"],
         )
         if _msg is None:
-            await interaction.followup.send(
-                _t("roles.commands.remove_msg.msg_error")
-            )
+            await interaction.followup.send(_t("roles.commands.remove_msg.msg_error"))
             return
         # Remove the reaction roles hanging off this message, then the
         # message itself. Both are keyed on the same uuid.
@@ -2048,9 +2024,7 @@ class Autoroles(commands.Cog):
         )
         if len(num_reaction_roles) == 1:
             await interaction.followup.send(
-                _t(
-                    "roles.commands.move_reaction_role.desc.cannot_move_last_reaction"
-                ),
+                _t("roles.commands.move_reaction_role.desc.cannot_move_last_reaction"),
                 ephemeral=True,
             )
             return
@@ -2176,9 +2150,7 @@ class Autoroles(commands.Cog):
                     sort=sort,
                     guild=interaction.guild,
                 )
-            await interaction.followup.send(
-                _t("roles.commands.reorder.msg_confirm")
-            )
+            await interaction.followup.send(_t("roles.commands.reorder.msg_confirm"))
         else:
             await interaction.followup.send(
                 _t("roles.commands.reorder.msg_already_sorted")
@@ -2228,9 +2200,7 @@ class Autoroles(commands.Cog):
             inserts=[(_setting, str(role.id))],
             guild_id=interaction.guild.id,
         )
-        await interaction.followup.send(
-            _t("roles.commands.add_settings.msg_confirm")
-        )
+        await interaction.followup.send(_t("roles.commands.add_settings.msg_confirm"))
         return
 
     @discord_commands.is_owner_or_manage_guild()
